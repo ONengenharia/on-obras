@@ -37,15 +37,11 @@ header h1 small{display:block;font-size:11px;font-weight:500;color:#9fb8cc;lette
 header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}
 header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c28}
 .who{font-size:12px;color:#9fb8cc}
-.board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px;align-items:start}
+.board{display:grid;gap:12px;overflow-x:auto;padding-bottom:6px;align-items:start}
 .col{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:200px}
 .colh{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);gap:8px}
 .colh b{font-size:13px}
 .colh span{font-family:var(--f-mono);font-size:12px;color:var(--muted);background:var(--bg);border-radius:10px;padding:1px 8px}
-.col[data-c=compras] .colh{border-top:4px solid #8a96a3;border-radius:12px 12px 0 0}
-.col[data-c=liberado] .colh{border-top:4px solid #2f6f9f;border-radius:12px 12px 0 0}
-.col[data-c=andamento] .colh{border-top:4px solid #d18b16;border-radius:12px 12px 0 0}
-.col[data-c=finalizado] .colh{border-top:4px solid #1f8a4c;border-radius:12px 12px 0 0}
 .list{display:grid;gap:8px;padding:10px;min-height:80px;align-content:start;flex:1}
 .cardo{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:7px;cursor:pointer;text-align:left}
 .cardo:hover{border-color:var(--accent)}
@@ -82,9 +78,60 @@ header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c2
 .toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy);color:#e8f1f9;padding:9px 14px;border-radius:7px;font-size:13px;z-index:50;max-width:calc(100% - 32px);text-align:center}
 .filt{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .filt input{padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);min-width:220px;flex:1;max-width:360px}
-@media (max-width:720px){.board{grid-template-columns:repeat(4,minmax(78vw,1fr));scroll-snap-type:x mandatory}.col{scroll-snap-align:start}}
+
+.abas{display:flex;gap:4px;background:var(--navy2);border-radius:9px;padding:3px}
+.abas button{border:0;background:none;color:#9fb8cc;font-weight:600;font-size:13px;padding:7px 14px;border-radius:7px}
+.abas button.on{background:#e8f1f9;color:#1e2f40}
+.resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kp{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c,var(--accent));border-radius:10px;padding:10px 12px;display:grid;gap:2px}
+.kp span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.kp b{font-size:24px;font-variant-numeric:tabular-nums}
+.kp small{font-size:12px;color:var(--muted)}
+.kp.main{background:var(--accent);border-color:var(--accent);color:#fff}.kp.main span,.kp.main small{color:#e8f1f9}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:5px 11px;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
+.chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.mapabox{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+#mapa{height:min(62vh,620px);min-height:360px}
+.pino span{display:grid;place-items:center;width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.pino b{transform:rotate(45deg);color:#fff;font:700 11px/1 var(--f-mono)}
+.pop{display:grid;gap:5px;min-width:220px;font-family:var(--f-body)}.pop small{color:#5a6f83}.pop .r{display:flex;gap:8px;align-items:center}
+.leaflet-popup-content{margin:12px 14px}
+.sem{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:8px}
+.sem h2{margin:0;font-size:14px}
+.semlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px}
+.semi{display:flex;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px}
+.semi i{width:10px;height:10px;border-radius:50%;flex:none}.semi small{display:block;color:var(--muted);font-size:11.5px}
+.col{border-top:4px solid var(--c,#8a96a3)}
+.tp{justify-self:start;display:inline-block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--t);border:1px solid var(--t);border-radius:8px;padding:1px 7px}
+.crow{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.crow input[data-nome],.inp{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)}
+.crow input[type=color]{width:34px;height:30px;border:0;padding:0;background:none}
+.clist{display:grid;gap:6px}
+.lnk:disabled{opacity:.3;cursor:default}
+.minimapa{height:240px;border-radius:8px;border:1px solid var(--line)}
+.gaveta{position:fixed;inset:0;z-index:15}
+.gfundo{position:absolute;inset:0;background:rgba(10,16,22,.45)}
+.gpainel{position:absolute;top:0;right:0;bottom:0;width:min(520px,100%);background:var(--panel);box-shadow:-10px 0 30px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:12px;overflow:auto;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) 18px}
+.gtop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.gtop h2{margin:4px 0 2px;font-size:18px}
+.gacoes{display:flex;gap:6px;flex-wrap:wrap}
+.gsub{margin:6px 0 0;font-size:14px}
+.comp{display:grid;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}
+.comp textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px;background:var(--panel);color:var(--ink);resize:vertical}
+.anx{display:flex;flex-wrap:wrap;gap:6px}.ax{font-size:12px;background:var(--accent-soft);color:var(--accent);border-radius:8px;padding:3px 8px}
+.notas{display:grid;gap:10px}
+.nota{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px}
+.nh{display:flex;gap:8px;align-items:baseline;font-size:12px;color:var(--muted)}.nh b{color:var(--ink);font-size:13px}
+.nota p{margin:0;white-space:pre-wrap;line-height:1.5;font-size:13.5px}
+.nanx{display:flex;flex-wrap:wrap;gap:6px}.nanx img{width:84px;height:84px;object-fit:cover;border-radius:6px;display:block}
+.arq{font-size:12.5px;color:var(--accent);font-weight:600;text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:5px 8px}
+@media (max-width:720px){.abas{order:3;width:100%}.abas button{flex:1}}
+@media (max-width:720px){.board{grid-auto-flow:column;grid-template-columns:none!important;grid-auto-columns:82vw;scroll-snap-type:x mandatory}.col{scroll-snap-align:start}}
 </style>
 <script src="vendor/supabase.js"></script>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
 <script src="vendor/Sortable.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
@@ -137,33 +184,86 @@ function novaSenha(){
   modal("Criar nova senha",`<label class="fld">Nova senha<input id="nS" type="password" minlength="6" required></label>`,async m=>{const {error}=await sb.auth.updateUser({password:$("#nS",m).value});if(error){toast(error.message);return false}toast("Senha alterada.");inicio()})
 }
 
-/* ---------- kanban ---------- */
+/* ---------- dados ---------- */
+let colunas=[],aba=(()=>{try{return localStorage.getItem("on.aba")||"inicio"}catch(e){return"inicio"}})(),fTipo="",mapa=null,camadaPinos=null;
+const TIPOS_SUG=["Loteamento","Rede urbana","Rede rural","Subestação","Medição em MT","Usina fotovoltaica","Instalação MT/BT","Manutenção","Outro"];
+const PAL=["#2f6f9f","#d18b16","#1f8a4c","#c2185b","#6a4fb3","#00897b","#b3261e","#5d6b78","#8c6d1f","#1565c0"];
+function corTipo(t){if(!t)return"#8a96a3";let h=0;for(const c of t.toLowerCase())h=(h*31+c.charCodeAt(0))>>>0;const i=TIPOS_SUG.findIndex(x=>x.toLowerCase()===t.toLowerCase());return PAL[(i>=0?i:h)%PAL.length]}
+function coordsDe(txt){
+  if(!txt)return null;txt=String(txt);
+  const pats=[/@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/,/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/,/[?&](?:q|query|ll|center|destination)=(-?\d{1,2}\.\d+)(?:,|%2C)\s*(-?\d{1,3}\.\d+)/i,/^\s*(-?\d{1,2}\.\d+)\s*[,;]\s*(-?\d{1,3}\.\d+)\s*$/];
+  for(const p of pats){const m=txt.match(p);if(m){const a=+m[1],b=+m[2];if(Math.abs(a)<=90&&Math.abs(b)<=180)return{lat:a,lng:b}}}
+  return null;
+}
+const posObra=o=>o.lat!=null&&o.lng!=null?{lat:+o.lat,lng:+o.lng}:coordsDe(o.mapsLink);
+const nomeCol=id=>(colunas.find(c=>c.id===id)||{}).nome||"";
+
 async function carregar(){
-  const {data,error}=await sb.from("obras").select("id,titulo,cliente,local,coluna,ordem,token,avanco,atualizado_em").order("ordem");
-  if(error){toast("Erro ao carregar obras: "+error.message);return}
-  obras=data||[];render();
+  const [rc,ro]=await Promise.all([
+    sb.from("colunas").select("*").order("ordem"),
+    sb.from("obras").select("id,titulo,cliente,local,coluna,ordem,token,avanco,atualizado_em,tipo,lat,lng,mapsLink:dados->obra->>mapsLink").order("ordem")]);
+  if(rc.error||ro.error){toast("Erro ao carregar: "+((rc.error||ro.error).message));return}
+  colunas=rc.data||[];obras=ro.data||[];render();
 }
 const ADM=()=>perfil&&perfil.papel==="admin";
+
+/* ---------- estrutura ---------- */
 function render(){
-  const f=filtro.trim().toLowerCase();
-  const vis=f?obras.filter(o=>(o.titulo+" "+o.cliente+" "+o.local).toLowerCase().includes(f)):obras;
   $("#app").innerHTML=`<div class="wrap">
    <header><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1><small>Gerenciador de obras</small>${ADM()?"Todas as obras":"Minhas obras"}</h1>
+    <nav class="abas"><button data-aba="inicio" class="${aba==="inicio"?"on":""}">Início</button><button data-aba="kanban" class="${aba==="kanban"?"on":""}">Kanban</button></nav>
     <div class="tools"><span class="who">${esc(perfil.nome||perfil.email)} · ${ADM()?"Administrador":"Executor"}</span>${ADM()?'<button class="btn" id="bU">Usuários</button><button class="btn pri" id="bN">+ Nova obra</button>':""}<a class="btn" href="portfolio.html" target="_blank" rel="noopener">Portfólio</a><button class="btn" id="bS">Sair</button></div></header>
-   <div class="filt"><input id="fQ" placeholder="Buscar obra, cliente ou cidade" value="${esc(filtro)}"><span class="note">${obras.length} obra${obras.length===1?"":"s"}${ADM()?" · arraste os cartões para mudar de coluna":""}</span></div>
-   <div class="board">${DB.COLUNAS.map(c=>{const L=vis.filter(o=>o.coluna===c.id);return `<section class="col" data-c="${c.id}"><div class="colh"><b>${c.nome}</b><span>${L.length}</span></div><div class="list" data-col="${c.id}">${L.map(cartao).join("")||(ADM()?"":'<p class="empty">Nenhuma obra</p>')}</div></section>`}).join("")}</div></div>`;
+   <div id="corpo"></div></div>`;
   $("#bS").onclick=async()=>{await sb.auth.signOut();telaLogin()};
-  const q=$("#fQ");q.oninput=()=>{filtro=q.value;const p=q.selectionStart;render();const n=$("#fQ");n.focus();n.setSelectionRange(p,p)};
-  document.querySelectorAll(".cardo").forEach(c=>c.onclick=e=>{if(e.target.closest("[data-act]"))return;location.href="obra.html?id="+c.dataset.id});
+  document.querySelectorAll("[data-aba]").forEach(b=>b.onclick=()=>{aba=b.dataset.aba;try{localStorage.setItem("on.aba",aba)}catch(e){}render()});
+  if(ADM()){$("#bN").onclick=()=>editarObra(null);$("#bU").onclick=usuarios}
+  if(mapa){mapa.remove();mapa=null}
+  aba==="inicio"?renderInicio():renderKanban();
+}
+
+/* ---------- início: mapa ---------- */
+function renderInicio(){
+  const tipos=[...new Set(obras.map(o=>o.tipo).filter(Boolean))].sort();
+  const vis=obras.filter(o=>!fTipo||(fTipo==="_"?!o.tipo:o.tipo===fTipo));
+  const comPos=vis.filter(o=>posObra(o)),semPos=vis.filter(o=>!posObra(o));
+  const media=vis.length?vis.reduce((a,o)=>a+(+o.avanco||0),0)/vis.length:0;
+  $("#corpo").innerHTML=`<section class="resumo">
+     <div class="kp main"><span>Obras</span><b>${vis.length}</b><small>avanço médio ${Math.round(media)}%</small></div>
+     ${colunas.map(c=>`<div class="kp" style="--c:${c.cor}"><span>${esc(c.nome)}</span><b>${vis.filter(o=>o.coluna===c.id).length}</b></div>`).join("")}
+   </section>
+   <div class="filt"><span class="note">Tipo:</span><button class="chip ${!fTipo?"on":""}" data-t="">Todos</button>${tipos.map(t=>`<button class="chip ${fTipo===t?"on":""}" data-t="${esc(t)}"><i style="background:${corTipo(t)}"></i>${esc(t)}</button>`).join("")}${obras.some(o=>!o.tipo)?`<button class="chip ${fTipo==="_"?"on":""}" data-t="_"><i style="background:#8a96a3"></i>Sem tipo</button>`:""}</div>
+   <section class="mapabox"><div id="mapa"></div></section>
+   ${semPos.length?`<section class="sem"><h2>Sem localização (${semPos.length})</h2><p class="note">${ADM()?"Abra a obra e cole o link do Google Maps com as coordenadas, ou marque o ponto no mapa em Editar.":"Peça ao administrador para marcar a localização destas obras."}</p><div class="semlist">${semPos.map(o=>`<button class="semi" data-o="${o.id}"><i style="background:${corTipo(o.tipo)}"></i><span><b>${esc(o.titulo)}</b><small>${esc(o.local||o.cliente||"")}</small></span></button>`).join("")}</div></section>`:""}`;
+  document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{fTipo=b.dataset.t;renderInicio()});
+  document.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>mural(obras.find(x=>x.id===b.dataset.o)));
+  mapa=L.map("mapa",{zoomControl:true,attributionControl:true});
+  const ruas=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; OpenStreetMap'});
+  const sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imagens &copy; Esri"});
+  ruas.addTo(mapa);L.control.layers({"Mapa":ruas,"Satélite":sat},null,{position:"topright"}).addTo(mapa);
+  const pts=[];
+  comPos.forEach(o=>{const p=posObra(o);pts.push([p.lat,p.lng]);
+    const ic=L.divIcon({className:"pino",html:`<span style="background:${corTipo(o.tipo)}"><b>${Math.round(+o.avanco||0)}</b></span>`,iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-30]});
+    L.marker([p.lat,p.lng],{icon:ic,title:o.titulo}).addTo(mapa).bindPopup(`<div class="pop"><b>${esc(o.titulo)}</b><small>${esc(o.tipo||"Sem tipo")} · ${esc(nomeCol(o.coluna))}</small><small>${esc(o.cliente||"")}${o.local?" · "+esc(o.local):""}</small><div class="r"><div class="bar ${+o.avanco>=100?"full":""}"><b style="width:${Math.round(+o.avanco||0)}%"></b></div><span class="pc">${Math.round(+o.avanco||0)}%</span></div><div class="row"><button class="lnk" data-pm="${o.id}">Mural</button><a class="lnk" href="obra.html?id=${o.id}">Abrir painel →</a></div></div>`)});
+  mapa.on("popupopen",e=>{const b=e.popup.getElement().querySelector("[data-pm]");if(b)b.onclick=()=>mural(obras.find(x=>x.id===b.dataset.pm))});
+  if(pts.length===1)mapa.setView(pts[0],13);else if(pts.length)mapa.fitBounds(pts,{padding:[40,40],maxZoom:13});else mapa.setView([-28.6,-53.5],7);
+  setTimeout(()=>mapa&&mapa.invalidateSize(),60);
+}
+
+/* ---------- kanban ---------- */
+function renderKanban(){
+  const f=filtro.trim().toLowerCase();
+  const vis=obras.filter(o=>(!f||(o.titulo+" "+o.cliente+" "+o.local+" "+o.tipo).toLowerCase().includes(f)));
+  $("#corpo").innerHTML=`<div class="filt"><input id="fQ" placeholder="Buscar obra, cliente, cidade ou tipo" value="${esc(filtro)}"><span class="note">${obras.length} obra${obras.length===1?"":"s"}${ADM()?" · arraste os cartões entre as colunas":""}</span>${ADM()?'<button class="btn" id="bCol" style="margin-left:auto">Colunas</button>':""}</div>
+   <div class="board" style="grid-template-columns:repeat(${Math.max(1,colunas.length)},minmax(250px,1fr))">${colunas.map(c=>{const Lc=vis.filter(o=>o.coluna===c.id);return `<section class="col" style="--c:${c.cor}"><div class="colh"><b>${esc(c.nome)}</b><span>${Lc.length}</span></div><div class="list" data-col="${c.id}">${Lc.map(cartao).join("")||(ADM()?"":'<p class="empty">Nenhuma obra</p>')}</div></section>`}).join("")}</div>`;
+  const q=$("#fQ");q.oninput=()=>{filtro=q.value;const p=q.selectionStart;renderKanban();const n=$("#fQ");n.focus();n.setSelectionRange(p,p)};
+  document.querySelectorAll(".cardo").forEach(c=>{c.onclick=e=>{if(e.target.closest("[data-act]"))return;mural(obras.find(x=>x.id===c.dataset.id))};c.onkeydown=e=>{if(e.key==="Enter")c.click()}});
   document.querySelectorAll("[data-act]").forEach(b=>b.onclick=e=>{e.stopPropagation();const o=obras.find(x=>x.id===b.dataset.id);({link:linkObra,equipe:equipeObra,editar:editarObra})[b.dataset.act](o)});
-  if(ADM()){
-    $("#bN").onclick=()=>editarObra(null);$("#bU").onclick=usuarios;
-    document.querySelectorAll(".list").forEach(el=>Sortable.create(el,{group:"obras",animation:150,delay:180,delayOnTouchOnly:true,draggable:".cardo",onEnd:mover}));
-  }
+  if(ADM()){$("#bCol").onclick=gerirColunas;
+    document.querySelectorAll(".list").forEach(el=>Sortable.create(el,{group:"obras",animation:150,delay:180,delayOnTouchOnly:true,draggable:".cardo",onEnd:mover}))}
 }
 function cartao(o){
   const p=Math.round(+o.avanco||0);
-  return `<article class="cardo" data-id="${o.id}" tabindex="0"><h3>${esc(o.titulo)}</h3><div class="c">${esc(o.cliente)}${o.local?" · "+esc(o.local):""}</div>
+  return `<article class="cardo" data-id="${o.id}" tabindex="0">${o.tipo?`<span class="tp" style="--t:${corTipo(o.tipo)}">${esc(o.tipo)}</span>`:""}<h3>${esc(o.titulo)}</h3><div class="c">${esc(o.cliente)}${o.local?" · "+esc(o.local):""}</div>
    <div class="r"><div class="bar ${p>=100?"full":""}"><b style="width:${p}%"></b></div><span class="pc">${p}%</span></div>
    <div class="ft"><span>Atualizada ${fdate(o.atualizado_em)}</span>${ADM()?`<span style="display:flex;gap:10px"><button class="lnk" data-act="equipe" data-id="${o.id}">Equipe</button><button class="lnk" data-act="link" data-id="${o.id}">Link</button><button class="lnk" data-act="editar" data-id="${o.id}">Editar</button></span>`:""}</div></article>`;
 }
@@ -173,11 +273,68 @@ async function mover(ev){
   const idx=irmaos.indexOf(id);
   const ord=i=>{const o=obras.find(x=>x.id===irmaos[i]);return o?+o.ordem:null};
   const antes=idx>0?ord(idx-1):null,depois=idx<irmaos.length-1?ord(idx+1):null;
-  let nova=antes==null&&depois==null?Date.now()/1000:antes==null?depois-1:depois==null?antes+1:(antes+depois)/2;
+  const nova=antes==null&&depois==null?Date.now()/1000:antes==null?depois-1:depois==null?antes+1:(antes+depois)/2;
   const o=obras.find(x=>x.id===id);const old={coluna:o.coluna,ordem:o.ordem};o.coluna=col;o.ordem=nova;
   const {error}=await sb.from("obras").update({coluna:col,ordem:nova}).eq("id",id);
   if(error){Object.assign(o,old);toast("Não foi possível mover: "+error.message)}
-  obras.sort((a,b)=>a.ordem-b.ordem);render();
+  obras.sort((a,b)=>a.ordem-b.ordem);renderKanban();
+}
+function gerirColunas(){
+  const lista=()=>colunas.map((c,i)=>`<div class="crow" data-c="${c.id}"><input type="color" value="${esc(c.cor)}" data-cor aria-label="Cor"><input data-nome value="${esc(c.nome)}" aria-label="Nome da coluna"><button type="button" class="lnk" data-up ${i?"":"disabled"} aria-label="Subir">▲</button><button type="button" class="lnk" data-dn ${i<colunas.length-1?"":"disabled"} aria-label="Descer">▼</button><button type="button" class="lnk" style="color:var(--bad)" data-del>Excluir</button></div>`).join("");
+  const m=modal("Colunas do kanban",`<p class="note">Renomeie, mude a cor ou a ordem. Só dá para excluir coluna vazia.</p><div class="clist" id="cl">${lista()}</div><div class="row"><input class="inp" id="cN" placeholder="Nome da nova coluna" style="flex:1"><button type="button" class="btn pri" id="cAdd">+ Coluna</button></div>`);
+  const salvarCol=async(c,v)=>{const {error}=await sb.from("colunas").update(v).eq("id",c.id);if(error){toast(error.message);return}Object.assign(c,v)};
+  const bind=()=>{
+    m.querySelectorAll(".crow").forEach(r=>{const c=colunas.find(x=>x.id===r.dataset.c);
+      r.querySelector("[data-nome]").onchange=e=>{const n=e.target.value.trim();if(n)salvarCol(c,{nome:n})};
+      r.querySelector("[data-cor]").onchange=e=>salvarCol(c,{cor:e.target.value});
+      const troca=async d=>{const i=colunas.indexOf(c),j=i+d;if(j<0||j>=colunas.length)return;const o=colunas[j];const a=c.ordem,b=o.ordem;await salvarCol(c,{ordem:b});await salvarCol(o,{ordem:a===b?a+d:a});colunas.sort((x,y)=>x.ordem-y.ordem);$("#cl",m).innerHTML=lista();bind()};
+      r.querySelector("[data-up]").onclick=()=>troca(-1);r.querySelector("[data-dn]").onclick=()=>troca(1);
+      r.querySelector("[data-del]").onclick=async()=>{const n=obras.filter(o=>o.coluna===c.id).length;if(n){toast(`Mova as ${n} obra(s) desta coluna antes de excluir.`);return}
+        const {error}=await sb.from("colunas").delete().eq("id",c.id);if(error){toast(error.message);return}colunas=colunas.filter(x=>x!==c);$("#cl",m).innerHTML=lista();bind()}});
+  };bind();
+  $("#cAdd",m).onclick=async()=>{const nome=$("#cN",m).value.trim();if(!nome)return;const ordem=(colunas.length?Math.max(...colunas.map(c=>+c.ordem)):0)+1;
+    const {data,error}=await sb.from("colunas").insert({nome,ordem,cor:PAL[colunas.length%PAL.length]}).select().single();if(error){toast(error.message);return}
+    colunas.push(data);$("#cN",m).value="";$("#cl",m).innerHTML=lista();bind()};
+  const fechar=()=>{if(aba==="kanban")renderKanban()};
+  $("#mC",m).addEventListener("click",fechar);m.addEventListener("click",e=>{if(e.target===m)fechar()});
+}
+
+/* ---------- mural interno ---------- */
+async function mural(o){
+  if(!o)return;
+  document.querySelectorAll(".gaveta").forEach(x=>x.remove());
+  const g=document.createElement("div");g.className="gaveta";
+  g.innerHTML=`<div class="gfundo"></div><aside class="gpainel" role="dialog" aria-label="Mural da obra">
+   <div class="gtop"><div>${o.tipo?`<span class="tp" style="--t:${corTipo(o.tipo)}">${esc(o.tipo)}</span>`:""}<h2>${esc(o.titulo)}</h2><p class="note">${esc(o.cliente||"")}${o.local?" · "+esc(o.local):""} · ${esc(nomeCol(o.coluna))} · ${Math.round(+o.avanco||0)}%</p></div><button class="lnk" id="gX" aria-label="Fechar" style="font-size:20px">×</button></div>
+   <div class="gacoes"><a class="btn pri" href="obra.html?id=${o.id}">Abrir painel da obra →</a>${ADM()?'<button class="btn" id="gE">Editar</button><button class="btn" id="gL">Link do cliente</button>':""}${posObra(o)?`<a class="btn" target="_blank" rel="noopener" href="${esc(o.mapsLink&&/^https:/.test(o.mapsLink)?o.mapsLink:`https://www.google.com/maps?q=${posObra(o).lat},${posObra(o).lng}`)}">Google Maps ↗</a>`:""}</div>
+   <h3 class="gsub">Mural interno <span class="note">· só a equipe vê, o cliente não</span></h3>
+   <form class="comp" id="gF"><textarea id="gT" placeholder="Escreva um recado, decisão, pendência…" rows="3"></textarea><div id="gA" class="anx"></div>
+    <div class="row"><label class="btn" style="position:relative;overflow:hidden">Anexar<input type="file" multiple id="gU" style="position:absolute;inset:0;opacity:0"></label><button class="btn pri" id="gS">Publicar</button></div></form>
+   <div id="gN" class="notas"><p class="note">Carregando…</p></div></aside>`;
+  document.body.appendChild(g);
+  const fechar=()=>g.remove();$("#gX",g).onclick=fechar;$(".gfundo",g).onclick=fechar;
+  document.addEventListener("keydown",function k(e){if(e.key==="Escape"){fechar();document.removeEventListener("keydown",k)}});
+  if(ADM()){$("#gE",g).onclick=()=>editarObra(o);$("#gL",g).onclick=()=>linkObra(o)}
+  let pend=[];
+  const drawPend=()=>{$("#gA",g).innerHTML=pend.map((a,i)=>`<span class="ax">${esc(a.nome)} <button type="button" class="lnk" data-rm="${i}">×</button></span>`).join("");g.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{pend.splice(+b.dataset.rm,1);drawPend()})};
+  $("#gU",g).onchange=async e=>{const fs=[...e.target.files];e.target.value="";for(const f of fs){toast("Enviando "+f.name+"…");try{pend.push(await subir(o.id,f))}catch(err){toast(f.name+": "+(err.message||"falha no envio"))}}drawPend();toast(fs.length+" arquivo(s) pronto(s) para publicar.")};
+  const carregarNotas=async()=>{
+    const {data,error}=await sb.from("obra_notas").select("*").eq("obra_id",o.id).order("criado_em",{ascending:false});
+    if(error){$("#gN",g).innerHTML=`<p class="note">Erro: ${esc(error.message)}</p>`;return}
+    $("#gN",g).innerHTML=data.length?data.map(n=>`<article class="nota"><div class="nh"><b>${esc(n.autor_nome||"—")}</b><span>${new Date(n.criado_em).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})}</span>${(ADM()||n.autor===perfil.id)?`<button class="lnk" data-nd="${n.id}" style="color:var(--bad);margin-left:auto">Excluir</button>`:""}</div>${n.texto?`<p>${esc(n.texto)}</p>`:""}${(n.anexos||[]).length?`<div class="nanx">${n.anexos.map(a=>/^image\//.test(a.tipo||"")?`<a href="${esc(a.url)}" target="_blank" rel="noopener"><img src="${esc(a.url)}" alt="${esc(a.nome)}"></a>`:`<a class="arq" href="${esc(a.url)}" target="_blank" rel="noopener">📎 ${esc(a.nome)}</a>`).join("")}</div>`:""}</article>`).join(""):'<p class="note">Nada no mural ainda. Use o campo acima para registrar recados, decisões e pendências da obra.</p>';
+    g.querySelectorAll("[data-nd]").forEach(b=>b.onclick=async()=>{if(!b.dataset.c){b.dataset.c=1;b.textContent="Confirmar";return}const {error}=await sb.from("obra_notas").delete().eq("id",b.dataset.nd);if(error){toast(error.message);return}carregarNotas()});
+  };
+  $("#gF",g).onsubmit=async e=>{e.preventDefault();const texto=$("#gT",g).value.trim();if(!texto&&!pend.length){toast("Escreva algo ou anexe um arquivo.");return}
+    const b=$("#gS",g);b.disabled=true;const {error}=await sb.from("obra_notas").insert({obra_id:o.id,texto,anexos:pend});b.disabled=false;
+    if(error){toast("Não foi possível publicar: "+error.message);return}$("#gT",g).value="";pend=[];drawPend();carregarNotas()};
+  carregarNotas();
+}
+async function subir(obraId,file){
+  const ext=(/\.[a-z0-9]{1,5}$/i.test(file.name)?file.name.split(".").pop():"bin").toLowerCase();
+  const path=obraId+"/notas/"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)+"."+ext;
+  const {error}=await sb.storage.from(ON_CONFIG.bucket).upload(path,file,{contentType:file.type||"application/octet-stream"});
+  if(error)throw error;
+  return {nome:file.name,tipo:file.type||"",tam:file.size,url:sb.storage.from(ON_CONFIG.bucket).getPublicUrl(path).data.publicUrl};
 }
 
 /* ---------- modais ---------- */
@@ -191,18 +348,33 @@ function modal(titulo,html,ok,extra){
   return m;
 }
 function editarObra(o){
-  const novo=!o;o=o||{titulo:"",cliente:"",local:"",coluna:"compras"};
-  modal(novo?"Nova obra":"Editar obra",`<label class="fld">Nome da obra<input id="oT" required value="${esc(o.titulo)}" placeholder="Ex.: Loteamento Jardim – Etapa 01"></label>
+  const novo=!o;o=o||{titulo:"",cliente:"",local:"",coluna:(colunas[0]||{}).id,tipo:"",lat:null,lng:null};
+  const pos=posObra(o);
+  const m=modal(novo?"Nova obra":"Editar obra",`<label class="fld">Nome da obra<input id="oT" required value="${esc(o.titulo)}" placeholder="Ex.: Loteamento Jardim – Etapa 01"></label>
+   <label class="fld">Tipo de obra<input id="oY" list="tiposL" value="${esc(o.tipo||"")}" placeholder="Ex.: Loteamento"><datalist id="tiposL">${[...new Set([...TIPOS_SUG,...obras.map(x=>x.tipo).filter(Boolean)])].map(t=>`<option value="${esc(t)}">`).join("")}</datalist></label>
    <label class="fld">Cliente<input id="oC" value="${esc(o.cliente)}"></label>
    <label class="fld">Cidade / endereço<input id="oL" value="${esc(o.local)}"></label>
-   <label class="fld">Coluna<select id="oK">${DB.COLUNAS.map(c=>`<option value="${c.id}" ${c.id===o.coluna?"selected":""}>${c.nome}</option>`).join("")}</select></label>
-   ${novo?'<p class="note">Depois de criar, abra a obra para carregar a planta, os quantitativos e a lista de material.</p>':""}`,
-  async m=>{const v={titulo:$("#oT",m).value.trim(),cliente:$("#oC",m).value.trim(),local:$("#oL",m).value.trim(),coluna:$("#oK",m).value};
-    if(novo){v.dados=DB.DADOS_PADRAO();v.ordem=Date.now()/1000;const {data,error}=await sb.from("obras").insert(v).select("id").single();if(error){toast(error.message);return false}toast("Obra criada.");location.href="obra.html?id="+data.id;return}
+   <label class="fld">Coluna<select id="oK">${colunas.map(c=>`<option value="${c.id}" ${c.id===o.coluna?"selected":""}>${esc(c.nome)}</option>`).join("")}</select></label>
+   <label class="fld">Localização: cole o link do Google Maps ou as coordenadas<input id="oG" placeholder="https://www.google.com/maps/@-28.63,-53.60,15z  ou  -28.63, -53.60" value="${pos?pos.lat.toFixed(6)+", "+pos.lng.toFixed(6):""}"></label>
+   <p class="note" id="oGm">Ou toque no mapa para marcar o ponto. Links curtos (maps.app.goo.gl) não trazem as coordenadas: abra o link no navegador e copie o endereço completo, ou marque no mapa.</p>
+   <div id="oMap" class="minimapa"></div>
+   ${novo?'<p class="note">Depois de criar, abra o painel da obra para carregar a planta, os quantitativos e a lista de material.</p>':""}`,
+  async m=>{const g=$("#oG",m).value.trim();const c=coordsDe(g);
+    if(g&&!c){toast("Não encontrei coordenadas nesse texto. Use o link completo do Google Maps, as coordenadas ou marque no mapa.");return false}
+    const v={titulo:$("#oT",m).value.trim(),tipo:$("#oY",m).value.trim(),cliente:$("#oC",m).value.trim(),local:$("#oL",m).value.trim(),coluna:$("#oK",m).value,lat:c?c.lat:null,lng:c?c.lng:null};
+    if(novo){const d=DB.DADOS_PADRAO();if(/^https:/.test(g))d.obra.mapsLink=g;v.dados=d;v.ordem=Date.now()/1000;const {data,error}=await sb.from("obras").insert(v).select("id").single();if(error){toast(error.message);return false}toast("Obra criada.");location.href="obra.html?id="+data.id;return}
     const {error}=await sb.from("obras").update(v).eq("id",o.id);if(error){toast(error.message);return false}Object.assign(o,v);render();toast("Obra atualizada.")},
   novo?null:{label:"Excluir obra",fn:async m=>{
     if(!m.dataset.conf){m.dataset.conf=1;$("#mX",m).textContent="Toque de novo para excluir de vez";return false}
-    const {error}=await sb.from("obras").delete().eq("id",o.id);if(error){toast(error.message);return false}obras=obras.filter(x=>x.id!==o.id);render();toast("Obra excluída.")}});
+    const {error}=await sb.from("obras").delete().eq("id",o.id);if(error){toast(error.message);return false}obras=obras.filter(x=>x.id!==o.id);document.querySelectorAll(".gaveta").forEach(x=>x.remove());render();toast("Obra excluída.")}});
+  setTimeout(()=>{
+    const mm=L.map($("#oMap",m));L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap"}).addTo(mm);
+    let mk=null;const por=(lat,lng,mover)=>{if(mk)mk.setLatLng([lat,lng]);else mk=L.marker([lat,lng]).addTo(mm);if(mover)mm.setView([lat,lng],Math.max(mm.getZoom()||0,14))};
+    if(pos){mm.setView([pos.lat,pos.lng],14);por(pos.lat,pos.lng)}else{const p=obras.map(posObra).filter(Boolean);p.length?mm.fitBounds(p.map(x=>[x.lat,x.lng]),{maxZoom:12,padding:[20,20]}):mm.setView([-28.6,-53.5],7)}
+    mm.on("click",e=>{por(e.latlng.lat,e.latlng.lng);$("#oG",m).value=e.latlng.lat.toFixed(6)+", "+e.latlng.lng.toFixed(6)});
+    $("#oG",m).oninput=e=>{const c=coordsDe(e.target.value);if(c)por(c.lat,c.lng,true)};
+    setTimeout(()=>mm.invalidateSize(),50);
+  },30);
 }
 function linkObra(o){
   const url=DB.linkCliente(o.token);
