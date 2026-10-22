@@ -286,7 +286,7 @@ const qExec=q=>q.auto?mapCount(q.auto):(+q.exec||0);
 const qPct=q=>q.prev>0?Math.min(100,qExec(q)/q.prev*100):0;
 const overall=()=>S.quant.length?S.quant.reduce((a,q)=>a+qPct(q),0)/S.quant.length:0;
 function linkPct(l){
-  const Q=l==="BT"?S.quant.filter(q=>q.auto==="BT50"||q.auto==="BT70"):S.quant.filter(q=>q.id===l);
+  const Q=l==="BT"?kpiItens("BT"):S.quant.filter(q=>q.id===l);
   const prev=Q.reduce((s,q)=>s+(+q.prev||0),0);return prev?Math.min(100,Q.reduce((s,q)=>s+qExec(q),0)/prev*100):0}
 const mpct=m=>m.link?linkPct(m.link):Math.max(0,Math.min(100,+m.pct||0));
 const linkName=l=>l==="BT"?"Rede BT (todas)":((S.quant.find(q=>q.id===l)||{}).nome||"");
@@ -337,14 +337,28 @@ function renderHeader(){
 }
 function bindView(){$("#tools").querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{view=b.dataset.v;lsSet("view",view);applyView()})}
 function applyView(){$(".app").classList.toggle("mob",view==="mob");renderHeader();setTimeout(fit,30)}
+/* Os cartões do topo somam os itens dos quantitativos de cada categoria (pelo vínculo com o mapa ou pelo nome),
+   assim batem sempre com a aba Quantitativos, seja o item contado no mapa ou lançado à mão. */
+const KPI_CAT={
+  postes:{nome:"Postes",un:"un",autos:["postes"],re:/poste/i},
+  lum:{nome:"Luminárias",un:"un",autos:["lum"],re:/lumin|ilumina/i},
+  trafo:{nome:"Transformadores",un:"un",autos:["trafo"],re:/transf|trafo/i},
+  MT:{nome:"Rede MT",un:"m",autos:["MT"],re:/\bMT\b|m[ée]dia tens/i},
+  BT:{nome:"Rede BT",un:"m",autos:["BT50","BT70"],re:/\bBT\b|baixa tens/i}
+};
+function kpiItens(c){
+  const cat=KPI_CAT[c];
+  return S.quant.filter(q=>q.auto?cat.autos.includes(q.auto):cat.re.test(q.nome||""));
+}
 function renderKpis(){
   const p=overall();
-  const k=(nome,key,un)=>{const q=S.quant.find(x=>x.auto===key);const v=mapCount(key);const prev=q?q.prev:0;const pc=prev?Math.min(100,v/prev*100):0;
-    return `<div class="kpi"><span class="k">${nome}</span><span class="v">${un==="m"?fmt0(v):v}<small> / ${fmt0(prev)} ${un}</small><span class="pc">${Math.round(pc)}%</span></span><div class="bar ${pc>=100?"full":""}"><b style="width:${pc}%"></b></div></div>`};
-  const btv=mapCount("BT50")+mapCount("BT70"),btp=S.quant.filter(q=>q.auto==="BT50"||q.auto==="BT70").reduce((s,q)=>s+q.prev,0),btpc=btp?Math.min(100,btv/btp*100):0;
+  const card=c=>{const cat=KPI_CAT[c],Q=kpiItens(c);
+    const v=Q.length?Q.reduce((a,q)=>a+qExec(q),0):cat.autos.reduce((a,k)=>a+mapCount(k),0);
+    const prev=Q.reduce((a,q)=>a+(+q.prev||0),0);
+    const pc=prev?Math.min(100,v/prev*100):0;
+    return `<div class="kpi"><span class="k">${cat.nome}</span><span class="v">${cat.un==="m"?fmt0(v):fmt(v)}<small> / ${fmt0(prev)} ${cat.un}</small><span class="pc">${Math.round(pc)}%</span></span><div class="bar ${pc>=100?"full":""}"><b style="width:${pc}%"></b></div></div>`};
   $("#kpis").innerHTML=`<div class="kpi main"><span class="k">Avanço físico</span><span class="v">${Math.round(p)}<small>%</small></span><div class="bar"><b style="width:${p}%"></b></div></div>`
-    +k("Postes","postes","un")+k("Luminárias","lum","un")+k("Transformadores","trafo","un")+k("Rede MT","MT","m")
-    +`<div class="kpi"><span class="k">Rede BT</span><span class="v">${fmt0(btv)}<small> / ${fmt0(btp)} m</small><span class="pc">${Math.round(btpc)}%</span></span><div class="bar ${btpc>=100?"full":""}"><b style="width:${btpc}%"></b></div></div>`;
+    +["postes","lum","trafo","MT","BT"].map(card).join("");
 }
 function renderEtapas(){
   const edit=admEd();
