@@ -107,11 +107,11 @@ dl.info dt{color:var(--muted)} dl.info dd{margin:0;min-width:0}
 .note{font-size:11.5px;color:var(--muted);margin:0;line-height:1.4}
 .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
 .gal button{aspect-ratio:1;max-width:100%;padding:0;border:0;border-radius:6px;overflow:hidden;background:var(--idle-soft)}
-.gal img{width:100%;height:100%;object-fit:cover;display:block}
+.gal img{width:100%;height:100%;object-fit:contain;display:block;background:var(--idle-soft)}
 /* fotos */
 .ph{display:flex;gap:6px;flex-wrap:wrap}
 .ph button.t{width:64px;height:64px;padding:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--idle-soft);position:relative}
-.ph button.t img{width:100%;height:100%;object-fit:cover;display:block}
+.ph button.t img{width:100%;height:100%;object-fit:contain;display:block;background:var(--idle-soft)}
 .ph .x{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;font-size:13px;line-height:20px;text-align:center}
 .ph label.up{width:64px;height:64px;border:1.5px dashed var(--line);border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;text-align:center;line-height:1.2;position:relative;overflow:hidden}
 .ph label.up input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
@@ -593,16 +593,17 @@ async function shrink(file,max,q,png){
   return {blob,dataUrl:()=>c.toDataURL(type,q)};
 }
 async function upImage(file,max,keepAlpha){
-  let s;
-  try{s=await shrink(file,max,.82,keepAlpha&&/png|svg|webp/.test(file.type))}
-  catch(e){toast("Não consegui abrir essa imagem. Use JPG ou PNG (no iPhone, as fotos HEIC são convertidas ao escolher pela galeria).");return null}
-  if(assetsNs){
-    try{const r=await assetsNs.upload(s.blob);
-      const u=r.url||("/_blob/"+r.id);
-      if(await canLoad(u))return u;
-    }catch(e){/* cai para o modo embutido */}
+  /* Envia a foto original, sem recomprimir nem redimensionar.
+     Só converte quando o navegador não exibe o formato (ex.: HEIC) ou o arquivo passa de 15 MB. */
+  if(!assetsNs){toast("Envio de arquivos indisponível.");return null}
+  const nativo=/^image\/(jpeg|png|webp|gif)$/.test(file.type);
+  let blob=file,nome=file.name;
+  if(!nativo||file.size>15*1024*1024){
+    try{const s=await shrink(file,4096,.92,keepAlpha&&/png|svg|webp/.test(file.type));blob=s.blob;nome=(file.name||"foto").replace(/\.[^.]+$/,"")+".jpg"}
+    catch(e){toast("Não consegui abrir essa imagem. Use JPG ou PNG (no iPhone, escolha pela galeria para converter as fotos HEIC).");return null}
   }
-  try{const small=await shrink(file,Math.min(max,1100),.7,false);return small.dataUrl()}catch(e){toast("Não foi possível anexar a imagem.");return null}
+  try{const r=await assetsNs.upload(blob,nome);return r.url}
+  catch(e){toast("Não foi possível enviar a foto: "+(e&&e.message||"tente de novo")+".");return null}
 }
 function canLoad(u){return new Promise(res=>{const i=new Image();const t=setTimeout(()=>res(false),8000);i.onload=()=>{clearTimeout(t);res(true)};i.onerror=()=>{clearTimeout(t);res(false)};i.src=u})}
 function photoStrip(arr,key){
