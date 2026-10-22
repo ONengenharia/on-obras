@@ -87,6 +87,12 @@ header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c2
 .kp span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .kp b{font-size:24px;font-variant-numeric:tabular-nums}
 .kp small{font-size:12px;color:var(--muted)}
+button.kp{text-align:left;font:inherit;color:inherit;cursor:pointer}
+button.kp:hover{border-color:var(--c)}
+.kp.sel{background:var(--accent-soft);outline:2px solid var(--c)}
+.seg2{display:inline-flex;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.seg2 button{border:0;background:var(--panel);padding:5px 11px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.seg2 button.on{background:var(--accent);color:#fff}
 .kp.main{background:var(--accent);border-color:var(--accent);color:#fff}.kp.main span,.kp.main small{color:#e8f1f9}
 .chip{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:5px 11px;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
 .chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
@@ -185,6 +191,7 @@ function novaSenha(){
 }
 
 /* ---------- dados ---------- */
+let fCol="",corPor=(()=>{try{return localStorage.getItem("on.cor")||"coluna"}catch(e){return"coluna"}})();
 let colunas=[],aba=(()=>{try{return localStorage.getItem("on.aba")||"inicio"}catch(e){return"inicio"}})(),fTipo="",mapa=null,camadaPinos=null;
 const TIPOS_SUG=["Loteamento","Rede urbana","Rede rural","Subestação","Medição em MT","Usina fotovoltaica","Instalação MT/BT","Manutenção","Outro"];
 const PAL=["#2f6f9f","#d18b16","#1f8a4c","#c2185b","#6a4fb3","#00897b","#b3261e","#5d6b78","#8c6d1f","#1565c0"];
@@ -208,6 +215,8 @@ async function autoLocalizar(){
 }
 const posObra=o=>o.lat!=null&&o.lng!=null?{lat:+o.lat,lng:+o.lng}:coordsDe(o.mapsLink);
 const nomeCol=id=>(colunas.find(c=>c.id===id)||{}).nome||"";
+const corCol=id=>(colunas.find(c=>c.id===id)||{}).cor||"#8a96a3";
+const corPino=o=>corPor==="tipo"?corTipo(o.tipo):corCol(o.coluna);
 
 async function carregar(){
   const [rc,ro]=await Promise.all([
@@ -235,17 +244,20 @@ function render(){
 /* ---------- início: mapa ---------- */
 function renderInicio(){
   const tipos=[...new Set(obras.map(o=>o.tipo).filter(Boolean))].sort();
-  const vis=obras.filter(o=>!fTipo||(fTipo==="_"?!o.tipo:o.tipo===fTipo));
+  const vis=obras.filter(o=>(!fTipo||(fTipo==="_"?!o.tipo:o.tipo===fTipo))&&(!fCol||o.coluna===fCol));
   const comPos=vis.filter(o=>posObra(o)),semPos=vis.filter(o=>!posObra(o));
   const media=vis.length?vis.reduce((a,o)=>a+(+o.avanco||0),0)/vis.length:0;
   $("#corpo").innerHTML=`<section class="resumo">
      <div class="kp main"><span>Obras</span><b>${vis.length}</b><small>avanço médio ${Math.round(media)}%</small></div>
-     ${colunas.map(c=>`<div class="kp" style="--c:${c.cor}"><span>${esc(c.nome)}</span><b>${vis.filter(o=>o.coluna===c.id).length}</b></div>`).join("")}
+     ${colunas.map(c=>`<button class="kp ${fCol===c.id?"sel":""}" data-fc="${c.id}" style="--c:${c.cor}" title="Mostrar só ${esc(c.nome)}"><span>${esc(c.nome)}</span><b>${obras.filter(o=>o.coluna===c.id&&(!fTipo||(fTipo==="_"?!o.tipo:o.tipo===fTipo))).length}</b></button>`).join("")}
    </section>
-   <div class="filt"><span class="note">Tipo:</span><button class="chip ${!fTipo?"on":""}" data-t="">Todos</button>${tipos.map(t=>`<button class="chip ${fTipo===t?"on":""}" data-t="${esc(t)}"><i style="background:${corTipo(t)}"></i>${esc(t)}</button>`).join("")}${obras.some(o=>!o.tipo)?`<button class="chip ${fTipo==="_"?"on":""}" data-t="_"><i style="background:#8a96a3"></i>Sem tipo</button>`:""}</div>
+   <div class="filt"><span class="note">Situação:</span><button class="chip ${!fCol?"on":""}" data-fc="">Todas</button>${colunas.map(c=>`<button class="chip ${fCol===c.id?"on":""}" data-fc="${c.id}"><i style="background:${c.cor}"></i>${esc(c.nome)}</button>`).join("")}</div>
+   <div class="filt"><span class="note">Tipo:</span><button class="chip ${!fTipo?"on":""}" data-t="">Todos</button>${tipos.map(t=>`<button class="chip ${fTipo===t?"on":""}" data-t="${esc(t)}"><i style="background:${corTipo(t)}"></i>${esc(t)}</button>`).join("")}${obras.some(o=>!o.tipo)?`<button class="chip ${fTipo==="_"?"on":""}" data-t="_"><i style="background:#8a96a3"></i>Sem tipo</button>`:""}<span class="note" style="margin-left:auto">Cor dos pinos:</span><span class="seg2"><button class="${corPor==="coluna"?"on":""}" data-cp="coluna">Situação</button><button class="${corPor==="tipo"?"on":""}" data-cp="tipo">Tipo</button></span></div>
    <section class="mapabox"><div id="mapa"></div></section>
    ${semPos.length?`<section class="sem"><h2>Sem localização (${semPos.length})</h2><p class="note">${ADM()?"Abra a obra e cole o link do Google Maps com as coordenadas, ou marque o ponto no mapa em Editar.":"Peça ao administrador para marcar a localização destas obras."}</p><div class="semlist">${semPos.map(o=>`<button class="semi" data-o="${o.id}"><i style="background:${corTipo(o.tipo)}"></i><span><b>${esc(o.titulo)}</b><small>${esc(o.local||o.cliente||"")}</small></span></button>`).join("")}</div></section>`:""}`;
   document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{fTipo=b.dataset.t;renderInicio()});
+  document.querySelectorAll("[data-fc]").forEach(b=>b.onclick=()=>{fCol=fCol===b.dataset.fc&&b.classList.contains("kp")?"":b.dataset.fc;renderInicio()});
+  document.querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>{corPor=b.dataset.cp;try{localStorage.setItem("on.cor",corPor)}catch(e){}renderInicio()});
   document.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>mural(obras.find(x=>x.id===b.dataset.o)));
   mapa=L.map("mapa",{zoomControl:true,attributionControl:true});
   const ruas=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; OpenStreetMap'});
@@ -253,7 +265,7 @@ function renderInicio(){
   ruas.addTo(mapa);L.control.layers({"Mapa":ruas,"Satélite":sat},null,{position:"topright"}).addTo(mapa);
   const pts=[];
   comPos.forEach(o=>{const p=posObra(o);pts.push([p.lat,p.lng]);
-    const ic=L.divIcon({className:"pino",html:`<span style="background:${corTipo(o.tipo)}"><b>${Math.round(+o.avanco||0)}</b></span>`,iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-30]});
+    const ic=L.divIcon({className:"pino",html:`<span style="background:${corPino(o)}"><b>${Math.round(+o.avanco||0)}</b></span>`,iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-30]});
     L.marker([p.lat,p.lng],{icon:ic,title:o.titulo}).addTo(mapa).bindPopup(`<div class="pop"><b>${esc(o.titulo)}</b><small>${esc(o.tipo||"Sem tipo")} · ${esc(nomeCol(o.coluna))}</small><small>${esc(o.cliente||"")}${o.local?" · "+esc(o.local):""}</small><div class="r"><div class="bar ${+o.avanco>=100?"full":""}"><b style="width:${Math.round(+o.avanco||0)}%"></b></div><span class="pc">${Math.round(+o.avanco||0)}%</span></div><div class="row"><button class="lnk" data-pm="${o.id}">Mural</button><a class="lnk" href="obra.html?id=${o.id}">Abrir painel →</a></div></div>`)});
   mapa.on("popupopen",e=>{const b=e.popup.getElement().querySelector("[data-pm]");if(b)b.onclick=()=>mural(obras.find(x=>x.id===b.dataset.pm))});
   if(pts.length===1)mapa.setView(pts[0],13);else if(pts.length)mapa.fitBounds(pts,{padding:[40,40],maxZoom:13});else mapa.setView([-28.6,-53.5],7);
