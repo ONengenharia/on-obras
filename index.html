@@ -65,7 +65,7 @@ header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c2
 .msg{font-size:12.5px;color:var(--bad);min-height:1em}
 .note{font-size:12px;color:var(--muted);margin:0;line-height:1.45}
 /* modal */
-.modal{position:fixed;inset:0;background:rgba(10,16,22,.55);display:grid;place-items:center;padding:16px;z-index:20}
+.modal{position:fixed;inset:0;background:rgba(10,16,22,.55);display:grid;place-items:center;padding:16px;z-index:1000}
 .box{background:var(--panel);border-radius:12px;padding:18px;width:min(520px,100%);display:grid;gap:12px;max-height:100%;overflow:auto}
 .box h2{margin:0;font-size:18px}
 .row{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap}
@@ -75,7 +75,7 @@ header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c2
 .tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-radius:8px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}
 .ck{display:flex;gap:8px;align-items:center;font-size:13.5px}
 .ck input{width:18px;height:18px}
-.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy);color:#e8f1f9;padding:9px 14px;border-radius:7px;font-size:13px;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy);color:#e8f1f9;padding:9px 14px;border-radius:7px;font-size:13px;z-index:50;max-width:calc(100% - 32px);text-align:center;z-index:1100}
 .filt{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .filt input{padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);min-width:220px;flex:1;max-width:360px}
 
@@ -91,7 +91,7 @@ header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c2
 .chip{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:5px 11px;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
 .chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
-.mapabox{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.mapabox{position:relative;z-index:0;isolation:isolate;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 #mapa{height:min(62vh,620px);min-height:360px}
 .pino span{display:grid;place-items:center;width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .pino b{transform:rotate(45deg);color:#fff;font:700 11px/1 var(--f-mono)}
@@ -109,8 +109,8 @@ header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c2
 .crow input[type=color]{width:34px;height:30px;border:0;padding:0;background:none}
 .clist{display:grid;gap:6px}
 .lnk:disabled{opacity:.3;cursor:default}
-.minimapa{height:240px;border-radius:8px;border:1px solid var(--line)}
-.gaveta{position:fixed;inset:0;z-index:15}
+.minimapa{position:relative;z-index:0;isolation:isolate;height:240px;border-radius:8px;border:1px solid var(--line)}
+.gaveta{position:fixed;inset:0;z-index:900}
 .gfundo{position:absolute;inset:0;background:rgba(10,16,22,.45)}
 .gpainel{position:absolute;top:0;right:0;bottom:0;width:min(520px,100%);background:var(--panel);box-shadow:-10px 0 30px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:12px;overflow:auto;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) 18px}
 .gtop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
@@ -195,6 +195,17 @@ function coordsDe(txt){
   for(const p of pats){const m=txt.match(p);if(m){const a=+m[1],b=+m[2];if(Math.abs(a)<=90&&Math.abs(b)<=180)return{lat:a,lng:b}}}
   return null;
 }
+async function resolverLink(url){
+  try{const {data,error}=await sb.functions.invoke("resolver-link",{body:{url}});if(error||!data||data.lat==null)return null;return{lat:+data.lat,lng:+data.lng}}catch(e){return null}
+}
+async function autoLocalizar(){
+  if(!ADM())return;
+  const pend=obras.filter(o=>o.lat==null&&o.mapsLink&&/^https:/.test(o.mapsLink)&&!coordsDe(o.mapsLink));
+  let mudou=false;
+  for(const o of pend){const c=await resolverLink(o.mapsLink);if(!c)continue;
+    const {error}=await sb.from("obras").update({lat:c.lat,lng:c.lng}).eq("id",o.id);if(!error){o.lat=c.lat;o.lng=c.lng;mudou=true}}
+  if(mudou&&aba==="inicio")render();
+}
 const posObra=o=>o.lat!=null&&o.lng!=null?{lat:+o.lat,lng:+o.lng}:coordsDe(o.mapsLink);
 const nomeCol=id=>(colunas.find(c=>c.id===id)||{}).nome||"";
 
@@ -203,7 +214,7 @@ async function carregar(){
     sb.from("colunas").select("*").order("ordem"),
     sb.from("obras").select("id,titulo,cliente,local,coluna,ordem,token,avanco,atualizado_em,tipo,lat,lng,mapsLink:dados->obra->>mapsLink").order("ordem")]);
   if(rc.error||ro.error){toast("Erro ao carregar: "+((rc.error||ro.error).message));return}
-  colunas=rc.data||[];obras=ro.data||[];render();
+  colunas=rc.data||[];obras=ro.data||[];render();autoLocalizar();
 }
 const ADM=()=>perfil&&perfil.papel==="admin";
 
@@ -355,24 +366,29 @@ function editarObra(o){
    <label class="fld">Cliente<input id="oC" value="${esc(o.cliente)}"></label>
    <label class="fld">Cidade / endereço<input id="oL" value="${esc(o.local)}"></label>
    <label class="fld">Coluna<select id="oK">${colunas.map(c=>`<option value="${c.id}" ${c.id===o.coluna?"selected":""}>${esc(c.nome)}</option>`).join("")}</select></label>
-   <label class="fld">Localização: cole o link do Google Maps ou as coordenadas<input id="oG" placeholder="https://www.google.com/maps/@-28.63,-53.60,15z  ou  -28.63, -53.60" value="${pos?pos.lat.toFixed(6)+", "+pos.lng.toFixed(6):""}"></label>
-   <p class="note" id="oGm">Ou toque no mapa para marcar o ponto. Links curtos (maps.app.goo.gl) não trazem as coordenadas: abra o link no navegador e copie o endereço completo, ou marque no mapa.</p>
+   <label class="fld">Localização: cole o link do Google Maps ou as coordenadas<input id="oG" placeholder="https://www.google.com/maps/@-28.63,-53.60,15z  ou  -28.63, -53.60" value="${esc(o.mapsLink||(pos?pos.lat.toFixed(6)+", "+pos.lng.toFixed(6):""))}"></label>
+   <p class="note" id="oGm">É o mesmo link do painel da obra: alterar aqui altera lá. Também dá para tocar no mapa para marcar o ponto exato.</p>
    <div id="oMap" class="minimapa"></div>
    ${novo?'<p class="note">Depois de criar, abra o painel da obra para carregar a planta, os quantitativos e a lista de material.</p>':""}`,
-  async m=>{const g=$("#oG",m).value.trim();const c=coordsDe(g);
-    if(g&&!c){toast("Não encontrei coordenadas nesse texto. Use o link completo do Google Maps, as coordenadas ou marque no mapa.");return false}
+  async m=>{const g=$("#oG",m).value.trim();const link=/^https:/i.test(g)?g:"";
+    let c=m._ponto||coordsDe(g);
+    if(!c&&link){toast("Buscando a localização do link…");c=await resolverLink(link)}
+    if(g&&!c&&!link){toast("Não encontrei coordenadas nesse texto. Cole o link do Google Maps ou marque no mapa.");return false}
+    if(link&&!c)toast("Link salvo, mas não consegui ler o ponto. Marque no mapa para a obra aparecer na tela inicial.");
     const v={titulo:$("#oT",m).value.trim(),tipo:$("#oY",m).value.trim(),cliente:$("#oC",m).value.trim(),local:$("#oL",m).value.trim(),coluna:$("#oK",m).value,lat:c?c.lat:null,lng:c?c.lng:null};
-    if(novo){const d=DB.DADOS_PADRAO();if(/^https:/.test(g))d.obra.mapsLink=g;v.dados=d;v.ordem=Date.now()/1000;const {data,error}=await sb.from("obras").insert(v).select("id").single();if(error){toast(error.message);return false}toast("Obra criada.");location.href="obra.html?id="+data.id;return}
-    const {error}=await sb.from("obras").update(v).eq("id",o.id);if(error){toast(error.message);return false}Object.assign(o,v);render();toast("Obra atualizada.")},
+    if(novo){const d=DB.DADOS_PADRAO();d.obra.mapsLink=link;v.dados=d;v.ordem=Date.now()/1000;const {data,error}=await sb.from("obras").insert(v).select("id").single();if(error){toast(error.message);return false}toast("Obra criada.");location.href="obra.html?id="+data.id;return}
+    if(link!==(o.mapsLink||"")){const r=await sb.from("obras").select("dados").eq("id",o.id).single();if(!r.error){const d=r.data.dados||{};d.obra=Object.assign({},d.obra||{},{mapsLink:link});v.dados=d}}
+    const {error}=await sb.from("obras").update(v).eq("id",o.id);if(error){toast(error.message);return false}delete v.dados;Object.assign(o,v,{mapsLink:link});render();toast("Obra atualizada.")},
   novo?null:{label:"Excluir obra",fn:async m=>{
     if(!m.dataset.conf){m.dataset.conf=1;$("#mX",m).textContent="Toque de novo para excluir de vez";return false}
     const {error}=await sb.from("obras").delete().eq("id",o.id);if(error){toast(error.message);return false}obras=obras.filter(x=>x.id!==o.id);document.querySelectorAll(".gaveta").forEach(x=>x.remove());render();toast("Obra excluída.")}});
   setTimeout(()=>{
     const mm=L.map($("#oMap",m));L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap"}).addTo(mm);
     let mk=null;const por=(lat,lng,mover)=>{if(mk)mk.setLatLng([lat,lng]);else mk=L.marker([lat,lng]).addTo(mm);if(mover)mm.setView([lat,lng],Math.max(mm.getZoom()||0,14))};
+    if(!pos&&o.mapsLink)$("#oG",m).onchange({target:$("#oG",m)});
     if(pos){mm.setView([pos.lat,pos.lng],14);por(pos.lat,pos.lng)}else{const p=obras.map(posObra).filter(Boolean);p.length?mm.fitBounds(p.map(x=>[x.lat,x.lng]),{maxZoom:12,padding:[20,20]}):mm.setView([-28.6,-53.5],7)}
-    mm.on("click",e=>{por(e.latlng.lat,e.latlng.lng);$("#oG",m).value=e.latlng.lat.toFixed(6)+", "+e.latlng.lng.toFixed(6)});
-    $("#oG",m).oninput=e=>{const c=coordsDe(e.target.value);if(c)por(c.lat,c.lng,true)};
+    mm.on("click",e=>{por(e.latlng.lat,e.latlng.lng);m._ponto={lat:e.latlng.lat,lng:e.latlng.lng};$("#oGm",m).textContent="Ponto marcado no mapa ("+e.latlng.lat.toFixed(5)+", "+e.latlng.lng.toFixed(5)+"). O link continua salvo para o botão do Google Maps."});
+    $("#oG",m).onchange=async e=>{m._ponto=null;let c=coordsDe(e.target.value);if(!c&&/^https:/i.test(e.target.value.trim())){$("#oGm",m).textContent="Buscando a localização do link…";c=await resolverLink(e.target.value.trim());$("#oGm",m).textContent=c?"Localização encontrada pelo link.":"Não consegui ler o ponto desse link. Toque no mapa para marcar."}if(c)por(c.lat,c.lng,true)};
     setTimeout(()=>mm.invalidateSize(),50);
   },30);
 }

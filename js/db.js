@@ -88,7 +88,7 @@
     d.redes = redes.map(redeDeLinha);
     d.log = diario.map(logDeLinha);
     d.atualizado = (base.atualizado_em || "").slice(0, 10);
-    ctx = { obraId: base.id, token: base.token || token, role, uid, coluna: base.coluna,
+    ctx = { link0: (d.obra && d.obra.mapsLink) || "", obraId: base.id, token: base.token || token, role, uid, coluna: base.coluna,
       snap: { pontos: new Set(d.pontos.map(p => p.id)), redes: new Set(d.redes.map(g => g.id)), log: new Set(d.log.map(l => l.id)) } };
     return { S: d, role, token: ctx.token };
   }
@@ -109,7 +109,10 @@
     if (ctx.role === "admin") {
       const { pontos, redes, log, atualizado, obra, ...resto } = S;
       const { titulo, cliente, local, ...obraResto } = obra;
-      chk(await sb.from("obras").update({ titulo, cliente, local, dados: Object.assign({}, resto, { obra: obraResto }), avanco }).eq("id", o));
+      const upd = { titulo, cliente, local, dados: Object.assign({}, resto, { obra: obraResto }), avanco };
+      if ((obraResto.mapsLink || "") !== ctx.link0) { upd.lat = null; upd.lng = null; } // a tela inicial relocaliza pelo link novo
+      chk(await sb.from("obras").update(upd).eq("id", o));
+      ctx.link0 = obraResto.mapsLink || "";
     } else {
       chk(await sb.rpc("registrar_avanco", { o, pct: avanco }));
     }
