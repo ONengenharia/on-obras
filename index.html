@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Obras · ON Engenharia</title>
+<link rel="icon" href="assets/on-logo.jpg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: faixa navy no topo; quadro kanban com 4 colunas que rolam na horizontal no celular */
+:root{
+  --bg:#eef2f6; --panel:#ffffff; --ink:#1e2f40; --muted:#5a6f83; --line:#d6e1ea;
+  --accent:#2f6f9f; --accent-soft:#e8f1f9; --navy:#1e2f40; --navy2:#2b4157; --onblue:#62a8dc;
+  --ok:#1f8a4c; --warn:#b7791f; --bad:#b3261e;
+  --f-body:Montserrat,system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#101b26; --panel:#172534; --ink:#e8f1f9; --muted:#9fb8cc; --line:#2b4157;
+  --accent:#62a8dc; --accent-soft:#1d3a52; --navy:#0b141d; --navy2:#1e2f40; --ok:#52c47f; --warn:#e3a94b; --bad:#f2867c; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:12px}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:var(--navy);color:#e8f1f9;border-radius:12px;padding:12px 16px}
+header img{height:42px;border-radius:4px;display:block}
+header h1{margin:0;font-size:18px;font-weight:700;flex:1 1 200px}
+header h1 small{display:block;font-size:11px;font-weight:500;color:#9fb8cc;letter-spacing:.06em;text-transform:uppercase}
+.tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:8px 12px;font-weight:600;font-size:12.5px;text-decoration:none;color:var(--ink);display:inline-flex;align-items:center;gap:6px}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.del{color:var(--bad)}
+header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}
+header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c28}
+.who{font-size:12px;color:#9fb8cc}
+.board{display:grid;grid-template-columns:repeat(4,minmax(240px,1fr));gap:12px;overflow-x:auto;padding-bottom:6px;align-items:start}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:200px}
+.colh{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);gap:8px}
+.colh b{font-size:13px}
+.colh span{font-family:var(--f-mono);font-size:12px;color:var(--muted);background:var(--bg);border-radius:10px;padding:1px 8px}
+.col[data-c=compras] .colh{border-top:4px solid #8a96a3;border-radius:12px 12px 0 0}
+.col[data-c=liberado] .colh{border-top:4px solid #2f6f9f;border-radius:12px 12px 0 0}
+.col[data-c=andamento] .colh{border-top:4px solid #d18b16;border-radius:12px 12px 0 0}
+.col[data-c=finalizado] .colh{border-top:4px solid #1f8a4c;border-radius:12px 12px 0 0}
+.list{display:grid;gap:8px;padding:10px;min-height:80px;align-content:start;flex:1}
+.cardo{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:7px;cursor:pointer;text-align:left}
+.cardo:hover{border-color:var(--accent)}
+.cardo h3{margin:0;font-size:13.5px;line-height:1.3}
+.cardo .c{font-size:12px;color:var(--muted)}
+.cardo .r{display:flex;align-items:center;gap:8px}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;flex:1}
+.bar>b{display:block;height:100%;background:var(--accent)}
+.bar.full>b{background:var(--ok)}
+.pc{font-family:var(--f-mono);font-size:12px;font-weight:500;min-width:38px;text-align:right}
+.cardo .ft{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.lnk{background:none;border:0;padding:0;color:var(--accent);font-weight:600;font-size:12px}
+.empty{color:var(--muted);font-size:12.5px;text-align:center;padding:10px}
+.sortable-ghost{opacity:.35}
+/* login */
+.login{max-width:380px;margin:10vh auto 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;display:grid;gap:14px}
+.login img{height:64px;border-radius:6px;justify-self:start}
+.login h1{margin:0;font-size:20px}
+.fld{display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
+.fld input,.fld select{padding:9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:14px}
+.msg{font-size:12.5px;color:var(--bad);min-height:1em}
+.note{font-size:12px;color:var(--muted);margin:0;line-height:1.45}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(10,16,22,.55);display:grid;place-items:center;padding:16px;z-index:20}
+.box{background:var(--panel);border-radius:12px;padding:18px;width:min(520px,100%);display:grid;gap:12px;max-height:100%;overflow:auto}
+.box h2{margin:0;font-size:18px}
+.row{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.ulist{display:grid;gap:6px}
+.urow{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:8px 10px;flex-wrap:wrap}
+.urow b{font-size:13px}.urow small{display:block;color:var(--muted);font-size:11.5px}
+.tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-radius:8px;padding:2px 8px;background:var(--accent-soft);color:var(--accent)}
+.ck{display:flex;gap:8px;align-items:center;font-size:13.5px}
+.ck input{width:18px;height:18px}
+.toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy);color:#e8f1f9;padding:9px 14px;border-radius:7px;font-size:13px;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.filt{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filt input{padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);min-width:220px;flex:1;max-width:360px}
+@media (max-width:720px){.board{grid-template-columns:repeat(4,minmax(78vw,1fr));scroll-snap-type:x mandatory}.col{scroll-snap-align:start}}
+</style>
+<script src="vendor/supabase.js"></script>
+<script src="vendor/Sortable.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(async()=>{
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fdate=d=>{if(!d)return"";const x=new Date(d);return x.toLocaleDateString("pt-BR")};
+function toast(t){document.querySelectorAll(".toast").forEach(x=>x.remove());const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3800)}
+const sb=DB.sb;
+let perfil=null,obras=[],filtro="";
+
+async function inicio(){
+  const s=await DB.sessao();
+  if(!s)return telaLogin();
+  perfil=await DB.meuPerfil();
+  if(!perfil){toast("Perfil não encontrado.");await sb.auth.signOut();return telaLogin()}
+  const volta=new URLSearchParams(location.search).get("volta");
+  if(volta&&/^\/[^/]/.test(volta)){location.href=volta;return}
+  await carregar();
+}
+
+/* ---------- login ---------- */
+function telaLogin(modo){
+  modo=modo||"entrar";
+  $("#app").innerHTML=`<form class="login" id="fl"><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1>${modo==="entrar"?"Entrar no gerenciador de obras":"Primeiro acesso"}</h1>
+   ${modo==="primeiro"?'<p class="note">Use apenas na primeira vez, para criar o administrador. Os executores são cadastrados depois, pelo administrador.</p><label class="fld">Seu nome<input id="lN" required autocomplete="name"></label>':""}
+   <label class="fld">E-mail<input id="lE" type="email" required autocomplete="email"></label>
+   <label class="fld">Senha<input id="lS" type="password" required minlength="6" autocomplete="${modo==="entrar"?"current-password":"new-password"}"></label>
+   <div class="msg" id="lM"></div>
+   <button class="btn pri" style="justify-content:center;padding:11px">${modo==="entrar"?"Entrar":"Criar administrador"}</button>
+   <div class="row"><button type="button" class="lnk" id="lAlt">${modo==="entrar"?"Primeiro acesso":"Já tenho conta"}</button>${modo==="entrar"?'<button type="button" class="lnk" id="lEsq">Esqueci a senha</button>':""}</div></form>`;
+  $("#lAlt").onclick=()=>telaLogin(modo==="entrar"?"primeiro":"entrar");
+  const esq=$("#lEsq");if(esq)esq.onclick=async()=>{const e=$("#lE").value.trim();if(!e){$("#lM").textContent="Digite seu e-mail acima e toque de novo em Esqueci a senha.";return}
+    const {error}=await sb.auth.resetPasswordForEmail(e,{redirectTo:location.origin+location.pathname});$("#lM").textContent=error?error.message:"Enviamos um e-mail com o link para criar uma nova senha."};
+  $("#fl").onsubmit=async ev=>{ev.preventDefault();const b=ev.submitter;b.disabled=true;$("#lM").textContent="";
+    const email=$("#lE").value.trim(),password=$("#lS").value;
+    try{
+      if(modo==="entrar"){const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw new Error(error.message.includes("Invalid")?"E-mail ou senha incorretos.":error.message.includes("confirm")?"Confirme o e-mail pelo link que enviamos antes de entrar.":error.message)}
+      else{const {data,error}=await sb.auth.signUp({email,password,options:{data:{nome:$("#lN").value.trim()},emailRedirectTo:location.origin+location.pathname}});if(error)throw error;
+        if(!data.session){$("#lM").style.color="var(--ok)";$("#lM").textContent="Conta criada. Abra o e-mail que enviamos e confirme o endereço; depois entre com sua senha.";b.disabled=false;return}}
+      inicio();
+    }catch(e){$("#lM").textContent=e.message||String(e);b.disabled=false}};
+}
+sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY")novaSenha()});
+function novaSenha(){
+  modal("Criar nova senha",`<label class="fld">Nova senha<input id="nS" type="password" minlength="6" required></label>`,async m=>{const {error}=await sb.auth.updateUser({password:$("#nS",m).value});if(error){toast(error.message);return false}toast("Senha alterada.");inicio()})
+}
+
+/* ---------- kanban ---------- */
+async function carregar(){
+  const {data,error}=await sb.from("obras").select("id,titulo,cliente,local,coluna,ordem,token,avanco,atualizado_em").order("ordem");
+  if(error){toast("Erro ao carregar obras: "+error.message);return}
+  obras=data||[];render();
+}
+const ADM=()=>perfil&&perfil.papel==="admin";
+function render(){
+  const f=filtro.trim().toLowerCase();
+  const vis=f?obras.filter(o=>(o.titulo+" "+o.cliente+" "+o.local).toLowerCase().includes(f)):obras;
+  $("#app").innerHTML=`<div class="wrap">
+   <header><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1><small>Gerenciador de obras</small>${ADM()?"Todas as obras":"Minhas obras"}</h1>
+    <div class="tools"><span class="who">${esc(perfil.nome||perfil.email)} · ${ADM()?"Administrador":"Executor"}</span>${ADM()?'<button class="btn" id="bU">Usuários</button><button class="btn pri" id="bN">+ Nova obra</button>':""}<a class="btn" href="portfolio.html" target="_blank" rel="noopener">Portfólio</a><button class="btn" id="bS">Sair</button></div></header>
+   <div class="filt"><input id="fQ" placeholder="Buscar obra, cliente ou cidade" value="${esc(filtro)}"><span class="note">${obras.length} obra${obras.length===1?"":"s"}${ADM()?" · arraste os cartões para mudar de coluna":""}</span></div>
+   <div class="board">${DB.COLUNAS.map(c=>{const L=vis.filter(o=>o.coluna===c.id);return `<section class="col" data-c="${c.id}"><div class="colh"><b>${c.nome}</b><span>${L.length}</span></div><div class="list" data-col="${c.id}">${L.map(cartao).join("")||(ADM()?"":'<p class="empty">Nenhuma obra</p>')}</div></section>`}).join("")}</div></div>`;
+  $("#bS").onclick=async()=>{await sb.auth.signOut();telaLogin()};
+  const q=$("#fQ");q.oninput=()=>{filtro=q.value;const p=q.selectionStart;render();const n=$("#fQ");n.focus();n.setSelectionRange(p,p)};
+  document.querySelectorAll(".cardo").forEach(c=>c.onclick=e=>{if(e.target.closest("[data-act]"))return;location.href="obra.html?id="+c.dataset.id});
+  document.querySelectorAll("[data-act]").forEach(b=>b.onclick=e=>{e.stopPropagation();const o=obras.find(x=>x.id===b.dataset.id);({link:linkObra,equipe:equipeObra,editar:editarObra})[b.dataset.act](o)});
+  if(ADM()){
+    $("#bN").onclick=()=>editarObra(null);$("#bU").onclick=usuarios;
+    document.querySelectorAll(".list").forEach(el=>Sortable.create(el,{group:"obras",animation:150,delay:180,delayOnTouchOnly:true,draggable:".cardo",onEnd:mover}));
+  }
+}
+function cartao(o){
+  const p=Math.round(+o.avanco||0);
+  return `<article class="cardo" data-id="${o.id}" tabindex="0"><h3>${esc(o.titulo)}</h3><div class="c">${esc(o.cliente)}${o.local?" · "+esc(o.local):""}</div>
+   <div class="r"><div class="bar ${p>=100?"full":""}"><b style="width:${p}%"></b></div><span class="pc">${p}%</span></div>
+   <div class="ft"><span>Atualizada ${fdate(o.atualizado_em)}</span>${ADM()?`<span style="display:flex;gap:10px"><button class="lnk" data-act="equipe" data-id="${o.id}">Equipe</button><button class="lnk" data-act="link" data-id="${o.id}">Link</button><button class="lnk" data-act="editar" data-id="${o.id}">Editar</button></span>`:""}</div></article>`;
+}
+async function mover(ev){
+  const id=ev.item.dataset.id,col=ev.to.dataset.col;
+  const irmaos=[...ev.to.querySelectorAll(".cardo")].map(x=>x.dataset.id);
+  const idx=irmaos.indexOf(id);
+  const ord=i=>{const o=obras.find(x=>x.id===irmaos[i]);return o?+o.ordem:null};
+  const antes=idx>0?ord(idx-1):null,depois=idx<irmaos.length-1?ord(idx+1):null;
+  let nova=antes==null&&depois==null?Date.now()/1000:antes==null?depois-1:depois==null?antes+1:(antes+depois)/2;
+  const o=obras.find(x=>x.id===id);const old={coluna:o.coluna,ordem:o.ordem};o.coluna=col;o.ordem=nova;
+  const {error}=await sb.from("obras").update({coluna:col,ordem:nova}).eq("id",id);
+  if(error){Object.assign(o,old);toast("Não foi possível mover: "+error.message)}
+  obras.sort((a,b)=>a.ordem-b.ordem);render();
+}
+
+/* ---------- modais ---------- */
+function modal(titulo,html,ok,extra){
+  const m=document.createElement("div");m.className="modal";
+  m.innerHTML=`<form class="box"><h2>${esc(titulo)}</h2>${html}<div class="row">${extra?`<button type="button" class="btn del" id="mX">${esc(extra.label)}</button>`:"<span></span>"}<span style="display:flex;gap:8px"><button type="button" class="btn" id="mC">${ok?"Cancelar":"Fechar"}</button>${ok?'<button class="btn pri">Salvar</button>':""}</span></div></form>`;
+  document.body.appendChild(m);
+  $("#mC",m).onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()};
+  if(extra)$("#mX",m).onclick=async()=>{if(await extra.fn(m)!==false)m.remove()};
+  $("form",m).onsubmit=async e=>{e.preventDefault();if(!ok)return;const b=e.submitter;b.disabled=true;const r=await ok(m);if(r===false){b.disabled=false;return}m.remove()};
+  return m;
+}
+function editarObra(o){
+  const novo=!o;o=o||{titulo:"",cliente:"",local:"",coluna:"compras"};
+  modal(novo?"Nova obra":"Editar obra",`<label class="fld">Nome da obra<input id="oT" required value="${esc(o.titulo)}" placeholder="Ex.: Loteamento Jardim – Etapa 01"></label>
+   <label class="fld">Cliente<input id="oC" value="${esc(o.cliente)}"></label>
+   <label class="fld">Cidade / endereço<input id="oL" value="${esc(o.local)}"></label>
+   <label class="fld">Coluna<select id="oK">${DB.COLUNAS.map(c=>`<option value="${c.id}" ${c.id===o.coluna?"selected":""}>${c.nome}</option>`).join("")}</select></label>
+   ${novo?'<p class="note">Depois de criar, abra a obra para carregar a planta, os quantitativos e a lista de material.</p>':""}`,
+  async m=>{const v={titulo:$("#oT",m).value.trim(),cliente:$("#oC",m).value.trim(),local:$("#oL",m).value.trim(),coluna:$("#oK",m).value};
+    if(novo){v.dados=DB.DADOS_PADRAO();v.ordem=Date.now()/1000;const {data,error}=await sb.from("obras").insert(v).select("id").single();if(error){toast(error.message);return false}toast("Obra criada.");location.href="obra.html?id="+data.id;return}
+    const {error}=await sb.from("obras").update(v).eq("id",o.id);if(error){toast(error.message);return false}Object.assign(o,v);render();toast("Obra atualizada.")},
+  novo?null:{label:"Excluir obra",fn:async m=>{
+    if(!m.dataset.conf){m.dataset.conf=1;$("#mX",m).textContent="Toque de novo para excluir de vez";return false}
+    const {error}=await sb.from("obras").delete().eq("id",o.id);if(error){toast(error.message);return false}obras=obras.filter(x=>x.id!==o.id);render();toast("Obra excluída.")}});
+}
+function linkObra(o){
+  const url=DB.linkCliente(o.token);
+  const m=modal("Link do cliente",`<p class="note">Quem tiver este link vê a obra "${esc(o.titulo)}" sem login e sem poder alterar nada.</p><label class="fld">Link<input id="kU" readonly value="${esc(url)}"></label><div class="row"><a class="btn" href="${esc(url)}" target="_blank" rel="noopener">Abrir ↗</a><button type="button" class="btn pri" id="kC">Copiar link</button></div>`);
+  $("#kC",m).onclick=async()=>{try{await navigator.clipboard.writeText(url);toast("Link copiado.")}catch(e){$("#kU",m).select();toast("Selecione e copie o link.")}};
+}
+async function equipeObra(o){
+  const [{data:us},{data:mb}]=await Promise.all([sb.from("perfis").select("id,nome,email,papel").order("nome"),sb.from("obra_membros").select("user_id").eq("obra_id",o.id)]);
+  const ex=(us||[]).filter(u=>u.papel==="executor"),tem=new Set((mb||[]).map(x=>x.user_id));
+  modal("Equipe da obra",`<p class="note">Marque os executores que podem lançar dados em "${esc(o.titulo)}". Administradores veem todas as obras.</p>
+   ${ex.length?ex.map(u=>`<label class="ck"><input type="checkbox" value="${u.id}" ${tem.has(u.id)?"checked":""}> ${esc(u.nome||u.email)} <span class="note">${esc(u.email||"")}</span></label>`).join(""):'<p class="note">Nenhum executor cadastrado. Cadastre em Usuários.</p>'}`,
+  async m=>{const sel=new Set([...m.querySelectorAll("input[type=checkbox]:checked")].map(i=>i.value));
+    const add=[...sel].filter(x=>!tem.has(x)).map(user_id=>({obra_id:o.id,user_id})),rem=[...tem].filter(x=>!sel.has(x));
+    if(add.length){const {error}=await sb.from("obra_membros").insert(add);if(error){toast(error.message);return false}}
+    if(rem.length){const {error}=await sb.from("obra_membros").delete().eq("obra_id",o.id).in("user_id",rem);if(error){toast(error.message);return false}}
+    toast("Equipe atualizada.")});
+}
+async function chamarUsuarios(body){
+  const {data,error}=await sb.functions.invoke("usuarios",{body});
+  if(error){let msg=error.message;try{const j=await error.context.json();msg=j.erro||msg}catch(e){}throw new Error(msg)}
+  if(data&&data.erro)throw new Error(data.erro);return data;
+}
+async function usuarios(){
+  const {data:us}=await sb.from("perfis").select("*").order("nome");
+  const m=modal("Usuários",`<div class="ulist">${(us||[]).map(u=>`<div class="urow"><div><b>${esc(u.nome||"(sem nome)")}</b><small>${esc(u.email||"")}</small></div><span style="display:flex;gap:8px;align-items:center"><span class="tag">${u.papel==="admin"?"Administrador":"Executor"}</span>${u.id!==perfil.id?`<button type="button" class="lnk" data-s="${u.id}">Nova senha</button><button type="button" class="lnk" data-p="${u.id}" data-v="${u.papel}">${u.papel==="admin"?"Tornar executor":"Tornar admin"}</button><button type="button" class="lnk" style="color:var(--bad)" data-d="${u.id}">Excluir</button>`:""}</span></div>`).join("")}</div>
+   <h2 style="font-size:15px;margin-top:6px">Cadastrar usuário</h2>
+   <label class="fld">Nome<input id="uN"></label><label class="fld">E-mail<input id="uE" type="email"></label><label class="fld">Senha inicial (mín. 6)<input id="uS" type="text" minlength="6"></label>
+   <label class="fld">Perfil<select id="uP"><option value="executor">Executor (lança mapa, fotos e diário)</option><option value="admin">Administrador (acesso total)</option></select></label>
+   <div class="row"><span class="note">Passe o e-mail e a senha para a pessoa entrar.</span><button type="button" class="btn pri" id="uAdd">Cadastrar</button></div>`);
+  $("#uAdd",m).onclick=async()=>{try{await chamarUsuarios({acao:"criar",nome:$("#uN",m).value,email:$("#uE",m).value,senha:$("#uS",m).value,papel:$("#uP",m).value});toast("Usuário cadastrado.");m.remove();usuarios()}catch(e){toast(e.message)}};
+  m.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{const nm=modal("Nova senha",`<label class="fld">Nova senha (mín. 6)<input id="nS" type="text" minlength="6" required></label>`,async x=>{try{await chamarUsuarios({acao:"senha",id:b.dataset.s,senha:$("#nS",x).value});toast("Senha alterada.")}catch(e){toast(e.message);return false}})});
+  m.querySelectorAll("[data-p]").forEach(b=>b.onclick=async()=>{const novo=b.dataset.v==="admin"?"executor":"admin";const {error}=await sb.from("perfis").update({papel:novo}).eq("id",b.dataset.p);if(error){toast(error.message);return}m.remove();usuarios()});
+  m.querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{if(!b.dataset.c){b.dataset.c=1;b.textContent="Confirmar exclusão";return}try{await chamarUsuarios({acao:"excluir",id:b.dataset.d});toast("Usuário excluído.");m.remove();usuarios()}catch(e){toast(e.message)}});
+}
+
+inicio();
+})();
+</script>
+</body>
+</html>
