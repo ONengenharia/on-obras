@@ -158,6 +158,7 @@ header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}header .b
 img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:none}
 .gv.lado{justify-content:flex-end;align-items:stretch}
 .card{position:relative}
+.crow .alca{cursor:grab;color:var(--muted);font-size:16px;padding:0 2px;user-select:none}.crow.arr{opacity:.45;outline:2px dashed var(--accent)}
 .badge.pisca{background:#d32f2f!important;color:#fff!important;animation:pisca2 1s infinite;box-shadow:0 0 0 2px rgba(211,47,47,.35)}
 .cdot{position:absolute;top:-8px;right:-8px;min-width:22px;height:22px;border-radius:11px;background:#d32f2f;color:#fff;font:700 11.5px/22px var(--f);text-align:center;padding:0 6px;box-shadow:0 0 0 3px var(--panel);z-index:2;animation:pisca2 1s infinite}
 .cdot.men{background:#b71c1c;box-shadow:0 0 0 3px var(--panel),0 0 0 6px rgba(211,47,47,.35)}
@@ -592,7 +593,7 @@ function gerirColunas(){
   const draw=()=>{const Q=QUADROS[quadro],cs=colsDe(quadro),es=ETQ.filter(e=>e.quadro===quadro);
    m.innerHTML=`<div class="box" style="width:min(760px,100%)"><h2>Colunas e etiquetas · ${esc(Q.nome)}</h2>
    <p class="note" style="margin:0">Cada quadro tem o seu processo. As mudanças valem na hora para todos. A coluna com ⚡ é a que ${quadro==="solar"?"coloca o ponto no mapa de obras":"envia a obra ao Gerenciador"} (padrão: Compras).</p>
-   <div class="cl">${cs.map((c,i)=>`<div class="crow"><input type="color" value="${c.cor}" data-cc="${c.id}"><input value="${esc(c.nome)}" data-cn="${c.id}" class="inp" aria-label="Nome da coluna"><select data-ca="${c.id}" class="inp" style="flex:0 0 150px" aria-label="Área"><option value="">Todas as áreas</option>${AREAS.map(a=>`<option value="${a.id}" ${a.id===c.area?"selected":""}>${esc(a.nome)}</option>`).join("")}</select><button class="lnk" data-g="${c.id}" title="Coluna que envia ao Gerenciador / mapa" style="opacity:${c.gatilho?1:.3}">⚡</button><button class="lnk" data-u="${i}" ${i?"":"disabled"} aria-label="Subir">▲</button><button class="lnk" data-d="${i}" ${i<cs.length-1?"":"disabled"} aria-label="Descer">▼</button><button class="lnk del" data-x="${c.id}">Excluir</button></div>`).join("")}</div>
+   <div class="cl">${cs.map((c,i)=>`<div class="crow" draggable="true" data-ci="${i}"><span class="alca" title="Arraste para reordenar" aria-hidden="true">⠿</span><input type="color" value="${c.cor}" data-cc="${c.id}"><input value="${esc(c.nome)}" data-cn="${c.id}" class="inp" aria-label="Nome da coluna"><select data-ca="${c.id}" class="inp" style="flex:0 0 150px" aria-label="Área"><option value="">Todas as áreas</option>${AREAS.map(a=>`<option value="${a.id}" ${a.id===c.area?"selected":""}>${esc(a.nome)}</option>`).join("")}</select><button class="lnk" data-g="${c.id}" title="Coluna que envia ao Gerenciador / mapa" style="opacity:${c.gatilho?1:.3}">⚡</button><button class="lnk" data-u="${i}" ${i?"":"disabled"} aria-label="Subir">▲</button><button class="lnk" data-d="${i}" ${i<cs.length-1?"":"disabled"} aria-label="Descer">▼</button><button class="lnk del" data-x="${c.id}">Excluir</button></div>`).join("")}</div>
    <div class="crow"><input class="inp" id="nc" placeholder="Nova coluna (ex.: Visita técnica, Faturamento)"><button class="btn pri" id="ac">+ Coluna</button></div>
    <h2 style="font-size:15px">Áreas</h2>
    <p class="note" style="margin:0">Cada coluna pertence a uma área. Em Permissões você escolhe quais áreas cada pessoa vê.</p>
@@ -618,7 +619,25 @@ function gerirColunas(){
    const sw=async(i,j)=>{const a=cs[i],b=cs[j];const oa=a.ordem,ob=b.ordem===oa?oa+(j>i?1:-1):b.ordem;await up("neg_colunas",a.id,{ordem:ob});await up("neg_colunas",b.id,{ordem:oa});a.ordem=ob;b.ordem=oa;draw()};
    m.querySelectorAll("[data-u]").forEach(x=>x.onclick=()=>sw(+x.dataset.u,+x.dataset.u-1));
    m.querySelectorAll("[data-d]").forEach(x=>x.onclick=()=>sw(+x.dataset.d,+x.dataset.d+1));
-   m.querySelectorAll("[data-x]").forEach(x=>x.onclick=async()=>{const n=CARDS.filter(k=>k.coluna===x.dataset.x).length;if(n){toast(`Mova os ${n} negócio(s) desta coluna antes de excluir.`);return}if(!x.dataset.c){x.dataset.c=1;x.textContent="Confirmar";return}const {error}=await sb.from("neg_colunas").delete().eq("id",x.dataset.x);if(error){toast(error.message);return}COLS=COLS.filter(c=>c.id!==x.dataset.x);draw()});
+   m.querySelectorAll("[data-x]").forEach(x=>x.onclick=async()=>{const id=x.dataset.x,col=COLS.find(c=>c.id===id),L=CARDS.filter(k=>k.coluna===id);
+     if(!L.length){if(!x.dataset.c){x.dataset.c=1;x.textContent="Confirmar";return}const {error}=await sb.from("neg_colunas").delete().eq("id",id);if(error){toast(error.message);return}COLS=COLS.filter(c=>c.id!==id);draw();return}
+     const outras=cs.filter(c=>c.id!==id);const q=document.createElement("div");q.className="modal";q.style.zIndex=1100;
+     q.innerHTML=`<div class="box" style="width:min(460px,100%)"><h2>Excluir “${esc(col.nome)}”</h2><p class="note" style="margin:0">Esta coluna tem ${L.length} negócio(s). O que fazer com eles?</p>
+      <label class="fld"><span><input type="radio" name="dx" value="mover" checked> Mover para</span><select id="dxc" class="inp">${outras.map(c=>`<option value="${c.id}">${esc(c.nome)}</option>`).join("")}</select></label>
+      <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="radio" name="dx" value="apagar"> Excluir os ${L.length} negócio(s) junto (com conversa e anexos) — não tem volta</label>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="dn">Cancelar</button><button class="btn pri" id="dy" style="background:var(--bad);border-color:var(--bad)">Excluir coluna</button></div></div>`;
+     document.body.appendChild(q);$("#dn",q).onclick=()=>q.remove();
+     $("#dy",q).onclick=async()=>{const modo=q.querySelector("[name=dx]:checked").value,b=$("#dy",q);b.disabled=true;b.textContent="Aguarde…";
+       const r=modo==="mover"?await sb.from("negocios").update({coluna:$("#dxc",q).value}).eq("coluna",id):await sb.from("negocios").delete().eq("coluna",id);
+       if(r.error){toast(r.error.message);b.disabled=false;b.textContent="Excluir coluna";return}
+       const {error}=await sb.from("neg_colunas").delete().eq("id",id);if(error){toast(error.message);b.disabled=false;return}
+       q.remove();COLS=COLS.filter(c=>c.id!==id);await carregarTudo();draw();render()}});
+   let arr=null;const cl=m.querySelector(".cl");
+   cl.querySelectorAll(".crow").forEach(r=>{r.ondragstart=e=>{if(/INPUT|SELECT/.test(e.target.tagName)){e.preventDefault();return}arr=r;r.classList.add("arr");e.dataTransfer.effectAllowed="move"};
+     r.ondragend=async()=>{r.classList.remove("arr");if(!arr)return;arr=null;const novo=[...cl.querySelectorAll(".crow")].map(x=>cs[+x.dataset.ci]);
+       if(novo.every((c,i)=>c===cs[i]))return;const base=Math.min(...cs.map(c=>c.ordem));
+       await Promise.all(novo.map((c,i)=>{c.ordem=base+i;return sb.from("neg_colunas").update({ordem:base+i}).eq("id",c.id)}));draw();render()};
+     r.ondragover=e=>{if(!arr||arr===r)return;e.preventDefault();const bx=r.getBoundingClientRect();cl.insertBefore(arr,e.clientY<bx.top+bx.height/2?r:r.nextSibling)}});
    $("#ac",m).onclick=async()=>{const n=$("#nc",m).value.trim();if(!n)return;const ordem=(cs.length?Math.max(...cs.map(c=>+c.ordem)):0)+1;const {data,error}=await sb.from("neg_colunas").insert({quadro,nome:n,ordem,cor:PAL[cs.length%PAL.length]}).select().single();if(error){toast(error.message);return}COLS.push(data);draw()};
    m.querySelectorAll("[data-ec]").forEach(x=>x.onchange=async()=>{if(await up("neg_etiquetas",x.dataset.ec,{cor:x.value}))ETQ.find(e=>e.id===x.dataset.ec).cor=x.value});
    m.querySelectorAll("[data-en]").forEach(x=>x.onchange=async()=>{const n=x.value.trim();if(n&&await up("neg_etiquetas",x.dataset.en,{nome:n}))ETQ.find(e=>e.id===x.dataset.en).nome=n});
