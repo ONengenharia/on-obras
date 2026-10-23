@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Negócios · ON Engenharia</title>
+<link rel="icon" href="assets/on-logo.jpg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: faixa navy com seletor de quadro (Elétrica / Solar), quadro kanban horizontal, gaveta lateral do card com abas */
+:root{
+  --bg:#eef2f6;--panel:#fff;--ink:#1e2f40;--muted:#5a6f83;--line:#d6e1ea;--accent:#2f6f9f;--accent-soft:#e8f1f9;
+  --navy:#1e2f40;--navy2:#2b4157;--onblue:#62a8dc;--solar:#e0a800;--solar-soft:#fff5d6;--ok:#1f8a4c;--bad:#b3261e;--warn:#b7791f;
+  --f:Montserrat,system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#101b26;--panel:#172534;--ink:#e8f1f9;--muted:#9fb8cc;--line:#2b4157;--accent:#62a8dc;--accent-soft:#1d3a52;--navy:#0b141d;--navy2:#1e2f40;--solar-soft:#3a2f0d;--ok:#52c47f;--bad:#f2867c;--warn:#e3a94b;color-scheme:dark}}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px var(--f)}
+button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{display:flex;flex-direction:column;height:100%;gap:10px;padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.proto{background:#fbf0dc;color:#7a5410;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:500}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;background:var(--navy);color:#e8f1f9;border-radius:12px;padding:10px 14px}
+.logo{width:40px;height:40px;border-radius:8px;background:var(--onblue);color:#0f1c28;display:grid;place-items:center;font-weight:800;font-size:15px}
+header h1{margin:0;font-size:17px;flex:1 1 180px}header h1 small{display:block;font-size:10.5px;color:#9fb8cc;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.seg{display:inline-flex;background:var(--navy2);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:none;color:#9fb8cc;font-weight:600;font-size:13px;padding:7px 13px;border-radius:7px;display:flex;gap:6px;align-items:center}
+.seg button.on{background:#e8f1f9;color:#1e2f40}
+.seg i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.who{display:flex;gap:6px;align-items:center;font-size:12px;color:#9fb8cc}
+.who select{background:var(--navy2);border:1px solid #3b5670;color:#e8f1f9;border-radius:7px;padding:6px 8px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:7px 11px;font-weight:600;font-size:12.5px;display:inline-flex;gap:6px;align-items:center}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c28}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar input{padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--panel);min-width:220px;flex:0 1 320px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:4px 10px;font-size:12px;font-weight:600;display:inline-flex;gap:5px;align-items:center}
+.chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.note{font-size:12px;color:var(--muted)}
+.board{flex:1;min-height:0;display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;align-items:flex-start}
+.col{flex:0 0 268px;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:12px;display:flex;flex-direction:column;max-height:100%}
+.colh{padding:10px 12px;border-bottom:1px solid var(--line);display:grid;gap:3px}
+.colh .t{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.colh b{font-size:13px}.colh .n{font-family:var(--mono);font-size:11.5px;color:var(--muted);background:var(--bg);border-radius:10px;padding:1px 7px}
+.colh .resp{font-size:11px;color:var(--muted);display:flex;gap:4px;align-items:center}
+.lock{font-size:10.5px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.04em}
+.list{padding:8px;display:grid;gap:8px;overflow-y:auto;min-height:60px;align-content:start}
+.list.over{background:var(--accent-soft)}
+.card{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 11px;display:grid;gap:6px;cursor:pointer;text-align:left}
+.card:hover{border-color:var(--accent)}
+.card[draggable=true]{cursor:grab}
+.card h3{margin:0;font-size:13px;line-height:1.3}
+.card .c{font-size:11.5px;color:var(--muted)}
+.lbls{display:flex;gap:4px;flex-wrap:wrap}
+.lbl{font-size:10px;font-weight:700;color:#fff;border-radius:6px;padding:2px 6px;letter-spacing:.02em}
+.cf{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.av{display:flex}.av span{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:9.5px;font-weight:700;color:#fff;border:2px solid var(--panel);margin-left:-6px}
+.av span:first-child{margin-left:0}
+.meta{display:flex;gap:8px;font-size:11px;color:var(--muted);align-items:center}
+.val{font-family:var(--mono);font-size:11.5px;font-weight:500}
+.tipo{font-size:10px;font-weight:700;border-radius:6px;padding:1px 6px}
+.tipo.solar{background:var(--solar-soft);color:#8c6d1f}.tipo.eletrica{background:var(--accent-soft);color:var(--accent)}
+.atr{color:var(--bad);font-weight:600}
+/* gaveta */
+.gv{position:fixed;inset:0;z-index:20;display:flex;justify-content:flex-end}
+.gvf{position:absolute;inset:0;background:rgba(10,16,22,.45)}
+.gvp{position:relative;width:min(620px,100%);height:100%;background:var(--panel);display:flex;flex-direction:column;box-shadow:-10px 0 30px rgba(0,0,0,.25)}
+.gvh{padding:14px 18px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.gvh h2{margin:0;font-size:18px}
+.gvh .row{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.flow{display:flex;gap:3px;flex-wrap:wrap}
+.flow span{font-size:10.5px;font-weight:600;padding:3px 7px;border-radius:5px;background:var(--bg);color:var(--muted)}
+.flow span.feito{background:var(--accent-soft);color:var(--accent)}.flow span.aqui{background:var(--accent);color:#fff}
+.tabs{display:flex;border-bottom:1px solid var(--line);padding:0 12px}
+.tabs button{border:0;background:none;padding:10px 12px;font-weight:600;font-size:13px;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.gvb{flex:1;overflow:auto;padding:14px 18px;display:grid;gap:14px;align-content:start}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fld{display:grid;gap:3px;font-size:11.5px;color:var(--muted)}
+.fld input,.fld select,.fld textarea{padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:13.5px}
+.fld input:disabled,.fld select:disabled,.fld textarea:disabled{opacity:.7}
+.sec{display:grid;gap:8px}.sec h4{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pick{display:flex;flex-wrap:wrap;gap:6px}
+.pick button{border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:4px 10px 4px 4px;font-size:12px;display:flex;gap:6px;align-items:center}
+.pick button.on{border-color:var(--accent);background:var(--accent-soft)}
+.pick .lb{padding:4px 10px;color:#fff;border:0;opacity:.45}.pick .lb.on{opacity:1;outline:2px solid var(--ink)}
+.dot{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:700;color:#fff}
+.chat{display:grid;gap:10px}
+.msg{display:grid;grid-template-columns:30px 1fr;gap:8px}
+.msg .b{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;line-height:1.45}
+.msg .b small{display:block;font-size:11px;color:var(--muted);margin-bottom:2px}.msg .b small b{color:var(--ink)}
+.msg.eu .b{background:var(--accent-soft);border-color:transparent}
+.mention{color:var(--accent);font-weight:600}
+.comp{display:flex;gap:8px;padding:10px 18px;border-top:1px solid var(--line)}
+.comp textarea{flex:1;resize:none;height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.hist{display:grid;gap:8px}.hist div{font-size:12.5px;display:grid;grid-template-columns:110px 1fr;gap:8px}.hist time{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.anx{display:grid;gap:6px}.anx div{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px}
+.anx i{font-style:normal;font-family:var(--mono);font-size:10px;font-weight:700;background:var(--accent-soft);color:var(--accent);border-radius:5px;padding:6px}
+.banner{border-radius:8px;padding:8px 12px;font-size:12.5px;display:flex;gap:8px;align-items:center}
+.banner.ro{background:#fbf0dc;color:#7a5410}
+.banner.go{background:var(--accent-soft);color:var(--accent)}
+.next{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--bg);border:1px dashed var(--line);border-radius:10px;padding:10px}
+/* permissões */
+.modal{position:fixed;inset:0;z-index:30;background:rgba(10,16,22,.55);display:grid;place-items:center;padding:16px}
+.box{background:var(--panel);border-radius:12px;padding:18px;width:min(980px,100%);max-height:100%;overflow:auto;display:grid;gap:12px}
+.box h2{margin:0;font-size:18px}
+.mtx{overflow-x:auto}
+.mtx table{border-collapse:collapse;font-size:12.5px;width:100%}
+.mtx th,.mtx td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:center;white-space:nowrap}
+.mtx th:first-child,.mtx td:first-child{text-align:left;position:sticky;left:0;background:var(--panel)}
+.mtx th{font-size:11px;color:var(--muted);font-weight:600}
+.mtx select{border:1px solid var(--line);border-radius:6px;padding:3px 5px;background:var(--bg);font-size:12px}
+.lv-editar{color:var(--ok);font-weight:700}.lv-ver{color:var(--muted)}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.mapa{height:min(64vh,620px);min-height:360px;border-radius:10px;border:1px solid var(--line);position:relative;z-index:0;isolation:isolate}
+.leg{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:var(--muted)}.leg span{display:flex;align-items:center;gap:4px}
+.pinx{filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}.pinx.fraco{opacity:.75}
+.pop{display:grid;gap:4px;min-width:230px;font-family:var(--f)}.pop small{color:#5a6f83}.pop .tipo{justify-self:start}
+.leaflet-popup-content{margin:12px 14px}
+.areas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.areas a,.areas button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 12px;text-align:left;display:grid;gap:2px}
+.areas a b,.areas button b{font-size:14px}.areas a small,.areas button small{font-size:11.5px;color:var(--muted)}
+.areas a.on,.areas button.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 -3px 0 var(--accent)}
+.outra{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:10px}
+.outra h2{margin:0;font-size:18px}
+.og{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.ocard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px;background:var(--bg)}
+.gv{justify-content:center;align-items:center}
+.gvp.win{position:fixed;border-radius:14px;overflow:hidden;resize:both;min-width:360px;min-height:320px;max-width:100vw;max-height:100vh;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.gvh{cursor:move;user-select:none}.gvh.arr{cursor:grabbing}
+.grab{font-size:10.5px;color:var(--muted);text-align:center;letter-spacing:.02em;margin:-6px 0 -2px}
+.next.go2{border-style:solid;border-color:var(--accent);background:var(--accent-soft);justify-content:space-between}
+.obs textarea{min-height:90px;resize:vertical;line-height:1.5}
+.aviso{background:#fbf0dc;color:#7a5410;border-radius:8px;padding:9px 11px;font-size:12.5px;line-height:1.45}
+.aviso a{color:inherit;font-weight:700}
+.rec{color:var(--bad);font-weight:700;font-size:12.5px;align-self:center;animation:pisca 1s infinite}
+@keyframes pisca{50%{opacity:.35}}
+.nlb{border:1px dashed var(--accent);background:none;color:var(--accent);border-radius:14px;padding:4px 10px;font-size:12px;font-weight:600}
+.mwrap{flex:1;position:relative;display:flex}.mwrap textarea{flex:1}
+.ment[hidden]{display:none}
+.ment{position:absolute;left:0;bottom:calc(100% + 6px);width:min(320px,100%);background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:4px;display:grid;gap:2px;z-index:5}
+.ment button{display:grid;grid-template-columns:24px 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;text-align:left;border:0;background:none;border-radius:7px;padding:6px 8px;font-size:13px}
+.ment button .dot{grid-row:span 2}.ment button small{font-size:11px;color:var(--muted)}
+.ment button.on,.ment button:hover{background:var(--accent-soft)}
+@media (max-width:640px){.areas{grid-template-columns:1fr}.areas a small,.areas button small{display:none}.gvp.win{resize:none}}
+@media (prefers-reduced-motion:reduce){.rec{animation:none}}
+.sino{position:relative}.badge{background:#b3261e;color:#fff;border-radius:9px;font-size:10.5px;padding:1px 6px;margin-left:2px}
+.ib{display:grid;grid-template-columns:28px 1fr;gap:8px;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 10px;width:100%}
+.ib.nl{background:var(--accent-soft);border-color:transparent}.ib .it{font-size:13px;line-height:1.4;display:block}.ib.nl .it{font-weight:600}.ib small{display:block;color:var(--muted);font-size:11px;margin-top:2px}.ii{font-size:16px}
+.cl{display:grid;gap:6px}.crow{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:5px 7px}
+.crow input[type=color]{width:30px;height:28px;border:0;background:none;padding:0}.inp{flex:1;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.lnk{background:none;border:0;color:var(--accent);font-weight:600;font-size:12.5px;padding:2px 4px}.lnk.del{color:var(--bad)}.lnk:disabled{opacity:.25}
+.lv-mover{color:var(--accent);font-weight:700}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--navy);color:#e8f1f9;padding:9px 14px;border-radius:8px;font-size:13px;z-index:50}
+@media (max-width:640px){.grid2{grid-template-columns:1fr}.col{flex-basis:82vw}}
+
+.areas a{text-decoration:none;color:var(--ink)}.areas a:hover{border-color:var(--accent)}
+img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:none}
+.gv.lado{justify-content:flex-end;align-items:stretch}
+.erro{max-width:420px;margin:12vh auto;text-align:center}
+.app{overflow:hidden}
+@media (max-width:640px){.areas a small{display:none}}
+</style>
+<script src="vendor/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+</head>
+<body>
+<div class="app" id="app"><p class="note" style="padding:20px">Carregando…</p></div>
+<script>
+(async()=>{
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const brl=v=>+v?Number(v).toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0}):"—";
+const hojeISO=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const fd=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"}):"";
+const fdt=d=>new Date(d).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"});
+function toast(t){document.querySelectorAll(".toast").forEach(x=>x.remove());const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3600)}
+const sb=DB.sb;
+const PAL=["#2f6f9f","#6a4fb3","#00897b","#c2185b","#d18b16","#5d6b78","#1f8a4c","#8c6d1f","#1565c0","#ad1457"];
+const corDe=id=>{let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))>>>0;return PAL[h%PAL.length]};
+const sigla=n=>String(n||"?").trim().split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join("")||"?";
+
+/* ---------- sessão ---------- */
+const sess=await DB.sessao();
+if(!sess){location.href="index.html?volta="+encodeURIComponent(location.pathname);return}
+const perfil=await DB.meuPerfil();
+if(!perfil||perfil.papel==="pendente"){location.href="index.html";return}
+const eu=perfil.id,ADM=perfil.papel==="admin";
+
+/* ---------- dados ---------- */
+let U=[],QUADROS={},COLS=[],ETQ=[],LISTAS={tipo:[],origem:[],pagto:[],conc:[]},CARDS=[],PERM={},CRIA={},INBOX=[];
+let quadro=(()=>{try{return localStorage.getItem("neg.quadro")||"eletrica"}catch(e){return"eletrica"}})();
+let busca="",fEtq="",soMeus=false,aberto=null,abaCard="resumo",win=null,gravando=null;
+const uById=id=>U.find(u=>u.id===id)||{id,nome:"(removido)",sig:"?",cor:"#999",setor:""};
+const colsDe=q=>COLS.filter(c=>c.quadro===q).sort((a,b)=>a.ordem-b.ordem);
+const etqDe=(q,id)=>ETQ.find(e=>e.id===id&&e.quadro===q);
+const nivelU=(uid,col)=>{const u=uById(uid);if(u.papel==="admin")return"editar";return(PERM[uid]||{})[col]||"ver"};
+const nivel=col=>ADM?"editar":(PERM[eu]||{})[col]||"ver";
+const podeEditar=c=>nivel(c.coluna)==="editar";
+const podeMover=c=>["editar","mover"].includes(nivel(c.coluna));
+const podeCriar=q=>ADM||!!(CRIA[eu]||{})[q];
+
+async function carregarTudo(){
+  const [rp,rq,rc,re,rl,rn,rpe,rcr]=await Promise.all([
+    sb.from("perfis").select("id,nome,email,papel,setor").order("nome"),
+    sb.from("neg_quadros").select("*").order("ordem"),
+    sb.from("neg_colunas").select("*").order("ordem"),
+    sb.from("neg_etiquetas").select("*").order("nome"),
+    sb.from("neg_listas").select("*").order("valor"),
+    sb.from("negocios").select("*").order("ordem",{ascending:false}),
+    sb.from("neg_permissoes").select("*"),
+    sb.from("neg_criadores").select("*")]);
+  const err=[rp,rq,rc,re,rl,rn,rpe,rcr].find(r=>r.error);if(err)throw err.error;
+  U=(rp.data||[]).filter(u=>u.papel!=="pendente").map(u=>({...u,nome:u.nome||u.email,sig:sigla(u.nome||u.email),cor:corDe(u.id)}));
+  QUADROS={};(rq.data||[]).forEach(q=>QUADROS[q.id]=q);
+  COLS=rc.data||[];ETQ=re.data||[];
+  LISTAS={tipo:[],origem:[],pagto:[],conc:[]};(rl.data||[]).forEach(l=>(LISTAS[l.lista]||(LISTAS[l.lista]=[])).push(l.valor));
+  CARDS=rn.data||[];
+  PERM={};(rpe.data||[]).forEach(p=>{(PERM[p.user_id]||(PERM[p.user_id]={}))[p.coluna_id]=p.nivel});
+  CRIA={};(rcr.data||[]).forEach(p=>{(CRIA[p.user_id]||(CRIA[p.user_id]={}))[p.quadro]=true});
+  if(!QUADROS[quadro])quadro=Object.keys(QUADROS)[0];
+}
+async function carregarAvisos(){const {data}=await sb.from("notificacoes").select("*").order("criado_em",{ascending:false}).limit(100);INBOX=data||[]}
+async function recarregar(){await Promise.all([carregarTudo(),carregarAvisos()]);render();if(aberto&&CARDS.find(c=>c.id===aberto))abrir(aberto,true)}
+
+/* ---------- gravação ---------- */
+async function salvarCampos(c,campos){
+  Object.assign(c,campos);
+  const {data,error}=await sb.from("negocios").update(campos).eq("id",c.id).select().single();
+  if(error){toast("Não foi possível salvar: "+error.message);await recarregar();return false}
+  Object.assign(c,data);return true;
+}
+
+/* ---------- tela ---------- */
+function navHtml(){return `<nav class="areas"><a class="on" href="negocios.html"><b>💼 Negócios</b><small>Elétrica e Solar · do comercial às compras</small></a><a href="index.html#kanban" data-aba="kanban"><b>⚡ Gerenciador de obras</b><small>Obras elétricas · postes, rede, fotos, diário</small></a><a href="index.html#inicio" data-aba="inicio"><b>📍 Mapa</b><small>Todas as obras e instalações</small></a></nav>`}
+function render(){
+  const Q=QUADROS[quadro]||{nome:"",cor:"#999"},cols=colsDe(quadro);
+  const f=busca.toLowerCase();
+  const vis=CARDS.filter(c=>c.quadro===quadro&&(!f||(c.titulo+" "+c.cliente+" "+c.cidade+" "+c.tipo).toLowerCase().includes(f))&&(!fEtq||c.etiquetas.includes(fEtq))&&(!soMeus||c.membros.includes(eu)||c.resp===eu));
+  const nl=INBOX.filter(n=>!n.lido).length;
+  const etqs=ETQ.filter(e=>e.quadro===quadro);
+  $("#app").innerHTML=`${navHtml()}
+  <header><img class="logo" src="assets/on-logo.jpg" alt="ON Engenharia"><h1><small>Negócios</small>Fluxo comercial e administrativo</h1>
+   <div class="seg">${Object.values(QUADROS).sort((a,b)=>a.ordem-b.ordem).map(v=>`<button class="${quadro===v.id?"on":""}" data-q="${v.id}"><i style="background:${v.cor}"></i>${esc(v.nome)}</button>`).join("")}</div>
+   <span class="who">${esc(perfil.nome||perfil.email)}${perfil.setor?" · "+esc(perfil.setor):""}</span>
+   <button class="btn sino" id="bIn" title="Caixa de entrada">🔔 Caixa de entrada${nl?`<b class="badge">${nl}</b>`:""}</button>
+   ${ADM?'<button class="btn" id="bCols">Colunas e etiquetas</button><button class="btn" id="bPerm">Permissões</button>':""}
+   <button class="btn pri" id="bNovo" ${podeCriar(quadro)?"":"disabled title='Você não tem permissão para criar negócios neste quadro'"}>+ Novo negócio</button></header>
+  <div class="bar"><input id="q" placeholder="Buscar negócio, cliente, cidade ou tipo" value="${esc(busca)}">
+   <button class="chip ${soMeus?"on":""}" id="meus">Só os meus</button>
+   ${etqs.map(e=>`<button class="chip ${fEtq===e.id?"on":""}" data-e="${e.id}"><i style="width:9px;height:9px;border-radius:50%;background:${e.cor};display:inline-block"></i>${esc(e.nome)}</button>`).join("")}
+   <span class="note" style="margin-left:auto">${vis.length} negócio${vis.length===1?"":"s"} · ${brl(vis.reduce((a,c)=>a+(+c.valor||0),0))} em carteira</span></div>
+  <div class="board">${cols.map(col=>{const L=vis.filter(c=>c.coluna===col.id);const nv=nivel(col.id);
+    return `<section class="col" style="--c:${col.cor}"><div class="colh"><div class="t"><b>${esc(col.nome)}${col.gatilho?' <span title="Ao entrar aqui, o negócio vai para o Gerenciador de obras (Elétrica) ou para o mapa (Solar)">⚡</span>':""}</b><span class="n">${L.length}</span></div>
+     <div class="resp">${brl(L.reduce((a,c)=>a+(+c.valor||0),0))}${nv==="ver"?' · <span class="lock">só leitura</span>':nv==="mover"?' · <span class="lock" style="color:var(--accent)">pode mover</span>':""}</div></div>
+     <div class="list" data-col="${col.id}">${L.map(cardHtml).join("")}</div></section>`}).join("")||'<p class="note">Nenhuma coluna neste quadro. O administrador cria em "Colunas e etiquetas".</p>'}</div>`;
+  document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{quadro=b.dataset.q;fEtq="";try{localStorage.setItem("neg.quadro",quadro)}catch(e){}render()});
+  $("#q").oninput=e=>{busca=e.target.value;const p=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
+  $("#meus").onclick=()=>{soMeus=!soMeus;render()};
+  document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{fEtq=fEtq===b.dataset.e?"":b.dataset.e;render()});
+  $("#bNovo").onclick=novo;
+  $("#bIn").onclick=caixa;
+  if(ADM){$("#bPerm").onclick=permissoes;$("#bCols").onclick=gerirColunas}
+  document.querySelectorAll(".card").forEach(el=>{
+    el.onclick=()=>{abaCard="resumo";abrir(el.dataset.id)};
+    el.onkeydown=e=>{if(e.key==="Enter")el.click()};
+    el.ondragstart=e=>{e.dataTransfer.setData("text/plain",el.dataset.id)};
+  });
+  document.querySelectorAll(".list").forEach(l=>{
+    l.ondragover=e=>{e.preventDefault();l.classList.add("over")};l.ondragleave=()=>l.classList.remove("over");
+    l.ondrop=e=>{e.preventDefault();l.classList.remove("over");mover(e.dataTransfer.getData("text/plain"),l.dataset.col)};
+  });
+}
+function cardHtml(c){
+  const atr=c.prazo&&new Date(c.prazo+"T23:59:00")<new Date();
+  return `<article class="card" data-id="${c.id}" draggable="${podeMover(c)}" tabindex="0">
+   ${c.etiquetas.length?`<div class="lbls">${c.etiquetas.map(i=>{const e=etqDe(c.quadro,i);return e?`<span class="lbl" style="background:${e.cor}">${esc(e.nome)}</span>`:""}).join("")}</div>`:""}
+   <h3>${esc(c.titulo)}</h3><div class="c">${esc(c.cliente||"Sem cliente")}${c.cidade?" · "+esc(c.cidade):""}${c.tipo?` · ${esc(c.tipo)}`:""}${c.pot?` · ${esc(c.pot)} ${esc(c.un||"")}`:""}</div>
+   <div class="cf"><span class="val">${brl(c.valor)}</span><div class="meta">${c.prazo?`<span class="${atr?"atr":""}">📅 ${fd(c.prazo)}</span>`:""}</div></div>
+   <div class="cf"><div class="av">${c.membros.map(m=>{const u=uById(m);return `<span style="background:${u.cor}" title="${esc(u.nome)}">${u.sig}</span>`}).join("")}</div>${c.obra_id?'<span class="tipo eletrica">⚡ No Gerenciador</span>':c.no_mapa?'<span class="tipo solar">📍 No mapa</span>':""}</div></article>`;
+}
+
+/* ---------- mover e enviar ao Gerenciador ---------- */
+async function mover(id,col,ok){
+  const c=CARDS.find(x=>x.id===id);if(!c||c.coluna===col)return;
+  if(!podeMover(c)){toast("Você só visualiza esta etapa. Peça a quem é responsável por ela para mover.");return}
+  const alvo=COLS.find(x=>x.id===col);
+  const jaFoi=c.quadro==="solar"?c.no_mapa:!!c.obra_id;
+  if(alvo.gatilho&&!ok&&!jaFoi){
+    const m=document.createElement("div");m.className="modal";
+    m.innerHTML=`<div class="box" style="width:min(520px,100%)"><h2>${c.quadro==="solar"?"Adicionar ao mapa de obras?":"Enviar para o Gerenciador de obras?"}</h2>
+     <p style="margin:0;line-height:1.5">${c.quadro==="solar"?`<b>${esc(c.titulo)}</b> vai para <b>${esc(alvo.nome)}</b> e passará a aparecer como ponto no mapa de obras.`:`<b>${esc(c.titulo)}</b> vai para <b>${esc(alvo.nome)}</b> e será criada como <b>obra nova no Gerenciador de obras</b>, com cliente, cidade, tipo, concessionária e link do Maps do card.`}</p>
+     <p class="note" style="margin:0">Faça isso só com o negócio fechado. Use as etiquetas <b>Liberado para comprar</b> ou <b>Aguardando recurso</b> para indicar se já pode comprar material.</p>
+     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" id="n0">Cancelar</button><button class="btn" id="n2">Só mover, sem enviar</button><button class="btn pri" id="n1">${c.quadro==="solar"?"Mover e adicionar":"Mover e enviar"}</button></div></div>`;
+    document.body.appendChild(m);
+    $("#n0",m).onclick=()=>{m.remove();render()};
+    $("#n2",m).onclick=()=>{m.remove();mover(id,col,"so")};
+    $("#n1",m).onclick=()=>{m.remove();mover(id,col,"envia")};return;
+  }
+  const antes=c.coluna;c.coluna=col;render();
+  const {error}=await sb.from("negocios").update({coluna:col}).eq("id",id);
+  if(error){c.coluna=antes;render();toast("Não foi possível mover: "+error.message);return}
+  if(ok==="envia"){
+    const d=DB.DADOS_PADRAO();d.obra.mapsLink=c.maps||"";d.obra.concessionaria=c.conc||"";d.obra.negocio=c.id;
+    const r=await sb.rpc("neg_enviar",{neg:id,dados:d});
+    if(r.error)toast("Movido, mas não foi possível enviar: "+r.error.message);
+    else toast(c.quadro==="solar"?"Ponto adicionado ao mapa de obras.":"Obra criada no Gerenciador de obras.");
+  }else toast("Movido para "+alvo.nome+". Quem cuida dessa etapa recebeu na caixa de entrada.");
+  await recarregar();
+}
+
+/* ---------- card aberto ---------- */
+let extras={msgs:[],anx:[],hist:[]},pollChat=null;
+async function carregarExtras(id){
+  const [m,a,h]=await Promise.all([
+    sb.from("neg_mensagens").select("*").eq("negocio_id",id).order("criado_em"),
+    sb.from("neg_anexos").select("*").eq("negocio_id",id).order("criado_em"),
+    sb.from("neg_historico").select("*").eq("negocio_id",id).order("criado_em",{ascending:false})]);
+  extras={msgs:m.data||[],anx:a.data||[],hist:h.data||[]};
+}
+async function abrir(id,manter){
+  aberto=id;const c=CARDS.find(x=>x.id===id);if(!c){fechar();return}
+  if(!manter)await carregarExtras(id);
+  const cols=colsDe(c.quadro);const i=cols.findIndex(x=>x.id===c.coluna);const ed=podeEditar(c);
+  const rascunho=$("#tx")?$("#tx").value:"";
+  document.querySelectorAll(".gv").forEach(x=>x.remove());
+  const g=document.createElement("div");g.className="gv";
+  const prox=cols[i+1],ant=cols[i-1];
+  g.innerHTML=`<div class="gvf"></div><aside class="gvp win" role="dialog" aria-label="${esc(c.titulo)}">
+   <div class="gvh"><div class="grab">⠿ arraste para mover · puxe o canto inferior direito para redimensionar</div><div class="row"><div><span class="tipo ${c.quadro}">${esc(QUADROS[c.quadro].nome)}</span>${c.obra_id?' <span class="tipo eletrica">⚡ No Gerenciador de obras</span>':c.no_mapa?' <span class="tipo solar">📍 No mapa</span>':""}<h2>${esc(c.titulo)}</h2><span class="note">${esc(c.cliente||"Sem cliente")}${c.cidade?" · "+esc(c.cidade):""} · ${brl(c.valor)}</span></div><span style="display:flex;gap:6px">${ADM?'<button class="btn" id="del" style="color:var(--bad)">Excluir</button>':""}<button class="btn" id="x">Fechar</button></span></div>
+    <div class="flow">${cols.map((x,j)=>`<span class="${j<i?"feito":j===i?"aqui":""}">${esc(x.nome)}</span>`).join("")}</div>
+    ${ed?"":`<div class="banner ro">🔒 ${podeMover(c)?"Nesta etapa você pode mover o card e conversar, mas não editar os dados.":"Nesta etapa seu acesso é só leitura, mas pode conversar no chat."}</div>`}
+    ${c.obra_id?'<div class="next go2"><span>Esta obra já está no Gerenciador de obras.</span><a class="btn pri" href="obra.html?id='+c.obra_id+'">Abrir no Gerenciador de obras →</a></div>':""}
+    ${podeMover(c)&&(prox||ant)?`<div class="next"><span class="note">Mover para:</span>${prox?`<button class="btn pri" id="go">${esc(prox.nome)} →</button>`:""}${ant?`<button class="btn" id="back">← ${esc(ant.nome)}</button>`:""}<select id="mv" class="btn"><option value="">Outra etapa…</option>${cols.filter(x=>x.id!==c.coluna).map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join("")}</select></div>`:""}
+   </div>
+   <div class="tabs">${[["resumo","Resumo"],["chat","Conversa ("+extras.msgs.length+")"],["anx","Anexos ("+extras.anx.length+")"],["hist","Histórico"]].map(([k,l])=>`<button class="${abaCard===k?"on":""}" data-t="${k}">${l}</button>`).join("")}</div>
+   <div class="gvb" id="gb"></div>
+   ${abaCard==="chat"?`<div class="comp"><div class="mwrap"><div class="ment" id="ment" hidden></div><textarea id="tx" placeholder="Escreva para a equipe… digite @ para chamar alguém"></textarea></div><button class="btn pri" id="env">Enviar</button></div>`:""}
+  </aside>`;
+  document.body.appendChild(g);
+  janela($(".gvp",g));
+  $(".gvf",g).onclick=$("#x",g).onclick=fechar;
+  if($("#del",g))$("#del",g).onclick=async e=>{const b=e.target;if(!b.dataset.c){b.dataset.c=1;b.textContent="Confirmar exclusão";return}const {error}=await sb.from("negocios").delete().eq("id",c.id);if(error){toast(error.message);return}fechar();await recarregar();toast("Negócio excluído.")};
+  g.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{abaCard=b.dataset.t;abrir(id,true)});
+  if($("#go",g))$("#go",g).onclick=()=>mover(id,prox.id);
+  if($("#back",g))$("#back",g).onclick=()=>mover(id,ant.id);
+  if($("#mv",g))$("#mv",g).onchange=e=>{if(e.target.value)mover(id,e.target.value)};
+  const gb=$("#gb",g),dis=ed?"":"disabled";
+  const opts=(arr,v)=>(v&&!arr.includes(v)?[...arr,v]:arr).map(x=>`<option ${x===v?"selected":""}>${esc(x)}</option>`).join("");
+  clearInterval(pollChat);
+  if(abaCard==="resumo"){
+    gb.innerHTML=`<label class="fld obs">Observações · contexto do orçamento<textarea rows="4" ${dis} data-f="obs" placeholder="O que o cliente quer, condições do local, pendências, combinados…">${esc(c.obs)}</textarea></label>
+     <div class="grid2">
+      <label class="fld">Título do negócio<input value="${esc(c.titulo)}" ${dis} data-f="titulo"></label>
+      <label class="fld">Tipo de obra<select ${dis} data-f="tipo"><option value="">—</option>${opts(LISTAS.tipo,c.tipo)}${ADM?'<option value="__tipo">+ Novo tipo…</option>':""}</select></label>
+      <label class="fld">Cliente<input value="${esc(c.cliente)}" ${dis} data-f="cliente"></label>
+      <label class="fld">Telefone / WhatsApp<input value="${esc(c.fone)}" ${dis} data-f="fone" placeholder="(54) 9…"></label>
+      <label class="fld">Cidade<input value="${esc(c.cidade)}" ${dis} data-f="cidade"></label>
+      <label class="fld">Concessionária<select ${dis} data-f="conc"><option value="">—</option>${opts(LISTAS.conc,c.conc)}<option value="__conc">+ Adicionar outra…</option></select></label>
+      <label class="fld">Origem do contato<select ${dis} data-f="origem"><option value="">—</option>${opts(LISTAS.origem,c.origem)}${ADM?'<option value="__origem">+ Nova origem…</option>':""}</select></label>
+      <label class="fld">Potência<span style="display:flex;gap:6px"><input type="number" step="any" style="flex:1;min-width:0" value="${esc(c.pot)}" ${dis} data-f="pot"><select ${dis} data-f="un">${opts(c.quadro==="solar"?["kWp","kW"]:["kVA","kW","kWp"],c.un||(c.quadro==="solar"?"kWp":"kVA"))}</select></span></label>
+      <label class="fld">Forma de pagamento<select ${dis} data-f="pagto"><option value="">—</option>${opts(LISTAS.pagto,c.pagto)}${ADM?'<option value="__pagto">+ Nova forma…</option>':""}</select></label>
+      <label class="fld">Valor estimado (R$)<input type="number" step="any" value="${+c.valor||""}" ${dis} data-f="valor"></label>
+      <label class="fld">Prazo desta etapa<input type="date" value="${c.prazo||""}" ${dis} data-f="prazo"></label>
+      <label class="fld">Responsável<select ${dis} data-f="resp"><option value="">—</option>${U.map(u=>`<option value="${u.id}" ${u.id===c.resp?"selected":""}>${esc(u.nome)}</option>`).join("")}</select></label>
+      <label class="fld" style="grid-column:1/-1">Localização (link do Google Maps)<span style="display:flex;gap:6px"><input style="flex:1;min-width:0" value="${esc(c.maps)}" ${dis} data-f="maps" placeholder="https://maps.app.goo.gl/…">${c.maps?`<a class="btn" href="${esc(c.maps)}" target="_blank" rel="noopener">Abrir ↗</a>`:""}</span><span class="note">${c.lat!=null?`Ponto: ${(+c.lat).toFixed(5)}, ${(+c.lng).toFixed(5)}`:c.maps?"Ponto ainda não identificado no link.":""}</span></label></div>
+     <div class="sec"><h4>Arquivos e áudio</h4>
+      <div class="aviso">📁 Para não sobrecarregar o sistema, salve os arquivos grandes (projetos, fotos em quantidade, documentos) <b>direto na pasta do cliente</b> e cole o link abaixo. Anexe aqui só o essencial.</div>
+      <label class="fld">Link da pasta do cliente (Google Drive, OneDrive…)<span style="display:flex;gap:6px"><input style="flex:1;min-width:0" value="${esc(c.pasta)}" ${dis} data-f="pasta" placeholder="https://drive.google.com/…">${c.pasta?`<a class="btn" href="${esc(c.pasta)}" target="_blank" rel="noopener">Abrir pasta ↗</a>`:""}</span></label>
+      ${anexosLista()}${ed?botoesAnexo():""}
+     </div>
+     <div class="sec"><h4>Pessoas no card</h4><div class="pick">${U.map(u=>`<button data-m="${u.id}" class="${c.membros.includes(u.id)?"on":""}" ${dis}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")}</div></div>
+     <div class="sec"><h4>Etiquetas</h4><div class="pick">${ADM?'<button class="nlb" id="nlb">+ Nova etiqueta</button>':""}${ETQ.filter(e=>e.quadro===c.quadro).map(e=>`<button class="lb ${c.etiquetas.includes(e.id)?"on":""}" style="background:${e.cor}" data-l="${e.id}" ${dis}>${esc(e.nome)}</button>`).join("")}</div></div>
+     <div class="sec"><h4>Ao chegar em ${esc((cols.find(x=>x.gatilho)||{nome:"(coluna ⚡ não definida)"}).nome)}</h4><p class="note" style="margin:0">${c.quadro==="solar"?"O card vira um ponto no mapa de obras (sem acompanhamento de postes e rede).":"Com o negócio fechado, o card é enviado ao Gerenciador de obras (com confirmação), com planta, postes, rede, fotos, diário e link do cliente."}</p></div>`;
+    gb.querySelectorAll("[data-f]").forEach(el=>el.onchange=async()=>{
+      const f=el.dataset.f;let v=el.value;
+      const novaLista={"__tipo":["tipo","Novo tipo de obra","Ex.: Iluminação pública"],"__conc":["conc","Nova concessionária","Ex.: Cooperluz"],"__origem":["origem","Nova origem","Ex.: Feira"],"__pagto":["pagto","Nova forma de pagamento","Ex.: Consórcio"]}[v];
+      if(novaLista){pedirNome(novaLista[1],novaLista[2],async n=>{const {error}=await sb.from("neg_listas").insert({lista:novaLista[0],valor:n});if(error&&!/duplicate/.test(error.message)){toast(error.message);abrir(id,true);return}if(!LISTAS[novaLista[0]].includes(n))LISTAS[novaLista[0]].push(n);await salvarCampos(c,{[f]:n});render();abrir(id,true);toast("Adicionado para todos.")},()=>abrir(id,true));return}
+      const campos={};
+      if(f==="valor")v=+v||0;if(f==="prazo"||f==="resp")v=v||null;
+      campos[f]=v;
+      if(f==="maps"){campos.lat=null;campos.lng=null;const p=coordsDe(v)||(/^https:/i.test(v)?await resolverLink(v):null);if(p){campos.lat=p.lat;campos.lng=p.lng}}
+      if(await salvarCampos(c,campos)){render();if(["titulo","cliente","cidade","valor","maps"].includes(f))abrir(id,true)}});
+    gb.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{const k=b.dataset.m;const mem=c.membros.includes(k)?c.membros.filter(x=>x!==k):[...c.membros,k];if(await salvarCampos(c,{membros:mem})){render();abrir(id,true)}});
+    gb.querySelectorAll("[data-l]").forEach(b=>b.onclick=async()=>{const k=b.dataset.l;const et=c.etiquetas.includes(k)?c.etiquetas.filter(x=>x!==k):[...c.etiquetas,k];if(await salvarCampos(c,{etiquetas:et})){render();abrir(id,true)}});
+    if($("#nlb",gb))$("#nlb",gb).onclick=()=>pedirNome("Nova etiqueta","Ex.: Aguardando ART",async n=>{const {data,error}=await sb.from("neg_etiquetas").insert({quadro:c.quadro,nome:n,cor:PAL[ETQ.length%PAL.length]}).select().single();if(error){toast(error.message);return}ETQ.push(data);await salvarCampos(c,{etiquetas:[...c.etiquetas,data.id]});render();abrir(id,true)},()=>abrir(id,true));
+    bindAnexos(c,gb);
+  }else if(abaCard==="chat"){
+    const nomes=U.map(u=>u.nome).sort((a,b)=>b.length-a.length);
+    const fmt=t=>{let h=esc(t);nomes.forEach(n=>{h=h.split("@"+esc(n)).join(`<span class="mention">@${esc(n)}</span>`)});return h};
+    const desenhar=()=>{gb.innerHTML=extras.msgs.length?`<div class="chat">${extras.msgs.map(m=>{const u=uById(m.autor);return `<div class="msg ${m.autor===eu?"eu":""}"><span class="dot" style="background:${u.cor};width:30px;height:30px;font-size:11px">${sigla(m.autor_nome)}</span><div class="b"><small><b>${esc(m.autor_nome)}</b> · ${fdt(m.criado_em)}</small>${fmt(m.texto)}</div></div>`}).join("")}</div>`:'<p class="note">Nenhuma mensagem ainda. Todos podem conversar aqui, mesmo quem só visualiza a etapa. Digite @ para chamar alguém: a pessoa recebe na caixa de entrada.</p>';gb.scrollTop=gb.scrollHeight};
+    desenhar();
+    const tx=$("#tx",g);tx.value=rascunho;tx.focus();
+    autocompletar(tx,$("#ment",g));
+    const enviar=async()=>{const t=tx.value.trim();if(!t)return;const men=U.filter(u=>t.includes("@"+u.nome)).map(u=>u.id);
+      $("#env",g).disabled=true;const {error}=await sb.from("neg_mensagens").insert({negocio_id:id,texto:t,mencoes:men});$("#env",g).disabled=false;
+      if(error){toast("Não foi possível enviar: "+error.message);return}tx.value="";await carregarExtras(id);abrir(id,true)};
+    $("#env",g).onclick=enviar;
+    tx.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey))enviar()});
+    pollChat=setInterval(async()=>{if(aberto!==id||abaCard!=="chat"){clearInterval(pollChat);return}const n=extras.msgs.length;await carregarExtras(id);if(extras.msgs.length!==n)desenhar()},8000);
+  }else if(abaCard==="anx"){
+    gb.innerHTML=`<div class="aviso">📁 Arquivos grandes: salve direto na pasta do cliente${c.pasta?` (<a href="${esc(c.pasta)}" target="_blank" rel="noopener">abrir pasta ↗</a>)`:""} e anexe aqui só o essencial.</div>${anexosLista()}${ed?botoesAnexo():""}`;
+    bindAnexos(c,gb);
+  }else{
+    gb.innerHTML=`<div class="hist">${extras.hist.map(h=>`<div><time>${fdt(h.criado_em)}</time><span>${esc(h.texto)}</span></div>`).join("")||'<p class="note">Sem movimentações.</p>'}</div>`;
+  }
+}
+function fechar(){document.querySelectorAll(".gv").forEach(x=>x.remove());aberto=null;clearInterval(pollChat);if(gravando)gravando.stop()}
+const botoesAnexo=()=>`<div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn" style="position:relative;overflow:hidden">📎 Anexar arquivo<input type="file" multiple id="fa" style="position:absolute;inset:0;opacity:0"></label><button class="btn" id="rec">${gravando?"⏹ Parar gravação":"🎙 Gravar áudio"}</button>${gravando?'<span class="rec">● gravando…</span>':""}</div>`;
+function anexosLista(){
+  return extras.anx.length?`<div class="anx">${extras.anx.map(a=>`<div>${a.audio?`<i>🎙</i><span style="flex:1;display:grid;gap:4px;min-width:0"><span>${esc(a.nome)} <span class="note">· ${esc(a.autor_nome)}</span></span><audio controls preload="none" src="${esc(a.url)}" style="width:100%;height:32px"></audio></span>`:`<i>${esc((a.nome.split(".").pop()||"ARQ").toUpperCase().slice(0,4))}</i><span style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(a.nome)}<span class="note"> · ${esc(a.autor_nome)}</span></span><a class="btn" href="${esc(a.url)}${a.url.includes("?")?"&":"?"}download=${encodeURIComponent(a.nome)}" target="_blank" rel="noopener">⬇ Baixar</a>`}${(ADM||a.autor===eu)?`<button class="lnk del" data-ad="${a.id}" title="Excluir">×</button>`:""}</div>`).join("")}</div>`:'<p class="note" style="margin:0">Nenhum anexo ainda.</p>';
+}
+async function subirArquivo(negId,blob,nome){
+  const ext=(/\.[a-z0-9]{1,5}$/i.test(nome)?nome.split(".").pop():"bin").toLowerCase();
+  const path=negId+"/"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)+"."+ext;
+  const {error}=await sb.storage.from("negocios").upload(path,blob,{contentType:blob.type||"application/octet-stream"});
+  if(error)throw error;
+  return sb.storage.from("negocios").getPublicUrl(path).data.publicUrl;
+}
+function bindAnexos(c,root){
+  root.querySelectorAll("[data-ad]").forEach(b=>b.onclick=async()=>{if(!b.dataset.c){b.dataset.c=1;b.textContent="Excluir?";return}const {error}=await sb.from("neg_anexos").delete().eq("id",b.dataset.ad);if(error){toast(error.message);return}await carregarExtras(c.id);abrir(c.id,true)});
+  const fa=$("#fa",root);if(fa)fa.onchange=async()=>{const fs=[...fa.files];fa.value="";let ok=0;
+    for(const f of fs){toast("Enviando "+f.name+"…");try{const url=await subirArquivo(c.id,f,f.name);const {error}=await sb.from("neg_anexos").insert({negocio_id:c.id,nome:f.name,tipo:f.type||"",tam:f.size,url});if(error)throw error;ok++}catch(e){toast(f.name+": "+(e.message||"falha no envio"))}}
+    if(ok){toast(ok+(ok>1?" arquivos anexados.":" arquivo anexado."));await carregarExtras(c.id);abrir(c.id,true)}};
+  const rb=$("#rec",root);if(!rb)return;
+  rb.onclick=async()=>{
+    if(gravando){gravando.stop();return}
+    try{const st=await navigator.mediaDevices.getUserMedia({audio:true});const rec=new MediaRecorder(st);const parts=[];
+      rec.ondataavailable=e=>parts.push(e.data);
+      rec.onstop=async()=>{st.getTracks().forEach(t=>t.stop());gravando=null;const tipo=rec.mimeType||"audio/webm";const blob=new Blob(parts,{type:tipo});const d=new Date();
+        const nome="Áudio "+d.toLocaleDateString("pt-BR").replace(/\//g,"-")+" "+d.toTimeString().slice(0,5).replace(":","h")+(tipo.includes("mp4")?".m4a":".webm");
+        toast("Enviando áudio…");
+        try{const url=await subirArquivo(c.id,blob,nome);const {error}=await sb.from("neg_anexos").insert({negocio_id:c.id,nome,tipo,tam:blob.size,url,audio:true});if(error)throw error;toast("Áudio anexado ao card.")}catch(e){toast("Não foi possível enviar o áudio: "+(e.message||""))}
+        await carregarExtras(c.id);if(aberto===c.id)abrir(c.id,true)};
+      rec.start();gravando=rec;abrir(c.id,true);
+    }catch(e){toast("Não foi possível usar o microfone. Libere o acesso no navegador.")}
+  };
+}
+async function novo(){
+  if(!podeCriar(quadro))return;
+  const primeira=colsDe(quadro)[0];if(!primeira){toast("Crie as colunas deste quadro primeiro.");return}
+  const {data,error}=await sb.from("negocios").insert({quadro,coluna:primeira.id,titulo:"Novo negócio "+(quadro==="solar"?"solar":"elétrico"),un:quadro==="solar"?"kWp":"kVA",membros:[eu],resp:eu}).select().single();
+  if(error){toast("Não foi possível criar: "+error.message);return}
+  CARDS.unshift(data);abaCard="resumo";render();abrir(data.id);
+}
+
+/* ---------- utilidades ---------- */
+function coordsDe(txt){
+  if(!txt)return null;const pats=[/@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/,/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/,/[?&](?:q|query|ll|center|destination)=(-?\d{1,2}\.\d+)(?:,|%2C)\s*(-?\d{1,3}\.\d+)/i,/^\s*(-?\d{1,2}\.\d+)\s*[,;]\s*(-?\d{1,3}\.\d+)\s*$/];
+  for(const p of pats){const m=String(txt).match(p);if(m)return{lat:+m[1],lng:+m[2]}}return null;
+}
+async function resolverLink(url){try{const {data}=await sb.functions.invoke("resolver-link",{body:{url}});return data&&data.lat!=null?{lat:+data.lat,lng:+data.lng}:null}catch(e){return null}}
+function pedirNome(titulo,ph,ok,cancel){
+  const m=document.createElement("div");m.className="modal";
+  m.innerHTML=`<div class="box" style="width:min(420px,100%)"><h2>${esc(titulo)}</h2><label class="fld">Nome<input id="pn" placeholder="${esc(ph)}"></label><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="p0">Cancelar</button><button class="btn pri" id="p1">Adicionar</button></div></div>`;
+  document.body.appendChild(m);$("#pn",m).focus();
+  $("#p0",m).onclick=()=>{m.remove();cancel&&cancel()};
+  const go=()=>{const n=$("#pn",m).value.trim();m.remove();if(n)ok(n);else cancel&&cancel()};$("#p1",m).onclick=go;$("#pn",m).onkeydown=e=>{if(e.key==="Enter")go()};
+}
+function janela(el){
+  const vw=innerWidth,vh=innerHeight;
+  if(!win){const w=Math.min(820,vw-16),h=Math.min(Math.round(vh*.9),vh-16);win={w,h,x:Math.round((vw-w)/2),y:Math.round((vh-h)/2)}}
+  win.w=Math.min(win.w,vw);win.h=Math.min(win.h,vh);
+  win.x=Math.max(0,Math.min(win.x,vw-80));win.y=Math.max(0,Math.min(win.y,vh-60));
+  Object.assign(el.style,{left:win.x+"px",top:win.y+"px",width:win.w+"px",height:win.h+"px"});
+  new ResizeObserver(()=>{if(el.isConnected&&el.offsetWidth>100){win.w=el.offsetWidth;win.h=el.offsetHeight}}).observe(el);
+  const h=$(".gvh",el);
+  h.onpointerdown=e=>{if(e.target.closest("button,select,input,textarea,a,label"))return;e.preventDefault();const sx=e.clientX-win.x,sy=e.clientY-win.y;h.setPointerCapture(e.pointerId);h.classList.add("arr");
+    h.onpointermove=ev=>{win.x=Math.max(0,Math.min(ev.clientX-sx,innerWidth-80));win.y=Math.max(0,Math.min(ev.clientY-sy,innerHeight-60));el.style.left=win.x+"px";el.style.top=win.y+"px"};
+    h.onpointerup=()=>{h.onpointermove=null;h.classList.remove("arr")}};
+  h.ondblclick=e=>{if(e.target.closest("button,select,input,textarea,a"))return;win=null;janela(el)};
+}
+function autocompletar(tx,box){
+  let sel=0,lista=[];
+  const alvo=()=>{const v=tx.value.slice(0,tx.selectionStart);const m=v.match(/@([^\s@]*)$/);return m?{q:m[1].toLowerCase(),ini:v.length-m[0].length}:null};
+  const draw=()=>{const a=alvo();if(!a){box.hidden=true;return}
+    lista=U.filter(u=>u.nome.toLowerCase().split(" ").some(p=>p.startsWith(a.q)));
+    if(!lista.length){box.hidden=true;return}sel=Math.min(sel,lista.length-1);
+    box.innerHTML=lista.map((u,k)=>`<button type="button" class="${k===sel?"on":""}" data-k="${k}"><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}<small>${u.papel==="admin"?"Administrador":esc(u.setor||"")}</small></button>`).join("");box.hidden=false;
+    box.querySelectorAll("[data-k]").forEach(b=>b.onmousedown=e=>{e.preventDefault();pick(+b.dataset.k)})};
+  const pick=k=>{const a=alvo();if(!a)return;const u=lista[k];const fim=tx.selectionStart;tx.value=tx.value.slice(0,a.ini)+"@"+u.nome+" "+tx.value.slice(fim);const p=a.ini+u.nome.length+2;tx.setSelectionRange(p,p);box.hidden=true;tx.focus()};
+  tx.addEventListener("input",()=>{sel=0;draw()});tx.addEventListener("click",draw);
+  tx.addEventListener("keydown",e=>{if(box.hidden)return;if(e.key==="ArrowDown"){sel=(sel+1)%lista.length;draw();e.preventDefault()}else if(e.key==="ArrowUp"){sel=(sel-1+lista.length)%lista.length;draw();e.preventDefault()}else if(e.key==="Enter"||e.key==="Tab"){pick(sel);e.preventDefault();e.stopImmediatePropagation()}else if(e.key==="Escape"){box.hidden=true}});
+  tx.addEventListener("blur",()=>setTimeout(()=>box.hidden=true,150));
+}
+
+/* ---------- administração ---------- */
+function gerirColunas(){
+  const m=document.createElement("div");m.className="modal";
+  const draw=()=>{const Q=QUADROS[quadro],cs=colsDe(quadro),es=ETQ.filter(e=>e.quadro===quadro);
+   m.innerHTML=`<div class="box" style="width:min(760px,100%)"><h2>Colunas e etiquetas · ${esc(Q.nome)}</h2>
+   <p class="note" style="margin:0">Cada quadro tem o seu processo. As mudanças valem na hora para todos. A coluna com ⚡ é a que ${quadro==="solar"?"coloca o ponto no mapa de obras":"envia a obra ao Gerenciador"} (padrão: Compras).</p>
+   <div class="cl">${cs.map((c,i)=>`<div class="crow"><input type="color" value="${c.cor}" data-cc="${c.id}"><input value="${esc(c.nome)}" data-cn="${c.id}" class="inp" aria-label="Nome da coluna"><button class="lnk" data-g="${c.id}" title="Coluna que envia ao Gerenciador / mapa" style="opacity:${c.gatilho?1:.3}">⚡</button><button class="lnk" data-u="${i}" ${i?"":"disabled"} aria-label="Subir">▲</button><button class="lnk" data-d="${i}" ${i<cs.length-1?"":"disabled"} aria-label="Descer">▼</button><button class="lnk del" data-x="${c.id}">Excluir</button></div>`).join("")}</div>
+   <div class="crow"><input class="inp" id="nc" placeholder="Nova coluna (ex.: Visita técnica, Faturamento)"><button class="btn pri" id="ac">+ Coluna</button></div>
+   <h2 style="font-size:15px">Etiquetas</h2>
+   <div class="pick">${es.map(e=>`<span class="crow" style="padding:4px 6px"><input type="color" value="${e.cor}" data-ec="${e.id}"><input class="inp" style="width:160px" value="${esc(e.nome)}" data-en="${e.id}"><button class="lnk del" data-ex="${e.id}" aria-label="Excluir etiqueta">×</button></span>`).join("")}</div>
+   <div class="crow"><input class="inp" id="ne" placeholder="Nova etiqueta"><button class="btn pri" id="ae">+ Etiqueta</button></div>
+   <div style="display:flex;justify-content:flex-end"><button class="btn pri" id="ok">Pronto</button></div></div>`;
+   const up=async(tab,id,v)=>{const {error}=await sb.from(tab).update(v).eq("id",id);if(error)toast(error.message);return!error};
+   m.querySelectorAll("[data-cc]").forEach(x=>x.onchange=async()=>{if(await up("neg_colunas",x.dataset.cc,{cor:x.value}))COLS.find(c=>c.id===x.dataset.cc).cor=x.value});
+   m.querySelectorAll("[data-cn]").forEach(x=>x.onchange=async()=>{const n=x.value.trim();if(n&&await up("neg_colunas",x.dataset.cn,{nome:n}))COLS.find(c=>c.id===x.dataset.cn).nome=n});
+   m.querySelectorAll("[data-g]").forEach(x=>x.onclick=async()=>{for(const c of cs){const v=c.id===x.dataset.g;if(c.gatilho!==v&&await up("neg_colunas",c.id,{gatilho:v}))c.gatilho=v}draw()});
+   const sw=async(i,j)=>{const a=cs[i],b=cs[j];const oa=a.ordem,ob=b.ordem===oa?oa+(j>i?1:-1):b.ordem;await up("neg_colunas",a.id,{ordem:ob});await up("neg_colunas",b.id,{ordem:oa});a.ordem=ob;b.ordem=oa;draw()};
+   m.querySelectorAll("[data-u]").forEach(x=>x.onclick=()=>sw(+x.dataset.u,+x.dataset.u-1));
+   m.querySelectorAll("[data-d]").forEach(x=>x.onclick=()=>sw(+x.dataset.d,+x.dataset.d+1));
+   m.querySelectorAll("[data-x]").forEach(x=>x.onclick=async()=>{const n=CARDS.filter(k=>k.coluna===x.dataset.x).length;if(n){toast(`Mova os ${n} negócio(s) desta coluna antes de excluir.`);return}if(!x.dataset.c){x.dataset.c=1;x.textContent="Confirmar";return}const {error}=await sb.from("neg_colunas").delete().eq("id",x.dataset.x);if(error){toast(error.message);return}COLS=COLS.filter(c=>c.id!==x.dataset.x);draw()});
+   $("#ac",m).onclick=async()=>{const n=$("#nc",m).value.trim();if(!n)return;const ordem=(cs.length?Math.max(...cs.map(c=>+c.ordem)):0)+1;const {data,error}=await sb.from("neg_colunas").insert({quadro,nome:n,ordem,cor:PAL[cs.length%PAL.length]}).select().single();if(error){toast(error.message);return}COLS.push(data);draw()};
+   m.querySelectorAll("[data-ec]").forEach(x=>x.onchange=async()=>{if(await up("neg_etiquetas",x.dataset.ec,{cor:x.value}))ETQ.find(e=>e.id===x.dataset.ec).cor=x.value});
+   m.querySelectorAll("[data-en]").forEach(x=>x.onchange=async()=>{const n=x.value.trim();if(n&&await up("neg_etiquetas",x.dataset.en,{nome:n}))ETQ.find(e=>e.id===x.dataset.en).nome=n});
+   m.querySelectorAll("[data-ex]").forEach(x=>x.onclick=async()=>{if(!x.dataset.c){x.dataset.c=1;x.textContent="?";return}const {error}=await sb.from("neg_etiquetas").delete().eq("id",x.dataset.ex);if(error){toast(error.message);return}ETQ=ETQ.filter(e=>e.id!==x.dataset.ex);draw()});
+   $("#ae",m).onclick=async()=>{const n=$("#ne",m).value.trim();if(!n)return;const {data,error}=await sb.from("neg_etiquetas").insert({quadro,nome:n,cor:PAL[es.length%PAL.length]}).select().single();if(error){toast(error.message);return}ETQ.push(data);draw()};
+   $("#ok",m).onclick=async()=>{m.remove();await recarregar()};};
+  draw();document.body.appendChild(m);
+}
+function permissoes(){
+  const m=document.createElement("div");m.className="modal";
+  const pessoas=U.filter(u=>u.papel==="executor");
+  const draw=()=>{const Q=QUADROS[quadro],cs=colsDe(quadro);
+    m.innerHTML=`<div class="box"><h2>Permissões por pessoa · ${esc(Q.nome)}</h2>
+   <p class="note" style="margin:0">Todo mundo <b>vê</b> todos os negócios e pode conversar. Em cada coluna defina o que cada pessoa pode fazer: <b>Ver</b> (só olha), <b>Mover</b> (passa o card para outra etapa) ou <b>Editar</b> (altera os dados, anexa e move). Administradores podem tudo. Vale na hora e é garantido pelo banco.</p>
+   ${pessoas.length?`<div class="mtx"><table><thead><tr><th>Pessoa</th><th>Cria negócios</th>${cs.map(c=>`<th>${esc(c.nome)}</th>`).join("")}</tr></thead><tbody>${pessoas.map(u=>`<tr><td><b>${esc(u.nome)}</b><br><span class="note">${esc(u.setor||"sem setor")}</span></td><td><input type="checkbox" data-cr="${u.id}" ${(CRIA[u.id]||{})[quadro]?"checked":""} aria-label="Cria negócios"></td>${cs.map(c=>{const v=(PERM[u.id]||{})[c.id]||"ver";return `<td><select data-u="${u.id}" data-c="${c.id}" class="lv-${v}"><option value="ver" ${v==="ver"?"selected":""}>Ver</option><option value="mover" ${v==="mover"?"selected":""}>Mover</option><option value="editar" ${v==="editar"?"selected":""}>Editar</option></select></td>`}).join("")}</tr>`).join("")}</tbody></table></div>`:'<p class="note">Nenhum usuário cadastrado além dos administradores. Convide pessoas em Usuários, no Gerenciador.</p>'}
+   <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><span class="note">Exemplo: o Comercial cria o card e edita só na Prospecção; nas demais colunas fica com "Mover" ou "Ver".</span><button class="btn pri" id="ok">Pronto</button></div></div>`;
+    m.querySelectorAll("select[data-u]").forEach(s=>s.onchange=async()=>{const u=s.dataset.u,c=s.dataset.c,v=s.value;
+      const r=v==="ver"?await sb.from("neg_permissoes").delete().eq("user_id",u).eq("coluna_id",c):await sb.from("neg_permissoes").upsert({user_id:u,coluna_id:c,nivel:v});
+      if(r.error){toast(r.error.message);return}(PERM[u]||(PERM[u]={}))[c]=v;s.className="lv-"+v});
+    m.querySelectorAll("[data-cr]").forEach(x=>x.onchange=async()=>{const u=x.dataset.cr;const r=x.checked?await sb.from("neg_criadores").upsert({user_id:u,quadro}):await sb.from("neg_criadores").delete().eq("user_id",u).eq("quadro",quadro);if(r.error){toast(r.error.message);x.checked=!x.checked;return}(CRIA[u]||(CRIA[u]={}))[quadro]=x.checked});
+    $("#ok",m).onclick=()=>{m.remove();render()};};
+  draw();document.body.appendChild(m);m.onclick=e=>{if(e.target===m){m.remove();render()}};
+}
+function caixa(){
+  const ic={chegou:"📥",mencao:"💬",msg:"✉️",adicionado:"👤"};
+  fechar();
+  const g=document.createElement("div");g.className="gv lado";
+  const draw=()=>{const nl=INBOX.filter(n=>!n.lido).length;
+    g.innerHTML=`<div class="gvf"></div><aside class="gvp" style="width:min(460px,100%)"><div class="gvh" style="cursor:default"><div class="row"><div><h2>Caixa de entrada</h2><span class="note">${nl} não lida${nl===1?"":"s"}</span></div><button class="btn" id="x">Fechar</button></div>${nl?'<button class="btn" id="todas" style="justify-self:start">Marcar todas como lidas</button>':""}</div>
+     <div class="gvb">${INBOX.length?INBOX.map(n=>`<button class="ib ${n.lido?"":"nl"}" data-n="${n.id}"><span class="ii">${ic[n.tipo]||"•"}</span><span><span class="it">${esc(n.texto)}</span><small>${fdt(n.criado_em)}</small></span></button>`).join(""):'<p class="note">Nada por aqui. Quando um negócio chegar numa etapa sua, alguém te mencionar com @ ou te adicionar num card, aparece aqui.</p>'}</div></aside>`;
+    $(".gvf",g).onclick=$("#x",g).onclick=()=>{g.remove();render()};
+    if($("#todas",g))$("#todas",g).onclick=async()=>{await sb.from("notificacoes").update({lido:true}).eq("lido",false);INBOX.forEach(n=>n.lido=true);draw()};
+    g.querySelectorAll("[data-n]").forEach(b=>b.onclick=async()=>{const n=INBOX.find(x=>x.id===b.dataset.n);if(!n.lido){n.lido=true;sb.from("notificacoes").update({lido:true}).eq("id",n.id)}
+      const c=CARDS.find(k=>k.id===n.negocio_id);g.remove();if(c){quadro=c.quadro;abaCard=n.tipo==="mencao"||n.tipo==="msg"?"chat":"resumo";render();abrir(c.id)}else{render();toast("Este negócio não existe mais.")}});
+  };
+  draw();document.body.appendChild(g);
+}
+
+/* ---------- início ---------- */
+try{await recarregar()}catch(e){$("#app").innerHTML=`<div class="erro"><h1>Não foi possível carregar</h1><p>${esc(e.message||e)}</p><a href="index.html">Voltar</a></div>`;return}
+const abrirId=new URLSearchParams(location.search).get("n");if(abrirId&&CARDS.find(c=>c.id===abrirId)){const c=CARDS.find(x=>x.id===abrirId);quadro=c.quadro;render();abrir(abrirId)}
+setInterval(async()=>{if(document.hidden||document.querySelector(".modal"))return;const ab=aberto,aba=abaCard;try{await carregarTudo();await carregarAvisos()}catch(e){return}if(!document.querySelector(".gv"))render();else{const b=$("#bIn");if(b){const nl=INBOX.filter(n=>!n.lido).length;b.innerHTML="🔔 Caixa de entrada"+(nl?`<b class="badge">${nl}</b>`:"")}}},25000);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.querySelector(".gv")&&!document.querySelector(".modal"))fechar()});
+})();
+</script>
+</body>
+</html>

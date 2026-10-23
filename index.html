@@ -82,6 +82,9 @@ header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c2
 .abas{display:flex;gap:4px;background:var(--navy2);border-radius:9px;padding:3px}
 .abas button{border:0;background:none;color:#9fb8cc;font-weight:600;font-size:13px;padding:7px 14px;border-radius:7px}
 .abas button.on{background:#e8f1f9;color:#1e2f40}
+.abalink{color:#9fb8cc;font-weight:600;font-size:13px;padding:7px 14px;border-radius:7px;text-decoration:none;display:flex;gap:6px;align-items:center}
+.abalink:hover{background:#3b5670;color:#e8f1f9}
+.nbadge{background:#b3261e;color:#fff;border-radius:9px;font-size:10.5px;padding:1px 6px}
 .resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .kp{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c,var(--accent));border-radius:10px;padding:10px 12px;display:grid;gap:2px}
 .kp span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
@@ -99,6 +102,7 @@ button.kp:hover{border-color:var(--c)}
 .chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
 .mapabox{position:relative;z-index:0;isolation:isolate;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 #mapa{height:min(62vh,620px);min-height:360px}
+.pinsol{filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
 .pino span{display:grid;place-items:center;width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .pino b{transform:rotate(45deg);color:#fff;font:700 11px/1 var(--f-mono)}
 .pop{display:grid;gap:5px;min-width:220px;font-family:var(--f-body)}.pop small{color:#5a6f83}.pop .r{display:flex;gap:8px;align-items:center}
@@ -159,6 +163,7 @@ async function inicio(){
   perfil=await DB.meuPerfil();
   if(!perfil){toast("Perfil não encontrado.");await sb.auth.signOut();return telaLogin()}
   if(perfil.papel==="pendente"){$("#app").innerHTML=`<div class="login"><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1>Cadastro aguardando liberação</h1><p class="note">Sua conta (${esc(perfil.email||"")}) foi criada, mas ainda precisa ser liberada por um administrador da ON Engenharia. Avise o administrador e entre de novo depois.</p><button class="btn" id="bS">Sair</button></div>`;$("#bS").onclick=async()=>{await sb.auth.signOut();telaLogin()};return}
+  if(window.ON_LINK_TIPO==="invite"||window.ON_LINK_TIPO==="recovery"){const t=window.ON_LINK_TIPO;window.ON_LINK_TIPO="";history.replaceState(null,"",location.pathname);await carregar();novaSenha(t==="invite");return}
   const volta=new URLSearchParams(location.search).get("volta");
   if(volta&&/^\/[^/]/.test(volta)){location.href=volta;return}
   await carregar();
@@ -186,14 +191,15 @@ function telaLogin(modo){
       inicio();
     }catch(e){$("#lM").textContent=e.message||String(e);b.disabled=false}};
 }
-sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY")novaSenha()});
-function novaSenha(){
-  modal("Criar nova senha",`<label class="fld">Nova senha<input id="nS" type="password" minlength="6" required></label>`,async m=>{const {error}=await sb.auth.updateUser({password:$("#nS",m).value});if(error){toast(error.message);return false}toast("Senha alterada.");inicio()})
+sb.auth.onAuthStateChange((ev)=>{if(ev==="PASSWORD_RECOVERY"&&!window.ON_LINK_TIPO)novaSenha()});
+function novaSenha(conv){
+  modal(conv?"Bem-vindo! Crie sua senha":"Criar nova senha",(conv?'<p class="note">Você foi convidado para o sistema da ON Engenharia. Crie uma senha para entrar das próximas vezes.</p>':"")+`<label class="fld">Nova senha<input id="nS" type="password" minlength="6" required></label>`,async m=>{const {error}=await sb.auth.updateUser({password:$("#nS",m).value});if(error){toast(error.message);return false}toast("Senha alterada.");inicio()})
 }
 
 /* ---------- dados ---------- */
 let fCol="",corPor=(()=>{try{return localStorage.getItem("on.cor")||"coluna"}catch(e){return"coluna"}})();
 let colunas=[],aba=(()=>{try{return localStorage.getItem("on.aba")||"inicio"}catch(e){return"inicio"}})(),fTipo="",mapa=null,camadaPinos=null;
+{const hA=location.hash.replace("#","");if(["kanban","inicio"].includes(hA))aba=hA;}
 const TIPOS_SUG=["Loteamento","Rede urbana","Rede rural","Subestação","Medição em MT","Usina fotovoltaica","Instalação MT/BT","Manutenção","Outro"];
 const PAL=["#2f6f9f","#d18b16","#1f8a4c","#c2185b","#6a4fb3","#00897b","#b3261e","#5d6b78","#8c6d1f","#1565c0"];
 function corTipo(t){if(!t)return"#8a96a3";let h=0;for(const c of t.toLowerCase())h=(h*31+c.charCodeAt(0))>>>0;const i=TIPOS_SUG.findIndex(x=>x.toLowerCase()===t.toLowerCase());return PAL[(i>=0?i:h)%PAL.length]}
@@ -214,6 +220,7 @@ async function autoLocalizar(){
     const {error}=await sb.from("obras").update({lat:c.lat,lng:c.lng}).eq("id",o.id);if(!error){o.lat=c.lat;o.lng=c.lng;mudou=true}}
   if(mudou&&aba==="inicio")render();
 }
+const SOL_SVG=`<svg width="38" height="48" viewBox="0 0 50 62" aria-hidden="true"><path d="M25 61 C25 61 4 36 4 22 A21 21 0 1 1 46 22 C46 36 25 61 25 61 Z" fill="#e0a800" stroke="#fff" stroke-width="3"/><g transform="translate(6.5 7) scale(1.15)"><path d="M3 15 L7 5 L25 5 L29 15 Z" fill="#1e3a5f" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 5 L7.7 15 M14.3 5 L13.7 15 M19.7 5 L20.3 15 M25 5 L26.3 15 M5 10 L27 10" stroke="#fff" stroke-width="1"/><path d="M14 15 L14 20 M18 15 L18 20 M11 20 L21 20" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="0" r="3" fill="#ffd54f" stroke="#fff" stroke-width="1"/></g></svg>`;
 const posObra=o=>o.lat!=null&&o.lng!=null?{lat:+o.lat,lng:+o.lng}:coordsDe(o.mapsLink);
 const nomeCol=id=>(colunas.find(c=>c.id===id)||{}).nome||"";
 const corCol=id=>(colunas.find(c=>c.id===id)||{}).cor||"#8a96a3";
@@ -222,22 +229,28 @@ const corPino=o=>corPor==="tipo"?corTipo(o.tipo):corCol(o.coluna);
 async function carregar(){
   const [rc,ro]=await Promise.all([
     sb.from("colunas").select("*").order("ordem"),
-    sb.from("obras").select("id,titulo,cliente,local,coluna,ordem,token,avanco,atualizado_em,tipo,lat,lng,mapsLink:dados->obra->>mapsLink").order("ordem")]);
+    sb.from("obras").select("id,titulo,cliente,local,coluna,ordem,token,avanco,atualizado_em,tipo,lat,lng,mapsLink:dados->obra->>mapsLink,negocio:dados->obra->>negocio").order("ordem")]);
   if(rc.error||ro.error){toast("Erro ao carregar: "+((rc.error||ro.error).message));return}
-  colunas=rc.data||[];obras=ro.data||[];render();autoLocalizar();
+  colunas=rc.data||[];obras=ro.data||[];
+  try{const rs=await sb.from("negocios").select("id,titulo,cliente,cidade,pot,un,valor,lat,lng,coluna").eq("quadro","solar").eq("no_mapa",true);solares=(rs.data||[]).filter(n=>n.lat!=null)}catch(e){solares=[]}
+  render();autoLocalizar();contarAvisos();
 }
+let solares=[],verSolar=true;
 const ADM=()=>perfil&&perfil.papel==="admin";
+let nAvisos=0;
+async function contarAvisos(){try{const {count}=await sb.from("notificacoes").select("id",{count:"exact",head:true}).eq("lido",false);nAvisos=count||0;const b=$("#nBadge");if(b){b.hidden=!nAvisos;b.textContent=nAvisos}}catch(e){}}
 
 /* ---------- estrutura ---------- */
 function render(){
   $("#app").innerHTML=`<div class="wrap">
    <header><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1><small>Gerenciador de obras</small>${ADM()?"Todas as obras":"Minhas obras"}</h1>
-    <nav class="abas"><button data-aba="inicio" class="${aba==="inicio"?"on":""}">Início</button><button data-aba="kanban" class="${aba==="kanban"?"on":""}">Kanban</button></nav>
+    <nav class="abas"><button data-aba="inicio" class="${aba==="inicio"?"on":""}">Início</button><button data-aba="kanban" class="${aba==="kanban"?"on":""}">Kanban</button><a class="abalink" href="negocios.html">💼 Negócios<b class="nbadge" id="nBadge" hidden></b></a></nav>
     <div class="tools"><span class="who">${esc(perfil.nome||perfil.email)} · ${ADM()?"Administrador":"Executor"}</span>${ADM()?'<button class="btn" id="bU">Usuários</button><button class="btn pri" id="bN">+ Nova obra</button>':""}<a class="btn" href="portfolio.html" target="_blank" rel="noopener">Portfólio</a><button class="btn" id="bS">Sair</button></div></header>
    <div id="corpo"></div></div>`;
   $("#bS").onclick=async()=>{await sb.auth.signOut();telaLogin()};
   document.querySelectorAll("[data-aba]").forEach(b=>b.onclick=()=>{aba=b.dataset.aba;try{localStorage.setItem("on.aba",aba)}catch(e){}render()});
   if(ADM()){$("#bN").onclick=()=>editarObra(null);$("#bU").onclick=usuarios}
+  const nb=$("#nBadge");if(nb){nb.hidden=!nAvisos;nb.textContent=nAvisos}
   if(mapa){mapa.remove();mapa=null}
   aba==="inicio"?renderInicio():renderKanban();
 }
@@ -253,11 +266,12 @@ function renderInicio(){
      ${colunas.map(c=>`<button class="kp ${fCol===c.id?"sel":""}" data-fc="${c.id}" style="--c:${c.cor}" title="Mostrar só ${esc(c.nome)}"><span>${esc(c.nome)}</span><b>${obras.filter(o=>o.coluna===c.id&&(!fTipo||(fTipo==="_"?!o.tipo:o.tipo===fTipo))).length}</b></button>`).join("")}
    </section>
    <div class="filt"><span class="note">Situação:</span><button class="chip ${!fCol?"on":""}" data-fc="">Todas</button>${colunas.map(c=>`<button class="chip ${fCol===c.id?"on":""}" data-fc="${c.id}"><i style="background:${c.cor}"></i>${esc(c.nome)}</button>`).join("")}</div>
-   <div class="filt"><span class="note">Tipo:</span><button class="chip ${!fTipo?"on":""}" data-t="">Todos</button>${tipos.map(t=>`<button class="chip ${fTipo===t?"on":""}" data-t="${esc(t)}"><i style="background:${corTipo(t)}"></i>${esc(t)}</button>`).join("")}${obras.some(o=>!o.tipo)?`<button class="chip ${fTipo==="_"?"on":""}" data-t="_"><i style="background:#8a96a3"></i>Sem tipo</button>`:""}<span class="note" style="margin-left:auto">Cor dos pinos:</span><span class="seg2"><button class="${corPor==="coluna"?"on":""}" data-cp="coluna">Situação</button><button class="${corPor==="tipo"?"on":""}" data-cp="tipo">Tipo</button></span></div>
+   <div class="filt"><span class="note">Tipo:</span><button class="chip ${!fTipo?"on":""}" data-t="">Todos</button>${tipos.map(t=>`<button class="chip ${fTipo===t?"on":""}" data-t="${esc(t)}"><i style="background:${corTipo(t)}"></i>${esc(t)}</button>`).join("")}${obras.some(o=>!o.tipo)?`<button class="chip ${fTipo==="_"?"on":""}" data-t="_"><i style="background:#8a96a3"></i>Sem tipo</button>`:""}${solares.length?`<button class="chip ${verSolar?"on":""}" id="cSol">☀ Solar (${solares.length})</button>`:""}<span class="note" style="margin-left:auto">Cor dos pinos:</span><span class="seg2"><button class="${corPor==="coluna"?"on":""}" data-cp="coluna">Situação</button><button class="${corPor==="tipo"?"on":""}" data-cp="tipo">Tipo</button></span></div>
    <section class="mapabox"><div id="mapa"></div></section>
    ${semPos.length?`<section class="sem"><h2>Sem localização (${semPos.length})</h2><p class="note">${ADM()?"Abra a obra e cole o link do Google Maps com as coordenadas, ou marque o ponto no mapa em Editar.":"Peça ao administrador para marcar a localização destas obras."}</p><div class="semlist">${semPos.map(o=>`<button class="semi" data-o="${o.id}"><i style="background:${corTipo(o.tipo)}"></i><span><b>${esc(o.titulo)}</b><small>${esc(o.local||o.cliente||"")}</small></span></button>`).join("")}</div></section>`:""}`;
   document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{fTipo=b.dataset.t;renderInicio()});
   document.querySelectorAll("[data-fc]").forEach(b=>b.onclick=()=>{fCol=fCol===b.dataset.fc&&b.classList.contains("kp")?"":b.dataset.fc;renderInicio()});
+  if($("#cSol"))$("#cSol").onclick=()=>{verSolar=!verSolar;renderInicio()};
   document.querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>{corPor=b.dataset.cp;try{localStorage.setItem("on.cor",corPor)}catch(e){}renderInicio()});
   document.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>mural(obras.find(x=>x.id===b.dataset.o)));
   mapa=L.map("mapa",{zoomControl:true,attributionControl:true});
@@ -268,6 +282,9 @@ function renderInicio(){
   comPos.forEach(o=>{const p=posObra(o);pts.push([p.lat,p.lng]);
     const ic=L.divIcon({className:"pino",html:`<span style="background:${corPino(o)}"><b>${Math.round(+o.avanco||0)}</b></span>`,iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-30]});
     L.marker([p.lat,p.lng],{icon:ic,title:o.titulo}).addTo(mapa).bindPopup(`<div class="pop"><b>${esc(o.titulo)}</b><small>${esc(o.tipo||"Sem tipo")} · ${esc(nomeCol(o.coluna))}</small><small>${esc(o.cliente||"")}${o.local?" · "+esc(o.local):""}</small><div class="r"><div class="bar ${+o.avanco>=100?"full":""}"><b style="width:${Math.round(+o.avanco||0)}%"></b></div><span class="pc">${Math.round(+o.avanco||0)}%</span></div><div class="row"><button class="lnk" data-pm="${o.id}">Mural</button><a class="lnk" href="obra.html?id=${o.id}">Abrir painel →</a></div></div>`)});
+  if(verSolar)solares.forEach(n=>{pts.push([n.lat,n.lng]);
+    const ic=L.divIcon({className:"pinsol",html:SOL_SVG,iconSize:[38,48],iconAnchor:[19,48],popupAnchor:[0,-42]});
+    L.marker([n.lat,n.lng],{icon:ic,title:n.titulo}).addTo(mapa).bindPopup(`<div class="pop"><b>☀ ${esc(n.titulo)}</b><small>Instalação solar${n.pot?" · "+esc(n.pot)+" "+esc(n.un||""):""}</small><small>${esc(n.cliente||"")}${n.cidade?" · "+esc(n.cidade):""}</small><div class="row"><a class="lnk" href="negocios.html?n=${n.id}">Ver negócio →</a></div></div>`)});
   mapa.on("popupopen",e=>{const b=e.popup.getElement().querySelector("[data-pm]");if(b)b.onclick=()=>mural(obras.find(x=>x.id===b.dataset.pm))});
   if(pts.length===1)mapa.setView(pts[0],13);else if(pts.length)mapa.fitBounds(pts,{padding:[40,40],maxZoom:13});else mapa.setView([-28.6,-53.5],7);
   setTimeout(()=>mapa&&mapa.invalidateSize(),60);
@@ -330,7 +347,7 @@ async function mural(o){
   const g=document.createElement("div");g.className="gaveta";
   g.innerHTML=`<div class="gfundo"></div><aside class="gpainel" role="dialog" aria-label="Mural da obra">
    <div class="gtop"><div>${o.tipo?`<span class="tp" style="--t:${corTipo(o.tipo)}">${esc(o.tipo)}</span>`:""}<h2>${esc(o.titulo)}</h2><p class="note">${esc(o.cliente||"")}${o.local?" · "+esc(o.local):""} · ${esc(nomeCol(o.coluna))} · ${Math.round(+o.avanco||0)}%</p></div><button class="lnk" id="gX" aria-label="Fechar" style="font-size:20px">×</button></div>
-   <div class="gacoes"><a class="btn pri" href="obra.html?id=${o.id}">Abrir painel da obra →</a>${ADM()?'<button class="btn" id="gE">Editar</button><button class="btn" id="gL">Link do cliente</button>':""}${posObra(o)?`<a class="btn" target="_blank" rel="noopener" href="${esc(o.mapsLink&&/^https:/.test(o.mapsLink)?o.mapsLink:`https://www.google.com/maps?q=${posObra(o).lat},${posObra(o).lng}`)}">Google Maps ↗</a>`:""}</div>
+   <div class="gacoes"><a class="btn pri" href="obra.html?id=${o.id}">Abrir painel da obra →</a>${o.negocio?`<a class="btn" href="negocios.html?n=${o.negocio}">💼 Ver negócio</a>`:""}${ADM()?'<button class="btn" id="gE">Editar</button><button class="btn" id="gL">Link do cliente</button>':""}${posObra(o)?`<a class="btn" target="_blank" rel="noopener" href="${esc(o.mapsLink&&/^https:/.test(o.mapsLink)?o.mapsLink:`https://www.google.com/maps?q=${posObra(o).lat},${posObra(o).lng}`)}">Google Maps ↗</a>`:""}</div>
    <h3 class="gsub">Mural interno <span class="note">· só a equipe vê, o cliente não</span></h3>
    <form class="comp" id="gF"><textarea id="gT" placeholder="Escreva um recado, decisão, pendência…" rows="3"></textarea><div id="gA" class="anx"></div>
     <div class="row"><label class="btn" style="position:relative;overflow:hidden">Anexar<input type="file" multiple id="gU" style="position:absolute;inset:0;opacity:0"></label><button class="btn pri" id="gS">Publicar</button></div></form>
@@ -426,15 +443,24 @@ async function chamarUsuarios(body){
   if(error){let msg=error.message;try{const j=await error.context.json();msg=j.erro||msg}catch(e){}throw new Error(msg)}
   if(data&&data.erro)throw new Error(data.erro);return data;
 }
+const SETORES_SUG=["Comercial","Engenharia","Administrativo","Compras","Execução","Diretoria"];
 async function usuarios(){
   const {data:us}=await sb.from("perfis").select("*").order("nome");
-  const m=modal("Usuários",`<div class="ulist">${(us||[]).map(u=>`<div class="urow"><div><b>${esc(u.nome||"(sem nome)")}</b><small>${esc(u.email||"")}</small></div><span style="display:flex;gap:8px;align-items:center"><span class="tag" ${u.papel==="pendente"?'style="background:#fbf0dc;color:#b7791f"':""}>${u.papel==="admin"?"Administrador":u.papel==="pendente"?"Aguardando liberação":"Executor"}</span>${u.id!==perfil.id?`<button type="button" class="lnk" data-s="${u.id}">Nova senha</button>${u.papel==="pendente"?`<button type="button" class="lnk" data-p="${u.id}" data-v="pendente">Liberar como executor</button>`:`<button type="button" class="lnk" data-p="${u.id}" data-v="${u.papel}">${u.papel==="admin"?"Tornar executor":"Tornar admin"}</button>`}<button type="button" class="lnk" style="color:var(--bad)" data-d="${u.id}">Excluir</button>`:""}</span></div>`).join("")}</div>
-   <h2 style="font-size:15px;margin-top:6px">Cadastrar usuário</h2>
-   <label class="fld">Nome<input id="uN"></label><label class="fld">E-mail<input id="uE" type="email"></label><label class="fld">Senha inicial (mín. 6)<input id="uS" type="text" minlength="6"></label>
-   <label class="fld">Perfil<select id="uP"><option value="executor">Executor (todas as obras: mapa, fotos, diário e mural)</option><option value="admin">Administrador (acesso total)</option></select></label>
-   <div class="row"><span class="note">Passe o e-mail e a senha para a pessoa entrar.</span><button type="button" class="btn pri" id="uAdd">Cadastrar</button></div>`);
-  $("#uAdd",m).onclick=async()=>{try{await chamarUsuarios({acao:"criar",nome:$("#uN",m).value,email:$("#uE",m).value,senha:$("#uS",m).value,papel:$("#uP",m).value});toast("Usuário cadastrado.");m.remove();usuarios()}catch(e){toast(e.message)}};
-  m.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{const nm=modal("Nova senha",`<label class="fld">Nova senha (mín. 6)<input id="nS" type="text" minlength="6" required></label>`,async x=>{try{await chamarUsuarios({acao:"senha",id:b.dataset.s,senha:$("#nS",x).value});toast("Senha alterada.")}catch(e){toast(e.message);return false}})});
+  const m=modal("Usuários",`<div class="ulist">${(us||[]).map(u=>`<div class="urow"><div><b>${esc(u.nome||"(sem nome)")}</b><small>${esc(u.email||"")}${u.setor?" · "+esc(u.setor):""}</small></div><span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="tag" ${u.papel==="pendente"?'style="background:#fbf0dc;color:#b7791f"':""}>${u.papel==="admin"?"Administrador":u.papel==="pendente"?"Aguardando liberação":"Usuário"}</span>${u.id!==perfil.id?`<button type="button" class="lnk" data-st="${u.id}">Setor</button><button type="button" class="lnk" data-s="${u.id}">Definir senha</button><button type="button" class="lnk" data-r="${esc(u.email||"")}">Enviar link de senha</button>${u.papel==="pendente"?`<button type="button" class="lnk" data-p="${u.id}" data-v="pendente">Liberar</button>`:`<button type="button" class="lnk" data-p="${u.id}" data-v="${u.papel}">${u.papel==="admin"?"Tirar admin":"Tornar admin"}</button>`}<button type="button" class="lnk" style="color:var(--bad)" data-d="${u.id}">Excluir</button>`:""}</span></div>`).join("")}</div>
+   <p class="note">Esqueceram a senha? Use <b>Definir senha</b> para colocar uma nova na hora e passe para a pessoa, ou <b>Enviar link de senha</b> para ela criar sozinha pelo e-mail. Por segurança, o sistema não guarda senhas de forma legível.</p>
+   <h2 style="font-size:15px;margin-top:6px">Convidar usuário</h2>
+   <label class="fld">Nome<input id="uN"></label><label class="fld">E-mail<input id="uE" type="email"></label>
+   <label class="fld">Setor<input id="uT" list="setL" placeholder="Ex.: Comercial"><datalist id="setL">${SETORES_SUG.map(x=>`<option value="${x}">`).join("")}</datalist></label>
+   <label class="fld">Perfil<select id="uP"><option value="executor">Usuário (permissões definidas por você)</option><option value="admin">Administrador (acesso total)</option></select></label>
+   <label class="ck" style="font-size:13px"><input type="checkbox" id="uSc"> Cadastrar com senha inicial, sem e-mail</label>
+   <label class="fld" id="uSw" hidden>Senha inicial (mín. 6)<input id="uS" type="text" minlength="6"></label>
+   <div class="row"><span class="note" id="uMsg">A pessoa recebe um e-mail para criar a própria senha.</span><button type="button" class="btn pri" id="uAdd">Enviar convite</button></div>`);
+  $("#uSc",m).onchange=e=>{$("#uSw",m).hidden=!e.target.checked;$("#uAdd",m).textContent=e.target.checked?"Cadastrar":"Enviar convite";$("#uMsg",m).textContent=e.target.checked?"Passe o e-mail e a senha para a pessoa entrar.":"A pessoa recebe um e-mail para criar a própria senha."};
+  $("#uAdd",m).onclick=async()=>{const comSenha=$("#uSc",m).checked;const b=$("#uAdd",m);b.disabled=true;
+    try{await chamarUsuarios({acao:comSenha?"criar":"convidar",nome:$("#uN",m).value,email:$("#uE",m).value,senha:$("#uS",m).value,setor:$("#uT",m).value,papel:$("#uP",m).value});toast(comSenha?"Usuário cadastrado.":"Convite enviado por e-mail.");m.remove();usuarios()}catch(e){toast(e.message);b.disabled=false}};
+  m.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{modal("Definir senha",`<label class="fld">Nova senha (mín. 6)<input id="nS" type="text" minlength="6" required></label><p class="note">Passe a senha para a pessoa. Ela pode trocar depois em "Esqueci a senha".</p>`,async x=>{try{await chamarUsuarios({acao:"senha",id:b.dataset.s,senha:$("#nS",x).value});toast("Senha definida.")}catch(e){toast(e.message);return false}})});
+  m.querySelectorAll("[data-r]").forEach(b=>b.onclick=async()=>{try{await chamarUsuarios({acao:"reenviar",email:b.dataset.r});toast("Link enviado para "+b.dataset.r+".")}catch(e){toast(e.message)}});
+  m.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{const u=us.find(x=>x.id===b.dataset.st);modal("Setor de "+(u.nome||u.email),`<label class="fld">Setor<input id="sT" list="setL2" value="${esc(u.setor||"")}"><datalist id="setL2">${SETORES_SUG.map(x=>`<option value="${x}">`).join("")}</datalist></label>`,async x=>{const {error}=await sb.from("perfis").update({setor:$("#sT",x).value.trim()}).eq("id",u.id);if(error){toast(error.message);return false}m.remove();usuarios()})});
   m.querySelectorAll("[data-p]").forEach(b=>b.onclick=async()=>{const novo=b.dataset.v==="executor"?"admin":"executor";const {error}=await sb.from("perfis").update({papel:novo}).eq("id",b.dataset.p);if(error){toast(error.message);return}m.remove();usuarios()});
   m.querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{if(!b.dataset.c){b.dataset.c=1;b.textContent="Confirmar exclusão";return}try{await chamarUsuarios({acao:"excluir",id:b.dataset.d});toast("Usuário excluído.");m.remove();usuarios()}catch(e){toast(e.message)}});
 }
