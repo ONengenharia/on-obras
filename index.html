@@ -288,7 +288,7 @@ function cartao(o){
   const p=Math.round(+o.avanco||0);
   return `<article class="cardo" data-id="${o.id}" tabindex="0">${o.tipo?`<span class="tp" style="--t:${corTipo(o.tipo)}">${esc(o.tipo)}</span>`:""}<h3>${esc(o.titulo)}</h3><div class="c">${esc(o.cliente)}${o.local?" · "+esc(o.local):""}</div>
    <div class="r"><div class="bar ${p>=100?"full":""}"><b style="width:${p}%"></b></div><span class="pc">${p}%</span></div>
-   <div class="ft"><span>Atualizada ${fdate(o.atualizado_em)}</span>${ADM()?`<span style="display:flex;gap:10px"><button class="lnk" data-act="equipe" data-id="${o.id}">Equipe</button><button class="lnk" data-act="link" data-id="${o.id}">Link</button><button class="lnk" data-act="editar" data-id="${o.id}">Editar</button></span>`:""}</div></article>`;
+   <div class="ft"><span>Atualizada ${fdate(o.atualizado_em)}</span>${ADM()?`<span style="display:flex;gap:10px"><button class="lnk" data-act="link" data-id="${o.id}">Link</button><button class="lnk" data-act="editar" data-id="${o.id}">Editar</button></span>`:""}</div></article>`;
 }
 async function mover(ev){
   const id=ev.item.dataset.id,col=ev.to.dataset.col;
@@ -430,7 +430,7 @@ async function usuarios(){
   const m=modal("Usuários",`<div class="ulist">${(us||[]).map(u=>`<div class="urow"><div><b>${esc(u.nome||"(sem nome)")}</b><small>${esc(u.email||"")}</small></div><span style="display:flex;gap:8px;align-items:center"><span class="tag">${u.papel==="admin"?"Administrador":"Executor"}</span>${u.id!==perfil.id?`<button type="button" class="lnk" data-s="${u.id}">Nova senha</button><button type="button" class="lnk" data-p="${u.id}" data-v="${u.papel}">${u.papel==="admin"?"Tornar executor":"Tornar admin"}</button><button type="button" class="lnk" style="color:var(--bad)" data-d="${u.id}">Excluir</button>`:""}</span></div>`).join("")}</div>
    <h2 style="font-size:15px;margin-top:6px">Cadastrar usuário</h2>
    <label class="fld">Nome<input id="uN"></label><label class="fld">E-mail<input id="uE" type="email"></label><label class="fld">Senha inicial (mín. 6)<input id="uS" type="text" minlength="6"></label>
-   <label class="fld">Perfil<select id="uP"><option value="executor">Executor (lança mapa, fotos e diário)</option><option value="admin">Administrador (acesso total)</option></select></label>
+   <label class="fld">Perfil<select id="uP"><option value="executor">Executor (todas as obras: mapa, fotos, diário e mural)</option><option value="admin">Administrador (acesso total)</option></select></label>
    <div class="row"><span class="note">Passe o e-mail e a senha para a pessoa entrar.</span><button type="button" class="btn pri" id="uAdd">Cadastrar</button></div>`);
   $("#uAdd",m).onclick=async()=>{try{await chamarUsuarios({acao:"criar",nome:$("#uN",m).value,email:$("#uE",m).value,senha:$("#uS",m).value,papel:$("#uP",m).value});toast("Usuário cadastrado.");m.remove();usuarios()}catch(e){toast(e.message)}};
   m.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{const nm=modal("Nova senha",`<label class="fld">Nova senha (mín. 6)<input id="nS" type="text" minlength="6" required></label>`,async x=>{try{await chamarUsuarios({acao:"senha",id:b.dataset.s,senha:$("#nS",x).value});toast("Senha alterada.")}catch(e){toast(e.message);return false}})});
