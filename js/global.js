@@ -36,7 +36,11 @@
   .gc-comp textarea{flex:1;resize:none;height:42px;border:1px solid var(--line,#d6e1ea);border-radius:8px;padding:8px;font:inherit;font-size:13px;background:var(--bg,#eef2f6);color:inherit}
   .gc-comp button{border:0;border-radius:8px;background:#2f6f9f;color:#fff;font-weight:600;padding:0 14px;cursor:pointer}
   .gc-ment{position:absolute;left:8px;bottom:calc(100% + 4px);width:calc(100% - 16px);background:var(--panel,#fff);border:1px solid var(--line,#d6e1ea);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:4px;display:grid;gap:2px;max-height:220px;overflow:auto}
-  .gc-ment[hidden]{display:none}
+  .gc-ment[hidden],.gc-win[hidden],.gc-emo[hidden]{display:none!important}
+  .gc-top button{padding:2px 6px;border-radius:6px}.gc-top button:hover{background:#2b4157;color:#fff}
+  .gc-eb{background:none!important;color:inherit!important;font-size:20px;padding:0 4px!important}
+  .gc-emo{position:absolute;left:8px;bottom:calc(100% + 4px);width:calc(100% - 16px);background:var(--panel,#fff);border:1px solid var(--line,#d6e1ea);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:6px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;max-height:200px;overflow:auto}
+  .gc-emo button{border:0;background:none;font-size:20px;padding:4px;border-radius:6px;cursor:pointer}.gc-emo button:hover{background:var(--accent-soft,#e8f1f9)}
   .gc-ment button{display:flex;gap:8px;align-items:center;text-align:left;border:0;background:none;border-radius:7px;padding:6px 8px;font:inherit;font-size:13px;color:inherit;cursor:pointer}
   .gc-ment button.on,.gc-ment button:hover{background:var(--accent-soft,#e8f1f9)}
   .gc-ment .av{width:22px;height:22px;border-radius:50%;color:#fff;display:grid;place-items:center;font-size:9px;font-weight:700}
@@ -61,6 +65,7 @@
   const nomeDe = id => (U.find(u => u.id === id) || {}).nome || "";
   const dm = outro => "dm:" + [eu, outro].sort().join(":");
   let canal = (() => { try { return localStorage.getItem("gc.canal") || "geral"; } catch (e) { return "geral"; } })();
+  const EMO = "😀 😂 😊 😍 😉 😎 🤔 😅 😢 😡 👍 👎 👏 🙏 💪 🤝 ✅ ❌ ⚠️ ❗ ❓ 🔥 ⭐ 🎉 ⚡ 🔌 💡 ☀️ 🏗️ 🚧 🔧 🛠️ 📍 📅 ⏰ 📞 📎 📄 💰 🚚".split(" ");
   let aberto = false, msgs = [], naoLidas = {}, timer = null;
 
   const fab = document.createElement("button");
@@ -96,10 +101,13 @@
     L.scrollTop = L.scrollHeight;
   }
   function montar() {
-    win.innerHTML = `<div class="gc-top"><b>Chat da equipe</b><select aria-label="Conversa">${opcoesCanal()}</select><button aria-label="Fechar">✕</button></div>
+    win.innerHTML = `<div class="gc-top"><b>Chat da equipe</b><select aria-label="Conversa">${opcoesCanal()}</select><button data-x="min" title="Minimizar" aria-label="Minimizar">—</button><button data-x="fec" title="Fechar" aria-label="Fechar">✕</button></div>
       <div class="gc-list"></div>
-      <div class="gc-comp"><div class="gc-ment" hidden></div><textarea placeholder="Mensagem… digite @ para chamar alguém (Enter envia)"></textarea><button>Enviar</button></div>`;
-    win.querySelector(".gc-top button").onclick = fechar;
+      <div class="gc-comp"><div class="gc-ment" hidden></div><div class="gc-emo" hidden>${EMO.map(e=>`<button type="button">${e}</button>`).join("")}</div><button type="button" class="gc-eb" title="Emojis" aria-label="Emojis">😊</button><textarea placeholder="Mensagem… digite @ para chamar alguém (Enter envia)"></textarea><button>Enviar</button></div>`;
+    win.querySelectorAll(".gc-top [data-x]").forEach(b => b.onclick = fechar);
+    const emo = win.querySelector(".gc-emo");
+    win.querySelector(".gc-eb").onclick = () => { emo.hidden = !emo.hidden; };
+    emo.querySelectorAll("button").forEach(b => b.onclick = () => { const t = win.querySelector("textarea"), p = t.selectionStart ?? t.value.length; t.value = t.value.slice(0, p) + b.textContent + t.value.slice(t.selectionEnd ?? p); const q = p + b.textContent.length; t.focus(); t.setSelectionRange(q, q); emo.hidden = true; });
     win.querySelector("select").onchange = async e => { canal = e.target.value; try { localStorage.setItem("gc.canal", canal); } catch (er) {} await carregar(); desenharLista(); marcarLido(); };
     const tx = win.querySelector("textarea"), box = win.querySelector(".gc-ment");
     autocompletar(tx, box);
@@ -111,7 +119,7 @@
       if (error) { tx.value = t; alertaCurto("Não foi possível enviar: " + error.message); return; }
       await carregar(); desenharLista(); marcarLido();
     };
-    win.querySelector(".gc-comp > button").onclick = enviar;
+    win.querySelector(".gc-comp > button:last-child").onclick = enviar;
     tx.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && box.hidden) { e.preventDefault(); enviar(); } });
     desenharLista();
   }
@@ -141,6 +149,8 @@
   }
   function fechar() { aberto = false; win.hidden = true; clearInterval(timer); }
   fab.onclick = () => aberto ? fechar() : abrir();
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && aberto && !document.querySelector(".lb-ov")) fechar(); });
+  document.addEventListener("mousedown", e => { if (aberto && !win.contains(e.target) && !fab.contains(e.target)) fechar(); });
   function alertaCurto(t) { const d = document.createElement("div"); d.className = "toast"; d.style.zIndex = 1400; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
   await contar();
   setInterval(() => { if (!document.hidden && !aberto) contar(); }, 20000);
