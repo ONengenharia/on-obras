@@ -143,6 +143,16 @@ header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}header .b
 .ment button .dot{grid-row:span 2}.ment button small{font-size:11px;color:var(--muted)}
 .ment button.on,.ment button:hover{background:var(--accent-soft)}
 @media (max-width:640px){.areas{grid-template-columns:1fr}.areas a small,.areas button small{display:none}.gvp.win{resize:none}}
+@media (max-width:640px){
+ .areas{grid-template-columns:repeat(3,1fr)!important;gap:6px!important}.areas a,.areas button{padding:8px 6px!important;text-align:center}.areas a b,.areas button b{font-size:12.5px}
+ .gvp.win{inset:0!important;left:0!important;top:0!important;width:100vw!important;height:100dvh!important;min-width:0!important;min-height:0!important;border-radius:0!important;resize:none!important}
+ .grab{display:none!important}
+ .board{scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}.col{scroll-snap-align:start}
+ .btn{padding:8px 10px;font-size:13px}
+ .gvh .row{flex-wrap:wrap;gap:8px}
+ .lform input,.lform select,.lform button{flex:1 1 100%}
+ .box{max-height:92dvh;overflow:auto}
+}
 @media (prefers-reduced-motion:reduce){.rec{animation:none}}
 .sino{position:relative}.badge{background:#b3261e;color:#fff;border-radius:9px;font-size:10.5px;padding:1px 6px;margin-left:2px}
 .ib{display:grid;grid-template-columns:28px 1fr;gap:8px;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 10px;width:100%}
@@ -184,7 +194,7 @@ img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:no
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
-<script src="js/global.js?v=8" defer></script>
+<script src="js/global.js?v=10" defer></script>
 </head>
 <body>
 <div class="app" id="app"><p class="note" style="padding:20px">Carregando…</p></div>

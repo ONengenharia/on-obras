@@ -50,7 +50,7 @@
   .gc-ch i.men{background:#b71c1c;box-shadow:0 0 0 2px #ffcdd2}
   @keyframes gcPisca{50%{background:#ff5252;transform:scale(1.15)}}
   @media (prefers-reduced-motion:reduce){.gc-ch i{animation:none}}
-  @media (max-width:520px){.gc-chans{width:96px}.gc-ch span.nm{font-size:11px}}
+  @media (max-width:520px){.gc-win{inset:0!important;width:100vw!important;height:100dvh!important;border-radius:0!important;bottom:0!important;right:0!important}.gc-chans{width:62px;padding:6px 4px}.gc-ch{flex-direction:column;gap:2px;padding:6px 2px;position:relative}.gc-ch span.nm{font-size:9.5px;max-width:54px;text-align:center}.gc-ch i{position:absolute;top:0;right:2px;margin:0}.gc-fab.aberto,body:has(.gv) .gc-fab,body:has(.modal) .gc-fab{display:none}}
   .gc-m.eu{grid-template-columns:1fr}
   .gc-m.eu .av{display:none}
   .gc-m.eu .b{justify-self:end;max-width:85%;background:#2f6f9f;color:#fff;border-color:#2f6f9f;border-radius:12px 12px 2px 12px}
@@ -166,13 +166,13 @@
     tx.addEventListener("blur", () => setTimeout(() => box.hidden = true, 150));
   }
   async function abrir() {
-    aberto = true; win.hidden = false;
+    aberto = true; win.hidden = false; fab.classList.add("aberto");
     if (!naoLidas[canal]) { const c = Object.keys(naoLidas).find(k => naoLidas[k].men) || Object.keys(naoLidas)[0]; if (c) canal = c; }
     await carregar(); montar(); await marcarLido(); win.querySelector(".gc-chans").innerHTML = chips(); bindChips(); win.querySelector("textarea").focus();
     clearInterval(timer);
     timer = setInterval(async () => { if (!aberto || document.hidden) return; const n = msgs.length && msgs[msgs.length - 1].id; await carregar(); if ((msgs.length && msgs[msgs.length - 1].id) !== n) { desenharLista(); marcarLido(); } await contar(); const sc = win.querySelector(".gc-chans"), x = sc.scrollLeft; sc.innerHTML = chips(); sc.scrollLeft = x; bindChips(); }, 2000);
   }
-  function fechar() { aberto = false; win.hidden = true; clearInterval(timer); }
+  function fechar() { aberto = false; win.hidden = true; fab.classList.remove("aberto"); clearInterval(timer); }
   fab.onclick = () => aberto ? fechar() : abrir();
   document.addEventListener("keydown", e => { if (e.key === "Escape" && aberto && !document.querySelector(".lb-ov")) fechar(); });
   document.addEventListener("mousedown", e => { if (aberto && !win.contains(e.target) && !fab.contains(e.target)) fechar(); });
