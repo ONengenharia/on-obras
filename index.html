@@ -158,6 +158,7 @@ async function inicio(){
   if(!s)return telaLogin();
   perfil=await DB.meuPerfil();
   if(!perfil){toast("Perfil não encontrado.");await sb.auth.signOut();return telaLogin()}
+  if(perfil.papel==="pendente"){$("#app").innerHTML=`<div class="login"><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1>Cadastro aguardando liberação</h1><p class="note">Sua conta (${esc(perfil.email||"")}) foi criada, mas ainda precisa ser liberada por um administrador da ON Engenharia. Avise o administrador e entre de novo depois.</p><button class="btn" id="bS">Sair</button></div>`;$("#bS").onclick=async()=>{await sb.auth.signOut();telaLogin()};return}
   const volta=new URLSearchParams(location.search).get("volta");
   if(volta&&/^\/[^/]/.test(volta)){location.href=volta;return}
   await carregar();
@@ -427,14 +428,14 @@ async function chamarUsuarios(body){
 }
 async function usuarios(){
   const {data:us}=await sb.from("perfis").select("*").order("nome");
-  const m=modal("Usuários",`<div class="ulist">${(us||[]).map(u=>`<div class="urow"><div><b>${esc(u.nome||"(sem nome)")}</b><small>${esc(u.email||"")}</small></div><span style="display:flex;gap:8px;align-items:center"><span class="tag">${u.papel==="admin"?"Administrador":"Executor"}</span>${u.id!==perfil.id?`<button type="button" class="lnk" data-s="${u.id}">Nova senha</button><button type="button" class="lnk" data-p="${u.id}" data-v="${u.papel}">${u.papel==="admin"?"Tornar executor":"Tornar admin"}</button><button type="button" class="lnk" style="color:var(--bad)" data-d="${u.id}">Excluir</button>`:""}</span></div>`).join("")}</div>
+  const m=modal("Usuários",`<div class="ulist">${(us||[]).map(u=>`<div class="urow"><div><b>${esc(u.nome||"(sem nome)")}</b><small>${esc(u.email||"")}</small></div><span style="display:flex;gap:8px;align-items:center"><span class="tag" ${u.papel==="pendente"?'style="background:#fbf0dc;color:#b7791f"':""}>${u.papel==="admin"?"Administrador":u.papel==="pendente"?"Aguardando liberação":"Executor"}</span>${u.id!==perfil.id?`<button type="button" class="lnk" data-s="${u.id}">Nova senha</button>${u.papel==="pendente"?`<button type="button" class="lnk" data-p="${u.id}" data-v="pendente">Liberar como executor</button>`:`<button type="button" class="lnk" data-p="${u.id}" data-v="${u.papel}">${u.papel==="admin"?"Tornar executor":"Tornar admin"}</button>`}<button type="button" class="lnk" style="color:var(--bad)" data-d="${u.id}">Excluir</button>`:""}</span></div>`).join("")}</div>
    <h2 style="font-size:15px;margin-top:6px">Cadastrar usuário</h2>
    <label class="fld">Nome<input id="uN"></label><label class="fld">E-mail<input id="uE" type="email"></label><label class="fld">Senha inicial (mín. 6)<input id="uS" type="text" minlength="6"></label>
    <label class="fld">Perfil<select id="uP"><option value="executor">Executor (todas as obras: mapa, fotos, diário e mural)</option><option value="admin">Administrador (acesso total)</option></select></label>
    <div class="row"><span class="note">Passe o e-mail e a senha para a pessoa entrar.</span><button type="button" class="btn pri" id="uAdd">Cadastrar</button></div>`);
   $("#uAdd",m).onclick=async()=>{try{await chamarUsuarios({acao:"criar",nome:$("#uN",m).value,email:$("#uE",m).value,senha:$("#uS",m).value,papel:$("#uP",m).value});toast("Usuário cadastrado.");m.remove();usuarios()}catch(e){toast(e.message)}};
   m.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{const nm=modal("Nova senha",`<label class="fld">Nova senha (mín. 6)<input id="nS" type="text" minlength="6" required></label>`,async x=>{try{await chamarUsuarios({acao:"senha",id:b.dataset.s,senha:$("#nS",x).value});toast("Senha alterada.")}catch(e){toast(e.message);return false}})});
-  m.querySelectorAll("[data-p]").forEach(b=>b.onclick=async()=>{const novo=b.dataset.v==="admin"?"executor":"admin";const {error}=await sb.from("perfis").update({papel:novo}).eq("id",b.dataset.p);if(error){toast(error.message);return}m.remove();usuarios()});
+  m.querySelectorAll("[data-p]").forEach(b=>b.onclick=async()=>{const novo=b.dataset.v==="executor"?"admin":"executor";const {error}=await sb.from("perfis").update({papel:novo}).eq("id",b.dataset.p);if(error){toast(error.message);return}m.remove();usuarios()});
   m.querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{if(!b.dataset.c){b.dataset.c=1;b.textContent="Confirmar exclusão";return}try{await chamarUsuarios({acao:"excluir",id:b.dataset.d});toast("Usuário excluído.");m.remove();usuarios()}catch(e){toast(e.message)}});
 }
 
