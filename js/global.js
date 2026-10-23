@@ -170,7 +170,7 @@
     if (!naoLidas[canal]) { const c = Object.keys(naoLidas).find(k => naoLidas[k].men) || Object.keys(naoLidas)[0]; if (c) canal = c; }
     await carregar(); montar(); await marcarLido(); win.querySelector(".gc-chans").innerHTML = chips(); bindChips(); win.querySelector("textarea").focus();
     clearInterval(timer);
-    timer = setInterval(async () => { if (!aberto || document.hidden) return; const n = msgs.length && msgs[msgs.length - 1].id; await carregar(); if ((msgs.length && msgs[msgs.length - 1].id) !== n) { desenharLista(); marcarLido(); } await contar(); const sc = win.querySelector(".gc-chans"), x = sc.scrollLeft; sc.innerHTML = chips(); sc.scrollLeft = x; bindChips(); }, 5000);
+    timer = setInterval(async () => { if (!aberto || document.hidden) return; const n = msgs.length && msgs[msgs.length - 1].id; await carregar(); if ((msgs.length && msgs[msgs.length - 1].id) !== n) { desenharLista(); marcarLido(); } await contar(); const sc = win.querySelector(".gc-chans"), x = sc.scrollLeft; sc.innerHTML = chips(); sc.scrollLeft = x; bindChips(); }, 2000);
   }
   function fechar() { aberto = false; win.hidden = true; clearInterval(timer); }
   fab.onclick = () => aberto ? fechar() : abrir();
@@ -178,7 +178,7 @@
   document.addEventListener("mousedown", e => { if (aberto && !win.contains(e.target) && !fab.contains(e.target)) fechar(); });
   function alertaCurto(t) { const d = document.createElement("div"); d.className = "toast"; d.style.zIndex = 1400; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
   await contar();
-  setInterval(() => { if (!document.hidden && !aberto) contar(); }, 8000);
+  setInterval(() => { if (!document.hidden && !aberto) contar(); }, 2000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) contar(); });
   window.addEventListener("focus", () => contar());
   try {

@@ -183,7 +183,7 @@ img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:no
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
-<script src="js/global.js?v=7" defer></script>
+<script src="js/global.js?v=8" defer></script>
 </head>
 <body>
 <div class="app" id="app"><p class="note" style="padding:20px">Carregando…</p></div>
@@ -442,7 +442,7 @@ async function abrir(id,manter){
       if(error){toast("Não foi possível enviar: "+error.message);return}tx.value="";await carregarExtras(id);abrir(id,true)};
     $("#env",g).onclick=enviar;
     tx.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey))enviar()});
-    pollChat=setInterval(async()=>{if(aberto!==id||abaCard!=="chat"){clearInterval(pollChat);return}const n=extras.msgs.length;await carregarExtras(id);if(extras.msgs.length!==n)desenhar()},8000);
+    pollChat=setInterval(async()=>{if(aberto!==id||abaCard!=="chat"){clearInterval(pollChat);return}const n=extras.msgs.length;await carregarExtras(id);if(extras.msgs.length!==n)desenhar()},2000);
   }else if(abaCard==="anx"){
     gb.innerHTML=`<div class="aviso">📁 Arquivos grandes: salve direto na pasta do cliente${c.pasta?` (<a href="${esc(c.pasta)}" target="_blank" rel="noopener">abrir pasta ↗</a>)`:""} e anexe aqui só o essencial.</div>${anexosLista()}${ed?botoesAnexo():""}`;
     bindAnexos(c,gb);
