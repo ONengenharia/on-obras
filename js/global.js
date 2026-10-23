@@ -36,6 +36,14 @@
   .gc-comp textarea{flex:1;resize:none;height:42px;border:1px solid var(--line,#d6e1ea);border-radius:8px;padding:8px;font:inherit;font-size:13px;background:var(--bg,#eef2f6);color:inherit}
   .gc-comp button{border:0;border-radius:8px;background:#2f6f9f;color:#fff;font-weight:600;padding:0 14px;cursor:pointer}
   .gc-ment{position:absolute;left:8px;bottom:calc(100% + 4px);width:calc(100% - 16px);background:var(--panel,#fff);border:1px solid var(--line,#d6e1ea);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:4px;display:grid;gap:2px;max-height:220px;overflow:auto}
+  .gc-chans{display:flex;gap:6px;overflow-x:auto;padding:7px 8px;background:#26394c;scrollbar-width:thin}
+  .gc-ch{position:relative;flex:none;border:1px solid #3b5670;background:#2b4157;color:#e8f1f9;border-radius:16px;padding:5px 10px;font:600 12px Montserrat,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+  .gc-ch.on{background:#e8f1f9;color:#1e2f40;border-color:#e8f1f9}
+  .gc-ch.nl{border-color:#ff5252}
+  .gc-ch i{font-style:normal;margin-left:5px;background:#d32f2f;color:#fff;border-radius:9px;padding:0 6px;font-size:10.5px;animation:gcPisca 1s infinite}
+  .gc-ch i.men{background:#b71c1c;box-shadow:0 0 0 2px #ffcdd2}
+  @keyframes gcPisca{50%{background:#ff5252;transform:scale(1.15)}}
+  @media (prefers-reduced-motion:reduce){.gc-ch i{animation:none}}
   .gc-ment[hidden],.gc-win[hidden],.gc-emo[hidden]{display:none!important}
   .gc-top button{padding:2px 6px;border-radius:6px}.gc-top button:hover{background:#2b4157;color:#fff}
   .gc-eb{background:none!important;color:inherit!important;font-size:20px;padding:0 4px!important}
@@ -91,6 +99,10 @@
     const { data } = await sb.from("chat_msgs").select("*").eq("canal", canal).order("criado_em", { ascending: false }).limit(150);
     msgs = (data || []).reverse();
   }
+  const chips = () => { const L = [{ c: "geral", n: "# Geral" }, ...U.filter(u => u.id !== eu).map(u => ({ c: dm(u.id), n: u.nome.split(" ")[0] + (u.nome.includes(" ") ? " " + u.nome.split(" ").slice(-1)[0][0] + "." : ""), t: u.nome }))];
+    L.sort((a, b) => (a.c === "geral" ? -2 : 0) - (b.c === "geral" ? -2 : 0) || ((naoLidas[b.c] || {}).qtd || 0) - ((naoLidas[a.c] || {}).qtd || 0));
+    return L.map(x => { const n = naoLidas[x.c]; return `<button class="gc-ch ${canal === x.c ? "on" : ""} ${n ? "nl" : ""}" data-c="${x.c}" title="${esc(x.t || "Conversa de toda a equipe")}${n ? " · " + n.qtd + " não lida(s)" + (n.men ? ", com menção" : "") : ""}">${x.c === "geral" ? "" : "✉ "}${esc(x.n)}${n ? `<i class="${n.men ? "men" : ""}">${n.men ? "@" : ""}${n.qtd}</i>` : ""}</button>`; }).join(""); };
+  function bindChips() { win.querySelectorAll(".gc-ch").forEach(b => b.onclick = async () => { canal = b.dataset.c; try { localStorage.setItem("gc.canal", canal); } catch (er) {} await carregar(); desenharLista(); await marcarLido(); win.querySelector(".gc-chans").innerHTML = chips(); bindChips(); }); }
   const opcoesCanal = () => `<option value="geral" ${canal === "geral" ? "selected" : ""}># Geral (todos)${naoLidas.geral ? " · " + naoLidas.geral.qtd : ""}</option>` +
     U.filter(u => u.id !== eu).map(u => { const c = dm(u.id), n = naoLidas[c]; return `<option value="${c}" ${canal === c ? "selected" : ""}>✉ ${esc(u.nome)}${n ? " · " + n.qtd : ""}</option>`; }).join("");
   function fmt(t) { let h = esc(t); U.map(u => u.nome).sort((a, b) => b.length - a.length).forEach(n => { h = h.split("@" + esc(n)).join(`<span class="men">@${esc(n)}</span>`); }); return h; }
@@ -101,14 +113,14 @@
     L.scrollTop = L.scrollHeight;
   }
   function montar() {
-    win.innerHTML = `<div class="gc-top"><b>Chat da equipe</b><select aria-label="Conversa">${opcoesCanal()}</select><button data-x="min" title="Minimizar" aria-label="Minimizar">—</button><button data-x="fec" title="Fechar" aria-label="Fechar">✕</button></div>
-      <div class="gc-list"></div>
+    win.innerHTML = `<div class="gc-top"><b>Chat da equipe</b><button data-x="min" title="Minimizar" aria-label="Minimizar">—</button><button data-x="fec" title="Fechar" aria-label="Fechar">✕</button></div>
+      <div class="gc-chans">${chips()}</div><div class="gc-list"></div>
       <div class="gc-comp"><div class="gc-ment" hidden></div><div class="gc-emo" hidden>${EMO.map(e=>`<button type="button">${e}</button>`).join("")}</div><button type="button" class="gc-eb" title="Emojis" aria-label="Emojis">😊</button><textarea placeholder="Mensagem… digite @ para chamar alguém (Enter envia)"></textarea><button>Enviar</button></div>`;
     win.querySelectorAll(".gc-top [data-x]").forEach(b => b.onclick = fechar);
     const emo = win.querySelector(".gc-emo");
     win.querySelector(".gc-eb").onclick = () => { emo.hidden = !emo.hidden; };
     emo.querySelectorAll("button").forEach(b => b.onclick = () => { const t = win.querySelector("textarea"), p = t.selectionStart ?? t.value.length; t.value = t.value.slice(0, p) + b.textContent + t.value.slice(t.selectionEnd ?? p); const q = p + b.textContent.length; t.focus(); t.setSelectionRange(q, q); emo.hidden = true; });
-    win.querySelector("select").onchange = async e => { canal = e.target.value; try { localStorage.setItem("gc.canal", canal); } catch (er) {} await carregar(); desenharLista(); marcarLido(); };
+    bindChips();
     const tx = win.querySelector("textarea"), box = win.querySelector(".gc-ment");
     autocompletar(tx, box);
     const enviar = async () => {
@@ -143,9 +155,9 @@
   async function abrir() {
     aberto = true; win.hidden = false;
     if (!naoLidas[canal]) { const c = Object.keys(naoLidas).find(k => naoLidas[k].men) || Object.keys(naoLidas)[0]; if (c) canal = c; }
-    await carregar(); montar(); marcarLido(); win.querySelector("textarea").focus();
+    await carregar(); montar(); await marcarLido(); win.querySelector(".gc-chans").innerHTML = chips(); bindChips(); win.querySelector("textarea").focus();
     clearInterval(timer);
-    timer = setInterval(async () => { if (!aberto || document.hidden) return; const n = msgs.length && msgs[msgs.length - 1].id; await carregar(); if ((msgs.length && msgs[msgs.length - 1].id) !== n) { desenharLista(); marcarLido(); } await contar(); win.querySelector("select").innerHTML = opcoesCanal(); }, 5000);
+    timer = setInterval(async () => { if (!aberto || document.hidden) return; const n = msgs.length && msgs[msgs.length - 1].id; await carregar(); if ((msgs.length && msgs[msgs.length - 1].id) !== n) { desenharLista(); marcarLido(); } await contar(); const sc = win.querySelector(".gc-chans"), x = sc.scrollLeft; sc.innerHTML = chips(); sc.scrollLeft = x; bindChips(); }, 5000);
   }
   function fechar() { aberto = false; win.hidden = true; clearInterval(timer); }
   fab.onclick = () => aberto ? fechar() : abrir();
