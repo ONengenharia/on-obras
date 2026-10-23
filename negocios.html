@@ -548,6 +548,45 @@ function autocompletar(tx,box){
 }
 
 /* ---------- administração ---------- */
+async function importarTrello(f){
+  let d;try{d=JSON.parse(await f.text())}catch(e){toast("Arquivo inválido: não é um JSON do Trello.");return}
+  if(!d||!Array.isArray(d.lists)||!Array.isArray(d.cards)){toast("Esse JSON não parece ser um quadro exportado do Trello.");return}
+  const CORES={green:"#4bce97",yellow:"#e2b203",orange:"#fea362",red:"#f87168",purple:"#9f8fef",blue:"#579dff",sky:"#6cc3e0",lime:"#94c748",pink:"#e774bb",black:"#8590a2"};
+  const ESC={green:"#216e4e",yellow:"#946f00",orange:"#a54800",red:"#ae2e24",purple:"#5e4db2",blue:"#0055cc",lime:"#4c6b1f",black:"#44546f"};
+  const cor=c=>{if(!c)return"#8590a2";const b=c.split("_")[0];return c.endsWith("_dark")?(ESC[b]||CORES[b]||"#8590a2"):(CORES[b]||"#8590a2")};
+  const cap=t=>{t=(t||"").trim();return t===t.toUpperCase()?t.charAt(0)+t.slice(1).toLowerCase():t};
+  const guess=n=>{n=n.toLowerCase();if(/compra/.test(n))return"compras";if(/financ|contrato|adm|pagamento|fatur/.test(n))return"adm";if(/drone|levant|projeto|or[cç]a|an[aá]lise|engenh/.test(n))return"engenharia";if(/negoc|proposta|prospec|comercial|lead/.test(n))return"comercial";if(/obra|vistoria|instala|finaliz|pend[eê]ncia|homolog|execu/.test(n))return"obras";return""};
+  const temArea=id=>AREAS.some(a=>a.id===id);
+  const cards=d.cards.filter(c=>!c.closed);
+  const usadas=new Set(cards.map(c=>c.idList));
+  const lists=d.lists.filter(l=>usadas.has(l.id)).sort((a,b)=>a.pos-b.pos);
+  const LI={};lists.forEach((l,i)=>LI[l.id]=i);
+  const etqs=[],EI={},vis={};
+  (d.labels||[]).forEach(l=>{if(!l.name)return;const k=l.name.trim().toLowerCase();if(!(k in vis)){vis[k]=etqs.length;etqs.push({nome:cap(l.name),cor:cor(l.color)})}EI[l.id]=vis[k]});
+  const mem={};(d.members||[]).forEach(x=>mem[x.id]=x.fullName);
+  const porCard={};(d.actions||[]).filter(a=>a.type==="commentCard").forEach(a=>{(porCard[a.data.card.id]=porCard[a.data.card.id]||[]).push({autor:a.memberCreator?a.memberCreator.fullName:"Trello",texto:a.data.text.replace(/!\[[^\]]*\]\(https:\/\/trello\.com[^)]*\)/g,"[imagem no Trello]").trim(),data:a.date})});
+  const total=desc=>{const m=(desc||"").match(/Total\s*:?\s*R\$\s*([\d.\s]+,\d{2})/i);return m?+m[1].replace(/[.\s]/g,"").replace(",","."):null};
+  const payload={quadro,cols:lists.map(l=>{const a=guess(l.name);return{nome:cap(l.name),area:temArea(a)?a:"",cor:(areaDe(a)||{}).cor||"#8590a2"}}),etqs,
+    cards:cards.map(c=>{const m=(c.desc||"").match(/Concession[aá]ria:\s*([^\n]+)/i);return{col:LI[c.idList],ordem:c.pos,titulo:c.name.trim(),cliente:c.name.trim().replace(/^(\d+_|P\d+\s*-\s*)/,"").trim(),conc:m?m[1].trim():"",valor:total(c.desc),
+      obs:((c.desc||"").trim()?(c.desc||"").trim()+"\n\n":"")+"Importado do Trello: "+c.shortUrl,chave:c.shortLink,etq:[...new Set((c.labels||[]).map(x=>EI[x.id]).filter(x=>x!=null))],
+      membros:(c.idMembers||[]).map(i=>(mem[i]||"").split(" ")[0]).filter(Boolean),criado:new Date(parseInt(c.id.slice(0,8),16)*1000).toISOString(),atualizado:c.dateLastActivity,
+      anexos:(c.attachments||[]).map(a=>({nome:a.name,tipo:a.mimeType||"",tam:a.bytes||0,url:a.url,data:a.date})),msgs:(porCard[c.id]||[]).reverse()}})};
+  const cont=lists.map((l,i)=>`<li><b>${esc(cap(l.name))}</b> · ${payload.cards.filter(c=>c.col===i).length} cartão(ões) · área: ${esc((areaDe(payload.cols[i].area)||{nome:"todas"}).nome)}</li>`).join("");
+  const nm=payload.cards.reduce((a,c)=>a+c.msgs.length,0),na=payload.cards.reduce((a,c)=>a+c.anexos.length,0);
+  const m=document.createElement("div");m.className="modal";
+  m.innerHTML=`<div class="box" style="width:min(640px,100%)"><h2>Importar “${esc(d.name||"Trello")}” no quadro ${esc(QUADROS[quadro].nome)}</h2>
+   <p class="note" style="margin:0">${payload.cards.length} cartões · ${etqs.length} etiquetas · ${nm} comentários · ${na} anexos. Listas com o mesmo nome de uma coluna existente são reaproveitadas; as outras viram colunas novas no fim do quadro. A área de cada coluna foi sugerida pelo nome — dá para trocar depois em Colunas e etiquetas.</p>
+   <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;max-height:260px;overflow:auto">${cont}</ul>
+   <p class="note" style="margin:0">Os anexos ficam como link para o Trello (abrem com o login do Trello). Ninguém recebe notificação pela importação. O Trello só exporta as últimas 1000 ações, então comentários muito antigos podem não vir.</p>
+   <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="x">Cancelar</button><button class="btn pri" id="go">Importar</button></div></div>`;
+  document.body.appendChild(m);
+  $("#x",m).onclick=()=>m.remove();
+  $("#go",m).onclick=async()=>{const b=$("#go",m);b.disabled=true;b.textContent="Importando…";
+    const {data,error}=await sb.rpc("importar_trello",{p:payload});
+    if(error){b.disabled=false;b.textContent="Importar";toast("Erro: "+error.message);return}
+    m.remove();toast(`Importado: ${data.negocios} negócios, ${data.colunas} colunas novas, ${data.mensagens} comentários, ${data.anexos} anexos${data.pulados?` (${data.pulados} já existiam)`:""}.`);
+    await carregarTudo();render()};
+}
 function gerirColunas(){
   const m=document.createElement("div");m.className="modal";
   const draw=()=>{const Q=QUADROS[quadro],cs=colsDe(quadro),es=ETQ.filter(e=>e.quadro===quadro);
@@ -562,7 +601,11 @@ function gerirColunas(){
    <h2 style="font-size:15px">Etiquetas</h2>
    <div class="pick">${es.map(e=>`<span class="crow" style="padding:4px 6px"><input type="color" value="${e.cor}" data-ec="${e.id}"><input class="inp" style="width:160px" value="${esc(e.nome)}" data-en="${e.id}"><button class="lnk del" data-ex="${e.id}" aria-label="Excluir etiqueta">×</button></span>`).join("")}</div>
    <div class="crow"><input class="inp" id="ne" placeholder="Nova etiqueta"><button class="btn pri" id="ae">+ Etiqueta</button></div>
+   <h2 style="font-size:15px">Importar do Trello</h2>
+   <p class="note" style="margin:0">No Trello: menu do quadro → Imprimir, exportar e compartilhar → Exportar como JSON. Envie o arquivo aqui: as listas viram colunas, os cartões viram negócios (com etiquetas, descrição, comentários e anexos). Cartões já importados são pulados.</p>
+   <div class="crow"><input type="file" id="trF" accept=".json,application/json" class="inp"></div>
    <div style="display:flex;justify-content:flex-end"><button class="btn pri" id="ok">Pronto</button></div></div>`;
+   $("#trF",m).onchange=e=>{const f=e.target.files[0];if(f){m.remove();importarTrello(f)}};
    const up=async(tab,id,v)=>{const {error}=await sb.from(tab).update(v).eq("id",id);if(error)toast(error.message);return!error};
    m.querySelectorAll("[data-cc]").forEach(x=>x.onchange=async()=>{if(await up("neg_colunas",x.dataset.cc,{cor:x.value}))COLS.find(c=>c.id===x.dataset.cc).cor=x.value});
    m.querySelectorAll("[data-cn]").forEach(x=>x.onchange=async()=>{const n=x.value.trim();if(n&&await up("neg_colunas",x.dataset.cn,{nome:n}))COLS.find(c=>c.id===x.dataset.cn).nome=n});
