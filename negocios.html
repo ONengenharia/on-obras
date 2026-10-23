@@ -158,6 +158,7 @@ header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}header .b
 img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:none}
 .gv.lado{justify-content:flex-end;align-items:stretch}
 .card{position:relative}
+.badge.pisca{background:#d32f2f!important;color:#fff!important;animation:pisca2 1s infinite;box-shadow:0 0 0 2px rgba(211,47,47,.35)}
 .cdot{position:absolute;top:-8px;right:-8px;min-width:22px;height:22px;border-radius:11px;background:#d32f2f;color:#fff;font:700 11.5px/22px var(--f);text-align:center;padding:0 6px;box-shadow:0 0 0 3px var(--panel);z-index:2;animation:pisca2 1s infinite}
 .cdot.men{background:#b71c1c;box-shadow:0 0 0 3px var(--panel),0 0 0 6px rgba(211,47,47,.35)}
 @keyframes pisca2{50%{transform:scale(1.2);background:#ff5252}}
@@ -182,7 +183,7 @@ img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:no
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
-<script src="js/global.js?v=5" defer></script>
+<script src="js/global.js?v=6" defer></script>
 </head>
 <body>
 <div class="app" id="app"><p class="note" style="padding:20px">Carregando…</p></div>
@@ -275,7 +276,7 @@ function render(){
   <header><img class="logo" src="assets/on-logo.jpg" alt="ON Engenharia"><h1><small>Negócios</small>Fluxo comercial e administrativo</h1>
    <div class="seg">${Object.values(QUADROS).sort((a,b)=>a.ordem-b.ordem).map(v=>`<button class="${quadro===v.id?"on":""}" data-q="${v.id}"><i style="background:${v.cor}"></i>${esc(v.nome)}</button>`).join("")}</div>
    <span class="who">${esc(perfil.nome||perfil.email)}${perfil.setor?" · "+esc(perfil.setor):""}</span>
-   <button class="btn sino" id="bIn" title="Caixa de entrada">🔔 Caixa de entrada${nl?`<b class="badge">${nl}</b>`:""}</button>
+   <button class="btn sino" id="bIn" title="Caixa de entrada">🔔 Caixa de entrada${nl?`<b class="badge ${INBOX.some(n=>!n.lido&&n.tipo==="mencao")?"pisca":""}">${nl}</b>`:""}</button>
    ${ADM?'<button class="btn" id="bCols">Colunas e etiquetas</button><button class="btn" id="bPerm">Permissões</button>':""}
    <button class="btn pri" id="bNovo" ${podeCriar(quadro)?"":"disabled title='Você não tem permissão para criar negócios neste quadro'"}>+ Novo negócio</button></header>
   ${mAreas.length>1?`<div class="bar"><span class="note">Área:</span><button class="chip ${!fArea?"on":""}" data-ar="">${ADM?"Todas":"Todas as minhas"}</button>${mAreas.map(a=>`<button class="chip ${fArea===a.id?"on":""}" data-ar="${a.id}"><i style="width:9px;height:9px;border-radius:50%;background:${a.cor};display:inline-block"></i>${esc(a.nome)}</button>`).join("")}</div>`:""}
@@ -620,7 +621,8 @@ function caixa(){
 /* ---------- início ---------- */
 try{await recarregar()}catch(e){$("#app").innerHTML=`<div class="erro"><h1>Não foi possível carregar</h1><p>${esc(e.message||e)}</p><a href="index.html">Voltar</a></div>`;return}
 const abrirId=new URLSearchParams(location.search).get("n");if(abrirId&&CARDS.find(c=>c.id===abrirId)){const c=CARDS.find(x=>x.id===abrirId);quadro=c.quadro;render();abrir(abrirId)}
-setInterval(async()=>{if(document.hidden||document.querySelector(".modal"))return;const ab=aberto,aba=abaCard;try{await carregarTudo();await carregarAvisos()}catch(e){return}if(!document.querySelector(".gv"))render();else{const b=$("#bIn");if(b){const nl=INBOX.filter(n=>!n.lido).length;b.innerHTML="🔔 Caixa de entrada"+(nl?`<b class="badge">${nl}</b>`:"")}}},25000);
+setInterval(async()=>{if(document.hidden||document.querySelector(".modal"))return;const ab=aberto,aba=abaCard;try{await carregarTudo();await carregarAvisos()}catch(e){return}if(!document.querySelector(".gv"))render();else{const b=$("#bIn");if(b){const nl=INBOX.filter(n=>!n.lido).length;b.innerHTML="🔔 Caixa de entrada"+(nl?`<b class="badge ${INBOX.some(n=>!n.lido&&n.tipo==="mencao")?"pisca":""}">${nl}</b>`:"")}}},25000);
+window.addEventListener("on:notif",async()=>{try{await carregarAvisos()}catch(e){return}if(!document.querySelector(".gv")&&!document.querySelector(".modal"))render();else{const b=$("#bIn");if(b){const nl=INBOX.filter(n=>!n.lido).length;b.innerHTML="🔔 Caixa de entrada"+(nl?`<b class="badge ${INBOX.some(n=>!n.lido&&n.tipo==="mencao")?"pisca":""}">${nl}</b>`:"")}}});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.querySelector(".gv")&&!document.querySelector(".modal"))fechar()});
 })();
 </script>

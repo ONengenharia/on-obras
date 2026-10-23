@@ -165,7 +165,22 @@
   document.addEventListener("mousedown", e => { if (aberto && !win.contains(e.target) && !fab.contains(e.target)) fechar(); });
   function alertaCurto(t) { const d = document.createElement("div"); d.className = "toast"; d.style.zIndex = 1400; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 3500); }
   await contar();
-  setInterval(() => { if (!document.hidden && !aberto) contar(); }, 20000);
+  setInterval(() => { if (!document.hidden && !aberto) contar(); }, 8000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) contar(); });
+  window.addEventListener("focus", () => contar());
+  try {
+    sb.channel("on-global-" + eu)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_msgs" }, async p => {
+        const m = p.new || {};
+        if (aberto && m.canal === canal) { await carregar(); desenharLista(); await marcarLido(); }
+        await contar();
+        if (aberto) { const sc = win.querySelector(".gc-chans"); if (sc) { const x = sc.scrollLeft; sc.innerHTML = chips(); sc.scrollLeft = x; bindChips(); } }
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notificacoes", filter: "user_id=eq." + eu }, p => {
+        window.dispatchEvent(new CustomEvent("on:notif", { detail: p.new }));
+      })
+      .subscribe();
+  } catch (e) {}
 
   /* ---------------- lembretes ---------------- */
   const adiados = new Map(); // id -> até quando não mostrar nesta sessão
