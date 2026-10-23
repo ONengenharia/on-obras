@@ -143,7 +143,14 @@ header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}header .b
 .ment button .dot{grid-row:span 2}.ment button small{font-size:11px;color:var(--muted)}
 .ment button.on,.ment button:hover{background:var(--accent-soft)}
 @media (max-width:640px){.areas{grid-template-columns:1fr}.areas a small,.areas button small{display:none}.gvp.win{resize:none}}
+.fbtn{display:none}
 @media (max-width:640px){
+ html,body{height:auto!important;overflow:auto!important}.app{height:auto!important;min-height:100dvh}
+ .fbtn{display:flex;width:100%;justify-content:flex-start}
+ .filtros{display:none}.filtros.abre{display:grid;gap:8px}
+ .bar input{min-width:0;flex:1 1 100%}
+ .board{min-height:70dvh;align-items:stretch}.col{max-height:none}
+ header{gap:8px}header h1{font-size:15px}
  .areas{grid-template-columns:repeat(3,1fr)!important;gap:6px!important}.areas a,.areas button{padding:8px 6px!important;text-align:center}.areas a b,.areas button b{font-size:12.5px}
  .gvp.win{inset:0!important;left:0!important;top:0!important;width:100vw!important;height:100dvh!important;min-width:0!important;min-height:0!important;border-radius:0!important;resize:none!important}
  .grab{display:none!important}
@@ -220,7 +227,7 @@ if(!perfil||perfil.papel==="pendente"){location.href="index.html";return}
 const eu=perfil.id,ADM=perfil.papel==="admin";
 
 /* ---------- dados ---------- */
-let LEMB=[],verSaidos=(()=>{try{return localStorage.getItem("neg.saidos")!=="0"}catch(e){return true}})(),AREAS=[],ACESSO={},fArea="",U=[],QUADROS={},COLS=[],ETQ=[],LISTAS={tipo:[],origem:[],pagto:[],conc:[]},CARDS=[],PERM={},CRIA={},INBOX=[];
+let verFiltros=false,LEMB=[],verSaidos=(()=>{try{return localStorage.getItem("neg.saidos")!=="0"}catch(e){return true}})(),AREAS=[],ACESSO={},fArea="",U=[],QUADROS={},COLS=[],ETQ=[],LISTAS={tipo:[],origem:[],pagto:[],conc:[]},CARDS=[],PERM={},CRIA={},INBOX=[];
 let quadro=(()=>{try{return localStorage.getItem("neg.quadro")||"eletrica"}catch(e){return"eletrica"}})();
 let busca="",fEtq="",soMeus=false,aberto=null,abaCard="resumo",win=null,gravando=null;
 const uById=id=>U.find(u=>u.id===id)||{id,nome:"(removido)",sig:"?",cor:"#999",setor:""};
@@ -290,11 +297,13 @@ function render(){
    <button class="btn sino" id="bIn" title="Caixa de entrada">🔔 Caixa de entrada${nl?`<b class="badge ${INBOX.some(n=>!n.lido&&n.tipo==="mencao")?"pisca":""}">${nl}</b>`:""}</button>
    ${ADM?'<button class="btn" id="bCols">Colunas e etiquetas</button><button class="btn" id="bPerm">Permissões</button>':""}
    <button class="btn pri" id="bNovo" ${podeCriar(quadro)?"":"disabled title='Você não tem permissão para criar negócios neste quadro'"}>+ Novo negócio</button></header>
+  <button class="btn fbtn" id="bFil">🔎 Filtros${(fArea?1:0)+(fEtq?1:0)+(soMeus?1:0)+(busca?1:0)?` <b class="badge">${(fArea?1:0)+(fEtq?1:0)+(soMeus?1:0)+(busca?1:0)}</b>`:""} <span class="note" style="margin-left:auto">${vis.filter(c=>!fantasma(c)).length} negócios</span></button>
+  <div class="filtros ${verFiltros?"abre":""}">
   ${mAreas.length>1?`<div class="bar"><span class="note">Área:</span><button class="chip ${!fArea?"on":""}" data-ar="">${ADM?"Todas":"Todas as minhas"}</button>${mAreas.map(a=>`<button class="chip ${fArea===a.id?"on":""}" data-ar="${a.id}"><i style="width:9px;height:9px;border-radius:50%;background:${a.cor};display:inline-block"></i>${esc(a.nome)}</button>`).join("")}</div>`:""}
   <div class="bar"><input id="q" placeholder="Buscar negócio, cliente, cidade ou tipo" value="${esc(busca)}">
    <button class="chip ${soMeus?"on":""}" id="meus">Só os meus</button>${ADM&&!fArea?"":`<button class="chip ${verSaidos?"on":""}" id="saidos" title="Negócios que já passaram pela sua área e estão em outra">🔒 Mostrar os que já saíram</button>`}
    ${etqs.map(e=>`<button class="chip ${fEtq===e.id?"on":""}" data-e="${e.id}"><i style="width:9px;height:9px;border-radius:50%;background:${e.cor};display:inline-block"></i>${esc(e.nome)}</button>`).join("")}
-   ${(()=>{const nv=vis.filter(c=>!fantasma(c));return `<span class="note" style="margin-left:auto">${nv.length} negócio${nv.length===1?"":"s"} · ${brl(nv.reduce((a,c)=>a+(+c.valor||0),0))} em carteira</span>`})()}</div>
+   ${(()=>{const nv=vis.filter(c=>!fantasma(c));return `<span class="note" style="margin-left:auto">${nv.length} negócio${nv.length===1?"":"s"} · ${brl(nv.reduce((a,c)=>a+(+c.valor||0),0))} em carteira</span>`})()}</div></div>
   <div class="board">${cols.map(col=>{const L=vis.filter(c=>c.coluna===col.id);const nv=nivel(col.id);
     const G=verSaidos?vis.filter(c=>fantasma(c)&&c.ultima_col&&c.ultima_col[col.area]===col.id):[];
     return `<section class="col" style="--c:${col.cor}"><div class="colh"><div class="t"><b>${col.area&&areaDe(col.area)?`<span class="atag" style="--a:${areaDe(col.area).cor}">${esc(areaDe(col.area).nome)}</span>`:""}${esc(col.nome)}${col.gatilho?' <span title="Ao entrar aqui, o negócio vai para o Gerenciador de obras (Elétrica) ou para o mapa (Solar)">⚡</span>':""}</b><span class="n">${L.length}</span></div>
@@ -302,6 +311,7 @@ function render(){
      <div class="list" data-col="${col.id}">${L.map(cardHtml).join("")}${G.map(cardHtml).join("")}</div></section>`}).join("")||(ADM?'<p class="note">Nenhuma coluna neste quadro. Crie em "Colunas e etiquetas".</p>':'<p class="note">Você ainda não tem acesso a nenhuma área deste quadro. Peça ao administrador para liberar.</p>')}</div>`;
   document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{quadro=b.dataset.q;fEtq="";try{localStorage.setItem("neg.quadro",quadro)}catch(e){}render()});
   $("#q").oninput=e=>{busca=e.target.value;const p=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
+  $("#bFil").onclick=()=>{verFiltros=!verFiltros;render()};
   $("#meus").onclick=()=>{soMeus=!soMeus;render()};
   if($("#saidos"))$("#saidos").onclick=()=>{verSaidos=!verSaidos;try{localStorage.setItem("neg.saidos",verSaidos?"1":"0")}catch(e){}render()};
   document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{fEtq=fEtq===b.dataset.e?"":b.dataset.e;render()});
