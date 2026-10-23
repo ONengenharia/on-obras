@@ -157,6 +157,7 @@ header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}header .b
 .areas a{text-decoration:none;color:var(--ink)}.areas a:hover{border-color:var(--accent)}
 img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:none}
 .gv.lado{justify-content:flex-end;align-items:stretch}
+.atag{display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--a);border:1px solid var(--a);border-radius:6px;padding:0 5px;margin-right:6px;vertical-align:1px}
 .erro{max-width:420px;margin:12vh auto;text-align:center}
 .app{overflow:hidden}
 @media (max-width:640px){.areas a small{display:none}}
@@ -189,19 +190,25 @@ if(!perfil||perfil.papel==="pendente"){location.href="index.html";return}
 const eu=perfil.id,ADM=perfil.papel==="admin";
 
 /* ---------- dados ---------- */
-let U=[],QUADROS={},COLS=[],ETQ=[],LISTAS={tipo:[],origem:[],pagto:[],conc:[]},CARDS=[],PERM={},CRIA={},INBOX=[];
+let AREAS=[],ACESSO={},fArea="",U=[],QUADROS={},COLS=[],ETQ=[],LISTAS={tipo:[],origem:[],pagto:[],conc:[]},CARDS=[],PERM={},CRIA={},INBOX=[];
 let quadro=(()=>{try{return localStorage.getItem("neg.quadro")||"eletrica"}catch(e){return"eletrica"}})();
 let busca="",fEtq="",soMeus=false,aberto=null,abaCard="resumo",win=null,gravando=null;
 const uById=id=>U.find(u=>u.id===id)||{id,nome:"(removido)",sig:"?",cor:"#999",setor:""};
 const colsDe=q=>COLS.filter(c=>c.quadro===q).sort((a,b)=>a.ordem-b.ordem);
+const areaDe=id=>AREAS.find(a=>a.id===id);
+const veArea=(uid,area)=>{const u=uById(uid);return u.papel==="admin"||!area||!!(ACESSO[uid]&&ACESSO[uid].has(area))};
+const veCol=col=>ADM||veArea(eu,(COLS.find(c=>c.id===col)||{}).area);
+const minhasAreas=()=>AREAS.filter(a=>ADM||veArea(eu,a.id));
 const etqDe=(q,id)=>ETQ.find(e=>e.id===id&&e.quadro===q);
 const nivelU=(uid,col)=>{const u=uById(uid);if(u.papel==="admin")return"editar";return(PERM[uid]||{})[col]||"ver"};
-const nivel=col=>ADM?"editar":(PERM[eu]||{})[col]||"ver";
+const nivel=col=>ADM?"editar":!veCol(col)?"nenhum":(PERM[eu]||{})[col]||"ver";
 const podeEditar=c=>nivel(c.coluna)==="editar";
 const podeMover=c=>["editar","mover"].includes(nivel(c.coluna));
 const podeCriar=q=>ADM||!!(CRIA[eu]||{})[q];
 
 async function carregarTudo(){
+  const [ra,rac]=await Promise.all([sb.from("neg_areas").select("*").order("ordem"),sb.from("neg_area_acesso").select("*")]);
+  AREAS=ra.data||[];ACESSO={};(rac.data||[]).forEach(x=>{(ACESSO[x.user_id]||(ACESSO[x.user_id]=new Set())).add(x.area_id)});
   const [rp,rq,rc,re,rl,rn,rpe,rcr]=await Promise.all([
     sb.from("perfis").select("id,nome,email,papel,setor").order("nome"),
     sb.from("neg_quadros").select("*").order("ordem"),
@@ -235,7 +242,8 @@ async function salvarCampos(c,campos){
 /* ---------- tela ---------- */
 function navHtml(){return `<nav class="areas"><a class="on" href="negocios.html"><b>💼 Negócios</b><small>Elétrica e Solar · do comercial às compras</small></a><a href="index.html#kanban" data-aba="kanban"><b>⚡ Gerenciador de obras</b><small>Obras elétricas · postes, rede, fotos, diário</small></a><a href="index.html#inicio" data-aba="inicio"><b>📍 Mapa</b><small>Todas as obras e instalações</small></a></nav>`}
 function render(){
-  const Q=QUADROS[quadro]||{nome:"",cor:"#999"},cols=colsDe(quadro);
+  const Q=QUADROS[quadro]||{nome:"",cor:"#999"},todas=colsDe(quadro),cols=todas.filter(c=>veCol(c.id)&&(!fArea||c.area===fArea));
+  const mAreas=minhasAreas().filter(a=>todas.some(c=>c.area===a.id));
   const f=busca.toLowerCase();
   const vis=CARDS.filter(c=>c.quadro===quadro&&(!f||(c.titulo+" "+c.cliente+" "+c.cidade+" "+c.tipo).toLowerCase().includes(f))&&(!fEtq||c.etiquetas.includes(fEtq))&&(!soMeus||c.membros.includes(eu)||c.resp===eu));
   const nl=INBOX.filter(n=>!n.lido).length;
@@ -247,18 +255,20 @@ function render(){
    <button class="btn sino" id="bIn" title="Caixa de entrada">🔔 Caixa de entrada${nl?`<b class="badge">${nl}</b>`:""}</button>
    ${ADM?'<button class="btn" id="bCols">Colunas e etiquetas</button><button class="btn" id="bPerm">Permissões</button>':""}
    <button class="btn pri" id="bNovo" ${podeCriar(quadro)?"":"disabled title='Você não tem permissão para criar negócios neste quadro'"}>+ Novo negócio</button></header>
+  ${mAreas.length>1?`<div class="bar"><span class="note">Área:</span><button class="chip ${!fArea?"on":""}" data-ar="">${ADM?"Todas":"Todas as minhas"}</button>${mAreas.map(a=>`<button class="chip ${fArea===a.id?"on":""}" data-ar="${a.id}"><i style="width:9px;height:9px;border-radius:50%;background:${a.cor};display:inline-block"></i>${esc(a.nome)}</button>`).join("")}</div>`:""}
   <div class="bar"><input id="q" placeholder="Buscar negócio, cliente, cidade ou tipo" value="${esc(busca)}">
    <button class="chip ${soMeus?"on":""}" id="meus">Só os meus</button>
    ${etqs.map(e=>`<button class="chip ${fEtq===e.id?"on":""}" data-e="${e.id}"><i style="width:9px;height:9px;border-radius:50%;background:${e.cor};display:inline-block"></i>${esc(e.nome)}</button>`).join("")}
    <span class="note" style="margin-left:auto">${vis.length} negócio${vis.length===1?"":"s"} · ${brl(vis.reduce((a,c)=>a+(+c.valor||0),0))} em carteira</span></div>
   <div class="board">${cols.map(col=>{const L=vis.filter(c=>c.coluna===col.id);const nv=nivel(col.id);
-    return `<section class="col" style="--c:${col.cor}"><div class="colh"><div class="t"><b>${esc(col.nome)}${col.gatilho?' <span title="Ao entrar aqui, o negócio vai para o Gerenciador de obras (Elétrica) ou para o mapa (Solar)">⚡</span>':""}</b><span class="n">${L.length}</span></div>
+    return `<section class="col" style="--c:${col.cor}"><div class="colh"><div class="t"><b>${col.area&&areaDe(col.area)?`<span class="atag" style="--a:${areaDe(col.area).cor}">${esc(areaDe(col.area).nome)}</span>`:""}${esc(col.nome)}${col.gatilho?' <span title="Ao entrar aqui, o negócio vai para o Gerenciador de obras (Elétrica) ou para o mapa (Solar)">⚡</span>':""}</b><span class="n">${L.length}</span></div>
      <div class="resp">${brl(L.reduce((a,c)=>a+(+c.valor||0),0))}${nv==="ver"?' · <span class="lock">só leitura</span>':nv==="mover"?' · <span class="lock" style="color:var(--accent)">pode mover</span>':""}</div></div>
-     <div class="list" data-col="${col.id}">${L.map(cardHtml).join("")}</div></section>`}).join("")||'<p class="note">Nenhuma coluna neste quadro. O administrador cria em "Colunas e etiquetas".</p>'}</div>`;
+     <div class="list" data-col="${col.id}">${L.map(cardHtml).join("")}</div></section>`}).join("")||(ADM?'<p class="note">Nenhuma coluna neste quadro. Crie em "Colunas e etiquetas".</p>':'<p class="note">Você ainda não tem acesso a nenhuma área deste quadro. Peça ao administrador para liberar.</p>')}</div>`;
   document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{quadro=b.dataset.q;fEtq="";try{localStorage.setItem("neg.quadro",quadro)}catch(e){}render()});
   $("#q").oninput=e=>{busca=e.target.value;const p=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
   $("#meus").onclick=()=>{soMeus=!soMeus;render()};
   document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{fEtq=fEtq===b.dataset.e?"":b.dataset.e;render()});
+  document.querySelectorAll("[data-ar]").forEach(b=>b.onclick=()=>{fArea=b.dataset.ar;render()});
   $("#bNovo").onclick=novo;
   $("#bIn").onclick=caixa;
   if(ADM){$("#bPerm").onclick=permissoes;$("#bCols").onclick=gerirColunas}
@@ -306,7 +316,8 @@ async function mover(id,col,ok){
     const r=await sb.rpc("neg_enviar",{neg:id,dados:d});
     if(r.error)toast("Movido, mas não foi possível enviar: "+r.error.message);
     else toast(c.quadro==="solar"?"Ponto adicionado ao mapa de obras.":"Obra criada no Gerenciador de obras.");
-  }else toast("Movido para "+alvo.nome+". Quem cuida dessa etapa recebeu na caixa de entrada.");
+  }else toast(veCol(col)?"Movido para "+alvo.nome+". Quem cuida dessa etapa recebeu na caixa de entrada.":"Entregue para "+((areaDe(alvo.area)||{}).nome||alvo.nome)+". A partir de agora o card fica com essa área.");
+  if(!veCol(col))fechar();
   await recarregar();
 }
 
@@ -329,10 +340,10 @@ async function abrir(id,manter){
   const prox=cols[i+1],ant=cols[i-1];
   g.innerHTML=`<div class="gvf"></div><aside class="gvp win" role="dialog" aria-label="${esc(c.titulo)}">
    <div class="gvh"><div class="grab">⠿ arraste para mover · puxe o canto inferior direito para redimensionar</div><div class="row"><div><span class="tipo ${c.quadro}">${esc(QUADROS[c.quadro].nome)}</span>${c.obra_id?' <span class="tipo eletrica">⚡ No Gerenciador de obras</span>':c.no_mapa?' <span class="tipo solar">📍 No mapa</span>':""}<h2>${esc(c.titulo)}</h2><span class="note">${esc(c.cliente||"Sem cliente")}${c.cidade?" · "+esc(c.cidade):""} · ${brl(c.valor)}</span></div><span style="display:flex;gap:6px">${ADM?'<button class="btn" id="del" style="color:var(--bad)">Excluir</button>':""}<button class="btn" id="x">Fechar</button></span></div>
-    <div class="flow">${cols.map((x,j)=>`<span class="${j<i?"feito":j===i?"aqui":""}">${esc(x.nome)}</span>`).join("")}</div>
+    <div class="flow">${cols.map((x,j)=>`<span class="${j<i?"feito":j===i?"aqui":""}" title="${esc((areaDe(x.area)||{}).nome||"")}">${esc(x.nome)}</span>`).join("")}</div>
     ${ed?"":`<div class="banner ro">🔒 ${podeMover(c)?"Nesta etapa você pode mover o card e conversar, mas não editar os dados.":"Nesta etapa seu acesso é só leitura, mas pode conversar no chat."}</div>`}
     ${c.obra_id?'<div class="next go2"><span>Esta obra já está no Gerenciador de obras.</span><a class="btn pri" href="obra.html?id='+c.obra_id+'">Abrir no Gerenciador de obras →</a></div>':""}
-    ${podeMover(c)&&(prox||ant)?`<div class="next"><span class="note">Mover para:</span>${prox?`<button class="btn pri" id="go">${esc(prox.nome)} →</button>`:""}${ant?`<button class="btn" id="back">← ${esc(ant.nome)}</button>`:""}<select id="mv" class="btn"><option value="">Outra etapa…</option>${cols.filter(x=>x.id!==c.coluna).map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join("")}</select></div>`:""}
+    ${podeMover(c)&&(prox||ant)?`<div class="next"><span class="note">Mover para:</span>${prox?`<button class="btn pri" id="go">${esc(prox.nome)}${!veCol(prox.id)&&areaDe(prox.area)?" · "+esc(areaDe(prox.area).nome):""} →</button>`:""}${ant?`<button class="btn" id="back">← ${esc(ant.nome)}</button>`:""}<select id="mv" class="btn"><option value="">Outra etapa…</option>${cols.filter(x=>x.id!==c.coluna).map(x=>`<option value="${x.id}">${esc(x.nome)}${areaDe(x.area)?" ("+esc(areaDe(x.area).nome)+")":""}</option>`).join("")}</select></div>`:""}
    </div>
    <div class="tabs">${[["resumo","Resumo"],["chat","Conversa ("+extras.msgs.length+")"],["anx","Anexos ("+extras.anx.length+")"],["hist","Histórico"]].map(([k,l])=>`<button class="${abaCard===k?"on":""}" data-t="${k}">${l}</button>`).join("")}</div>
    <div class="gvb" id="gb"></div>
@@ -491,8 +502,12 @@ function gerirColunas(){
   const draw=()=>{const Q=QUADROS[quadro],cs=colsDe(quadro),es=ETQ.filter(e=>e.quadro===quadro);
    m.innerHTML=`<div class="box" style="width:min(760px,100%)"><h2>Colunas e etiquetas · ${esc(Q.nome)}</h2>
    <p class="note" style="margin:0">Cada quadro tem o seu processo. As mudanças valem na hora para todos. A coluna com ⚡ é a que ${quadro==="solar"?"coloca o ponto no mapa de obras":"envia a obra ao Gerenciador"} (padrão: Compras).</p>
-   <div class="cl">${cs.map((c,i)=>`<div class="crow"><input type="color" value="${c.cor}" data-cc="${c.id}"><input value="${esc(c.nome)}" data-cn="${c.id}" class="inp" aria-label="Nome da coluna"><button class="lnk" data-g="${c.id}" title="Coluna que envia ao Gerenciador / mapa" style="opacity:${c.gatilho?1:.3}">⚡</button><button class="lnk" data-u="${i}" ${i?"":"disabled"} aria-label="Subir">▲</button><button class="lnk" data-d="${i}" ${i<cs.length-1?"":"disabled"} aria-label="Descer">▼</button><button class="lnk del" data-x="${c.id}">Excluir</button></div>`).join("")}</div>
+   <div class="cl">${cs.map((c,i)=>`<div class="crow"><input type="color" value="${c.cor}" data-cc="${c.id}"><input value="${esc(c.nome)}" data-cn="${c.id}" class="inp" aria-label="Nome da coluna"><select data-ca="${c.id}" class="inp" style="flex:0 0 150px" aria-label="Área"><option value="">Todas as áreas</option>${AREAS.map(a=>`<option value="${a.id}" ${a.id===c.area?"selected":""}>${esc(a.nome)}</option>`).join("")}</select><button class="lnk" data-g="${c.id}" title="Coluna que envia ao Gerenciador / mapa" style="opacity:${c.gatilho?1:.3}">⚡</button><button class="lnk" data-u="${i}" ${i?"":"disabled"} aria-label="Subir">▲</button><button class="lnk" data-d="${i}" ${i<cs.length-1?"":"disabled"} aria-label="Descer">▼</button><button class="lnk del" data-x="${c.id}">Excluir</button></div>`).join("")}</div>
    <div class="crow"><input class="inp" id="nc" placeholder="Nova coluna (ex.: Visita técnica, Faturamento)"><button class="btn pri" id="ac">+ Coluna</button></div>
+   <h2 style="font-size:15px">Áreas</h2>
+   <p class="note" style="margin:0">Cada coluna pertence a uma área. Em Permissões você escolhe quais áreas cada pessoa vê.</p>
+   <div class="pick">${AREAS.map(a=>`<span class="crow" style="padding:4px 6px"><input type="color" value="${a.cor}" data-arc="${a.id}"><input class="inp" style="width:150px" value="${esc(a.nome)}" data-arn="${a.id}"><button class="lnk del" data-arx="${a.id}" aria-label="Excluir área">×</button></span>`).join("")}</div>
+   <div class="crow"><input class="inp" id="na" placeholder="Nova área (ex.: Financeiro)"><button class="btn pri" id="aa">+ Área</button></div>
    <h2 style="font-size:15px">Etiquetas</h2>
    <div class="pick">${es.map(e=>`<span class="crow" style="padding:4px 6px"><input type="color" value="${e.cor}" data-ec="${e.id}"><input class="inp" style="width:160px" value="${esc(e.nome)}" data-en="${e.id}"><button class="lnk del" data-ex="${e.id}" aria-label="Excluir etiqueta">×</button></span>`).join("")}</div>
    <div class="crow"><input class="inp" id="ne" placeholder="Nova etiqueta"><button class="btn pri" id="ae">+ Etiqueta</button></div>
@@ -500,6 +515,11 @@ function gerirColunas(){
    const up=async(tab,id,v)=>{const {error}=await sb.from(tab).update(v).eq("id",id);if(error)toast(error.message);return!error};
    m.querySelectorAll("[data-cc]").forEach(x=>x.onchange=async()=>{if(await up("neg_colunas",x.dataset.cc,{cor:x.value}))COLS.find(c=>c.id===x.dataset.cc).cor=x.value});
    m.querySelectorAll("[data-cn]").forEach(x=>x.onchange=async()=>{const n=x.value.trim();if(n&&await up("neg_colunas",x.dataset.cn,{nome:n}))COLS.find(c=>c.id===x.dataset.cn).nome=n});
+   m.querySelectorAll("[data-ca]").forEach(x=>x.onchange=async()=>{const v=x.value||null;if(await up("neg_colunas",x.dataset.ca,{area:v}))COLS.find(c=>c.id===x.dataset.ca).area=v});
+   m.querySelectorAll("[data-arc]").forEach(x=>x.onchange=async()=>{if(await up("neg_areas",x.dataset.arc,{cor:x.value}))areaDe(x.dataset.arc).cor=x.value});
+   m.querySelectorAll("[data-arn]").forEach(x=>x.onchange=async()=>{const n=x.value.trim();if(n&&await up("neg_areas",x.dataset.arn,{nome:n}))areaDe(x.dataset.arn).nome=n;draw()});
+   m.querySelectorAll("[data-arx]").forEach(x=>x.onclick=async()=>{if(!x.dataset.c){x.dataset.c=1;x.textContent="?";toast("Toque de novo para excluir. As colunas dessa área ficam visíveis para todos.");return}const {error}=await sb.from("neg_areas").delete().eq("id",x.dataset.arx);if(error){toast(error.message);return}AREAS=AREAS.filter(a=>a.id!==x.dataset.arx);COLS.forEach(c=>{if(c.area===x.dataset.arx)c.area=null});draw()});
+   $("#aa",m).onclick=async()=>{const n=$("#na",m).value.trim();if(!n)return;const {data,error}=await sb.from("neg_areas").insert({nome:n,ordem:AREAS.length+1,cor:PAL[AREAS.length%PAL.length]}).select().single();if(error){toast(error.message);return}AREAS.push(data);draw()};
    m.querySelectorAll("[data-g]").forEach(x=>x.onclick=async()=>{for(const c of cs){const v=c.id===x.dataset.g;if(c.gatilho!==v&&await up("neg_colunas",c.id,{gatilho:v}))c.gatilho=v}draw()});
    const sw=async(i,j)=>{const a=cs[i],b=cs[j];const oa=a.ordem,ob=b.ordem===oa?oa+(j>i?1:-1):b.ordem;await up("neg_colunas",a.id,{ordem:ob});await up("neg_colunas",b.id,{ordem:oa});a.ordem=ob;b.ordem=oa;draw()};
    m.querySelectorAll("[data-u]").forEach(x=>x.onclick=()=>sw(+x.dataset.u,+x.dataset.u-1));
@@ -518,15 +538,19 @@ function permissoes(){
   const pessoas=U.filter(u=>u.papel==="executor");
   const draw=()=>{const Q=QUADROS[quadro],cs=colsDe(quadro);
     m.innerHTML=`<div class="box"><h2>Permissões por pessoa · ${esc(Q.nome)}</h2>
-   <p class="note" style="margin:0">Todo mundo <b>vê</b> todos os negócios e pode conversar. Em cada coluna defina o que cada pessoa pode fazer: <b>Ver</b> (só olha), <b>Mover</b> (passa o card para outra etapa) ou <b>Editar</b> (altera os dados, anexa e move). Administradores podem tudo. Vale na hora e é garantido pelo banco.</p>
-   ${pessoas.length?`<div class="mtx"><table><thead><tr><th>Pessoa</th><th>Cria negócios</th>${cs.map(c=>`<th>${esc(c.nome)}</th>`).join("")}</tr></thead><tbody>${pessoas.map(u=>`<tr><td><b>${esc(u.nome)}</b><br><span class="note">${esc(u.setor||"sem setor")}</span></td><td><input type="checkbox" data-cr="${u.id}" ${(CRIA[u.id]||{})[quadro]?"checked":""} aria-label="Cria negócios"></td>${cs.map(c=>{const v=(PERM[u.id]||{})[c.id]||"ver";return `<td><select data-u="${u.id}" data-c="${c.id}" class="lv-${v}"><option value="ver" ${v==="ver"?"selected":""}>Ver</option><option value="mover" ${v==="mover"?"selected":""}>Mover</option><option value="editar" ${v==="editar"?"selected":""}>Editar</option></select></td>`}).join("")}</tr>`).join("")}</tbody></table></div>`:'<p class="note">Nenhum usuário cadastrado além dos administradores. Convide pessoas em Usuários, no Gerenciador.</p>'}
+   <p class="note" style="margin:0">Primeiro escolha <b>quais áreas</b> cada pessoa vê; ela só enxerga (e conversa em) negócios dessas áreas. Depois, nas colunas que ela vê, defina o que pode fazer: <b>Ver</b> (só olha), <b>Mover</b> (passa o card para outra etapa) ou <b>Editar</b> (altera os dados, anexa e move). Administradores podem tudo. Vale na hora e é garantido pelo banco.</p>
+   ${pessoas.length?`<h2 style="font-size:15px;margin:4px 0 0">1. Áreas que cada pessoa vê</h2><p class="note" style="margin:0">Vale para os dois quadros. A pessoa só enxerga os negócios que estão em colunas das áreas marcadas.</p>
+   <div class="mtx"><table><thead><tr><th>Pessoa</th>${AREAS.map(a=>`<th><span class="atag" style="--a:${a.cor}">${esc(a.nome)}</span></th>`).join("")}</tr></thead><tbody>${pessoas.map(u=>`<tr><td><b>${esc(u.nome)}</b><br><span class="note">${esc(u.setor||"sem setor")}</span></td>${AREAS.map(a=>`<td><input type="checkbox" data-pa="${u.id}" data-aa="${a.id}" ${ACESSO[u.id]&&ACESSO[u.id].has(a.id)?"checked":""} aria-label="${esc(u.nome)} vê ${esc(a.nome)}"></td>`).join("")}</tr>`).join("")}</tbody></table></div>
+   <h2 style="font-size:15px;margin:4px 0 0">2. O que cada pessoa faz em cada coluna · ${esc(Q.nome)}</h2>
+   <div class="mtx"><table><thead><tr><th>Pessoa</th><th>Cria negócios</th>${cs.map(c=>`<th>${esc(c.nome)}${areaDe(c.area)?`<br><span class="atag" style="--a:${areaDe(c.area).cor}">${esc(areaDe(c.area).nome)}</span>`:""}</th>`).join("")}</tr></thead><tbody>${pessoas.map(u=>`<tr><td><b>${esc(u.nome)}</b><br><span class="note">${esc(u.setor||"sem setor")}</span></td><td><input type="checkbox" data-cr="${u.id}" ${(CRIA[u.id]||{})[quadro]?"checked":""} aria-label="Cria negócios"></td>${cs.map(c=>{const v=(PERM[u.id]||{})[c.id]||"ver";if(!veArea(u.id,c.area))return `<td class="note" title="Não vê a área ${esc((areaDe(c.area)||{}).nome||"")}">não vê</td>`;return `<td><select data-u="${u.id}" data-c="${c.id}" class="lv-${v}"><option value="ver" ${v==="ver"?"selected":""}>Ver</option><option value="mover" ${v==="mover"?"selected":""}>Mover</option><option value="editar" ${v==="editar"?"selected":""}>Editar</option></select></td>`}).join("")}</tr>`).join("")}</tbody></table></div>`:'<p class="note">Nenhum usuário cadastrado além dos administradores. Convide pessoas em Usuários, no Gerenciador.</p>'}
    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><span class="note">Exemplo: o Comercial cria o card e edita só na Prospecção; nas demais colunas fica com "Mover" ou "Ver".</span><button class="btn pri" id="ok">Pronto</button></div></div>`;
     m.querySelectorAll("select[data-u]").forEach(s=>s.onchange=async()=>{const u=s.dataset.u,c=s.dataset.c,v=s.value;
       const r=v==="ver"?await sb.from("neg_permissoes").delete().eq("user_id",u).eq("coluna_id",c):await sb.from("neg_permissoes").upsert({user_id:u,coluna_id:c,nivel:v});
       if(r.error){toast(r.error.message);return}(PERM[u]||(PERM[u]={}))[c]=v;s.className="lv-"+v});
+    m.querySelectorAll("[data-pa]").forEach(x=>x.onchange=async()=>{const u=x.dataset.pa,a=x.dataset.aa;const r=x.checked?await sb.from("neg_area_acesso").upsert({user_id:u,area_id:a}):await sb.from("neg_area_acesso").delete().eq("user_id",u).eq("area_id",a);if(r.error){toast(r.error.message);x.checked=!x.checked;return}const st=ACESSO[u]||(ACESSO[u]=new Set());x.checked?st.add(a):st.delete(a);draw()});
     m.querySelectorAll("[data-cr]").forEach(x=>x.onchange=async()=>{const u=x.dataset.cr;const r=x.checked?await sb.from("neg_criadores").upsert({user_id:u,quadro}):await sb.from("neg_criadores").delete().eq("user_id",u).eq("quadro",quadro);if(r.error){toast(r.error.message);x.checked=!x.checked;return}(CRIA[u]||(CRIA[u]={}))[quadro]=x.checked});
-    $("#ok",m).onclick=()=>{m.remove();render()};};
-  draw();document.body.appendChild(m);m.onclick=e=>{if(e.target===m){m.remove();render()}};
+    $("#ok",m).onclick=async()=>{m.remove();await recarregar()};};
+  draw();document.body.appendChild(m);m.onclick=async e=>{if(e.target===m){m.remove();await recarregar()}};
 }
 function caixa(){
   const ic={chegou:"📥",mencao:"💬",msg:"✉️",adicionado:"👤"};
