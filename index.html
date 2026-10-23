@@ -138,6 +138,8 @@ button.kp:hover{border-color:var(--c)}
 .arq{font-size:12.5px;color:var(--accent);font-weight:600;text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:5px 8px}
 @media (max-width:720px){.abas{order:3;width:100%}.abas button{flex:1}}
 @media (max-width:720px){.board{grid-auto-flow:column;grid-template-columns:none!important;grid-auto-columns:82vw;scroll-snap-type:x mandatory}.col{scroll-snap-align:start}}
+.nlbls{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px}.nlbls span{color:#fff;font-size:10.5px;font-weight:700;border-radius:5px;padding:1px 7px}
+.nref{font-size:11.5px;color:var(--muted);margin:3px 0}.nref a{color:var(--accent);font-weight:700;text-decoration:none}
 </style>
 <script src="vendor/supabase.js"></script>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
@@ -227,6 +229,7 @@ const nomeCol=id=>(colunas.find(c=>c.id===id)||{}).nome||"";
 const corCol=id=>(colunas.find(c=>c.id===id)||{}).cor||"#8a96a3";
 const corPino=o=>corPor==="tipo"?corTipo(o.tipo):corCol(o.coluna);
 
+let negs={},etqs={};
 async function carregar(){
   const [rc,ro]=await Promise.all([
     sb.from("colunas").select("*").order("ordem"),
@@ -234,6 +237,8 @@ async function carregar(){
   if(rc.error||ro.error){toast("Erro ao carregar: "+((rc.error||ro.error).message));return}
   colunas=rc.data||[];obras=ro.data||[];
   try{const rs=await sb.from("negocios").select("id,titulo,cliente,cidade,pot,un,valor,lat,lng,coluna").eq("quadro","solar").eq("no_mapa",true);solares=(rs.data||[]).filter(n=>n.lat!=null)}catch(e){solares=[]}
+  negs={};etqs={};
+  try{const ids=obras.map(o=>o.negocio).filter(Boolean);if(ids.length){const [rn,re]=await Promise.all([sb.from("negocios").select("id,titulo,valor,etiquetas,tipo,cidade,prazo").in("id",ids),sb.from("neg_etiquetas").select("*")]);(rn.data||[]).forEach(n=>negs[n.id]=n);(re.data||[]).forEach(e=>etqs[e.id]=e)}}catch(e){}
   render();autoLocalizar();contarAvisos();
 }
 let solares=[],verSolar=true;
@@ -246,11 +251,11 @@ function render(){
   $("#app").innerHTML=`<div class="wrap">
    <header><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1><small>Gerenciador de obras</small>${ADM()?"Todas as obras":"Minhas obras"}</h1>
     <nav class="abas"><button data-aba="inicio" class="${aba==="inicio"?"on":""}">Início</button><button data-aba="kanban" class="${aba==="kanban"?"on":""}">Kanban</button><a class="abalink" href="negocios.html">💼 Negócios<b class="nbadge" id="nBadge" hidden></b></a></nav>
-    <div class="tools"><span class="who">${esc(perfil.nome||perfil.email)} · ${ADM()?"Administrador":"Executor"}</span>${ADM()?'<button class="btn" id="bU">Usuários</button><button class="btn pri" id="bN">+ Nova obra</button>':""}<a class="btn" href="portfolio.html" target="_blank" rel="noopener">Portfólio</a><button class="btn" id="bS">Sair</button></div></header>
+    <div class="tools"><span class="who">${esc(perfil.nome||perfil.email)} · ${ADM()?"Administrador":"Executor"}</span>${ADM()?'<button class="btn" id="bU">Usuários</button>':""}<a class="btn" href="portfolio.html" target="_blank" rel="noopener">Portfólio</a><button class="btn" id="bS">Sair</button></div></header>
    <div id="corpo"></div></div>`;
   $("#bS").onclick=async()=>{await sb.auth.signOut();telaLogin()};
   document.querySelectorAll("[data-aba]").forEach(b=>b.onclick=()=>{aba=b.dataset.aba;try{localStorage.setItem("on.aba",aba)}catch(e){}render()});
-  if(ADM()){$("#bN").onclick=()=>editarObra(null);$("#bU").onclick=usuarios}
+  if(ADM()){$("#bU").onclick=usuarios}
   const nb=$("#nBadge");if(nb){nb.hidden=!nAvisos;nb.textContent=nAvisos}
   if(mapa){mapa.remove();mapa=null}
   aba==="inicio"?renderInicio():renderKanban();
@@ -296,7 +301,7 @@ function renderKanban(){
   const f=filtro.trim().toLowerCase();
   const vis=obras.filter(o=>(!f||(o.titulo+" "+o.cliente+" "+o.local+" "+o.tipo).toLowerCase().includes(f)));
   $("#corpo").innerHTML=`<div class="filt"><input id="fQ" placeholder="Buscar obra, cliente, cidade ou tipo" value="${esc(filtro)}"><span class="note">${obras.length} obra${obras.length===1?"":"s"}${ADM()?" · arraste os cartões entre as colunas":""}</span>${ADM()?'<button class="btn" id="bCol" style="margin-left:auto">Colunas</button>':""}</div>
-   <div class="board" style="grid-template-columns:repeat(${Math.max(1,colunas.length)},minmax(250px,1fr))">${colunas.map(c=>{const Lc=vis.filter(o=>o.coluna===c.id);return `<section class="col" style="--c:${c.cor}"><div class="colh"><b>${esc(c.nome)}</b><span>${Lc.length}</span></div><div class="list" data-col="${c.id}">${Lc.map(cartao).join("")||(ADM()?"":'<p class="empty">Nenhuma obra</p>')}</div></section>`}).join("")}</div>`;
+   <div class="board" style="grid-template-columns:repeat(${Math.max(1,colunas.length)},minmax(250px,1fr))">${colunas.map(c=>{const Lc=vis.filter(o=>o.coluna===c.id);return `<section class="col" style="--c:${c.cor}"><div class="colh"><b>${esc(c.nome)}</b><span>${Lc.length}</span></div><div class="list" data-col="${c.id}">${Lc.map(cartao).join("")||'<p class="empty">Nenhuma obra</p>'}</div></section>`}).join("")}</div>`;
   const q=$("#fQ");q.oninput=()=>{filtro=q.value;const p=q.selectionStart;renderKanban();const n=$("#fQ");n.focus();n.setSelectionRange(p,p)};
   document.querySelectorAll(".cardo").forEach(c=>{c.onclick=e=>{if(e.target.closest("[data-act]"))return;mural(obras.find(x=>x.id===c.dataset.id))};c.onkeydown=e=>{if(e.key==="Enter")c.click()}});
   document.querySelectorAll("[data-act]").forEach(b=>b.onclick=e=>{e.stopPropagation();const o=obras.find(x=>x.id===b.dataset.id);({link:linkObra,equipe:equipeObra,editar:editarObra})[b.dataset.act](o)});
@@ -306,6 +311,7 @@ function renderKanban(){
 function cartao(o){
   const p=Math.round(+o.avanco||0);
   return `<article class="cardo" data-id="${o.id}" tabindex="0">${o.tipo?`<span class="tp" style="--t:${corTipo(o.tipo)}">${esc(o.tipo)}</span>`:""}<h3>${esc(o.titulo)}</h3><div class="c">${esc(o.cliente)}${o.local?" · "+esc(o.local):""}</div>
+   ${(()=>{const n=o.negocio&&negs[o.negocio];if(!n)return"";const L=(n.etiquetas||[]).map(i=>etqs[i]).filter(Boolean);return `${L.length?`<div class="nlbls">${L.map(e=>`<span style="background:${e.cor}">${esc(e.nome)}</span>`).join("")}</div>`:""}<div class="nref"><a href="negocios.html?n=${n.id}" onclick="event.stopPropagation()">💼 Negócio</a>${n.valor?` · R$ ${(+n.valor).toLocaleString("pt-BR",{maximumFractionDigits:0})}`:""}${n.prazo?` · 📅 ${new Date(n.prazo+"T12:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})}`:""}</div>`})()}
    <div class="r"><div class="bar ${p>=100?"full":""}"><b style="width:${p}%"></b></div><span class="pc">${p}%</span></div>
    <div class="ft"><span>Atualizada ${fdate(o.atualizado_em)}</span>${ADM()?`<span style="display:flex;gap:10px"><button class="lnk" data-act="link" data-id="${o.id}">Link</button><button class="lnk" data-act="editar" data-id="${o.id}">Editar</button></span>`:""}</div></article>`;
 }
