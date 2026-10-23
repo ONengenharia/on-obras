@@ -1,0 +1,58 @@
+name: Cópia de segurança semanal
+
+# Toda segunda-feira às 06:00 (horário de Brasília) e também sob demanda (botão "Run workflow")
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Exportar banco e arquivos do Supabase
+        env:
+          SUPABASE_URL: https://qphayphqrwyvhesykpmb.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node .github/backup/backup.mjs --arquivos
+
+      - name: Criptografar (o repositório é público)
+        env:
+          BACKUP_SENHA: ${{ secrets.BACKUP_SENHA }}
+        run: |
+          test -n "$BACKUP_SENHA" || { echo "Falta o segredo BACKUP_SENHA"; exit 1; }
+          DATA=$(date -u +%Y-%m-%d)
+          echo "DATA=$DATA" >> "$GITHUB_ENV"
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_SENHA -in saida/banco.json -out "banco-$DATA.json.enc"
+          tar -czf - -C saida arquivos 2>/dev/null | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_SENHA -out "arquivos-$DATA.tar.gz.enc" || true
+
+      - name: Guardar banco no ramo "backups"
+        run: |
+          git config user.name "backup-automatico"
+          git config user.email "backup@users.noreply.github.com"
+          git fetch origin backups:backups 2>/dev/null || true
+          if git show-ref --quiet refs/heads/backups; then git checkout backups; else git checkout --orphan backups && git rm -rf . >/dev/null; fi
+          mkdir -p banco && mv "banco-$DATA.json.enc" banco/
+          ls -1t banco/*.enc | tail -n +53 | xargs -r git rm -q   # mantém ~1 ano de cópias semanais
+          git add banco
+          git commit -m "Cópia de segurança $DATA" || echo "Sem mudanças"
+          git push origin backups
+
+      - name: Guardar fotos e arquivos (90 dias)
+        uses: actions/upload-artifact@v4
+        with:
+          name: arquivos-${{ env.DATA }}
+          path: arquivos-*.tar.gz.enc
+          retention-days: 90
+          if-no-files-found: warn

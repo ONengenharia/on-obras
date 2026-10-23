@@ -31,3 +31,26 @@ Em Authentication → URL Configuration, coloque o endereço do site da Vercel e
 1. Na Vercel: **Add New → Project → Import** este repositório.
 2. Framework Preset: **Other**. Sem comando de build. Output: raiz.
 3. Deploy.
+
+## Cópia de segurança
+
+Toda segunda-feira às 06:00 o GitHub Actions (`.github/workflows/backup.yml`) exporta **todo o banco** (obras, postes, rede, diário, mural, usuários, colunas) e **todos os arquivos/fotos** do Supabase, criptografa com uma senha e guarda:
+
+- banco: no ramo `backups`, pasta `banco/` (um arquivo por semana, ~1 ano de histórico);
+- fotos e arquivos: em *Actions → execução → Artifacts* (ficam 90 dias).
+
+Configuração (uma vez): em **Settings → Secrets and variables → Actions → New repository secret**, criar:
+
+| Nome | Valor |
+|---|---|
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API Keys → chave `service_role` (secreta) |
+| `BACKUP_SENHA` | uma senha forte só sua, **guarde-a**: sem ela a cópia não abre |
+
+Para rodar na hora: **Actions → Cópia de segurança semanal → Run workflow**.
+
+Para abrir uma cópia (no computador, com OpenSSL):
+
+```
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in banco-AAAA-MM-DD.json.enc -out banco.json
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in arquivos-AAAA-MM-DD.tar.gz.enc | tar -xz
+```

@@ -586,7 +586,30 @@ function showCard(){
   if(edit){$("#cE").onclick=()=>editPonto(p);$("#cD").onclick=()=>confirmBox("Excluir este ponto, os trechos de rede ligados a ele e suas fotos?",()=>{S.pontos=S.pontos.filter(x=>x.id!==p.id);S.redes=S.redes.filter(g=>g.a!==p.id&&g.b!==p.id);selId=null;touch();renderPins();showCard();renderStats()})}
 }
 function renderAll(){renderHeader();renderKpis();renderEtapas();renderSide();renderMapbar();renderPins();showCard();updHint()}
-function touch(){dirty=true;renderHeader()}
+/* ---------- rascunho automático ----------
+   Tudo que é alterado e ainda não foi salvo fica guardado neste aparelho.
+   Se a página fechar ou a internet cair, o rascunho é oferecido ao abrir a obra de novo. */
+const RKEY="on.rascunho."+((DB.ctx()||{}).obraId||"x");
+let rTimer=null;
+function gravarRascunho(){try{localStorage.setItem(RKEY,JSON.stringify({em:Date.now(),role,S}))}catch(e){}}
+function limparRascunho(){try{localStorage.removeItem(RKEY)}catch(e){}}
+function touch(){dirty=true;renderHeader();clearTimeout(rTimer);rTimer=setTimeout(gravarRascunho,400)}
+function ofertarRascunho(){
+  let r=null;try{r=JSON.parse(localStorage.getItem(RKEY)||"null")}catch(e){}
+  if(!r||!r.S||!canEdit)return;
+  const quando=new Date(r.em).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"});
+  const m=document.createElement("div");m.className="modal";
+  m.innerHTML=`<div class="box"><h2>Alterações não salvas</h2><p class="note">Encontramos alterações feitas neste aparelho em ${quando} que não chegaram a ser salvas (a página fechou ou a internet caiu).</p><p class="note">Recuperar coloca essas alterações de volta na tela; depois é só tocar em Salvar.</p><div class="row"><button class="btn" id="rgD">Descartar</button><button class="btn pri" id="rgR">Recuperar</button></div></div>`;
+  document.body.appendChild(m);
+  $("#rgD",m).onclick=()=>{limparRascunho();m.remove();toast("Rascunho descartado.")};
+  $("#rgR",m).onclick=()=>{
+    const R=r.S;
+    if(role==="admin")Object.assign(S,R);
+    else{S.pontos=R.pontos||S.pontos;S.redes=R.redes||S.redes;S.log=R.log||S.log}
+    m.remove();edit=true;dirty=true;renderAll();toast("Alterações recuperadas. Toque em Salvar para enviar.")};
+}
+window.addEventListener("online",()=>{if(dirty)toast("Internet de volta. Toque em Salvar para enviar as alterações.")});
+window.addEventListener("offline",()=>toast("Sem internet. Pode continuar lançando: fica guardado neste aparelho até salvar."));
 
 /* ---------- fotos ---------- */
 function loadImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file);const im=new Image();im.onload=()=>res({im,u});im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("decode"))};im.src=u})}
@@ -781,8 +804,8 @@ async function save(){
   S.atualizado=today();
   S.quant.forEach(q=>{if(q.auto)q.exec=+qExec(q).toFixed(1)});
   const b=$("#bSave");if(b){b.disabled=true;b.textContent="Salvando…"}
-  try{await DB.salvar(S,Math.round(overall()*10)/10);dirty=false;toast("Salvo. O link do cliente já mostra esta versão.");renderHeader()}
-  catch(e){toast("Não foi possível salvar: "+(e&&e.message||"tente novamente")+".");if(b){b.disabled=false;b.textContent="Salvar"}}
+  try{await DB.salvar(S,Math.round(overall()*10)/10);dirty=false;limparRascunho();toast("Salvo. O link do cliente já mostra esta versão.");renderHeader()}
+  catch(e){gravarRascunho();toast((navigator.onLine?"Não foi possível salvar: "+(e&&e.message||"tente novamente"):"Sem internet")+". As alterações ficaram guardadas neste aparelho; tente salvar de novo.");if(b){b.disabled=false;b.textContent="Salvar"}}
 }
 function linkDialog(){
   const url=DB.linkCliente(TOKEN);
@@ -795,6 +818,7 @@ window.addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.return
 canEdit=role!=="cliente";
 if(canEdit)assetsNs={upload:async(blob,nome)=>({url:await DB.upload(blob,nome)})};
 renderAll();
+ofertarRascunho();
 })();
 </script>
 </body>
