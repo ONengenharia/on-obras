@@ -182,7 +182,7 @@ img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:no
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
-<script src="js/global.js?v=3" defer></script>
+<script src="js/global.js?v=4" defer></script>
 </head>
 <body>
 <div class="app" id="app"><p class="note" style="padding:20px">Carregando…</p></div>
@@ -216,7 +216,7 @@ const colsDe=q=>COLS.filter(c=>c.quadro===q).sort((a,b)=>a.ordem-b.ordem);
 const areaDe=id=>AREAS.find(a=>a.id===id);
 const veArea=(uid,area)=>{const u=uById(uid);return u.papel==="admin"||!area||!!(ACESSO[uid]&&ACESSO[uid].has(area))};
 const veCol=col=>ADM||veArea(eu,(COLS.find(c=>c.id===col)||{}).area);
-const fantasma=c=>!ADM&&!veCol(c.coluna);
+const fantasma=c=>{if(!ADM&&!veCol(c.coluna))return true;if(fArea){const k=COLS.find(x=>x.id===c.coluna);return!!k&&k.area!==fArea}return false};
 const naoLidasCard=id=>{const L=INBOX.filter(n=>!n.lido&&n.negocio_id===id&&(n.tipo==="mencao"||n.tipo==="msg"));return{n:L.length,men:L.some(n=>n.tipo==="mencao")}};
 const fimDoDia=()=>{const d=new Date();d.setHours(23,59,59,999);return d};
 const lembCard=id=>LEMB.filter(l=>l.negocio_id===id&&new Date(l.quando)<=fimDoDia());
@@ -280,7 +280,7 @@ function render(){
    <button class="btn pri" id="bNovo" ${podeCriar(quadro)?"":"disabled title='Você não tem permissão para criar negócios neste quadro'"}>+ Novo negócio</button></header>
   ${mAreas.length>1?`<div class="bar"><span class="note">Área:</span><button class="chip ${!fArea?"on":""}" data-ar="">${ADM?"Todas":"Todas as minhas"}</button>${mAreas.map(a=>`<button class="chip ${fArea===a.id?"on":""}" data-ar="${a.id}"><i style="width:9px;height:9px;border-radius:50%;background:${a.cor};display:inline-block"></i>${esc(a.nome)}</button>`).join("")}</div>`:""}
   <div class="bar"><input id="q" placeholder="Buscar negócio, cliente, cidade ou tipo" value="${esc(busca)}">
-   <button class="chip ${soMeus?"on":""}" id="meus">Só os meus</button>${ADM?"":`<button class="chip ${verSaidos?"on":""}" id="saidos" title="Negócios que já passaram pela sua área e estão em outra">🔒 Mostrar os que já saíram</button>`}
+   <button class="chip ${soMeus?"on":""}" id="meus">Só os meus</button>${ADM&&!fArea?"":`<button class="chip ${verSaidos?"on":""}" id="saidos" title="Negócios que já passaram pela sua área e estão em outra">🔒 Mostrar os que já saíram</button>`}
    ${etqs.map(e=>`<button class="chip ${fEtq===e.id?"on":""}" data-e="${e.id}"><i style="width:9px;height:9px;border-radius:50%;background:${e.cor};display:inline-block"></i>${esc(e.nome)}</button>`).join("")}
    ${(()=>{const nv=vis.filter(c=>!fantasma(c));return `<span class="note" style="margin-left:auto">${nv.length} negócio${nv.length===1?"":"s"} · ${brl(nv.reduce((a,c)=>a+(+c.valor||0),0))} em carteira</span>`})()}</div>
   <div class="board">${cols.map(col=>{const L=vis.filter(c=>c.coluna===col.id);const nv=nivel(col.id);
