@@ -84,8 +84,8 @@ header .btn.on{background:#e8f1f9;color:#1e2f40}
 .et.add{flex:0 0 auto;min-width:0;place-items:center;color:var(--accent);border-style:dashed;font-weight:600}
 /* lateral com abas */
 aside{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-.tabs{display:flex;border-bottom:1px solid var(--line);overflow-x:auto}
-.tabs button{flex:1 0 auto;border:0;background:none;padding:11px 12px;font-weight:600;font-size:12.5px;color:var(--muted);border-bottom:2px solid transparent}
+.tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.tabs button{flex:1 0 auto;border:0;background:none;padding:10px 10px;font-weight:600;font-size:12.5px;color:var(--muted);border-bottom:2px solid transparent}
 .tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
 .pane{overflow:auto;padding:14px;display:grid;gap:14px;align-content:start;min-height:0;flex:1}
 .q{display:grid;gap:5px}
@@ -384,7 +384,7 @@ async function enableSort(){
 /* ---------- abas ---------- */
 function renderSide(){
   const n=allPhotos().length;
-  $("#tabs").innerHTML=[["quant","Quantitativos"],["mat","Materiais"],["diario","Diário"],["fotos","Fotos"+(n?` (${n})`:"")],["obra","Obra"]].map(([k,l])=>`<button class="${tab===k?"on":""}" data-tab="${k}">${l}</button>`).join("");
+  $("#tabs").innerHTML=[["quant","Quantitativos"],["mat","Materiais"],["proj","Projeto"+((S.anexos||[]).length?` (${S.anexos.length})`:"")],["diario","Diário"],["fotos","Fotos"+(n?` (${n})`:"")],["obra","Obra"]].map(([k,l])=>`<button class="${tab===k?"on":""}" data-tab="${k}">${l}</button>`).join("");
   $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;renderSide()});
   const pane=$("#pane");
   if(tab==="quant"){const edit=admEd();
@@ -410,9 +410,17 @@ function renderSide(){
       $("#cSend").onclick=()=>{const txt=draft.txt.trim();if(!txt&&!draft.fotos.length){toast("Escreva uma mensagem ou anexe uma foto.");return}
         S.log.push({id:uid(),data:draft.data||today(),ts:new Date().toTimeString().slice(0,8),texto:txt,fotos:draft.fotos.slice()});draft={txt:"",fotos:[],data:""};touch();renderSide();toast("Registro adicionado. Clique em Salvar para o cliente ver.")};
       pane.querySelectorAll("[data-ldel]").forEach(b=>b.onclick=()=>confirmBox("Excluir este registro e suas fotos?",()=>{S.log=S.log.filter(l=>l.id!==b.dataset.ldel);touch();renderSide()}))}
+  }else if(tab==="proj"){
+    pane.innerHTML=anexosHtml();bindAnexos(pane);
   }else if(tab==="fotos"){
     const A=allPhotos();
-    pane.innerHTML=A.length?`<div class="gal">${A.map((f,i)=>`<button data-gi="${i}"><img src="${esc(f.u)}" alt="${esc(f.cap)}" onerror="this.style.opacity=.25"></button>`).join("")}</div>`:`<p class="empty">Nenhuma foto ainda.${edit?" Anexe fotos no cartão de cada ponto do mapa ou nos registros do diário.":""}</p>`;
+    pane.innerHTML=A.length?`<div class="gal">${A.map((f,i)=>`<button data-gi="${i}"><img src="${esc(f.u)}" alt="${esc(f.cap)}" onerror="this.style.opacity=.25"></button>`).join("")}</div>`:`<p class="empty">Nenhuma foto ainda.${edit?" Use Galeria ou Câmera acima, ou anexe no cartão de cada ponto do mapa.":""}</p>`;
+    if(edit){pane.insertAdjacentHTML("afterbegin",`<div class="row"><span class="note">As fotos entram no diário de hoje.</span><span style="display:flex;gap:6px"><label class="btn" style="position:relative;overflow:hidden">Galeria<input type="file" accept="image/*" multiple id="fgG" style="position:absolute;inset:0;opacity:0"></label><label class="btn" style="position:relative;overflow:hidden">Câmera<input type="file" accept="image/*" capture="environment" id="fgC" style="position:absolute;inset:0;opacity:0"></label></span></div>`);
+      [$("#fgG",pane),$("#fgC",pane)].forEach(inp=>inp.onchange=async()=>{const fs=[...inp.files];inp.value="";if(!fs.length)return;toast(fs.length>1?`Enviando ${fs.length} fotos…`:"Enviando foto…");
+        const urls=[];for(const f of fs){const u=await upImage(f,4096);if(u)urls.push(u)}if(!urls.length)return;
+        let l=S.log.find(x=>x.data===today()&&x.texto==="Fotos da obra");
+        if(!l){l={id:uid(),data:today(),ts:new Date().toTimeString().slice(0,8),texto:"Fotos da obra",fotos:[]};S.log.push(l)}
+        l.fotos.push(...urls);touch();renderSide();toast(urls.length+(urls.length>1?" fotos adicionadas":" foto adicionada")+". Clique em Salvar.")})}
     pane.querySelectorAll("[data-gi]").forEach(b=>b.onclick=()=>lightbox(A.map(f=>f.u),+b.dataset.gi,A.map(f=>f.cap)));
   }else{const edit=admEd();
     pane.innerHTML=`<dl class="info"><dt>Projeto</dt><dd>${esc(S.obra.projeto)}</dd><dt>Cliente</dt><dd>${esc(S.obra.cliente)}</dd><dt>Local</dt><dd>${esc(S.obra.local)}</dd><dt>Loteamento</dt><dd>${esc(S.obra.lotes)}</dd><dt>Tensões</dt><dd>${esc(S.obra.tensao)}</dd><dt>Distribuidora</dt><dd>${esc(S.obra.concessionaria)}</dd><dt>Resp. técnico</dt><dd>${esc(S.obra.rt)}</dd><dt>Pontos no mapa</dt><dd>${S.pontos.length} (${S.pontos.filter(exP).length} executados)</dd><dt>Trechos de rede</dt><dd>${S.redes.length}</dd>${S.obra.coord?`<dt>Coordenadas</dt><dd>${esc(S.obra.coord)}</dd>`:""}</dl>
@@ -434,8 +442,7 @@ function renderMat(pane){
    <div class="matwrap"><table class="mat"><thead><tr><th>Material</th><th style="text-align:right">Prev.</th><th style="text-align:right">Aplic.</th><th style="text-align:right">%</th></tr></thead><tbody>${L.map(m=>{const pc=(+m.prev)>0?Math.min(100,(+m.apl||0)/m.prev*100):0;
      return `<tr><td>${m.cod?`<div class="cd">${esc(m.cod)}</div>`:""}${esc(m.desc)}${edit?` <button class="lnk del" data-me="${m.id}" style="font-size:11px">editar</button>`:""}</td><td class="n">${fmt(m.prev)} ${esc(m.un||"")}</td><td class="n">${edit?`<input type="number" step="any" min="0" id="ma-${m.id}" data-ma="${m.id}" value="${+m.apl||0}">`:fmt(m.apl)}</td><td class="n" style="color:${pc>=100?"var(--ok)":"inherit"}">${Math.round(pc)}%</td></tr>`}).join("")}</tbody></table></div>`
    :'<p class="empty">Nenhum material cadastrado.'+(edit?" Use Importar lista para colar da planilha ou abrir um arquivo Excel/CSV.":"")+'</p>')
-   +anexosHtml();
-  bindAnexos(pane);
+   ;
   const sq=$("#mQ",pane);if(sq)sq.oninput=()=>{matQ=sq.value;const pos=sq.selectionStart;renderSide();const n=$("#mQ");if(n){n.focus();n.setSelectionRange(pos,pos)}};
   if(!edit)return;
   pane.querySelectorAll("[data-ma]").forEach(i=>i.onchange=()=>{const m=M.find(x=>x.id===i.dataset.ma);m.apl=Math.max(0,parseFloat(i.value)||0);touch();renderSide()});
@@ -486,12 +493,13 @@ function importMat(){
 /* ---------- anexos ---------- */
 const fsize=b=>b>1048576?(b/1048576).toFixed(1).replace(".",",")+" MB":Math.max(1,Math.round(b/1024))+" KB";
 const ficon=n=>/\.pdf$/i.test(n)?"PDF":/\.(png|jpe?g|webp|gif)$/i.test(n)?"IMG":/\.(csv|txt|md|json)$/i.test(n)?"TXT":"ARQ";
+const urlBaixar=a=>/supabase\.co\/storage\//.test(a.url)?a.url+(a.url.includes("?")?"&":"?")+"download="+encodeURIComponent(a.nome||"arquivo"):a.url;
 function anexosHtml(){
   const edit=admEd();
   const A=S.anexos||[];
-  return `<div class="mh" style="margin-top:6px"><span class="lbl">Arquivos da obra</span>${edit?`<label class="btn" style="position:relative;overflow:hidden">+ Anexar arquivo<input type="file" multiple id="axUp" style="position:absolute;inset:0;opacity:0"></label>`:""}</div>`
-   +(A.length?`<div class="axl">${A.map(a=>`<div class="ax"><span class="axi">${ficon(a.nome)}</span><button class="axn" data-axo="${a.id}">${esc(a.nome)}<small>${a.tam?fsize(a.tam):""}${a.data?" · "+fdate(a.data):""}</small></button>${edit?`<button class="lnk del" data-axd="${a.id}">Excluir</button>`:""}</div>`).join("")}</div>`
-   :`<p class="empty">${edit?"Anexe PDFs de projeto, memorial, ART, listas e outros documentos. Eles ficam disponíveis para o cliente abrir.":"Nenhum arquivo anexado."}</p>`);
+  return `<div class="mh" style="margin-top:6px"><span class="lbl">Arquivos do projeto</span>${edit?`<label class="btn" style="position:relative;overflow:hidden">+ Anexar arquivo<input type="file" multiple id="axUp" style="position:absolute;inset:0;opacity:0"></label>`:""}</div>`
+   +(A.length?`<div class="axl">${A.map(a=>`<div class="ax"><span class="axi">${ficon(a.nome)}</span><button class="axn" data-axo="${a.id}">${esc(a.nome)}<small>${a.tam?fsize(a.tam):""}${a.data?" · "+fdate(a.data):""}</small></button><a class="btn" href="${esc(urlBaixar(a))}" download="${esc(a.nome)}" target="_blank" rel="noopener" title="Baixar">⬇ Baixar</a>${edit?`<button class="lnk del" data-axd="${a.id}">Excluir</button>`:""}</div>`).join("")}</div>`
+   :`<p class="empty">${edit?"Anexe PDFs, fotos, plantas, memorial, ART e outros documentos. Eles ficam disponíveis para visualizar e baixar, inclusive pelo cliente.":"Nenhum arquivo do projeto ainda."}</p>`);
 }
 function bindAnexos(pane){
   const edit=admEd();
@@ -502,7 +510,6 @@ function bindAnexos(pane){
     if(!assetsNs){toast("Envio de arquivos indisponível nesta visualização.");return}
     let ok=0;for(const f of fs){toast("Enviando "+f.name+"…");
       try{let blob=f;
-        if(/^image\//.test(f.type)){const r=await shrink(f,2000,.85,false);blob=r.blob}
         const r=await assetsNs.upload(blob,f.name);(S.anexos||(S.anexos=[])).push({id:uid(),nome:f.name,tam:blob.size,tipo:f.type||"",url:r.url||("/_blob/"+r.id),data:today()});ok++}
       catch(e){const c=e&&e.code;toast(f.name+": "+(c==="too_large"?"arquivo grande demais (limite 20 MB).":c==="invalid_request"||c==="unsupported_type"?"tipo de arquivo não aceito. Use PDF, imagem ou CSV; para Word/Excel, salve como PDF.":"não foi possível enviar."))}}
     if(ok){touch();renderSide();toast(ok+(ok>1?" arquivos anexados":" arquivo anexado")+". Clique em Salvar.")}};
@@ -511,7 +518,7 @@ function openAnexo(a){
   if(!a)return;
   const m=document.createElement("div");m.className="lb";
   const isImg=/^image\//.test(a.tipo)||/\.(png|jpe?g|webp|gif)$/i.test(a.nome),isPdf=/pdf/.test(a.tipo)||/\.pdf$/i.test(a.nome);
-  m.innerHTML=`<div class="lbbar"><a href="${esc(a.url)}" target="_blank" rel="noopener" style="background:#1e2f40;color:#e8f1f9;border-radius:7px;padding:8px 13px;font-weight:600;text-decoration:none">Abrir em nova aba ↗</a><button id="axX">Fechar</button></div>`
+  m.innerHTML=`<div class="lbbar"><a href="${esc(a.url)}" target="_blank" rel="noopener" style="background:#1e2f40;color:#e8f1f9;border-radius:7px;padding:8px 13px;font-weight:600;text-decoration:none">Abrir em nova aba ↗</a><a href="${esc(urlBaixar(a))}" download="${esc(a.nome)}" target="_blank" rel="noopener" style="background:#62a8dc;color:#0f1c28;border-radius:7px;padding:8px 13px;font-weight:600;text-decoration:none">⬇ Baixar</a><button id="axX">Fechar</button></div>`
    +(isImg?`<img src="${esc(a.url)}" alt="${esc(a.nome)}">`:isPdf?`<iframe src="${esc(a.url)}" title="${esc(a.nome)}" style="width:min(1100px,100%);height:calc(100% - 70px);border:0;border-radius:6px;background:#fff;margin-top:40px"></iframe>`:`<p style="color:#cfe0ee">Este tipo de arquivo não tem visualização aqui. Use "Abrir em nova aba".</p>`)
    +`<div class="cap">${esc(a.nome)}</div>`;
   document.body.appendChild(m);$("#axX",m).onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()};
