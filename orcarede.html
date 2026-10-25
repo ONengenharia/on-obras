@@ -251,6 +251,13 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .addm{display:grid;grid-template-columns:1fr 80px auto;gap:8px;align-items:end}#amL{max-height:40vh;overflow:auto}
 .kv b{white-space:nowrap}.kv.sub{padding-left:12px;font-size:12px;color:var(--muted)}.kv.sub b{font-weight:600}
 #amL .sm{display:block}
+.cropov{position:absolute;inset:0;z-index:30;cursor:crosshair;touch-action:none;user-select:none}.cropmsg{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:999px;padding:5px 14px;font-size:12.5px;font-weight:600;pointer-events:none}.croprt{position:absolute;border:2px dashed #e0a800;background:rgba(224,168,0,.12)}
+.navb{display:inline-flex;gap:2px;margin-right:4px}.navb .btn{padding:7px 10px}
+.pad.au{background:none}
+.fornbox{border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:8px;background:var(--bg)}.grid3f{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tbl.cot textarea.dsc{width:100%;min-width:180px;font-size:12.5px;resize:vertical;background:transparent;border-color:transparent}.tbl.cot textarea.dsc:focus{border-color:var(--line);background:var(--bg)}
+@media (max-width:760px){.grid3f{grid-template-columns:1fr}}
+.sugsub{color:var(--accent);font-style:italic;font-size:12px}.sugl{display:grid;gap:4px;max-height:55vh;overflow:auto}.sugl label{display:grid;grid-template-columns:auto 1fr auto;gap:8px;font-size:12.5px;align-items:center;border-bottom:1px solid var(--line);padding:3px 0}.regras{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px}
+.gprint{border:2px dashed var(--line);border-radius:8px;padding:10px;font-size:13px;cursor:pointer;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.gprint:focus,.gprint.over{border-color:var(--accent);background:var(--accent-soft);outline:none}.gprint.busy{opacity:.6}
 </style>
 </head>
 <body>
@@ -280,6 +287,20 @@ function modal(html,onOk,okTxt="OK"){const m=document.createElement("div");m.cla
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
 const PALETA=["#2f6f9f","#c2185b","#1565c0","#e0a800","#00897b","#7a8b99","#8d6e63","#ef6c00","#5d4037","#6a3fbf","#2e7d32","#ad1457"];
 const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/[^A-Z0-9,./]+/g," ").replace(/\s+/g," ").trim();
+window.addEventListener("popstate",()=>location.reload());
+document.addEventListener("click",e=>{const b=e.target.closest("[data-nav]");if(!b)return;e.preventDefault();b.dataset.nav==="-1"?history.back():history.forward()});
+const UNIDADES=[["UN","unidade"],["PÇ","peça"],["M","metro"],["MT","metro (ERP)"],["KG","quilo"],["M²","metro quadrado"],["M³","metro cúbico"],["CJ","conjunto"],["CX","caixa"],["RL","rolo"],["PCT","pacote"],["L","litro"],["PAR","par"],["JG","jogo"],["KIT","kit"],["VB","verba"],["H","hora"],["DIA","dia"],["SV","serviço"]];
+function unNorm(u){u=String(u||"").trim().toUpperCase().replace(/\.$/,"");if(!u)return null;const M={UND:"UN",UNID:"UN",UNI:"UN",U:"UN",PC:"PÇ",PCS:"PÇ",PECA:"PÇ","PEÇA":"PÇ",MTS:"M",METRO:"M",M2:"M²",M3:"M³",KGS:"KG",CONJ:"CJ",ROLO:"RL",PACOTE:"PCT",LT:"L",LITRO:"L",HR:"H",HORA:"H",JOGO:"JG",SERV:"SV"};return M[u]||u}
+function unSel(v){v=unNorm(v);const ex=v&&!UNIDADES.some(x=>x[0]===v);return `<select name="unidade"><option value="">—</option>${UNIDADES.map(([k,t])=>`<option value="${k}" ${k===v?"selected":""}>${k} · ${t}</option>`).join("")}${ex?`<option value="${esc(v)}" selected>${esc(v)} (fora da lista)</option>`:""}</select>`}
+let OCRW=null;
+async function ocrWorker(){if(OCRW)return OCRW;if(!window.Tesseract)await loadScript("vendor/tesseract/tesseract.min.js");
+  const base=new URL("vendor/tesseract/",location.href).href;
+  OCRW=await Tesseract.createWorker("eng",1,{workerPath:base+"worker.min.js",corePath:base,langPath:base,gzip:true,workerBlobURL:false});
+  await OCRW.setParameters({tessedit_char_whitelist:"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz();,_-./+ ",preserve_interword_spaces:"1"});return OCRW}
+async function preparaImg(blob){const bmp=await createImageBitmap(blob);const k=Math.max(1,Math.min(4,1400/Math.max(bmp.width,bmp.height)));const c=document.createElement("canvas");c.width=bmp.width*k;c.height=bmp.height*k;
+  const g=c.getContext("2d");g.imageSmoothingQuality="high";g.drawImage(bmp,0,0,c.width,c.height);const d=g.getImageData(0,0,c.width,c.height),a=d.data;let soma=0;for(let i=0;i<a.length;i+=4){const y=.3*a[i]+.59*a[i+1]+.11*a[i+2];a[i]=y;soma+=y}
+  const lim=soma/(a.length/4)*.75;for(let i=0;i<a.length;i+=4){const v=a[i]<lim?0:255;a[i]=a[i+1]=a[i+2]=v}g.putImageData(d,0,0);return c}
+function limpaOcr(t){return t.split(/\n+/).map(l=>l.trim()).filter(Boolean).join(";").replace(/\s*;\s*/g,";").replace(/;{2,}/g,";").replace(/\s{2,}/g," ").replace(/^;|;$/g,"").replace(/\bce/gi,"CE").replace(/(\d)[lI|](?=[A-Za-z])/g,"$1").replace(/(\d)[oO](?=[\d)])/g,"$10").replace(/[|]/g,"1").replace(/\(([0-9]+)[oO]\)/g,"($10)")}
 let SEG_PADRAO=[["MT","#c2185b"],["BT","#1565c0"],["IP","#e0a800"],["Transformação","#6a3fbf"]];
 
 const sess=await DB.sessao();
@@ -300,7 +321,7 @@ return lista(Q.get("pasta"));
 /* ============ CONFIGURAÇÕES ============ */
 async function config(aba){
   aba=aba||"materiais";
-  const ABAS=[["materiais","Materiais"],["subgrupos","Subgrupos"],["segmentos","Segmentos"],["concessionarias","Concessionárias"],["grupos","Grupos de itens"],["cotacoes","Cotações"]];
+  const ABAS=[["materiais","Materiais"],["subgrupos","Subgrupos"],["segmentos","Segmentos"],["concessionarias","Concessionárias"],["postes","Postes"],["cabos","Cabos"],["iluminacao","Iluminação"],["grupos","Grupos de itens"],["cotacoes","Cotações"]];
   let MATS=[],PV={},SUBS=[],SEGP=[],CON=[...CONCS];
   async function carregaBase(){
     const [m,p,s,g,c]=await Promise.all([
@@ -315,16 +336,26 @@ async function config(aba){
   const MAT=()=>{const o={};MATS.forEach(m=>o[m.codigo]=m);return o};
   const optsMat=()=>`<datalist id="dlMat">${MATS.filter(m=>m.ativo!==false).map(m=>`<option value="${esc(m.codigo)} · ${esc(m.nome)}">`).join("")}</datalist>`;
   const codDe=v=>String(v||"").split(" · ")[0].trim();
+  let REGS=null;
+  function regrasSub(){if(REGS&&REGS.n===MATS.length&&REGS.v===MATS.filter(m=>m.subgrupo).length)return REGS;const k1={},k2={};
+    MATS.forEach(m=>{if(!m.subgrupo||m.ativo===false)return;const w=norm(m.nome).split(" ").filter(t=>/^[A-Z]{2,}$/.test(t));if(!w.length)return;
+      const a=w[0],b=w.length>1?w[0]+" "+w[1]:null;(k1[a]=k1[a]||{})[m.subgrupo]=(k1[a][m.subgrupo]||0)+1;if(b)(k2[b]=k2[b]||{})[m.subgrupo]=(k2[b][m.subgrupo]||0)+1});
+    REGS={k1,k2,n:MATS.length,v:MATS.filter(m=>m.subgrupo).length};return REGS}
+  function sugSub(nome){const {k1,k2}=regrasSub();const w=norm(nome).split(" ").filter(t=>/^[A-Z]{2,}$/.test(t));if(!w.length)return null;
+    const melhor=o=>{if(!o)return null;const tot=Object.values(o).reduce((a,b)=>a+b,0);const [s,n]=Object.entries(o).sort((a,b)=>b[1]-a[1])[0];return{sub:s,n,tot,share:n/tot}};
+    const b=w.length>1&&melhor(k2[w[0]+" "+w[1]]);if(b&&b.n>=2&&b.share>=.7)return{...b,chave:w[0]+" "+w[1]};
+    const a=melhor(k1[w[0]]);if(a&&a.n>=3&&a.share>=.8)return{...a,chave:w[0]};return null}
   const origemTxt=o=>({compra:"Compra",proposta:"Cotação",orcamento:"Orçamento",manual:"Manual",importacao:"Importação"}[o]||o||"");
   function frame(html){
     root.innerHTML=`<div class="page">
      <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">OrçaRede</div><h1>Configurações</h1><div class="sub">Base de materiais, grupos de itens e cadastros usados nos orçamentos</div></div>
-      <div class="tools"><a class="btn" href="orcarede.html">← Orçamentos</a></div>
+      <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><a class="btn" href="orcarede.html">← Orçamentos</a></div>
       <nav class="steps">${ABAS.map(([k,t],i)=>`<button data-aba="${k}" class="${k===aba?"on":""}"><b>${i+1}</b>${t}</button>`).join("")}</nav></header>
      <div id="cfgBody">${html}</div></div>`;
-    $$("[data-aba]").forEach(b=>b.onclick=()=>{aba=b.dataset.aba;history.replaceState(null,"","?cfg="+aba);go()});
+    $$("[data-aba]").forEach(b=>b.onclick=()=>{aba=b.dataset.aba;history.pushState(null,"","?cfg="+aba);go()});
   }
-  function go(){({materiais:tMateriais,subgrupos:tSubgrupos,segmentos:tSegmentos,concessionarias:tConcs,grupos:tGrupos,cotacoes:tCotacoes})[aba]()}
+  function go(){({materiais:tMateriais,subgrupos:tSubgrupos,segmentos:tSegmentos,concessionarias:tConcs,postes:()=>tGeral("postes"),cabos:()=>tGeral("rede"),iluminacao:()=>tGeral("ip"),grupos:tGrupos,cotacoes:tCotacoes})[aba]()}
+  function tGeral(k){frame(`<p class="note">${{postes:"Cadastro geral de postes, vale para todas as concessionárias. O código é como o poste aparece na planta; o sistema também reconhece outras formas (12/400, 12-4kN) pela altura e esforço.",rede:"Cabos do traçado, gerais para todos os orçamentos. Materiais por metro de vão com multiplicador.",ip:"Modelos de luminária (atalhos). No poste, a lista também traz todos os grupos de itens de IP."}[k]}</p><div id="cDet"></div>`);ctab=k;concDetalhe(null)}
 
   /* ---------- Materiais ---------- */
   let mq="",msub="",minat=false,mpag=0;
@@ -341,9 +372,9 @@ async function config(aba){
        <input class="inp" id="mq" placeholder="Buscar por código ou nome" value="${esc(mq)}" style="width:min(320px,100%)">
        <select class="inp" id="msub"><option value="">Todos os subgrupos</option><option value="-" ${msub==="-"?"selected":""}>— sem subgrupo —</option>${SUBS.map(s=>`<option ${msub===s.nome?"selected":""}>${esc(s.nome)}</option>`).join("")}</select>
        <label class="note"><input type="checkbox" id="minat" ${minat?"checked":""}> mostrar inativos</label></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" id="mDup">Duplicados</button><button class="btn" id="mImp">Importar ERP</button><button class="btn" id="mExp">Exportar</button><button class="btn pri" id="mNovo">+ Material</button></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${(()=>{const n=L.filter(m=>!m.subgrupo&&sugSub(m.nome)).length;return n?`<button class="btn" id="mSug" title="Aplica o subgrupo sugerido aos materiais sem subgrupo desta lista">Aplicar sugestões de subgrupo (${n})</button>`:""})()}<button class="btn" id="mDup">Duplicados</button><button class="btn" id="mImp">Importar ERP</button><button class="btn" id="mExp">Exportar</button><button class="btn pri" id="mNovo">+ Material</button></div></div>
      <table class="tbl"><thead><tr><th>Código</th><th>Material</th><th class="hm">Un.</th><th class="hm">Subgrupo</th><th class="n">Preço</th><th class="hm">Origem</th></tr></thead><tbody>
-      ${L.slice(mpag*PP,mpag*PP+PP).map(m=>{const p=PV[m.codigo];return `<tr class="go${m.ativo===false?" ina":""}" data-m="${esc(m.codigo)}"><td class="mono">${esc(m.codigo)}</td><td>${esc(m.nome)}${m.ativo===false?' <span class="chip">inativo</span>':""}</td><td class="hm">${esc(m.unidade||"")}</td><td class="hm">${esc(m.subgrupo||"")}</td><td class="n">${p?brl(p.valor):"—"}</td><td class="hm">${p?`${esc(p.fornecedor||origemTxt(p.origem))}<span class="sm">${fdata(p.data)}</span>`:""}</td></tr>`}).join("")||'<tr><td colspan="6" class="note">Nada encontrado.</td></tr>'}
+      ${L.slice(mpag*PP,mpag*PP+PP).map(m=>{const p=PV[m.codigo];return `<tr class="go${m.ativo===false?" ina":""}" data-m="${esc(m.codigo)}"><td class="mono">${esc(m.codigo)}</td><td>${esc(m.nome)}${m.ativo===false?' <span class="chip">inativo</span>':""}</td><td class="hm">${esc(m.unidade||"")}</td><td class="hm">${m.subgrupo?esc(m.subgrupo):(()=>{const g=sugSub(m.nome);return g?`<span class="sugsub" title="Parecido com ${g.n} materiais em ${esc(g.sub)} (início “${esc(g.chave)}”)">→ ${esc(g.sub)}?</span>`:""})()}</td><td class="n">${p?brl(p.valor):"—"}</td><td class="hm">${p?`${esc(p.fornecedor||origemTxt(p.origem))}<span class="sm">${fdata(p.data)}</span>`:""}</td></tr>`}).join("")||'<tr><td colspan="6" class="note">Nada encontrado.</td></tr>'}
      </tbody></table>
      <div class="row"><span class="note">${L.length} materiais</span><span style="display:flex;gap:6px;align-items:center">${np>1?`<button class="btn" id="mPrev" ${mpag?"":"disabled"}>‹</button><span class="note">${mpag+1} / ${np}</span><button class="btn" id="mNext" ${mpag<np-1?"":"disabled"}>›</button>`:""}</span></div>`);
     $("#mq").oninput=e=>{mq=e.target.value;mpag=0;const pos=e.target.selectionStart;tMateriais();const i=$("#mq");i.focus();i.setSelectionRange(pos,pos)};
@@ -351,12 +382,18 @@ async function config(aba){
     $("#minat").onchange=e=>{minat=e.target.checked;tMateriais()};
     $("#mPrev")&&($("#mPrev").onclick=()=>{mpag--;tMateriais()});$("#mNext")&&($("#mNext").onclick=()=>{mpag++;tMateriais()});
     $$("tr[data-m]").forEach(r=>r.onclick=()=>fichaMaterial(r.dataset.m));
-    $("#mNovo").onclick=()=>modal(`<h2>Novo material</h2><div class="grid2"><label class="fld">Código<input name="codigo" required></label><label class="fld">Unidade<input name="unidade" placeholder="UN, M, KG…"></label></div>
+    $("#mNovo").onclick=()=>modal(`<h2>Novo material</h2><div class="grid2"><label class="fld">Código<input name="codigo" required></label><label class="fld">Unidade${unSel("UN")}</label></div>
       <label class="fld">Nome<input name="nome" required></label><label class="fld">Subgrupo<select name="sub"><option value="">—</option>${SUBS.map(s=>`<option>${esc(s.nome)}</option>`).join("")}</select></label>
       <p class="note">O código vale também para o ERP — use o que vai lançar lá.</p>`,async f=>{
       if(MATS.some(m=>m.codigo===f.codigo.trim())){toast("Já existe um material com esse código.");return false}
       const r=await chk(O.from("materiais").insert({codigo:f.codigo.trim(),nome:f.nome.trim(),unidade:f.unidade.trim()||null,subgrupo:f.sub||null}).select("*").single());MATS.push(r);mq=r.codigo;tMateriais()},"Criar");
+    $("#mSug")&&($("#mSug").onclick=()=>{const A=L.filter(m=>!m.subgrupo).map(m=>({m,g:sugSub(m.nome)})).filter(x=>x.g);
+      const md=modal(`<h2>Sugestões de subgrupo (${A.length})</h2><p class="note">Aprendidas com os materiais que você já classificou. Desmarque o que não quiser.</p><div class="sugl">${A.map((x,i)=>`<label><input type="checkbox" data-sg="${i}" checked> <span>${esc(x.m.nome)}</span><b>${esc(x.g.sub)}</b></label>`).join("")}</div>`,async()=>{
+        const G={};A.forEach((x,i)=>{if(md.querySelector(`[data-sg="${i}"]`).checked)(G[x.g.sub]=G[x.g.sub]||[]).push(x.m)});let n=0;
+        for(const [sub,ms] of Object.entries(G))for(let i=0;i<ms.length;i+=200){await chk(O.from("materiais").update({subgrupo:sub}).in("codigo",ms.slice(i,i+200).map(m=>m.codigo)));ms.forEach(m=>m.subgrupo=sub);n+=Math.min(200,ms.length-i)}
+        toast(`${n} materiais classificados.`);tMateriais()},"Aplicar");md.querySelector(".mbox").classList.add("wide")});
     $("#mExp").onclick=exportarBase;$("#mImp").onclick=importarERP;$("#mDup").onclick=duplicados;
+    const _novo=$("#mNovo").onclick;$("#mNovo").onclick=()=>{_novo();const md=$$(".modal").pop();const nm=md.querySelector("[name=nome]"),sb=md.querySelector("[name=sub]");nm.oninput=()=>{if(sb.dataset.mexeu)return;const g=sugSub(nm.value);sb.value=g?g.sub:""};sb.onchange=()=>sb.dataset.mexeu=1};
   }
   async function fichaMaterial(cod){
     const m=MATS.find(x=>x.codigo===cod);if(!m)return;
@@ -365,7 +402,7 @@ async function config(aba){
       todos(()=>O.from("estrutura_itens").select("quantidade,estruturas(codigo,concessionaria_id)").eq("material_codigo",cod))]);
     const md=modal(`<h2>${esc(m.nome)}</h2><p class="note mono">${esc(m.codigo)}</p>
       <label class="fld">Nome<input name="nome" required value="${esc(m.nome)}"></label>
-      <div class="grid2"><label class="fld">Unidade<input name="unidade" value="${esc(m.unidade||"")}"></label><label class="fld">Subgrupo<select name="sub"><option value="">—</option>${SUBS.map(s=>`<option ${m.subgrupo===s.nome?"selected":""}>${esc(s.nome)}</option>`).join("")}</select></label></div>
+      <div class="grid2"><label class="fld">Unidade${unSel(m.unidade)}</label><label class="fld">Subgrupo<select name="sub"><option value="">—</option>${SUBS.map(s=>`<option ${m.subgrupo===s.nome?"selected":""}>${esc(s.nome)}</option>`).join("")}</select></label></div>
       <label class="note"><input type="checkbox" name="ativo" ${m.ativo!==false?"checked":""}> ativo (aparece na busca dos orçamentos)</label>
       <h3 class="h3">Histórico de preços</h3>
       <div class="hist">${H.map(p=>`<div><b>${brl(p.valor)}</b><span>${fdata(p.data)}</span><span>${esc(p.fornecedor||"")}</span><span class="note">${esc(origemTxt(p.origem))}${p.documento?" · "+esc(p.documento):""}</span><button type="button" class="btn sm" data-delp="${p.id}" title="Excluir">✕</button></div>`).join("")||'<p class="note">Sem preço registrado.</p>'}</div>
@@ -392,7 +429,7 @@ async function config(aba){
     const md=modal(`<h2>Importar base do ERP</h2><p class="note">Planilha com colunas de código, nome e (opcional) unidade e grupo. Códigos novos entram na base; os que já existem não são alterados, a não ser que você marque a opção abaixo.</p>
       <input type="file" id="fErp" accept=".xlsx,.xls,.csv"><label class="note"><input type="checkbox" name="atual"> atualizar nome e unidade dos códigos existentes</label><div id="erpMsg" class="note"></div>`,
       async f=>{const L=md._rows;if(!L||!L.length){toast("Escolha a planilha.");return false}
-        const novos=L.filter(r=>!MATS.some(m=>m.codigo===r.codigo));
+        const novos=L.filter(r=>!MATS.some(m=>m.codigo===r.codigo));novos.forEach(r=>{if(!r.subgrupo){const g=sugSub(r.nome);if(g)r.subgrupo=g.sub}});
         for(let i=0;i<novos.length;i+=500)await chk(O.from("materiais").insert(novos.slice(i,i+500)));
         let at=0;if(f.atual){for(const r of L){const m=MATS.find(x=>x.codigo===r.codigo);if(m&&(m.nome!==r.nome||(r.unidade&&m.unidade!==r.unidade))){await chk(O.from("materiais").update({nome:r.nome,unidade:r.unidade||m.unidade,atualizado_em:new Date().toISOString()}).eq("codigo",r.codigo));at++}}}
         toast(`${novos.length} materiais novos${f.atual?` · ${at} atualizados`:""}.`);await carregaBase();tMateriais()},"Importar");
@@ -403,7 +440,7 @@ async function config(aba){
       const ic=ix(/COD/),inm=ix(/NOME|DESCRI|PRODUTO/),iu=ix(/^UN|UNID/),ig=ix(/GRUPO|SUBGRUPO/);
       if(ic<0||inm<0){$("#erpMsg",md).textContent="Não achei as colunas de código e nome.";return}
       const subs=new Set(SUBS.map(s=>s.nome));
-      md._rows=A.slice(h+1).filter(r=>String(r[ic]).trim()&&String(r[inm]).trim()).map(r=>({codigo:String(r[ic]).trim(),nome:String(r[inm]).replace(/\s+/g," ").trim(),unidade:iu>=0&&String(r[iu]).trim()||null,subgrupo:ig>=0&&subs.has(String(r[ig]).trim().toUpperCase())?String(r[ig]).trim().toUpperCase():null}));
+      md._rows=A.slice(h+1).filter(r=>String(r[ic]).trim()&&String(r[inm]).trim()).map(r=>({codigo:String(r[ic]).trim(),nome:String(r[inm]).replace(/\s+/g," ").trim(),unidade:iu>=0&&unNorm(r[iu])||null,subgrupo:ig>=0&&subs.has(String(r[ig]).trim().toUpperCase())?String(r[ig]).trim().toUpperCase():null}));
       const nv=md._rows.filter(r=>!MATS.some(m=>m.codigo===r.codigo)).length;
       $("#erpMsg",md).textContent=`${md._rows.length} linhas lidas · ${nv} códigos novos.`};
   }
@@ -428,7 +465,9 @@ async function config(aba){
      <table class="tbl"><thead><tr><th style="width:60px">Ordem</th><th>Subgrupo</th><th class="n">Materiais</th><th></th></tr></thead><tbody>
      ${SUBS.map((s,i)=>`<tr><td><span class="sw" style="background:${s.cor||PALETA[i%PALETA.length]}"></span> ${i+1}</td><td><b>${esc(s.nome)}</b></td><td class="n">${cnt[s.nome]||0}</td>
        <td class="n"><button class="btn sm" data-up="${i}" ${i?"":"disabled"}>↑</button><button class="btn sm" data-dn="${i}" ${i<SUBS.length-1?"":"disabled"}>↓</button><button class="btn sm" data-ed="${s.id}">Editar</button><button class="btn sm" data-del="${s.id}">✕</button></td></tr>`).join("")}
-     <tr><td></td><td class="note">— sem subgrupo —</td><td class="n">${cnt[""]||0}</td><td></td></tr></tbody></table>`);
+     <tr><td></td><td class="note">— sem subgrupo —</td><td class="n">${cnt[""]||0}</td><td></td></tr></tbody></table>
+     <h3 class="h3">Regras aprendidas</h3><p class="note">O sistema aprende com os materiais que você classifica: pelo início do nome, sugere o subgrupo dos materiais novos e dos que estão sem subgrupo. Corrigir um material ajusta a regra.</p>
+     <div class="regras">${Object.entries(regrasSub().k2).map(([k,o])=>{const t=Object.values(o).reduce((a,b)=>a+b,0);const [sub,n]=Object.entries(o).sort((a,b)=>b[1]-a[1])[0];return{k,sub,n,t}}).filter(x=>x.n>=2&&x.n/x.t>=.7).sort((a,b)=>b.n-a.n).slice(0,60).map(x=>`<span><code>${esc(x.k)}…</code> → <b>${esc(x.sub)}</b> <small>(${x.n})</small></span>`).join("")||'<span class="note">Classifique alguns materiais para começar.</span>'}</div>`);
     const ord=async()=>{for(let i=0;i<SUBS.length;i++)if(SUBS[i].ordem!==i){SUBS[i].ordem=i;await chk(O.from("subgrupos").update({ordem:i}).eq("id",SUBS[i].id))}tSubgrupos()};
     $$("[data-up]").forEach(b=>b.onclick=()=>{const i=+b.dataset.up;[SUBS[i-1],SUBS[i]]=[SUBS[i],SUBS[i-1]];ord()});
     $$("[data-dn]").forEach(b=>b.onclick=()=>{const i=+b.dataset.dn;[SUBS[i+1],SUBS[i]]=[SUBS[i],SUBS[i+1]];ord()});
@@ -464,8 +503,8 @@ async function config(aba){
       todos(()=>O.from("tipos_rede").select("id,concessionaria_id")),todos(()=>O.from("estrutura_conc").select("*"))]);
     const nG=c=>new Set(EST.filter(e=>e.concessionaria_id===c).map(e=>e.id).concat(EC.filter(x=>x.concessionaria_id===c).map(x=>x.estrutura_id))).size;
     if(!concSel)concSel=CON[0]&&CON[0].id;
-    frame(`<div class="row"><p class="note">Cada concessionária tem seus postes, tipos de rede (condutores do traçado) e modelos de iluminação.</p><button class="btn pri" id="cNovo">+ Concessionária</button></div>
-     <div class="ccards">${CON.map(c=>`<button class="ccard ${c.id===concSel?"on":""}" data-c="${c.id}"><b>${esc(c.sigla)}</b><span>${esc(c.nome||"")}</span><small>${nG(c.id)} grupos · ${PST.filter(p=>p.concessionaria_id===c.id).length} postes · ${TRD.filter(t=>t.concessionaria_id===c.id).length} tipos de rede</small></button>`).join("")}</div>
+    frame(`<div class="row"><p class="note">Cadastro das concessionárias. Postes, cabos e iluminação são gerais e ficam nas próprias abas; aqui ficam os padrões de ponto de cada uma.</p><button class="btn pri" id="cNovo">+ Concessionária</button></div>
+     <div class="ccards">${CON.map(c=>`<button class="ccard ${c.id===concSel?"on":""}" data-c="${c.id}"><b>${esc(c.sigla)}</b><span>${esc(c.nome||"")}</span><small>${nG(c.id)} grupos de itens</small></button>`).join("")}</div>
      <div id="cDet"></div>`);
     $$("[data-c]").forEach(b=>b.onclick=()=>{concSel=+b.dataset.c;tConcs()});
     $("#cNovo").onclick=()=>modal(`<h2>Nova concessionária</h2><div class="grid2"><label class="fld">Sigla<input name="sigla" required></label><label class="fld">Nome<input name="nome"></label></div>`,async f=>{
@@ -475,16 +514,17 @@ async function config(aba){
   async function concDetalhe(cid){
     const c=CON.find(x=>x.id===cid);const el=$("#cDet");
     const [PST,TRD,TRI,MIP,EST]=await Promise.all([
-      todos(()=>O.from("postes").select("*").eq("concessionaria_id",cid).order("altura_m")),
-      todos(()=>O.from("tipos_rede").select("*").eq("concessionaria_id",cid).order("ordem")),
+      todos(()=>O.from("postes").select("*").order("altura_m")),
+      todos(()=>O.from("tipos_rede").select("*").order("ordem")),
       todos(()=>O.from("tipos_rede_itens").select("*")),
-      todos(()=>O.from("modelos_ip").select("*").eq("concessionaria_id",cid).order("nome")),
-      todos(()=>O.from("estruturas").select("id,codigo").eq("concessionaria_id",cid).order("codigo"))]);
+      todos(()=>O.from("modelos_ip").select("*").order("nome")),
+      todos(()=>O.from("estruturas").select("id,codigo,categoria").order("codigo"))]);
     const M=MAT();
+    if(cid==null){el.innerHTML=`<div class="card"><div id="cIn"></div></div>`}else{ctab="pad";
     el.innerHTML=`<div class="card"><div class="row"><h2>${esc(c.sigla)} <span class="note">${esc(c.nome||"")}</span></h2><button class="btn sm" id="cEd">Editar dados</button></div>
-      <div class="seg3">${[["postes","Postes"],["rede","Tipos de rede"],["ip","Modelos de IP"],["pad","Padrões de ponto"]].map(([k,t])=>`<button class="${ctab===k?"on":""}" data-ct="${k}">${t}</button>`).join("")}</div><div id="cIn"></div></div>`;
-    $$("[data-ct]").forEach(b=>b.onclick=()=>{ctab=b.dataset.ct;concDetalhe(cid)});
-    $("#cEd").onclick=()=>modal(`<h2>${esc(c.sigla)}</h2><div class="grid2"><label class="fld">Sigla<input name="sigla" required value="${esc(c.sigla)}"></label><label class="fld">Nome<input name="nome" value="${esc(c.nome||"")}"></label></div>`,async f=>{
+      <h3 class="h3">Padrões de ponto desta concessionária</h3><div id="cIn"></div></div>`;
+    }
+    if(cid!=null)$("#cEd").onclick=()=>modal(`<h2>${esc(c.sigla)}</h2><div class="grid2"><label class="fld">Sigla<input name="sigla" required value="${esc(c.sigla)}"></label><label class="fld">Nome<input name="nome" value="${esc(c.nome||"")}"></label></div>`,async f=>{
       await chk(O.from("concessionarias").update({sigla:f.sigla.trim().toUpperCase(),nome:f.nome.trim()||null}).eq("id",cid));c.sigla=f.sigla.trim().toUpperCase();c.nome=f.nome.trim();tConcs()},"Salvar");
     const inn=$("#cIn");
     if(ctab==="postes"){
@@ -494,7 +534,7 @@ async function config(aba){
       const form=p=>`<h2>${p?"Editar":"Novo"} poste</h2><div class="grid2"><label class="fld">Código<input name="codigo" required value="${esc(p?p.codigo:"")}"></label><label class="fld">Tipo<select name="tipo">${["DT","TC","OUTRO"].map(t=>`<option ${p&&p.tipo===t?"selected":""}>${t}</option>`).join("")}</select></label>
         <label class="fld">Altura (m)<input name="altura" value="${p?num(p.altura_m):""}"></label><label class="fld">Esforço (kN)<input name="esforco" value="${p?num(p.esforco_kn):""}"></label></div>
         <label class="fld">Material<input name="mat" list="dlMat" value="${p&&p.material_codigo?esc(p.material_codigo+" · "+((M[p.material_codigo]||{}).nome||"")):""}"></label>`;
-      const salvar=id=>async f=>{const row={concessionaria_id:cid,codigo:f.codigo.trim(),tipo:f.tipo,altura_m:pnum(f.altura)||null,esforco_kn:pnum(f.esforco)||null,material_codigo:codDe(f.mat)||null};
+      const salvar=id=>async f=>{const row={concessionaria_id:null,codigo:f.codigo.trim(),tipo:f.tipo,altura_m:pnum(f.altura)||null,esforco_kn:pnum(f.esforco)||null,material_codigo:codDe(f.mat)||null};
         if(row.material_codigo&&!M[row.material_codigo]){toast("Material não encontrado na base.");return false}
         await chk(id?O.from("postes").update(row).eq("id",id):O.from("postes").insert(row));concDetalhe(cid)};
       $("#pNovo").onclick=()=>modal(form(),salvar(),"Criar");
@@ -510,7 +550,7 @@ async function config(aba){
       const trLinha=i=>`<div class="grid3 tl"><input class="inp" list="dlMat" name="m" placeholder="Material" value="${i.material_codigo?esc(i.material_codigo+" · "+((M[i.material_codigo]||{}).nome||"")):""}"><input class="inp" name="x" placeholder="Multiplicador" value="${i.multiplicador!=null?num(i.multiplicador,3):"1"}"><button type="button" class="btn sm" data-rm>✕</button></div>`;
       const abre=t=>{const md=modal(form(t),async(f,m)=>{const L=$$(".tl",m).map(r=>({c:codDe(r.querySelector("[name=m]").value),x:pnum(r.querySelector("[name=x]").value)})).filter(r=>r.c);
           if(L.some(r=>!M[r.c])){toast("Há material que não está na base.");return false}
-          let id=t&&t.id;const row={concessionaria_id:cid,nome:f.nome.trim(),cor:f.cor};
+          let id=t&&t.id;const row={concessionaria_id:null,nome:f.nome.trim(),cor:f.cor,pasta_id:null};
           if(id)await chk(O.from("tipos_rede").update(row).eq("id",id));else id=(await chk(O.from("tipos_rede").insert({...row,ordem:TRD.length}).select("id").single())).id;
           await chk(O.from("tipos_rede_itens").delete().eq("tipo_rede_id",id));
           if(L.length)await chk(O.from("tipos_rede_itens").insert(L.map(r=>({tipo_rede_id:id,material_codigo:r.c,multiplicador:r.x||1}))));concDetalhe(cid)},t?"Salvar":"Criar");
@@ -524,11 +564,12 @@ async function config(aba){
       const PD=await todos(()=>O.from("padroes_ponto").select("*").eq("concessionaria_id",cid).order("nome"));
       inn.innerHTML=`<p class="note">Combinações de poste + grupos de itens para aplicar com um clique no painel do ponto. Também dá para criar direto no orçamento, em “salvar este ponto como padrão”.</p>
        <table class="tbl"><thead><tr><th>Padrão</th><th>Sequência</th><th class="n">Usos</th><th></th></tr></thead><tbody>
-       ${PD.map(x=>`<tr><td><b>${esc(x.nome)}</b></td><td class="mono">${esc(x.sequencia)}</td><td class="n">${x.usos||0}</td><td class="n"><button class="btn sm" data-xe="${x.id}">Editar</button><button class="btn sm" data-xd="${x.id}">✕</button></td></tr>`).join("")||'<tr><td colspan="4" class="note">Nenhum padrão ainda.</td></tr>'}</tbody></table><button class="btn" id="xNovo">+ Padrão</button>`;
+       ${PD.sort((a,b)=>(b.usos||0)-(a.usos||0)).map(x=>`<tr><td><b>${esc(x.nome)}</b>${x.auto?' <span class="chip">automático</span>':""}</td><td class="mono">${esc(x.sequencia)}</td><td class="n">${x.usos||0}</td><td class="n">${x.auto?`<button class="btn sm" data-xf="${x.id}" title="Manter como padrão fixo">Fixar</button>`:""}<button class="btn sm" data-xe="${x.id}">Editar</button><button class="btn sm" data-xd="${x.id}">✕</button></td></tr>`).join("")||'<tr><td colspan="4" class="note">Nenhum padrão ainda.</td></tr>'}</tbody></table><button class="btn" id="xNovo">+ Padrão</button>`;
       const form=x=>`<h2>${x?"Editar":"Novo"} padrão</h2><label class="fld">Nome<input name="nome" required value="${esc(x?x.nome:"")}"></label><label class="fld">Sequência (poste e grupos separados por ;)<input name="seq" required value="${esc(x?x.sequencia:"")}" placeholder="12(4);CE1A-2;IT_50;CONJ_50"></label>`;
-      const salvar=id=>async f=>{const row={concessionaria_id:cid,nome:f.nome.trim(),sequencia:f.seq.trim()};await chk(id?O.from("padroes_ponto").update(row).eq("id",id):O.from("padroes_ponto").insert(row));concDetalhe(cid)};
+      const salvar=id=>async f=>{const row={concessionaria_id:cid,nome:f.nome.trim(),sequencia:f.seq.trim(),auto:false};await chk(id?O.from("padroes_ponto").update(row).eq("id",id):O.from("padroes_ponto").insert(row));concDetalhe(cid)};
       $("#xNovo").onclick=()=>modal(form(),salvar(),"Criar");
       $$("[data-xe]").forEach(b=>b.onclick=()=>modal(form(PD.find(x=>x.id==b.dataset.xe)),salvar(+b.dataset.xe),"Salvar"));
+      $$("[data-xf]").forEach(b=>b.onclick=async()=>{await chk(O.from("padroes_ponto").update({auto:false}).eq("id",b.dataset.xf));concDetalhe(cid)});
       $$("[data-xd]").forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este padrão?"))return;await chk(O.from("padroes_ponto").delete().eq("id",b.dataset.xd));concDetalhe(cid)});
     }else{
       inn.innerHTML=`<p class="note">Modelos de luminária que aparecem no campo “Luminária” do poste. Cada modelo junta um ou mais grupos de IP.</p>
@@ -538,7 +579,7 @@ async function config(aba){
       const form=m=>`<h2>${m?"Editar":"Novo"} modelo de IP</h2><label class="fld">Nome<input name="nome" required value="${esc(m?m.nome:"")}" placeholder="LED 100W braço 3m"></label>
         <label class="fld">Grupos (códigos separados por vírgula)<input name="est" list="dlEst" value="${esc(m?(m.estruturas||[]).join(", "):"")}"></label><datalist id="dlEst">${EST.map(e=>`<option value="${esc(e.codigo)}">`).join("")}</datalist>
         <label class="note"><input type="checkbox" name="fix" ${m&&m.fixacao?"checked":""}> inclui a fixação no poste</label>`;
-      const salvar=id=>async f=>{const row={concessionaria_id:cid,nome:f.nome.trim(),estruturas:f.est.split(",").map(s=>s.trim()).filter(Boolean),fixacao:!!f.fix};await chk(id?O.from("modelos_ip").update(row).eq("id",id):O.from("modelos_ip").insert(row));concDetalhe(cid)};
+      const salvar=id=>async f=>{const row={concessionaria_id:null,nome:f.nome.trim(),estruturas:f.est.split(",").map(s=>s.trim()).filter(Boolean),fixacao:!!f.fix};await chk(id?O.from("modelos_ip").update(row).eq("id",id):O.from("modelos_ip").insert(row));concDetalhe(cid)};
       $("#miNovo").onclick=()=>modal(form(),salvar(),"Criar");
       $$("[data-me]").forEach(b=>b.onclick=()=>modal(form(MIP.find(m=>m.id==b.dataset.me)),salvar(+b.dataset.me),"Salvar"));
       $$("[data-md]").forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este modelo?"))return;await chk(O.from("modelos_ip").delete().eq("id",b.dataset.md));concDetalhe(cid)});
@@ -577,6 +618,7 @@ async function config(aba){
       <label class="fld">Descrição<input name="descricao" value="${esc(e&&e.descricao||"")}"></label>
       <label class="note"><input type="checkbox" name="comp" id="gComp" ${e&&e.compartilhada?"checked":""}> usar este grupo em mais de uma concessionária</label>
       <div id="gCs" class="chips" ${e&&e.compartilhada?"":"hidden"}>${CON.map(c=>`<label><input type="checkbox" name="c_${c.id}" ${concs.includes(c.id)?"checked":""}> ${esc(c.sigla)}</label>`).join("")}</div>
+      <div class="gprint" id="gPrint" tabindex="0">📋 <b>Colar print dos materiais</b> <span class="note">Ctrl+V aqui (ou arraste a imagem). O sistema lê a tabela e propõe os materiais.</span></div>
       <h3 class="h3">Materiais <span class="note" id="gTot"></span></h3><div id="gIts">${(ITS.length?ITS:[{}]).map(linha).join("")}</div>
       <div class="row"><button type="button" class="btn sm" id="gAdd">+ material</button>${e?`<span style="display:flex;gap:6px"><button type="button" class="btn sm" id="gDup">Duplicar</button><button type="button" class="btn sm" id="gDel">Excluir grupo</button></span>`:""}</div>`,
       async(f,m)=>{
@@ -598,6 +640,34 @@ async function config(aba){
     const bind=()=>{$$("[data-rm]",md).forEach(b=>b.onclick=()=>{b.parentElement.remove();tot()});$$(".gl input",md).forEach(i=>i.oninput=tot)};bind();tot();
     $("#gAdd",md).onclick=()=>{$("#gIts",md).insertAdjacentHTML("beforeend",linha({}));bind();$$(".gl [name=m]",md).pop().focus()};
     $("#gComp",md).onchange=ev=>$("#gCs",md).hidden=!ev.target.checked;
+    const gp=$("#gPrint",md);
+    const leImg=async blob=>{gp.classList.add("busy");gp.querySelector(".note").textContent="Lendo a imagem…";
+      try{const w=await ocrWorker();await w.setParameters({tessedit_char_whitelist:""});const {data}=await w.recognize(await preparaImg(blob));
+        await w.setParameters({tessedit_char_whitelist:"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz();,_-./+ "});
+        const L=String(data.text||"").split(/\n+/).map(x=>x.replace(/\s+/g," ").trim()).filter(x=>x.replace(/[^A-Za-zÀ-ú]/g,"").length>=5).map(x=>{
+          const tk=x.split(" ");const cod=(tk.find(t=>/^\d{6,}$/.test(t))||"");let q=null;
+          const nums=tk.map((t,i)=>({t,i})).filter(o=>/^\d+([.,]\d+)?$/.test(o.t)&&o.t!==cod);if(nums.length){const ult=nums[nums.length-1];if(ult.i>=tk.length-2){q=pnum(ult.t);tk.splice(ult.i,1)}else if(nums[0].i===0){q=pnum(nums[0].t);tk.splice(0,1)}}
+          const desc=tk.filter(t=>t!==cod&&!/^(UN|UND|PC|PÇ|M|MT|KG|CJ|CX|RL|PCT)\.?$/i.test(t)).join(" ").replace(/^[\d.\-]+\s+/,"");return{txt:desc,cod,q:q||1}});
+        gp.querySelector(".note").textContent="Ctrl+V aqui (ou arraste a imagem). O sistema lê a tabela e propõe os materiais.";
+        if(!L.length){toast("Não encontrei linhas de material nessa imagem.");return}revisaPrint(L,await todos(()=>O.from("apelidos").select("texto_norm,material_codigo")))}
+      catch(err){console.error(err);toast("Falha ao ler a imagem: "+(err.message||err))}finally{gp.classList.remove("busy")}};
+    gp.onpaste=ev=>{const it=[...(ev.clipboardData||{}).items||[]].find(i=>i.type.startsWith("image/"));if(it){ev.preventDefault();leImg(it.getAsFile())}};
+    md.addEventListener("paste",ev=>{if(ev.target.closest("#gPrint"))return;const it=[...(ev.clipboardData||{}).items||[]].find(i=>i.type.startsWith("image/"));if(it){ev.preventDefault();leImg(it.getAsFile())}});
+    gp.ondragover=ev=>{ev.preventDefault();gp.classList.add("over")};gp.ondragleave=()=>gp.classList.remove("over");
+    gp.ondrop=ev=>{ev.preventDefault();gp.classList.remove("over");const f=[...ev.dataTransfer.files].find(f=>f.type.startsWith("image/"));if(f)leImg(f)};
+    function revisaPrint(L,AP){const R=L.map(l=>{const sc=sugerir(l.txt);const a=AP.find(x=>x.texto_norm===norm(l.txt)&&M[x.material_codigo]);const c=a?a.material_codigo:l.cod&&M[l.cod]?l.cod:(sc[0]&&sc[0].s>.45?sc[0].c:"");return{...l,sug:sc.map(x=>x.c),c,ok:!!c}});
+      const mv=modal(`${optsMat()}<h2>Materiais lidos do print (${R.length})</h2><p class="note">Confira cada linha. O que você corrigir fica guardado para as próximas leituras.</p>
+        <table class="tbl cot"><thead><tr><th></th><th>Lido</th><th>Material da base</th><th class="n">Qtd</th></tr></thead><tbody>${R.map((r,i)=>`<tr><td><input type="checkbox" data-ok="${i}" ${r.ok?"checked":""}></td><td>${esc(r.txt)}${r.cod?`<span class="sm mono">${esc(r.cod)}</span>`:""}</td>
+        <td><input class="inp" list="dlMat" data-c="${i}" value="${r.c?esc(r.c+" · "+((M[r.c]||{}).nome||"")):""}" placeholder="Escolha o material">${r.sug.filter(s=>s!==r.c).slice(0,2).map(s=>`<span class="sugs"><button type="button" data-s="${i}" data-v="${esc(s)}">${esc((M[s]||{}).nome||s)}</button></span>`).join("")}</td>
+        <td class="n"><input class="inp n" data-q="${i}" value="${num(r.q,3)}" style="width:70px"></td></tr>`).join("")}</tbody></table>`,async()=>{
+        const ok=R.filter((r,i)=>mv.querySelector(`[data-ok="${i}"]`).checked&&r.c);if(!ok.length){toast("Nenhuma linha marcada.");return false}
+        const gi=$("#gIts",md);const vazia=$$(".gl",md).filter(r=>!r.querySelector("[name=m]").value.trim());vazia.forEach(r=>r.remove());
+        ok.forEach(r=>gi.insertAdjacentHTML("beforeend",linha({material_codigo:r.c,quantidade:r.q})));bind();tot();
+        const ap=ok.filter(r=>r.mexeu).map(r=>({fonte:"print",fornecedor:"",texto_original:r.txt,texto_norm:norm(r.txt),material_codigo:r.c,criado_por:perfil.id}));if(ap.length)O.from("apelidos").upsert(ap,{onConflict:"fonte,fornecedor,texto_norm"}).then(()=>{});
+        toast(`${ok.length} materiais incluídos no grupo.`)},"Incluir no grupo");mv.querySelector(".mbox").classList.add("wide");
+      $$("[data-c]",mv).forEach(b=>b.onchange=()=>{const r=R[b.dataset.c];r.c=codDe(b.value);if(!M[r.c]){toast("Material não encontrado.");r.c=""}r.mexeu=1;mv.querySelector(`[data-ok="${b.dataset.c}"]`).checked=!!r.c});
+      $$("[data-s]",mv).forEach(b=>b.onclick=()=>{const r=R[b.dataset.s];r.c=b.dataset.v;r.mexeu=1;mv.querySelector(`[data-c="${b.dataset.s}"]`).value=r.c+" · "+((M[r.c]||{}).nome||"");mv.querySelector(`[data-ok="${b.dataset.s}"]`).checked=true});
+      $$("[data-q]",mv).forEach(b=>b.onchange=()=>{R[b.dataset.q].q=pnum(b.value)})}
     if(e){
       $("#gDel",md).onclick=async()=>{if(!confirm(`Excluir o grupo ${e.codigo}? Orçamentos que já usam ficam com os materiais copiados.`))return;
         const r=await O.from("estruturas").delete().eq("id",e.id);if(r.error){await chk(O.from("estruturas").update({ativo:false}).eq("id",e.id));toast("Grupo em uso: foi desativado.")}md.remove();tGrupos()};
@@ -609,84 +679,150 @@ async function config(aba){
   }
 
   /* ---------- Cotações de fornecedores ---------- */
+  const NAO_ITEM=/\b(ICMS|IPI|PIS|COFINS|SUBTOTAL|SUB-TOTAL|TOTAL|FRETE|DESCONTO|INCLUSO|INCLUSOS|CNPJ|INSCRI|VALIDADE|PRAZO|PAGAMENTO|CONDI[CÇ]|ENTREGA|VENDEDOR|TELEFONE|FONE|WHATS|E-?MAIL|CEP|ENDERE[CÇ]O|OBSERVA|BANCO|AG[EÊ]NCIA|CONTA|PIX|BOLETO|EMISS[AÃ]O|P[AÁ]GINA|IMPOSTO|TRIBUT|SEGURO|ASSINATURA)\b|%/i;
+  const ehItem=d=>{const w=norm(d).split(" ").filter(t=>/^[A-Z]{3,}$/.test(t));return w.length>=1&&w.join("").length>=6&&!NAO_ITEM.test(d)};
+  const RE_CNPJ=/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/;
+  function lerCabecalho(txt){const L=String(txt||"").split("\n").map(l=>l.trim()).filter(Boolean);const o={};
+    const iC=L.findIndex(l=>RE_CNPJ.test(l)&&!/ON ENGENHARIA|CLIENTE|DESTINAT/i.test(l));
+    if(iC>=0){o.cnpj=L[iC].match(RE_CNPJ)[0].replace(/\D/g,"").replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,"$1.$2.$3/$4-$5");
+      const rz=L.slice(Math.max(0,iC-3),iC+1).find(l=>/(LTDA|S\/?A\b|S\.A\.|EIRELI|\bME\b|\bEPP\b|COM[EÉ]RCIO|DISTRIBUI|IND[UÚ]STRIA)/i.test(l))||L[Math.max(0,iC-1)];
+      o.razao_social=(rz||"").replace(RE_CNPJ,"").replace(/CNPJ[:\s]*/i,"").replace(/\s{2,}/g," ").trim()}
+    else{const rz=L.slice(0,8).find(l=>/(LTDA|S\/?A\b|EIRELI|\bME\b|\bEPP\b)/i.test(l));if(rz)o.razao_social=rz}
+    const tudo=L.slice(0,40).join(" ");
+    const ie=tudo.match(/(?:I\.?E\.?|INSC(?:RI[CÇ][AÃ]O)?\.? ?EST(?:ADUAL)?)[:\s]*([\d./-]{6,})/i);if(ie)o.ie=ie[1];
+    const tel=tudo.match(/\(?\d{2}\)?\s?9?\d{4}[-\s]?\d{4}/);if(tel)o.telefone=tel[0];
+    const em=tudo.match(/[\w.+-]+@[\w-]+\.[\w.]+/);if(em)o.email=em[0].toLowerCase();
+    const cid=tudo.match(/([A-ZÀ-Ú][A-Za-zÀ-ú ]{2,30})\s*[-\/]\s*(RS|SC|PR|SP|RJ|MG|GO|MS|MT|BA|PE|CE|ES|DF)\b/);if(cid)o.cidade=cid[1].trim()+"/"+cid[2];
+    const end=L.slice(0,30).find(l=>/^(RUA|AV\.?|AVENIDA|ROD\.?|RODOVIA|ESTRADA|TRAV)/i.test(l));if(end)o.endereco=end;
+    const num=tudo.match(/(OR[CÇ]AMENTO|PROPOSTA|COTA[CÇ][AÃ]O|PEDIDO)\s*(?:N[º°o.]*)?\s*[:#]?\s*(\d[\d./-]{2,})/i);if(num)o.numero=num[2];
+    const dt=tudo.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);if(dt)o.data=`${dt[3]}-${dt[2]}-${dt[1]}`;
+    const vd=tudo.match(/VENDEDOR(?:A)?[:\s]+([A-ZÀ-Úa-zà-ú]+(?:\s[A-ZÀ-Úa-zà-ú]+){0,2})/);if(vd)o.vendedor=vd[1];
+    return o}
+  let FORNS=[];
+  async function carregaForns(){FORNS=await todos(()=>O.from("fornecedores").select("*").order("apelido"))}
   async function tCotacoes(){
+    await carregaForns();
     const H=await todos(()=>O.from("cotacoes").select("*").order("criado_em",{ascending:false}));
-    frame(`<div class="card"><h2>Conciliar uma cotação</h2><p class="note">Envie o orçamento recebido (PDF, Excel ou CSV). O sistema lê as linhas, propõe o material correspondente da base e você confere antes de gravar. Os preços entram no histórico com a data e o fornecedor.</p>
-      <div class="grid4"><label class="fld">Fornecedor<input class="inp" id="cF" list="dlForn" placeholder="Empresa"></label><label class="fld">Nº / documento<input class="inp" id="cD"></label><label class="fld">Data<input class="inp" type="date" id="cDt" value="${new Date().toISOString().slice(0,10)}"></label><label class="fld">Arquivo<input type="file" id="cArq" accept=".pdf,.xlsx,.xls,.csv"></label></div>
-      <datalist id="dlForn">${[...new Set(Object.values(PV).map(p=>p.fornecedor).filter(Boolean))].map(f=>`<option value="${esc(f)}">`).join("")}</datalist>
-      <div id="cMsg" class="note"></div><div id="cRev"></div></div>
-     <h2 style="font-size:15px;margin:8px 0 0">Cotações registradas</h2>
-     <table class="tbl"><thead><tr><th>Data</th><th>Fornecedor</th><th class="hm">Documento</th><th class="n">Itens</th><th>Situação</th></tr></thead><tbody>
-      ${H.map(c=>`<tr class="go" data-ct="${c.id}"><td>${fdata(c.data)}</td><td><b>${esc(c.fornecedor)}</b></td><td class="hm">${esc(c.documento||"")}</td><td class="n">${(c.itens||[]).filter(i=>i.ok).length} / ${(c.itens||[]).length}</td><td><span class="chip ${c.status==="concluida"?"finalizado":"andamento"}">${c.status==="concluida"?"Gravada":"Rascunho"}</span></td></tr>`).join("")||'<tr><td colspan="5" class="note">Nenhuma cotação ainda.</td></tr>'}</tbody></table>`);
+    const nPor=id=>H.filter(c=>c.fornecedor_id===id).length;
+    frame(`<div class="card"><h2>Conciliar uma cotação</h2><p class="note">Envie o orçamento recebido (PDF, Excel ou CSV). O sistema lê o fornecedor e as linhas pela coluna de descrição, propõe o material da base e você confere antes de gravar.</p>
+      <div class="grid4"><label class="fld">Arquivo<input type="file" id="cArq" accept=".pdf,.xlsx,.xls,.csv"></label><label class="fld">Fornecedor (apelido)<input class="inp" id="cF" list="dlForn" placeholder="Escolha ou leia do PDF"></label><label class="fld">Nº / documento<input class="inp" id="cD"></label><label class="fld">Data<input class="inp" type="date" id="cDt" value="${new Date().toISOString().slice(0,10)}"></label></div>
+      <datalist id="dlForn">${FORNS.map(f=>`<option value="${esc(f.apelido)}">${esc(f.razao_social||"")}</option>`).join("")}</datalist>
+      <div id="cForn"></div><div id="cMsg" class="note"></div><div id="cRev"></div></div>
+     <div class="row"><h2 style="font-size:15px;margin:8px 0 0">Cotações registradas</h2></div>
+     <table class="tbl"><thead><tr><th>Data</th><th>Fornecedor</th><th class="hm">Documento</th><th class="n">Itens</th><th>Situação</th><th></th></tr></thead><tbody>
+      ${H.map(c=>`<tr class="go" data-ct="${c.id}"><td>${fdata(c.data)}</td><td><b>${esc(c.fornecedor)}</b>${c.vendedor?`<span class="sm">${esc(c.vendedor)}</span>`:""}</td><td class="hm">${esc(c.documento||"")}</td><td class="n">${(c.itens||[]).filter(i=>i.ok).length} / ${(c.itens||[]).length}</td><td><span class="chip ${c.status==="concluida"?"finalizado":"andamento"}">${c.status==="concluida"?"Gravada":"Rascunho"}</span></td><td class="n">${c.arquivo_url?`<button class="btn sm" data-arq="${esc(c.arquivo_url)}" title="Abrir o arquivo original">📄</button>`:""}</td></tr>`).join("")||'<tr><td colspan="6" class="note">Nenhuma cotação ainda.</td></tr>'}</tbody></table>
+     <div class="row"><h2 style="font-size:15px;margin:8px 0 0">Fornecedores</h2><button class="btn sm" id="fNovo">+ Fornecedor</button></div>
+     <table class="tbl"><thead><tr><th>Apelido</th><th>Razão social</th><th class="hm">CNPJ</th><th class="hm">Contato</th><th class="n">Cotações</th><th></th></tr></thead><tbody>
+      ${FORNS.map(f=>`<tr><td><b>${esc(f.apelido)}</b></td><td>${esc(f.razao_social||"")}${f.cidade?`<span class="sm">${esc(f.cidade)}</span>`:""}</td><td class="hm mono">${esc(f.cnpj||"")}</td><td class="hm">${esc(f.telefone||"")}<span class="sm">${esc(f.email||"")}</span></td><td class="n">${nPor(f.id)}</td><td class="n"><button class="btn sm" data-fe="${f.id}">Editar</button></td></tr>`).join("")||'<tr><td colspan="6" class="note">Os fornecedores entram aqui ao ler as cotações.</td></tr>'}</tbody></table>`);
+    $$("[data-arq]").forEach(b=>b.onclick=async ev=>{ev.stopPropagation();const r=await sb.storage.from("negocios").createSignedUrl(b.dataset.arq,600);if(r.data)window.open(r.data.signedUrl,"_blank");else toast("Arquivo não encontrado.")});
     $$("tr[data-ct]").forEach(r=>r.onclick=()=>{const c=H.find(x=>x.id===r.dataset.ct);$("#cF").value=c.fornecedor;$("#cD").value=c.documento||"";$("#cDt").value=c.data;revisar(c.itens||[],c);window.scrollTo(0,0)});
+    $("#fNovo").onclick=()=>fornForm({});$$("[data-fe]").forEach(b=>b.onclick=()=>fornForm(FORNS.find(f=>f.id==b.dataset.fe)));
     $("#cArq").onchange=async ev=>{const file=ev.target.files[0];if(!file)return;const msg=$("#cMsg");msg.textContent="Lendo o arquivo…";
-      try{const linhas=/\.pdf$/i.test(file.name)?await lerPdf(file):await lerPlanilha(file);
-        if(!$("#cF").value){const g=(linhas._cab||"").match(/([A-ZÀ-Ú][A-ZÀ-Ú&.\s]{3,}(LTDA|S\.?A|EIRELI|ME|EPP))/);if(g)$("#cF").value=g[1].trim()}
-        msg.textContent=`${linhas.length} linhas com preço encontradas. Confira as correspondências abaixo.`;
-        revisar(await casar(linhas),null,file)}catch(e){console.error(e);msg.textContent="Não consegui ler esse arquivo: "+e.message}};
+      try{const r=/\.pdf$/i.test(file.name)?await lerPdf(file):await lerPlanilha(file);
+        const cab=lerCabecalho(r.cab);mostraForn(cab);if(cab.numero&&!$("#cD").value)$("#cD").value=cab.numero;if(cab.data)$("#cDt").value=cab.data;
+        msg.textContent=`${r.itens.length} itens encontrados${r.modo==="colunas"?" pela coluna de descrição":""}${r.ignoradas?` · ${r.ignoradas} linhas ignoradas (impostos, totais, dados)`:""}. Confira abaixo.`;
+        revisar(await casar(r.itens,$("#cF").value),null,file,cab)}catch(e){console.error(e);msg.textContent="Não consegui ler esse arquivo: "+e.message}};
   }
+  function mostraForn(cab){const el=$("#cForn");const ex=cab.cnpj&&FORNS.find(f=>(f.cnpj||"").replace(/\D/g,"")===cab.cnpj.replace(/\D/g,""));
+    if(ex){$("#cF").value=ex.apelido;el.innerHTML=`<p class="note">Fornecedor reconhecido pelo CNPJ: <b>${esc(ex.apelido)}</b> · ${esc(ex.razao_social||"")}</p>`;el._forn=ex;return}
+    if(!cab.razao_social&&!cab.cnpj){el.innerHTML="";el._forn=null;return}
+    const ap=(cab.razao_social||"").replace(/\b(LTDA|EIRELI|ME|EPP|S\/?A|COM[EÉ]RCIO|DISTRIBUIDORA|DE|DO|DA|MATERIAIS|EL[EÉ]TRICOS?)\b\.?/gi,"").replace(/\s{2,}/g," ").trim().split(" ").slice(0,2).join(" ");
+    if(!$("#cF").value)$("#cF").value=ap?ap[0]+ap.slice(1).toLowerCase():"";
+    el.innerHTML=`<div class="fornbox"><b>Fornecedor novo, lido do PDF</b> <span class="note">confira; é salvo ao gravar a cotação</span>
+      <div class="grid3f">${[["razao_social","Razão social"],["cnpj","CNPJ"],["ie","Inscrição estadual"],["telefone","Telefone"],["email","E-mail"],["cidade","Cidade"],["endereco","Endereço"]].map(([k,t])=>`<label class="fld">${t}<input class="inp" data-fk="${k}" value="${esc(cab[k]||"")}"></label>`).join("")}</div></div>`;el._forn=null;el._cab=cab}
+  async function fornDaTela(){const ap=$("#cF").value.trim();if(!ap)return null;const el=$("#cForn");
+    if(el._forn&&el._forn.apelido===ap)return el._forn;const ja=FORNS.find(f=>f.apelido.toLowerCase()===ap.toLowerCase());if(ja)return ja;
+    const row={apelido:ap};$$("[data-fk]",el).forEach(i=>{if(i.value.trim())row[i.dataset.fk]=i.value.trim()});
+    const r=await chk(O.from("fornecedores").insert(row).select("*").single());FORNS.push(r);return r}
+  function fornForm(f){modal(`<h2>${f.id?"Fornecedor":"Novo fornecedor"}</h2><label class="fld">Apelido<input name="apelido" required value="${esc(f.apelido||"")}"></label>
+    <div class="grid2">${[["razao_social","Razão social"],["cnpj","CNPJ"],["ie","Inscrição estadual"],["telefone","Telefone"],["email","E-mail"],["cidade","Cidade"]].map(([k,t])=>`<label class="fld">${t}<input name="${k}" value="${esc(f[k]||"")}"></label>`).join("")}</div><label class="fld">Endereço<input name="endereco" value="${esc(f.endereco||"")}"></label>
+    ${f.id?'<p class="note">Mudar o apelido atualiza o nome nas cotações e no histórico de preços deste fornecedor.</p>':""}`,async v=>{const row={};for(const k of ["apelido","razao_social","cnpj","ie","telefone","email","cidade","endereco"])row[k]=String(v[k]||"").trim()||null;row.atualizado_em=new Date().toISOString();
+      if(f.id){await chk(O.from("fornecedores").update(row).eq("id",f.id));if(f.apelido&&row.apelido!==f.apelido){await chk(O.from("precos").update({fornecedor:row.apelido}).eq("fornecedor",f.apelido));await chk(O.from("cotacoes").update({fornecedor:row.apelido}).eq("fornecedor_id",f.id))}}
+      else await chk(O.from("fornecedores").insert(row));await recarregaPV();tCotacoes()},"Salvar")}
   async function lerPlanilha(file){
     if(!window.XLSX)await loadScript("vendor/xlsx.full.min.js");
     const wb=XLSX.read(await file.arrayBuffer());const A=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""});
-    let h=A.findIndex(r=>r.some(c=>/descri|produto|material|item/i.test(c))&&r.some(c=>/pre[cç]o|valor|unit/i.test(c)));
+    let h=A.findIndex(r=>r.some(c=>/descri|produto|material/i.test(c))&&r.some(c=>/pre[cç]o|valor|unit/i.test(c)));
     const H=h>=0?A[h].map(c=>norm(c)):[];const ix=re=>H.findIndex(c=>re.test(c));
     let id=ix(/DESCRI|PRODUTO|MATERIAL/),iq=ix(/QUANT|QTD|QTDE/),ip=ix(/UNIT/),ic=ix(/^COD|CODIGO/);if(ip<0)ip=ix(/PRECO|VALOR/);
-    const out=[];A.slice(h+1).forEach(r=>{let d=id>=0?String(r[id]):"";if(id<0){d=r.filter(c=>typeof c==="string").sort((a,b)=>b.length-a.length)[0]||""}
+    const out=[];let ign=0;A.slice(h+1).forEach(r=>{let d=id>=0?String(r[id]):"";if(id<0){d=r.filter(c=>typeof c==="string").sort((a,b)=>b.length-a.length)[0]||""}
       const nums=r.filter(c=>typeof c==="number"||/^\s*R?\$?\s*[\d.]+,\d{2}\s*$/.test(c)).map(pnum);
-      let p=ip>=0?pnum(r[ip]):nums.length>=2?nums[nums.length-2]:nums[0];const q=iq>=0?pnum(r[iq]):null;
-      if(d.trim().length>3&&p>0)out.push({txt:d.replace(/\s+/g," ").trim(),cod:ic>=0?String(r[ic]).trim():"",q,p})});
-    return out;
+      let p=ip>=0?pnum(r[ip]):nums.length>=2?nums[nums.length-2]:nums[0];const q=iq>=0?pnum(r[iq]):null;d=d.replace(/\s+/g," ").trim();
+      if(!d)return;if(!ehItem(d)||!(p>0)){ign++;return}out.push({txt:d,cod:ic>=0?String(r[ic]).trim():"",q,p})});
+    return{itens:out,cab:A.slice(0,Math.max(0,h)).map(r=>r.join(" ")).join("\n"),modo:id>=0?"colunas":"",ignoradas:ign};
   }
   async function lerPdf(file){
     if(!window.pdfjsLib){await loadScript("vendor/pdf.min.js")}
     if(window.pdfjsLib&&pdfjsLib.GlobalWorkerOptions&&!pdfjsLib.GlobalWorkerOptions.workerSrc)pdfjsLib.GlobalWorkerOptions.workerSrc="vendor/pdf.worker.min.js";
-    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const out=[];let cab="";
-    for(let n=1;n<=pdf.numPages;n++){const tc=await(await pdf.getPage(n)).getTextContent();const R={};
-      tc.items.forEach(it=>{if(!it.str.trim())return;const y=Math.round(it.transform[5]/3);(R[y]=R[y]||[]).push({x:it.transform[4],s:it.str})});
-      Object.keys(R).sort((a,b)=>b-a).forEach(y=>{const ln=R[y].sort((a,b)=>a.x-b.x).map(t=>t.s).join(" ").replace(/\s+/g," ").trim();if(n===1&&cab.length<600)cab+=ln+"\n";
-        const nums=[...ln.matchAll(/(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2,4}|\d+,\d{2,4})/g)].map(m=>({v:pnum(m[1]),i:m.index}));if(!nums.length)return;
-        let d=ln.slice(0,nums[0].i).replace(/R\$\s*$/,"").trim();const cm=d.match(/^(\d{1,4}\s+)?([A-Z0-9.\-]{4,})\s+/);let cod="";if(cm&&/\d/.test(cm[2])){cod=cm[2];d=d.slice(cm[0].length)}
-        d=d.replace(/^\d{1,3}\s+/,"").replace(/\s+(UN|UND|UNID|PC|PÇ|M|MT|KG|CJ|CX|RL|PCT)\.?(\s+\d+([.,]\d+)?)?$/i,"").trim();
-        if(d.replace(/[^A-Za-zÀ-ú]/g,"").length<4)return;
-        let p,q=null;const v=nums.map(x=>x.v);
-        if(v.length>=3){const [a,b,c]=v.slice(-3);if(Math.abs(a*b-c)<=Math.max(.05,c*.01)){q=a;p=b}else{p=v[v.length-2];q=v[v.length-3]}}
-        else if(v.length===2){const iq=ln.slice(0,nums[0].i).match(/(\d+(?:[.,]\d+)?)\s*(UN|UND|PC|PÇ|M|MT|KG|CJ|PCT)?\.?\s*$/i);p=v[0];if(iq){q=pnum(iq[1])}else if(v[1]>v[0])p=v[0];else p=v[1]}
-        else p=v[0];
-        if(p>0)out.push({txt:d,cod,q,p})})}
-    out._cab=cab;return out;
+    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const out=[];let cab="",col=null,ign=0,modo="";
+    const NUM=/^(?:R\$\s*)?-?(\d{1,3}(?:\.\d{3})*,\d{1,4}|\d+,\d{1,4}|\d+)$/;
+    for(let n=1;n<=pdf.numPages;n++){const tc=await(await pdf.getPage(n)).getTextContent();const toks=tc.items.filter(it=>it.str.trim()).map(it=>({x:it.transform[4],y:it.transform[5],w:it.width||0,s:it.str.trim()}));
+      const linhas=[];toks.sort((a,b)=>b.y-a.y||a.x-b.x).forEach(t=>{const l=linhas.find(l=>Math.abs(l.y-t.y)<3);if(l)l.t.push(t);else linhas.push({y:t.y,t:[t]})});
+      linhas.forEach(l=>l.t.sort((a,b)=>a.x-b.x));
+      for(const l of linhas){const txt=l.t.map(t=>t.s).join(" ");
+        if(!col){const hd=l.t.find(t=>/descri|produto/i.test(t.s));const pr=l.t.find(t=>/unit|pre[cç]o|vl\.?\s*un|valor/i.test(t.s));
+          if(hd&&pr){const xs=l.t.map(t=>t.x).sort((a,b)=>a-b);const nx=xs.find(x=>x>hd.x+5);
+            const fx=re=>{const t=l.t.find(t=>re.test(t.s));return t?t.x+t.w/2:null};
+            col={d0:hd.x-6,d1:(nx||hd.x+400)-4,p:fx(/unit|vl\.?\s*un|pre[cç]o\s*un/i)??fx(/pre[cç]o|valor/i),q:fx(/qtd|quant/i),tot:fx(/total/i),c:fx(/c[oó]d/i)};modo="colunas";continue}
+          if(n===1)cab+=txt+"\n";continue}
+        const desc=l.t.filter(t=>t.x>=col.d0&&t.x<col.d1).map(t=>t.s).join(" ").replace(/\s+/g," ").trim();
+        const nums=l.t.filter(t=>NUM.test(t.s.replace(/\s/g,""))&&(t.x>=col.d1||t.x<col.d0)).map(t=>({c:t.x+t.w/2,v:pnum(t.s.replace(/R\$\s*/,""))}));
+        const perto=x=>x==null||!nums.length?null:nums.reduce((a,b)=>Math.abs(b.c-x)<Math.abs(a.c-x)?b:a);
+        const p=(perto(col.p)||{}).v,q=(perto(col.q)||{}).v??null;const codt=col.c!=null&&l.t.find(t=>Math.abs(t.x-col.c)<40&&/\d{4,}/.test(t.s));
+        if(desc&&!nums.length&&out.length&&!NAO_ITEM.test(desc)&&out[out.length-1]._pg===n){out[out.length-1].txt+=" "+desc;continue}
+        if(!desc)continue;if(!ehItem(desc)||!(p>0)){ign++;continue}
+        out.push({txt:desc,cod:codt?codt.s:"",q:q&&q!==p?q:null,p,_pg:n})}}
+    if(!out.length){ /* sem cabeçalho: heurística por linha */
+      for(let n=1;n<=pdf.numPages;n++){const tc=await(await pdf.getPage(n)).getTextContent();const R={};
+        tc.items.forEach(it=>{if(!it.str.trim())return;const y=Math.round(it.transform[5]/3);(R[y]=R[y]||[]).push({x:it.transform[4],s:it.str})});
+        Object.keys(R).sort((a,b)=>b-a).forEach(y=>{const ln=R[y].sort((a,b)=>a.x-b.x).map(t=>t.s).join(" ").replace(/\s+/g," ").trim();if(n===1&&cab.length<1500)cab+=ln+"\n";
+          const nums=[...ln.matchAll(/(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2,4}|\d+,\d{2,4})/g)].map(m=>({v:pnum(m[1]),i:m.index}));if(!nums.length)return;
+          let d=ln.slice(0,nums[0].i).replace(/R\$\s*$/,"").trim();const cm=d.match(/^(\d{1,4}\s+)?([A-Z0-9.\-]{4,})\s+/);let cod="";if(cm&&/\d/.test(cm[2])){cod=cm[2];d=d.slice(cm[0].length)}
+          d=d.replace(/^\d{1,3}\s+/,"").replace(/\s+(UN|UND|UNID|PC|PÇ|M|MT|KG|CJ|CX|RL|PCT)\.?(\s+\d+([.,]\d+)?)?$/i,"").trim();
+          if(!ehItem(d)){ign++;return}const v=nums.map(x=>x.v);let p,q=null;
+          if(v.length>=3){const [a,b,c]=v.slice(-3);if(Math.abs(a*b-c)<=Math.max(.05,c*.01)){q=a;p=b}else{p=v[v.length-2];q=v[v.length-3]}}else p=v[0];
+          if(p>0)out.push({txt:d,cod,q,p})})}}
+    return{itens:out,cab,modo,ignoradas:ign};
   }
-  async function casar(linhas){
+  const STOPW=new Set(["DE","DA","DO","DAS","DOS","P","C","PARA","COM","E","EM","A","O","MM","MM2","UN","PC","PÇ","M","MT","TIPO","KG","CX","PCT"]);
+  const toks=s=>norm(s).replace(/(\d)([A-Z])/g,"$1 $2").replace(/([A-Z])(\d)/g,"$1 $2").replace(/(\d)\s*X\s*(\d)/g,"$1 $2").split(" ").filter(t=>t&&!STOPW.has(t)&&(t.length>1||/\d/.test(t)));
+  let IDXM=null;
+  function indice(){if(IDXM&&IDXM.n===MATS.length)return IDXM;const L=MATS.filter(m=>m.ativo!==false).map(m=>{const t=new Set(toks(m.nome));return{m,t,a:[...t].filter(x=>!/\d/.test(x))}});const DF={};L.forEach(({t})=>t.forEach(x=>DF[x]=(DF[x]||0)+1));IDXM={L,DF,n:MATS.length};return IDXM}
+  function sugerir(txt,cod){const {L,DF}=indice();const W=x=>Math.log(1+L.length/(DF[x]||1));const T=[...new Set(toks(txt))],TA=T.filter(x=>!/\d/.test(x)),TN=T.filter(x=>/\d/.test(x));
+    if(!TA.length)return[];
+    const sc=L.map(({m,t,a})=>{const comA=TA.filter(x=>t.has(x));const precisa=Math.min(2,TA.length,a.length);if(comA.length<precisa||!comA.length)return null;
+      let s=comA.reduce((v,x)=>v+W(x),0);const wq=TA.reduce((v,x)=>v+W(x),0),wm=a.reduce((v,x)=>v+W(x),0);s=s/Math.sqrt(wq*(wm||1));
+      const nm=[...t].filter(x=>/\d/.test(x));TN.forEach(x=>{if(t.has(x))s+=.12;else if(nm.length)s-=.06});return{c:m.codigo,s}}).filter(Boolean).sort((x,y)=>y.s-x.s);
+    return sc.slice(0,5)}
+  async function casar(linhas,fornTxt){
     const AP=await todos(()=>O.from("apelidos").select("fonte,fornecedor,texto_norm,material_codigo"));
-    const forn=norm($("#cF").value),M=MAT();
-    const ativos=MATS.filter(m=>m.ativo!==false);
-    const STOP=new Set(["DE","DA","DO","P","C","PARA","COM","E","MM","MM2","MM²","UN","PC","PÇ","M","MT","TIPO","A","EM"]);
-    const tok=s=>norm(s).replace(/(\d)([A-Z])/g,"$1 $2").replace(/([A-Z])(\d)/g,"$1 $2").replace(/(\d)\s*X\s*(\d)/g,"$1 $2").split(" ").filter(t=>t&&!STOP.has(t)&&(t.length>1||/\d/.test(t)));
-    const IDX=ativos.map(m=>({m,t:new Set(tok(m.nome))}));const DF={};IDX.forEach(({t})=>t.forEach(x=>DF[x]=(DF[x]||0)+1));const W=x=>Math.log(1+IDX.length/(DF[x]||1))*(/\d/.test(x)?1.3:1);
+    const forn=norm(fornTxt||""),M=MAT();
     return linhas.map(l=>{const k=norm(l.txt);
-      let a=AP.find(x=>x.texto_norm===k&&norm(x.fornecedor)===forn)||AP.find(x=>x.texto_norm===k)||(l.cod&&AP.find(x=>x.texto_norm===norm(l.cod)));
+      const a=AP.find(x=>x.texto_norm===k&&norm(x.fornecedor)===forn)||AP.find(x=>x.texto_norm===k)||(l.cod&&AP.find(x=>x.texto_norm===norm(l.cod)));
       let c=a&&M[a.material_codigo]?a.material_codigo:(l.cod&&M[l.cod]?l.cod:null);
-      const T=[...new Set(tok(l.txt))];const wT=T.reduce((s,x)=>s+W(x),0)||1;const sc=IDX.map(({m,t})=>{let s=0,nn=0;T.forEach(x=>{if(t.has(x))s+=W(x);else if(/\d/.test(x))nn++});let wm=0;t.forEach(x=>wm+=W(x));return{c:m.codigo,s:s/Math.sqrt(wT*(wm||1))-nn*.08}}).sort((x,y)=>y.s-x.s).slice(0,5);
-      const conf=c?"alta":sc[0]&&sc[0].s>.55?"média":"baixa";
-      const cc=c||(sc[0]&&sc[0].s>.35?sc[0].c:"");const at=PV[cc];const longe=!c&&at&&l.p&&Math.abs(l.p/at.valor-1)>.6;
-      return{...l,sug:sc.filter(x=>x.s>.15).map(x=>x.c),c:cc,conf:longe?"baixa":conf,ok:!longe&&!!(c||(sc[0]&&sc[0].s>.55)),apelido:!a}});
+      const sc=sugerir(l.txt);const top=sc[0];
+      const cc=c||(top&&top.s>.45?top.c:"");const at=PV[cc];const longe=!c&&at&&l.p&&Math.abs(l.p/at.valor-1)>.6;
+      const conf=c?"alta":top&&top.s>.7?"média":"baixa";
+      return{...l,sug:sc.map(x=>x.c),c:cc,conf:longe?"baixa":conf,ok:!longe&&!!(c||(top&&top.s>.7)),apelido:!a}});
   }
-  function revisar(IT,reg,file){
+  function revisar(IT,reg,file,cab){
     const M=MATS.reduce((o,m)=>(o[m.codigo]=m,o),{});
     const rev=$("#cRev");
-    const draw=()=>{rev.innerHTML=`${optsMat()}<table class="tbl cot"><thead><tr><th style="width:28px"><input type="checkbox" id="cAll"></th><th>Na cotação</th><th>Material da base</th><th class="n">Qtd</th><th class="n">Preço unit.</th><th class="n">Atual</th></tr></thead><tbody>
-      ${IT.map((i,n)=>{const at=PV[i.c];const dif=at&&i.p?(i.p/at.valor-1)*100:null;return `<tr class="${i.ok?"":"off"}"><td><input type="checkbox" data-ok="${n}" ${i.ok?"checked":""}></td><td>${esc(i.txt)}${i.cod?`<span class="sm mono">${esc(i.cod)}</span>`:""}</td>
-        <td><input class="inp" list="dlMat" data-c="${n}" value="${i.c?esc(i.c+" · "+((M[i.c]||{}).nome||"")):""}" placeholder="Escolha o material">${i.sug&&i.sug.length?`<span class="sugs">${i.sug.filter(s=>s!==i.c).slice(0,3).map(s=>`<button type="button" data-s="${n}" data-v="${esc(s)}">${esc((M[s]||{}).nome||s)}</button>`).join("")}</span>`:""}<span class="sm">${i.c?`<span class="chip ${i.conf==="alta"?"finalizado":i.conf==="média"?"andamento":""}">${i.conf==="alta"?"já conhecido":"confiança "+i.conf}</span>`:""}</span></td>
+    const draw=()=>{rev.innerHTML=`${optsMat()}<table class="tbl cot"><thead><tr><th style="width:28px"><input type="checkbox" id="cAll"></th><th>Descrição na cotação</th><th>Material da base</th><th class="n">Qtd</th><th class="n">Preço unit.</th><th class="n">Atual</th></tr></thead><tbody>
+      ${IT.map((i,n)=>{const at=PV[i.c];const dif=at&&i.p?(i.p/at.valor-1)*100:null;return `<tr class="${i.ok?"":"off"}"><td><input type="checkbox" data-ok="${n}" ${i.ok?"checked":""}></td><td><textarea class="inp dsc" data-t="${n}" rows="3" title="Corrija a descrição se a leitura falhou; as sugestões são refeitas">${esc(i.txt)}</textarea>${i.cod?`<span class="sm mono">${esc(i.cod)}</span>`:""}</td>
+        <td><input class="inp" list="dlMat" data-c="${n}" value="${i.c?esc(i.c+" · "+((M[i.c]||{}).nome||"")):""}" placeholder="Escolha o material">${i.sug&&i.sug.length?`<span class="sugs">${i.sug.filter(s=>s!==i.c).slice(0,3).map(s=>`<button type="button" data-s="${n}" data-v="${esc(s)}">${esc((M[s]||{}).nome||s)}</button>`).join("")}</span>`:'<span class="sm">sem sugestão: escolha o material</span>'}<span class="sm">${i.c?`<span class="chip ${i.conf==="alta"?"finalizado":i.conf==="média"?"andamento":""}">${i.conf==="alta"?"já conhecido":"confiança "+i.conf}</span>`:""}</span></td>
         <td class="n">${i.q!=null?num(i.q):""}</td><td class="n"><input class="inp n" data-p="${n}" value="${num(i.p,4)}" style="width:96px"></td>
-        <td class="n">${at?brl(at.valor)+`<span class="sm" style="color:${dif>0?"var(--bad,#c62828)":"var(--ok)"}">${dif!=null?(dif>0?"+":"")+num(dif,1)+"%":""}</span><span class="sm">${fdata(at.data)}</span>`:"—"}</td></tr>`}).join("")}</tbody></table>
+        <td class="n">${at?brl(at.valor)+`<span class="sm" style="color:${dif>0?"var(--danger)":"var(--ok)"}">${dif!=null?(dif>0?"+":"")+num(dif,1)+"%":""}</span><span class="sm">${fdata(at.data)}</span>`:"—"}</td></tr>`}).join("")}</tbody></table>
       <div class="row"><span class="note">${IT.filter(i=>i.ok&&i.c).length} de ${IT.length} itens serão gravados${reg&&reg.status==="concluida"?" · esta cotação já foi gravada antes":""}</span><span style="display:flex;gap:6px"><button class="btn" id="cRasc">Salvar rascunho</button><button class="btn pri" id="cGrava">Gravar preços na base</button></span></div>`;
       $("#cAll").onchange=e=>{IT.forEach(i=>i.ok=e.target.checked&&!!i.c);draw()};
       $$("[data-ok]",rev).forEach(b=>b.onchange=()=>{IT[b.dataset.ok].ok=b.checked;draw()});
+      $$("[data-t]",rev).forEach(b=>b.onchange=()=>{const i=IT[b.dataset.t];i.txt=b.value.replace(/\s+/g," ").trim();const sc=sugerir(i.txt);i.sug=sc.map(x=>x.c);if(i.conf!=="manual"){i.c=sc[0]&&sc[0].s>.45?sc[0].c:"";i.conf=sc[0]&&sc[0].s>.7?"média":"baixa";i.ok=!!(sc[0]&&sc[0].s>.7)}i.apelido=true;draw()});
       $$("[data-c]",rev).forEach(b=>b.onchange=()=>{const i=IT[b.dataset.c];i.c=codDe(b.value);if(!M[i.c]){toast("Material não encontrado na base.");i.c=""}else{i.ok=true;i.conf="manual";i.apelido=true}draw()});
       $$("[data-s]",rev).forEach(b=>b.onclick=()=>{const i=IT[b.dataset.s];i.c=b.dataset.v;i.ok=true;i.conf="manual";i.apelido=true;draw()});
       $$("[data-p]",rev).forEach(b=>b.onchange=()=>{IT[b.dataset.p].p=pnum(b.value);draw()});
-      const salvaReg=async status=>{const row={fornecedor:$("#cF").value.trim(),documento:$("#cD").value.trim()||null,data:$("#cDt").value,status,itens:IT.map(({txt,cod,q,p,c,ok,conf})=>({txt,cod,q,p,c,ok,conf}))};
-        if(!row.fornecedor){toast("Informe o fornecedor.");throw 0}
-        if(file&&!row.arquivo_url){try{const path=`orcarede/cotacoes/${Date.now()}_${file.name.replace(/[^\w.\-]/g,"_")}`;const up=await sb.storage.from("negocios").upload(path,file);if(!up.error)row.arquivo_url=path}catch(e){}}
+      const salvaReg=async status=>{const f=await fornDaTela();if(!f){toast("Informe o fornecedor (apelido).");throw 0}
+        const row={fornecedor:f.apelido,fornecedor_id:f.id,documento:$("#cD").value.trim()||null,data:$("#cDt").value,status,vendedor:cab&&cab.vendedor||null,itens:IT.map(({txt,cod,q,p,c,ok,conf})=>({txt,cod,q,p,c,ok,conf}))};
+        if(file&&!(reg&&reg.arquivo_url)){try{const path=`orcarede/cotacoes/${Date.now()}_${file.name.replace(/[^\w.\-]/g,"_")}`;const up=await sb.storage.from("negocios").upload(path,file);if(!up.error)row.arquivo_url=path}catch(e){}}
         if(reg)await chk(O.from("cotacoes").update(row).eq("id",reg.id));else reg=await chk(O.from("cotacoes").insert({...row,criado_por:perfil.id}).select("*").single());return row};
       $("#cRasc").onclick=async()=>{try{await salvaReg("aberta");toast("Rascunho salvo.");tCotacoes()}catch(e){}};
       $("#cGrava").onclick=async()=>{const G=IT.filter(i=>i.ok&&i.c&&i.p>0);if(!G.length){toast("Nenhum item marcado.");return}
@@ -698,6 +834,7 @@ async function config(aba){
     };
     draw();
   }
+
   go();
 }
 
@@ -746,7 +883,7 @@ async function lista(pastaId){
     const vig=p=>ORCS.filter(o=>o.pasta_id===p.id).sort((a,b)=>(b.vigente-a.vigente)||(b.versao-a.versao))[0];
     root.innerHTML=`<div class="page">
      <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">ON Engenharia</div><h1>OrçaRede</h1><div class="sub">Projete a rede, consolide os materiais e siga para a precificação</div></div>
-      <div class="tools"><a class="btn" href="index.html">← Obras</a><a class="btn" href="negocios.html">Negócios</a><a class="btn" href="orcarede.html?cfg=materiais">⚙ Configurações</a><button class="btn" id="bPasta">+ Pasta</button><button class="btn pri" id="bNovo">+ Novo orçamento</button></div></header>
+      <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><a class="btn" href="index.html">← Obras</a><a class="btn" href="negocios.html">Negócios</a><a class="btn" href="orcarede.html?cfg=materiais">⚙ Configurações</a><button class="btn" id="bPasta">+ Pasta</button><button class="btn pri" id="bNovo">+ Novo orçamento</button></div></header>
      ${pastaId||busca?"":dash()}
      <div class="row"><div class="bc"><button data-go="">Todos</button>${trilha.map(p=>`<span>›</span><button data-go="${p.id}">${esc(p.nome)}</button>`).join("")}</div>
       <input class="inp" id="q" placeholder="Buscar por projeto, cliente ou cidade" value="${esc(q)}" style="width:min(360px,100%)"></div>
@@ -754,7 +891,7 @@ async function lista(pastaId){
       ${pastas.map(p=>{const v=vig(p);return `<tr class="go" data-p="${p.id}"><td><div class="nm"><span class="ico f">▤</span><div><b>${esc(p.nome)}</b><span class="sm">${cont(p)}${p.negocio_id?" · ligada ao negócio":""}</span></div><button class="btn sm mais" data-pm="${p.id}" title="Renomear, mover ou excluir">⋯</button></div></td><td class="hm">${esc(v?v.cliente||"":"")}</td><td class="hm">${v?esc(concSig(v.concessionaria_id)):""}</td><td>${v?`<span class="chip ${v.status}">${stTxt(v.status)}</span>`:""}</td><td class="n">${v?brl(tot[v.id])+`<span class="sm">v${v.versao}${v.vigente?" vigente":""}</span>`:""}</td></tr>`}).join("")}
       ${orcs.map(o=>`<tr class="go" data-o="${o.id}"><td><div class="nm"><span class="ico">⚡</span><div><b>${esc(o.titulo)} · v${o.versao}</b><span class="sm"><button class="btn sm mais" data-om="${o.id}" title="Mover para outra pasta">⋯</button>${o.vigente?"vigente":"versão anterior"}${busca&&o.pasta_id?" · em "+esc((PAS.find(p=>p.id===o.pasta_id)||{}).nome||""):""}</span></div></div></td><td class="hm">${esc(o.cliente||"")}${o.cidade?`<span class="sm">${esc(o.cidade)}</span>`:""}</td><td class="hm">${esc(concSig(o.concessionaria_id))}</td><td><span class="chip ${o.status}">${stTxt(o.status)}</span></td><td class="n">${brl(tot[o.id])}</td></tr>`).join("")}
      </tbody></table>`:`<p class="note">${busca?"Nada encontrado.":"Pasta vazia."}</p>`}</div>`;
-    $$("[data-go]").forEach(b=>b.onclick=()=>{pastaId=b.dataset.go||null;q="";history.replaceState(null,"",pastaId?"?pasta="+pastaId:"orcarede.html");render()});
+    $$("[data-go]").forEach(b=>b.onclick=()=>{pastaId=b.dataset.go||null;q="";history.pushState(null,"",pastaId?"?pasta="+pastaId:"orcarede.html");render()});
     const opPastas=(excl)=>{const out=[];const walk=(pid,d)=>filhos(pid).forEach(p=>{if(excl&&descend(excl).includes(p.id))return;out.push(`<option value="${p.id}">${"— ".repeat(d)}${esc(p.nome)}</option>`);walk(p.id,d+1)});walk(null,0);return `<option value="">(raiz — Todos)</option>`+out.join("")};
     $$("[data-pm]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const p=PAS.find(x=>x.id===b.dataset.pm);const ids=descend(p.id);const nO=ORCS.filter(o=>ids.includes(o.pasta_id)).length;
       const md=modal(`<h2>Pasta “${esc(p.nome)}”</h2><label class="fld">Nome<input name="nome" required value="${esc(p.nome)}"></label>
@@ -770,7 +907,7 @@ async function lista(pastaId){
     $$("[data-om]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const o=ORCS.find(x=>x.id===b.dataset.om);
       const md=modal(`<h2>Mover “${esc(o.titulo)} · v${o.versao}”</h2><label class="fld">Para a pasta<select name="pasta">${opPastas()}</select></label><p class="note">Só muda onde aparece; o orçamento não é alterado.</p>`,async f=>{
         await chk(O.from("orcamentos").update({pasta_id:f.pasta||null}).eq("id",o.id));o.pasta_id=f.pasta||null;render()},"Mover");md.querySelector("select").value=o.pasta_id||""});
-    $$("tr[data-p]").forEach(r=>r.onclick=()=>{pastaId=r.dataset.p;q="";history.replaceState(null,"","?pasta="+pastaId);render()});
+    $$("tr[data-p]").forEach(r=>r.onclick=()=>{pastaId=r.dataset.p;q="";history.pushState(null,"","?pasta="+pastaId);render()});
     $$("tr[data-o],[data-rec]").forEach(r=>r.onclick=()=>location.href="orcarede.html?id="+(r.dataset.o||r.dataset.rec));
     $("#q").oninput=e=>{q=e.target.value;const pos=e.target.selectionStart;render();const i=$("#q");i.focus();i.setSelectionRange(pos,pos)};
     $("#bNovo").onclick=()=>novoOrc({pasta:pastaId});
@@ -815,8 +952,8 @@ async function editor(id){
     (async()=>{const [a,ec]=await Promise.all([todos(()=>O.from("estruturas").select("id,codigo,descricao,categoria,ativo").eq("concessionaria_id",conc)),todos(()=>O.from("estrutura_conc").select("estrutura_id").eq("concessionaria_id",conc))]);
       const ids=ec.map(x=>x.estrutura_id).filter(i=>!a.some(e=>e.id===i));let b=[];for(let i=0;i<ids.length;i+=200)b=b.concat(await todos(()=>O.from("estruturas").select("id,codigo,descricao,categoria,ativo").in("id",ids.slice(i,i+200))));
       return a.concat(b).filter(e=>e.ativo!==false).sort((x,y)=>x.codigo.localeCompare(y.codigo))})(),
-    todos(()=>O.from("postes").select("id,codigo,material_codigo,altura_m,esforco_kn,tipo").eq("concessionaria_id",conc).order("altura_m")),
-    todos(()=>O.from("tipos_rede").select("*").eq("concessionaria_id",conc).order("ordem")),
+    todos(()=>O.from("postes").select("id,codigo,material_codigo,altura_m,esforco_kn,tipo").order("altura_m")),
+    todos(()=>O.from("tipos_rede").select("*").order("ordem")),
     todos(()=>O.from("tipos_rede_itens").select("*")),
     todos(()=>O.from("materiais").select("codigo,nome,unidade,subgrupo").eq("ativo",true).order("nome")),
     todos(()=>O.from("v_preco_vigente").select("material_codigo,valor,data,origem,fornecedor,documento")),
@@ -824,7 +961,7 @@ async function editor(id){
     todos(()=>O.from("orc_segmentos").select("*").eq("orcamento_id",id).order("ordem")),
     ORC.pasta_id?todos(()=>O.from("orcamentos").select("id,versao,vigente,status").eq("pasta_id",ORC.pasta_id).order("versao")):Promise.resolve([]),
     O.from("precificacao").select("*").eq("orcamento_id",id).limit(1),
-    todos(()=>O.from("modelos_ip").select("*").eq("concessionaria_id",conc).order("nome")),
+    todos(()=>O.from("modelos_ip").select("*").order("nome")),
     todos(()=>O.from("apelidos_estrutura").select("*").eq("concessionaria_id",conc)),
     todos(()=>O.from("orc_itens_extra").select("*").eq("orcamento_id",id))]);
   [PE,IT].forEach(a=>a.forEach(r=>delete r.orc_pontos));
@@ -884,7 +1021,7 @@ async function editor(id){
   async function cintasManual(pt,v){await chk(O.from("orc_pontos").update({cintas_manual:v}).eq("id",pt.id));pt.cintas_manual=v;if(!v)await recalcCintas(pt);renderHead();renderSide()}
 
   function frequentes(pt){const C={};PTS.forEach(p=>{if(p.id===pt.id)return;const s=seqDoPonto(p);if(s.includes(";"))C[s]=(C[s]||0)+1});return Object.entries(C).filter(([s,n])=>n>=2&&!PADS.some(x=>x.sequencia===s)).sort((a,b)=>b[1]-a[1]).slice(0,4)}
-  for(let i=TR.length-1;i>=0;i--)if(TR[i].pasta_id&&TR[i].pasta_id!==ORC.pasta_id)TR.splice(i,1);
+  {const ja=new Set(EST.map(e=>e.id));(await todos(()=>O.from("estruturas").select("id,codigo,descricao,categoria,ativo").eq("categoria","IP"))).forEach(e=>{if(!ja.has(e.id)&&e.ativo!==false)EST.push(e)})}
   TR.forEach(t=>t.itens=TRI.filter(i=>i.tipo_rede_id===t.id));const TRM=Object.fromEntries(TR.map(t=>[t.id,t]));
   const SEGM=()=>Object.fromEntries(SEGS.map(s=>[s.id,s]));
   const ehIP=eid=>{const e=ESTM[eid];return !!e&&(e.categoria==="IP"||/^(CONJ_IP|FIX_IP)/i.test(e.codigo))};
@@ -924,13 +1061,13 @@ async function editor(id){
        <h1><span id="hT"></span>${vers}${ORC.vigente&&IRMAS.length>1?"":""}<span class="chip" id="hSt"></span></h1><div class="sub" id="hS"></div></div>
       <div class="hmix" id="hMix"></div>
       <div class="tot"><div class="eye">Material</div><div class="v" id="hTot"></div></div>
-      <div class="tools"><button class="btn" id="bVer">+ Nova versão</button>${ORC.vigente?"":'<button class="btn" id="bVig">Tornar vigente</button>'}<button class="btn" id="bFin"></button><button class="btn" id="bDados">Dados</button></div>
+      <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><button class="btn" id="bVer">+ Nova versão</button>${ORC.vigente?"":'<button class="btn" id="bVig">Tornar vigente</button>'}<button class="btn" id="bFin"></button><button class="btn" id="bDados">Dados</button></div>
       <nav class="steps">${[["projeto","1","Projeto"],["materiais","2","Materiais"],["precificacao","3","Precificação"],["proposta","4","Proposta"]].map(([k,n,l])=>`<button data-e="${k}" class="${etapa===k?"on":""}" ${k==="proposta"?'disabled title="Em breve"':""}><b>${n}</b>${l}</button>`).join("")}</nav></header>
      ${etapa==="projeto"?`<div class="proj" id="proj"><aside id="side"></aside><div class="split" id="split" title="Arraste para ajustar a largura · duplo clique volta ao padrão"></div>
       <div class="mapwrap" id="map"><div class="stage" id="stage"><img id="img" alt="" hidden><div class="blank" id="blank"></div><svg class="net" id="lbls"></svg><svg class="net" id="net"></svg><div id="pins"></div></div>
        <div class="mapbar" id="mapbar"></div><div class="mapui"><button id="zmax" aria-label="Expandir mapa" title="Expandir o mapa (Esc volta)" style="font-size:15px">⛶</button><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Enquadrar" style="font-size:13px">⤢</button></div>
        <div class="hint" id="hint" hidden></div><div class="leg" id="leg" hidden></div><div class="esc" id="esc"></div></div><aside id="ptpanel" hidden></aside></div>`:`<div class="full-pane" id="full"></div>`}</div>`;
-    $$("[data-e]").forEach(b=>b.onclick=()=>{if(b.dataset.e===etapa)return;etapa=b.dataset.e;history.replaceState(null,"","?id="+ORC.id+(etapa==="projeto"?"":"&etapa="+etapa));shell()});
+    $$("[data-e]").forEach(b=>b.onclick=()=>{if(b.dataset.e===etapa)return;etapa=b.dataset.e;history.pushState(null,"","?id="+ORC.id+(etapa==="projeto"?"":"&etapa="+etapa));shell()});
     $("#hVer")&&($("#hVer").onchange=e=>location.href="orcarede.html?id="+e.target.value+(etapa==="projeto"?"":"&etapa="+etapa));
     $("#bVer").onclick=()=>modal(`<h2>Nova versão</h2><p class="note">Cria a v${Math.max(0,...IRMAS.map(v=>v.versao),ORC.versao||1)+1} como cópia completa desta: pontos, estruturas, vãos, segmentos, preços e precificação. A versão atual fica guardada como está.</p><label class="fld" style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" name="vig" checked style="width:18px;height:18px"> Tornar a nova versão vigente</label>`,async f=>{
       const nid=await chk(O.rpc("duplicar_orcamento",{p_orc:ORC.id,p_vigente:!!f.vig}));location.href="orcarede.html?id="+nid},"Criar versão");
@@ -1049,8 +1186,8 @@ async function editor(id){
      <div class="pane">
       ${(()=>{const t=etiquetaPerto(pt);return t&&!PE.some(e=>e.ponto_id===pt.id)?`<div class="sug"><span>📄 Lido na planta, perto deste ponto:</span><code>${esc(t)}</code><div class="row"><span class="note">Confira item por item antes de lançar.</span><button class="btn sm pri" id="sugOk">Verificar e aplicar</button></div></div>`:""})()}
       <div class="lbl">Lançamento rápido</div>
-      <div class="seq"><input class="inp" id="pSeq" placeholder="12(10);CE3-2;IF_50;BC10;IP" aria-label="Sequência de poste e estruturas"><button class="btn" id="pCola" title="Colar print da etiqueta (Ctrl+V no campo também funciona)">📋</button><button class="btn pri" id="pSeqOk">Aplicar</button></div>
-      <div class="pads"><span class="lbl">Padrões</span>${PADS.slice(0,10).map(x=>`<button class="pad" data-pad="${x.id}" title="${esc(x.sequencia)}">★ ${esc(x.nome)}</button>`).join("")}${frequentes(pt).map(([s,n])=>`<button class="pad fq" data-fq="${esc(s)}" title="Usado em ${n} pontos deste orçamento">${esc(s.length>34?s.slice(0,34)+"…":s)} <small>×${n}</small></button>`).join("")}
+      <div class="seq"><input class="inp" id="pSeq" placeholder="12(10);CE3-2;IF_50;BC10;IP" aria-label="Sequência de poste e estruturas"><button class="btn" id="pCorta" title="Recortar a etiqueta direto na planta e ler o texto">✂</button><button class="btn" id="pCola" title="Colar print da etiqueta (Ctrl+V no campo também funciona)">📋</button><button class="btn pri" id="pSeqOk">Aplicar</button></div>
+      <div class="pads"><span class="lbl">Padrões</span>${PADS.slice(0,10).map(x=>`<button class="pad${x.auto?" au":""}" data-pad="${x.id}" title="${esc(x.sequencia)}${x.auto?" · criado automaticamente":""}">${x.auto?"⟳":"★"} ${esc(x.nome.length>34?x.nome.slice(0,34)+"…":x.nome)}</button>`).join("")}${frequentes(pt).map(([s,n])=>`<button class="pad fq" data-fq="${esc(s)}" title="Usado em ${n} pontos deste orçamento">${esc(s.length>34?s.slice(0,34)+"…":s)} <small>×${n}</small></button>`).join("")}
        ${PADS.length>10?`<select class="inp sm" id="padMais"><option value="">mais padrões…</option>${PADS.slice(10).map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join("")}</select>`:""}
        <button class="lnk" id="padSalvar" title="Guardar poste + estruturas deste ponto para reutilizar">+ salvar este ponto como padrão</button></div>
       <p class="note" style="margin-top:-6px">Poste e estruturas separados por “;”. O que já está no ponto não se repete.</p>
@@ -1080,6 +1217,7 @@ async function editor(id){
     const seq=async()=>{const txt=$("#pSeq").value;if(lerTokens(txt).some(t=>!t.alvo&&!t.ign))return verificar(pt,txt,"digitado");const r=await aplicarSequencia(pt,txt);renderHead();renderPins();renderSide();
       toast([r.ok.length?`Aplicado: ${r.ok.join(", ")}`:"",r.nok.length?`Não reconhecido: ${r.nok.join(", ")}`:""].filter(Boolean).join(" · ")||"Nada novo para aplicar.")};
     $("#pSeqOk").onclick=seq;
+    $("#pCorta").onclick=()=>recortarPlanta(pt);
     $("#pSeq").onpaste=e=>{const it=[...(e.clipboardData||{}).items||[]].find(i=>i.type.startsWith("image/"));if(!it)return;e.preventDefault();lerPrint(pt,it.getAsFile())};
     $("#pCola").onclick=async()=>{try{const L=await navigator.clipboard.read();for(const c of L){const t=c.types.find(x=>x.startsWith("image/"));if(t){lerPrint(pt,await c.getType(t));return}}toast("Não há imagem copiada. Tire o print (Win+Shift+S) e tente de novo.")}catch(err){toast("Clique no campo da sequência e use Ctrl+V para colar o print.")}};
     const usaPad=async(txt,pad)=>{const r=await aplicarSequencia(pt,txt);if(pad){pad.usos=(pad.usos||0)+1;O.from("padroes_ponto").update({usos:pad.usos}).eq("id",pad.id).then(()=>{})}renderHead();renderPins();renderSide();toast(r.ok.length?`Aplicado: ${r.ok.join(", ")}`:"Nada novo para aplicar.")};
@@ -1191,8 +1329,11 @@ async function editor(id){
   async function recarregaPonto(pid){
     const [x,y]=await Promise.all([chk(O.from("orc_ponto_estruturas").select("id,ponto_id,estrutura_id,ordem,segmento_id").eq("ponto_id",pid)),chk(O.from("orc_ponto_itens").select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado,auto").eq("ponto_id",pid))]);
     for(let i=PE.length-1;i>=0;i--)if(PE[i].ponto_id===pid)PE.splice(i,1);for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_id===pid)IT.splice(i,1);PE.push(...x);IT.push(...y);
-    await recalcCintas(ptById(pid));
+    await recalcCintas(ptById(pid));autoPadrao(ptById(pid));
   }
+  async function autoPadrao(pt){if(!pt)return;const sq=seqDoPonto(pt);if(!sq||sq.split(";").length<2||PADS.some(x=>x.sequencia===sq))return;
+    if(PTS.filter(p=>seqDoPonto(p)===sq).length<3)return;
+    const r=await O.from("padroes_ponto").insert({concessionaria_id:conc,nome:sq,sequencia:sq,auto:true}).select("*").single();if(r.data){PADS.push(r.data);toast("Novo padrão automático: "+sq)}}
   function sideVao(a,v){
     const porTipo={};VAOS.forEach(x=>{const t=TRM[x.tipo_rede_id];const k=t?t.nome:"?";const o=porTipo[k]=porTipo[k]||{m:0,cab:{}};o.m+=+x.comprimento_m;
       if(t)t.itens.forEach(i=>{o.cab[i.material_codigo]=(o.cab[i.material_codigo]||0)+(+x.comprimento_m)*(+i.multiplicador)*(1+sobra(x)/100)})});
@@ -1216,7 +1357,7 @@ async function editor(id){
     $("#vDel").onclick=async()=>{await chk(O.from("orc_vaos").delete().eq("id",v.id));VAOS.splice(VAOS.indexOf(v),1);selV=null;renderHead();renderNet();renderSide()};
   }
   async function urlPlanta(u){const m=String(u).match(/^storage:(.+)$/)||String(u).match(/\/object\/(?:public|sign)\/negocios\/([^?]+)/);if(!m)return u;const {data,error}=await sb.storage.from("negocios").createSignedUrl(decodeURIComponent(m[1]),60*60*12);if(error){toast("Não consegui abrir a planta: "+error.message);return""}return data.signedUrl}
-  function setPlanta(){D=dims();if(ORC.planta_url){img.hidden=false;const u0=ORC.planta_url;urlPlanta(u0).then(u=>{if(ORC.planta_url===u0)img.src=u});img.width=D.w;img.height=D.h;blank.hidden=true}else{img.hidden=true;blank.hidden=false;blank.style.width=D.w+"px";blank.style.height=D.h+"px"}}
+  function setPlanta(){D=dims();if(ORC.planta_url){img.hidden=false;const u0=ORC.planta_url;img.crossOrigin="anonymous";urlPlanta(u0).then(u=>{if(ORC.planta_url===u0)img.src=u});img.width=D.w;img.height=D.h;blank.hidden=true}else{img.hidden=true;blank.hidden=false;blank.style.width=D.w+"px";blank.style.height=D.h+"px"}}
   const inv=()=>Math.min(1/T.s,40);
   function apply(){if(!stage||!stage.isConnected)return;stage.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`;$("#pins").style.setProperty("--inv",inv());renderNet()}
   function fit(){if(!wrap)return;const r=wrap.getBoundingClientRect();if(!r.width)return;const s=Math.min(r.width/D.w,r.height/D.h)*.98;T={s,x:(r.width-D.w*s)/2,y:(r.height-D.h*s)/2};apply()}
@@ -1258,15 +1399,20 @@ async function editor(id){
   }
   async function remedir(pid){if(!escala)return;for(const v of VAOS.filter(v=>!v.manual&&(v.ponto_a===pid||v.ponto_b===pid))){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}}
   let traceSobra=null;
-  let OCRW=null;
-  async function ocrWorker(){if(OCRW)return OCRW;if(!window.Tesseract)await loadScript("vendor/tesseract/tesseract.min.js");
-    const base=new URL("vendor/tesseract/",location.href).href;
-    OCRW=await Tesseract.createWorker("eng",1,{workerPath:base+"worker.min.js",corePath:base,langPath:base,gzip:true,workerBlobURL:false});
-    await OCRW.setParameters({tessedit_char_whitelist:"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz();,_-./+ ",preserve_interword_spaces:"1"});return OCRW}
-  async function preparaImg(blob){const bmp=await createImageBitmap(blob);const k=Math.max(1,Math.min(4,1400/Math.max(bmp.width,bmp.height)));const c=document.createElement("canvas");c.width=bmp.width*k;c.height=bmp.height*k;
-    const g=c.getContext("2d");g.imageSmoothingQuality="high";g.drawImage(bmp,0,0,c.width,c.height);const d=g.getImageData(0,0,c.width,c.height),a=d.data;let soma=0;for(let i=0;i<a.length;i+=4){const y=.3*a[i]+.59*a[i+1]+.11*a[i+2];a[i]=y;soma+=y}
-    const lim=soma/(a.length/4)*.75;for(let i=0;i<a.length;i+=4){const v=a[i]<lim?0:255;a[i]=a[i+1]=a[i+2]=v}g.putImageData(d,0,0);return c}
-  function limpaOcr(t){return t.split(/\n+/).map(l=>l.trim()).filter(Boolean).join(";").replace(/\s*;\s*/g,";").replace(/;{2,}/g,";").replace(/\s{2,}/g," ").replace(/^;|;$/g,"").replace(/\bce/gi,"CE").replace(/(\d)[lI|](?=[A-Za-z])/g,"$1").replace(/(\d)[oO](?=[\d)])/g,"$10").replace(/[|]/g,"1").replace(/\(([0-9]+)[oO]\)/g,"($10)")}
+  function recortarPlanta(pt){if(!wrap){return}const ov=document.createElement("div");ov.className="cropov";ov.innerHTML='<div class="cropmsg">Arraste sobre a etiqueta · Esc cancela</div><div class="croprt" hidden></div>';wrap.appendChild(ov);
+    const rt=ov.querySelector(".croprt");let a0=null;const fim=()=>{ov.remove();document.removeEventListener("keydown",esc)};const esc=e=>{if(e.key==="Escape")fim()};document.addEventListener("keydown",esc);
+    const pos=e=>{const r=wrap.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+    ["mousedown","touchstart","wheel","contextmenu"].forEach(t=>ov.addEventListener(t,e=>e.stopPropagation()));ov.onpointerdown=e=>{e.preventDefault();e.stopPropagation();a0=pos(e);ov.setPointerCapture(e.pointerId);rt.hidden=false;Object.assign(rt.style,{left:a0.x+"px",top:a0.y+"px",width:"0px",height:"0px"})};
+    ov.onpointermove=e=>{e.stopPropagation();if(!a0)return;const b=pos(e);Object.assign(rt.style,{left:Math.min(a0.x,b.x)+"px",top:Math.min(a0.y,b.y)+"px",width:Math.abs(b.x-a0.x)+"px",height:Math.abs(b.y-a0.y)+"px"})};
+    ov.onpointerup=async e=>{e.stopPropagation();if(!a0)return;const b=pos(e);fim();if(Math.abs(b.x-a0.x)<8||Math.abs(b.y-a0.y)<8){toast("Recorte muito pequeno.");return}
+      const X0=(Math.min(a0.x,b.x)-T.x)/T.s,Y0=(Math.min(a0.y,b.y)-T.y)/T.s,X1=(Math.max(a0.x,b.x)-T.x)/T.s,Y1=(Math.max(a0.y,b.y)-T.y)/T.s;
+      const tx=TXT().filter(([t,x,y])=>x>=X0&&x<=X1&&y>=Y0&&y<=Y1+2).sort((p,q)=>(p[2]-q[2])||(p[1]-q[1])).map(r=>r[0]);
+      if(tx.length){const txt=limpaOcr(tx.join("\n"));const i=$("#pSeq");i&&(i.value=txt);verificar(pt,txt,"planta");return}
+      if(!ORC.planta_url||img.hidden||!img.naturalWidth){toast("Sem imagem de planta para ler.");return}
+      const kx=img.naturalWidth/D.w,ky=img.naturalHeight/D.h;const c=document.createElement("canvas");c.width=Math.round((X1-X0)*kx);c.height=Math.round((Y1-Y0)*ky);
+      try{c.getContext("2d").drawImage(img,X0*kx,Y0*ky,c.width,c.height,0,0,c.width,c.height);const blob=await new Promise(r=>c.toBlob(r,"image/png"));lerPrint(pt,blob)}
+      catch(err){toast("Não consegui recortar a imagem da planta: "+err.message)}};
+  }
   async function lerPrint(pt,blob){const inp=$("#pSeq");toast("Lendo o texto do print…");inp&&(inp.disabled=true);
     try{const w=await ocrWorker();const {data}=await w.recognize(await preparaImg(blob));const txt=limpaOcr(data.text||"");
       if(!txt){toast("Não consegui ler texto nesse print. Tente um recorte mais justo na etiqueta.");return}
@@ -1278,10 +1424,10 @@ async function editor(id){
       <datalist id="dlMat">${MATS.map(x=>`<option value="${esc(x.codigo)} · ${esc(x.nome)}">`).join("")}</datalist>
       <div class="lbl">Materiais por metro de vão</div><div id="ncIts">${linha()}</div><button type="button" class="btn sm" id="ncAdd">+ material</button>
       <p class="note">Ex.: MT compacta = 3× cabo protegido + 1× cordoalha. A quantidade é vão × multiplicador × (1 + sobra).</p>
-      <label class="note"><input type="checkbox" name="glob"> salvar também na ${esc(concSig(conc))}, para usar em outros projetos</label>`,async(f,mm)=>{
+      <p class="note">O cabo fica no cadastro geral e aparece em todos os orçamentos.</p>`,async(f,mm)=>{
       const L=$$(".tl2",mm).map(r=>({c:r.querySelector("[name=m]").value.split(" · ")[0].trim(),x:pnum(r.querySelector("[name=x]").value)})).filter(r=>r.c);
       if(!L.length){toast("Inclua pelo menos um material.");return false}if(L.some(r=>!MAT[r.c])){toast("Escolha os materiais da lista.");return false}
-      const t=await chk(O.from("tipos_rede").insert({concessionaria_id:conc,nome:f.nome.trim(),cor:f.cor,ordem:TR.length,pasta_id:f.glob?null:(ORC.pasta_id||null)}).select("*").single());
+      const t=await chk(O.from("tipos_rede").insert({concessionaria_id:null,nome:f.nome.trim(),cor:f.cor,ordem:TR.length,pasta_id:null}).select("*").single());
       const its=L.map(r=>({tipo_rede_id:t.id,material_codigo:r.c,multiplicador:r.x||1}));await chk(O.from("tipos_rede_itens").insert(its));
       t.itens=its;TR.push(t);TRM[t.id]=t;tracing=t.id;traceSobra=null;anchor=null;placing=false;calib=null;renderMapbar();updHint();renderPins();toast(`Cabo “${t.nome}” incluído. Clique nos postes para traçar.`)},"Incluir e traçar");
     md.querySelector(".mbox").classList.add("wide");
