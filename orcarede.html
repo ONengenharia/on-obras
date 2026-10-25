@@ -445,7 +445,7 @@ async function editor(id){
     sp.ondblclick=()=>{pj.style.removeProperty("--listw");lsS("listw","")};
     const tg=on=>{pj.classList.toggle("max",on);$(".app").classList.toggle("maxed",on);$("#zmax").textContent=on?"⤡":"⛶";$("#zmax").title=on?"Voltar (Esc)":"Expandir o mapa (Esc volta)"};
     $("#zmax").onclick=()=>tg(!pj.classList.contains("max"));$("#zmax").onpointerdown=e=>e.stopPropagation();
-    document.onkeydown=e=>{if(e.key==="Escape"&&!$(".modal")){if(placing||tracing||calib){placing=false;tracing=null;anchor=null;calib=null;renderMapbar();updHint();renderPins()}else if(pj.classList.contains("max"))tg(false);else if(selP||selV){selP=null;selV=null;renderPins();renderSide()}}};
+    document.onkeydown=e=>{if(e.key==="Escape"&&!$(".modal")&&pj.isConnected){if(placing||tracing||calib){placing=false;tracing=null;anchor=null;calib=null;renderMapbar();updHint();renderPins()}else if(pj.classList.contains("max"))tg(false);else if(selP||selV){selP=null;selV=null;renderPins();renderSide()}}};
     let rf=0;new ResizeObserver(()=>{cancelAnimationFrame(rf);rf=requestAnimationFrame(()=>apply())}).observe(wrap);
   }
   /* etiquetas lidas do PDF */
@@ -605,7 +605,7 @@ async function editor(id){
   }
   function setPlanta(){D=dims();if(ORC.planta_url){img.hidden=false;img.src=ORC.planta_url;img.width=D.w;img.height=D.h;blank.hidden=true}else{img.hidden=true;blank.hidden=false;blank.style.width=D.w+"px";blank.style.height=D.h+"px"}}
   const inv=()=>Math.min(1/T.s,40);
-  function apply(){stage.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`;$("#pins").style.setProperty("--inv",inv());renderNet()}
+  function apply(){if(!stage||!stage.isConnected)return;stage.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`;$("#pins").style.setProperty("--inv",inv());renderNet()}
   function fit(){if(!wrap)return;const r=wrap.getBoundingClientRect();if(!r.width)return;const s=Math.min(r.width/D.w,r.height/D.h)*.98;T={s,x:(r.width-D.w*s)/2,y:(r.height-D.h*s)/2};apply()}
   function centrar(p){if(!p||!wrap)return;const r=wrap.getBoundingClientRect();T.x=r.width/2-p.x*T.s;T.y=r.height/2-p.y*T.s;apply()}
   function zoomAt(f,cx,cy){const r=wrap.getBoundingClientRect();const minS=Math.min(r.width/D.w,r.height/D.h)*.5;const ns=Math.max(minS,Math.min(4,T.s*f));f=ns/T.s;T.x=cx-(cx-T.x)*f;T.y=cy-(cy-T.y)*f;T.s=ns;apply()}
