@@ -236,6 +236,7 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .chips{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin:4px 0}.chip.sh{background:var(--accent-soft);color:var(--accent)}
 .tbl.cot td{vertical-align:top}.tbl.cot tr.off td{opacity:.55}.tbl.cot .inp{width:100%}.sugs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.sugs button{border:1px dashed var(--line);background:none;border-radius:6px;padding:2px 6px;font-size:11px;color:var(--accent);text-align:left}
 @media (max-width:760px){.grid3,.grid4{grid-template-columns:1fr}.gl{grid-template-columns:1fr 70px auto}.gl .pv{display:none}.hist>div{grid-template-columns:1fr 1fr}}
+.nm .mais{margin-left:auto;opacity:.55}.tbl tr:hover .mais{opacity:1}.nm{display:flex;align-items:center;gap:10px}.nm>div{flex:1}
 </style>
 </head>
 <body>
@@ -726,10 +727,25 @@ async function lista(pastaId){
      <div class="row"><div class="bc"><button data-go="">Todos</button>${trilha.map(p=>`<span>›</span><button data-go="${p.id}">${esc(p.nome)}</button>`).join("")}</div>
       <input class="inp" id="q" placeholder="Buscar por projeto, cliente ou cidade" value="${esc(q)}" style="width:min(360px,100%)"></div>
      ${pastas.length||orcs.length?`<table class="tbl"><thead><tr><th>Nome</th><th class="hm">Cliente</th><th class="hm">Conc.</th><th>Situação</th><th class="n">Material</th></tr></thead><tbody>
-      ${pastas.map(p=>{const v=vig(p);return `<tr class="go" data-p="${p.id}"><td><div class="nm"><span class="ico f">▤</span><div><b>${esc(p.nome)}</b><span class="sm">${cont(p)}${p.negocio_id?" · ligada ao negócio":""}</span></div></div></td><td class="hm">${esc(v?v.cliente||"":"")}</td><td class="hm">${v?esc(concSig(v.concessionaria_id)):""}</td><td>${v?`<span class="chip ${v.status}">${stTxt(v.status)}</span>`:""}</td><td class="n">${v?brl(tot[v.id])+`<span class="sm">v${v.versao}${v.vigente?" vigente":""}</span>`:""}</td></tr>`}).join("")}
-      ${orcs.map(o=>`<tr class="go" data-o="${o.id}"><td><div class="nm"><span class="ico">⚡</span><div><b>${esc(o.titulo)} · v${o.versao}</b><span class="sm">${o.vigente?"vigente":"versão anterior"}${busca&&o.pasta_id?" · em "+esc((PAS.find(p=>p.id===o.pasta_id)||{}).nome||""):""}</span></div></div></td><td class="hm">${esc(o.cliente||"")}${o.cidade?`<span class="sm">${esc(o.cidade)}</span>`:""}</td><td class="hm">${esc(concSig(o.concessionaria_id))}</td><td><span class="chip ${o.status}">${stTxt(o.status)}</span></td><td class="n">${brl(tot[o.id])}</td></tr>`).join("")}
+      ${pastas.map(p=>{const v=vig(p);return `<tr class="go" data-p="${p.id}"><td><div class="nm"><span class="ico f">▤</span><div><b>${esc(p.nome)}</b><span class="sm">${cont(p)}${p.negocio_id?" · ligada ao negócio":""}</span></div><button class="btn sm mais" data-pm="${p.id}" title="Renomear, mover ou excluir">⋯</button></div></td><td class="hm">${esc(v?v.cliente||"":"")}</td><td class="hm">${v?esc(concSig(v.concessionaria_id)):""}</td><td>${v?`<span class="chip ${v.status}">${stTxt(v.status)}</span>`:""}</td><td class="n">${v?brl(tot[v.id])+`<span class="sm">v${v.versao}${v.vigente?" vigente":""}</span>`:""}</td></tr>`}).join("")}
+      ${orcs.map(o=>`<tr class="go" data-o="${o.id}"><td><div class="nm"><span class="ico">⚡</span><div><b>${esc(o.titulo)} · v${o.versao}</b><span class="sm"><button class="btn sm mais" data-om="${o.id}" title="Mover para outra pasta">⋯</button>${o.vigente?"vigente":"versão anterior"}${busca&&o.pasta_id?" · em "+esc((PAS.find(p=>p.id===o.pasta_id)||{}).nome||""):""}</span></div></div></td><td class="hm">${esc(o.cliente||"")}${o.cidade?`<span class="sm">${esc(o.cidade)}</span>`:""}</td><td class="hm">${esc(concSig(o.concessionaria_id))}</td><td><span class="chip ${o.status}">${stTxt(o.status)}</span></td><td class="n">${brl(tot[o.id])}</td></tr>`).join("")}
      </tbody></table>`:`<p class="note">${busca?"Nada encontrado.":"Pasta vazia."}</p>`}</div>`;
     $$("[data-go]").forEach(b=>b.onclick=()=>{pastaId=b.dataset.go||null;q="";history.replaceState(null,"",pastaId?"?pasta="+pastaId:"orcarede.html");render()});
+    const opPastas=(excl)=>{const out=[];const walk=(pid,d)=>filhos(pid).forEach(p=>{if(excl&&descend(excl).includes(p.id))return;out.push(`<option value="${p.id}">${"— ".repeat(d)}${esc(p.nome)}</option>`);walk(p.id,d+1)});walk(null,0);return `<option value="">(raiz — Todos)</option>`+out.join("")};
+    $$("[data-pm]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const p=PAS.find(x=>x.id===b.dataset.pm);const ids=descend(p.id);const nO=ORCS.filter(o=>ids.includes(o.pasta_id)).length;
+      const md=modal(`<h2>Pasta “${esc(p.nome)}”</h2><label class="fld">Nome<input name="nome" required value="${esc(p.nome)}"></label>
+        <label class="fld">Dentro de<select name="pai">${opPastas(p.id)}</select></label>
+        <div class="row"><span class="note">${nO} ${nO===1?"versão":"versões"} e ${ids.length-1} subpasta(s) dentro</span><button type="button" class="btn sm" id="pDel">Excluir pasta</button></div>`,async f=>{
+        await chk(O.from("pastas").update({nome:f.nome.trim(),pai_id:f.pai||null}).eq("id",p.id));p.nome=f.nome.trim();p.pai_id=f.pai||null;render()},"Salvar");
+      md.querySelector("[name=pai]").value=p.pai_id||"";
+      $("#pDel",md).onclick=async()=>{const pai=p.pai_id||null;
+        if(!confirm(nO||ids.length>1?`Excluir “${p.nome}”? O que está dentro (subpastas e orçamentos) passa para a pasta de cima — nada é apagado.`:`Excluir a pasta vazia “${p.nome}”?`))return;
+        await chk(O.from("orcamentos").update({pasta_id:pai}).eq("pasta_id",p.id));ORCS.forEach(o=>{if(o.pasta_id===p.id)o.pasta_id=pai});
+        await chk(O.from("pastas").update({pai_id:pai}).eq("pai_id",p.id));PAS.forEach(x=>{if(x.pai_id===p.id)x.pai_id=pai});
+        await chk(O.from("pastas").delete().eq("id",p.id));PAS.splice(PAS.indexOf(p),1);md.remove();render()}});
+    $$("[data-om]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const o=ORCS.find(x=>x.id===b.dataset.om);
+      const md=modal(`<h2>Mover “${esc(o.titulo)} · v${o.versao}”</h2><label class="fld">Para a pasta<select name="pasta">${opPastas()}</select></label><p class="note">Só muda onde aparece; o orçamento não é alterado.</p>`,async f=>{
+        await chk(O.from("orcamentos").update({pasta_id:f.pasta||null}).eq("id",o.id));o.pasta_id=f.pasta||null;render()},"Mover");md.querySelector("select").value=o.pasta_id||""});
     $$("tr[data-p]").forEach(r=>r.onclick=()=>{pastaId=r.dataset.p;q="";history.replaceState(null,"","?pasta="+pastaId);render()});
     $$("tr[data-o],[data-rec]").forEach(r=>r.onclick=()=>location.href="orcarede.html?id="+(r.dataset.o||r.dataset.rec));
     $("#q").oninput=e=>{q=e.target.value;const pos=e.target.selectionStart;render();const i=$("#q");i.focus();i.setSelectionRange(pos,pos)};
