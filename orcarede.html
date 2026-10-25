@@ -93,13 +93,13 @@ header.top img{height:44px;border-radius:4px;display:block}
 .app{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:100%;gap:10px;padding:10px max(16px,env(safe-area-inset-left,0px))}
 .app header.top{grid-column:1/-1}
 .app.maxed{padding:0;gap:0}.app.maxed header.top{display:none}
-.proj{display:grid;grid-template-columns:var(--listw,330px) 10px minmax(0,1fr) auto;min-height:0}
+.proj{display:grid;grid-template-columns:var(--listw,330px) 12px minmax(0,1fr) auto auto;min-height:0}
 .proj.max{grid-template-columns:minmax(0,1fr) auto}.proj.max #side,.proj.max .split{display:none}
 .app.maxed .mapwrap,.app.maxed #ptpanel{border-radius:0}
 .split{cursor:col-resize;display:grid;place-items:center;touch-action:none}
 .split::after{content:"";width:4px;height:44px;border-radius:2px;background:var(--line)}
 .split:hover::after,.split.on::after{background:var(--accent)}
-#ptpanel{width:var(--pw,410px);margin-left:10px}
+#ptpanel{width:var(--pw,410px);min-width:0;overflow-x:hidden;container-type:inline-size}
 #ptpanel .x{border:0;background:none;font-size:20px;line-height:1;color:var(--muted);padding:0 4px}
 .pl.sel{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
 .resumo{border:1px solid var(--line);border-radius:8px;background:var(--bg)}
@@ -258,6 +258,11 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 @media (max-width:760px){.grid3f{grid-template-columns:1fr}}
 .sugsub{color:var(--accent);font-style:italic;font-size:12px}.sugl{display:grid;gap:4px;max-height:55vh;overflow:auto}.sugl label{display:grid;grid-template-columns:auto 1fr auto;gap:8px;font-size:12.5px;align-items:center;border-bottom:1px solid var(--line);padding:3px 0}.regras{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px}
 .gprint{border:2px dashed var(--line);border-radius:8px;padding:10px;font-size:13px;cursor:pointer;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.gprint:focus,.gprint.over{border-color:var(--accent);background:var(--accent-soft);outline:none}.gprint.busy{opacity:.6}
+.proj.semlista{grid-template-columns:0 12px minmax(0,1fr) auto auto}.proj.semlista #side{visibility:hidden;overflow:hidden;min-width:0;padding:0;border:0}
+.proj.sempainel #ptpanel{display:none}
+.split[hidden]{display:none}.split{position:relative}.spbtn{position:absolute;top:50%;transform:translateY(-50%);width:18px;height:44px;border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:12px;line-height:1;padding:0;color:var(--muted);cursor:pointer;z-index:2}.spbtn:hover{color:var(--accent);border-color:var(--accent)}
+@container (max-width:390px){#ptpanel .grid2{grid-template-columns:1fr}#ptpanel .seq{flex-wrap:wrap}#ptpanel .seq input{flex-basis:100%}#ptpanel .pads .pad{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.lockbar{background:var(--accent-soft);color:var(--accent);border-radius:8px;padding:9px 12px;font-size:13px}.plog summary{cursor:pointer;display:flex;gap:8px;align-items:center}.plog .tbl td{font-size:12.5px}
 </style>
 </head>
 <body>
@@ -1071,11 +1076,11 @@ async function editor(id){
       <div class="tot"><div class="eye">Material</div><div class="v" id="hTot"></div></div>
       <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><button class="btn" id="bVer">+ Nova versão</button>${ORC.vigente?"":'<button class="btn" id="bVig">Tornar vigente</button>'}<button class="btn" id="bFin"></button><button class="btn" id="bDados">Dados</button></div>
       <nav class="steps">${[["projeto","1","Projeto"],["materiais","2","Materiais"],["precificacao","3","Precificação"],["proposta","4","Proposta"]].map(([k,n,l])=>`<button data-e="${k}" class="${etapa===k?"on":""}" ${k==="proposta"?'disabled title="Em breve"':""}><b>${n}</b>${l}</button>`).join("")}</nav></header>
-     ${etapa==="projeto"?`<div class="proj" id="proj"><aside id="side"></aside><div class="split" id="split" title="Arraste para ajustar a largura · duplo clique volta ao padrão"></div>
+     ${etapa==="projeto"?`<div class="proj" id="proj"><aside id="side"></aside><div class="split" id="split" title="Arraste para ajustar a largura · duplo clique volta ao padrão"><button class="spbtn" id="sp1b" title="Recolher/expandir a lista">«</button></div>
       <div class="mapwrap" id="map"><div class="stage" id="stage"><img id="img" alt="" hidden><div class="blank" id="blank"></div><svg class="net" id="lbls"></svg><svg class="net" id="net"></svg><div id="pins"></div></div>
        <div class="mapbar" id="mapbar"></div><div class="mapui"><button id="zmax" aria-label="Expandir mapa" title="Expandir o mapa (Esc volta)" style="font-size:15px">⛶</button><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Enquadrar" style="font-size:13px">⤢</button></div>
-       <div class="hint" id="hint" hidden></div><div class="leg" id="leg" hidden></div><div class="esc" id="esc"></div></div><aside id="ptpanel" hidden></aside></div>`:`<div class="full-pane" id="full"></div>`}</div>`;
-    $$("[data-e]").forEach(b=>b.onclick=()=>{if(b.dataset.e===etapa)return;etapa=b.dataset.e;history.pushState(null,"","?id="+ORC.id+(etapa==="projeto"?"":"&etapa="+etapa));shell()});
+       <div class="hint" id="hint" hidden></div><div class="leg" id="leg" hidden></div><div class="esc" id="esc"></div></div><div class="split" id="split2" hidden title="Arraste para ajustar a largura · duplo clique volta ao padrão"><button class="spbtn" id="sp2b" title="Recolher/expandir o painel">»</button></div><aside id="ptpanel" hidden></aside></div>`:`<div class="full-pane" id="full"></div>`}</div>`;
+    $$("[data-e]").forEach(b=>b.onclick=()=>{if(b.dataset.e===etapa)return;if(typeof sujoP!=="undefined"&&sujoP&&!confirm("Há alterações não salvas na precificação. Sair mesmo assim?"))return;etapa=b.dataset.e;history.pushState(null,"","?id="+ORC.id+(etapa==="projeto"?"":"&etapa="+etapa));shell()});
     $("#hVer")&&($("#hVer").onchange=e=>location.href="orcarede.html?id="+e.target.value+(etapa==="projeto"?"":"&etapa="+etapa));
     $("#bVer").onclick=()=>modal(`<h2>Nova versão</h2><p class="note">Cria a v${Math.max(0,...IRMAS.map(v=>v.versao),ORC.versao||1)+1} como cópia completa desta: pontos, estruturas, vãos, segmentos, preços e precificação. A versão atual fica guardada como está.</p><label class="fld" style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" name="vig" checked style="width:18px;height:18px"> Tornar a nova versão vigente</label>`,async f=>{
       const nid=await chk(O.rpc("duplicar_orcamento",{p_orc:ORC.id,p_vigente:!!f.vig}));location.href="orcarede.html?id="+nid},"Criar versão");
@@ -1127,6 +1132,15 @@ async function editor(id){
       sp.onpointermove=ev=>{const nw=Math.round(Math.max(230,Math.min(innerWidth*.55,w+ev.clientX-sx)));pj.style.setProperty("--listw",nw+"px");lsS("listw",nw)};
       sp.onpointerup=sp.onpointercancel=()=>{sp.classList.remove("on");sp.onpointermove=null}};
     sp.ondblclick=()=>{pj.style.removeProperty("--listw");lsS("listw","")};
+    const sp2=$("#split2");const w2=lsG("panw");if(w2)pj.style.setProperty("--pw",w2+"px");
+    sp2.onpointerdown=e=>{if(e.target.closest(".spbtn"))return;e.preventDefault();sp2.setPointerCapture(e.pointerId);sp2.classList.add("on");pj.classList.remove("sempainel");const sx=e.clientX,w=$("#ptpanel").getBoundingClientRect().width;
+      sp2.onpointermove=ev=>{const nw=Math.round(Math.max(300,Math.min(innerWidth*.6,w-(ev.clientX-sx))));pj.style.setProperty("--pw",nw+"px");lsS("panw",nw)};
+      sp2.onpointerup=sp2.onpointercancel=()=>{sp2.classList.remove("on");sp2.onpointermove=null}};
+    sp2.ondblclick=()=>{pj.style.removeProperty("--pw");lsS("panw","");pj.classList.remove("sempainel")};
+    const col=(k,on)=>{pj.classList.toggle(k,on);lsS(k,on?"1":"");$("#sp1b").textContent=pj.classList.contains("semlista")?"»":"«";$("#sp2b").textContent=pj.classList.contains("sempainel")?"«":"»"};
+    col("semlista",lsG("semlista")==="1");col("sempainel",lsG("sempainel")==="1");
+    $("#sp1b").onclick=e=>{e.stopPropagation();col("semlista",!pj.classList.contains("semlista"))};$("#sp1b").onpointerdown=e=>e.stopPropagation();
+    $("#sp2b").onclick=e=>{e.stopPropagation();col("sempainel",!pj.classList.contains("sempainel"))};$("#sp2b").onpointerdown=e=>e.stopPropagation();
     const tg=on=>{pj.classList.toggle("max",on);$(".app").classList.toggle("maxed",on);$("#zmax").textContent=on?"⤡":"⛶";$("#zmax").title=on?"Voltar (Esc)":"Expandir o mapa (Esc volta)"};
     $("#zmax").onclick=()=>tg(!pj.classList.contains("max"));$("#zmax").onpointerdown=e=>e.stopPropagation();
     wrap.addEventListener("pointermove",e=>{const r=wrap.getBoundingClientRect();mouseMapa={x:Math.round((e.clientX-r.left-T.x)/T.s),y:Math.round((e.clientY-r.top-T.y)/T.s)}});
@@ -1149,7 +1163,7 @@ async function editor(id){
   function renderSide(){const a=$("#side"),pn=$("#ptpanel");if(!a)return;
     const v=selV&&VAOS.find(x=>x.id===selV),p=!v&&selP&&ptById(selP);if(!v)selV=null;if(!p)selP=null;
     sideLista(a);
-    const was=!pn.hidden;pn.hidden=!(v||p);if(v)sideVao(pn,v);else if(p)sidePonto(pn,p);
+    const was=!pn.hidden;pn.hidden=!(v||p);$("#split2")&&($("#split2").hidden=pn.hidden);if(v)sideVao(pn,v);else if(p)sidePonto(pn,p);
     if(was!==!pn.hidden)requestAnimationFrame(()=>{if(p&&!pinVisivel(p))centrar(p)})}
   function pinVisivel(p){if(!wrap)return true;const r=wrap.getBoundingClientRect(),x=p.x*T.s+T.x,y=p.y*T.s+T.y;return x>20&&y>20&&x<r.width-20&&y<r.height-20}
   function sideLista(a){
@@ -1407,6 +1421,16 @@ async function editor(id){
   }
   async function remedir(pid){if(!escala)return;for(const v of VAOS.filter(v=>!v.manual&&(v.ponto_a===pid||v.ponto_b===pid))){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}}
   let traceSobra=null;
+  let PDFDOC=null;
+  async function pdfOriginal(){if(PDFDOC&&PDFDOC.path===ORC.planta_pdf)return PDFDOC.doc;const r=await sb.storage.from("negocios").download(ORC.planta_pdf);if(r.error)throw r.error;
+    const lib=await pdfjs();const doc=await lib.getDocument({data:new Uint8Array(await r.data.arrayBuffer()),isEvalSupported:false}).promise;PDFDOC={path:ORC.planta_pdf,doc};return doc}
+  async function recortePdf(X0,Y0,X1,Y1){const doc=await pdfOriginal();const page=await doc.getPage(ORC.planta_pdf_pag||1);const k0=+ORC.planta_pdf_k,ox=+ORC.planta_off_x||0,oy=+ORC.planta_off_y||0;
+    const vp0=page.getViewport({scale:k0});const a=[X0+ox,Y0+oy],b=[X1+ox,Y1+oy];
+    const tc=await page.getTextContent();const dentro=tc.items.filter(i=>i.str&&i.str.trim()).map(i=>{const[,, , ,e,f]=i.transform;const[px,py]=vp0.convertToViewportPoint(e,f);return{t:i.str.trim(),x:px,y:py}}).filter(r=>r.x>=a[0]-2&&r.x<=b[0]+2&&r.y>=a[1]-2&&r.y<=b[1]+6).sort((p,q)=>(p.y-q.y)||(p.x-q.x));
+    if(dentro.length){const L=[];dentro.forEach(r=>{const l=L.find(l=>Math.abs(l.y-r.y)<4);if(l)l.t.push(r);else L.push({y:r.y,t:[r]})});return{texto:L.map(l=>l.t.sort((p,q)=>p.x-q.x).map(r=>r.t).join("")).join("\n")}}
+    const K=600/72,f=K/k0;const vp=page.getViewport({scale:K});const c=document.createElement("canvas");c.width=Math.min(4000,Math.round((b[0]-a[0])*f));c.height=Math.min(4000,Math.round((b[1]-a[1])*f));
+    const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);await page.render({canvasContext:g,viewport:vp,transform:[1,0,0,1,-a[0]*f,-a[1]*f]}).promise;
+    return{blob:await new Promise(r=>c.toBlob(r,"image/png"))}}
   function recortarPlanta(pt){if(!wrap){return}const ov=document.createElement("div");ov.className="cropov";ov.innerHTML='<div class="cropmsg">Arraste sobre a etiqueta · Esc cancela</div><div class="croprt" hidden></div>';wrap.appendChild(ov);
     const rt=ov.querySelector(".croprt");let a0=null;const fim=()=>{ov.remove();document.removeEventListener("keydown",esc)};const esc=e=>{if(e.key==="Escape")fim()};document.addEventListener("keydown",esc);
     const pos=e=>{const r=wrap.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
@@ -1416,6 +1440,9 @@ async function editor(id){
       const X0=(Math.min(a0.x,b.x)-T.x)/T.s,Y0=(Math.min(a0.y,b.y)-T.y)/T.s,X1=(Math.max(a0.x,b.x)-T.x)/T.s,Y1=(Math.max(a0.y,b.y)-T.y)/T.s;
       const tx=TXT().filter(([t,x,y])=>x>=X0&&x<=X1&&y>=Y0&&y<=Y1+2).sort((p,q)=>(p[2]-q[2])||(p[1]-q[1])).map(r=>r[0]);
       if(tx.length){const txt=limpaOcr(tx.join("\n"));const i=$("#pSeq");i&&(i.value=txt);verificar(pt,txt,"planta");return}
+      if(ORC.planta_pdf&&ORC.planta_pdf_k){try{toast("Lendo o trecho direto do PDF…");const r=await recortePdf(X0,Y0,X1,Y1);
+        if(r.texto){const txt=limpaOcr(r.texto);const i=$("#pSeq");i&&(i.value=txt);verificar(pt,txt,"planta");return}
+        if(r.blob){lerPrint(pt,r.blob);return}}catch(err){console.warn("recorte pdf",err)}}
       if(!ORC.planta_url||img.hidden||!img.naturalWidth){toast("Sem imagem de planta para ler.");return}
       const kx=img.naturalWidth/D.w,ky=img.naturalHeight/D.h;const c=document.createElement("canvas");c.width=Math.round((X1-X0)*kx);c.height=Math.round((Y1-Y0)*ky);
       try{c.getContext("2d").drawImage(img,X0*kx,Y0*ky,c.width,c.height,0,0,c.width,c.height);const blob=await new Promise(r=>c.toBlob(r,"image/png"));lerPrint(pt,blob)}
@@ -1518,10 +1545,10 @@ async function editor(id){
      <div class="crop" id="pCrop" hidden><canvas id="pCv"></canvas><div class="sel" id="pSel" hidden></div></div><p class="note" id="pMsg"></p>
      <div class="row"><span></span><span style="display:flex;gap:8px"><button class="btn" id="pCancel">Cancelar</button><button class="btn pri" id="pOk" disabled>Usar seleção</button></span></div></div>`;
     document.body.appendChild(m);
-    const cv=$("#pCv",m),sel=$("#pSel",m),msg=$("#pMsg",m);let k=1,isPdf=false,pdf=null,R=null,txt=[];
+    const cv=$("#pCv",m),sel=$("#pSel",m),msg=$("#pMsg",m);let k=1,isPdf=false,pdf=null,R=null,txt=[],pdfFile=null,pag=1;
     $("#pCancel",m).onclick=()=>m.remove();
     async function renderPage(n){msg.textContent="Gerando a imagem da página…";const page=await pdf.getPage(n);const vp1=page.getViewport({scale:1});
-      k=Math.min(7000/Math.max(vp1.width,vp1.height),Math.sqrt(16e6/(vp1.width*vp1.height)));const vp=page.getViewport({scale:k});
+      pag=n;k=Math.min(300/72,10000/Math.max(vp1.width,vp1.height),Math.sqrt(40e6/(vp1.width*vp1.height)));const vp=page.getViewport({scale:k});
       cv.width=Math.floor(vp.width);cv.height=Math.floor(vp.height);const x=cv.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,cv.width,cv.height);await page.render({canvasContext:x,viewport:vp}).promise;
       try{const tc=await page.getTextContent();const raw=tc.items.filter(i=>i.str&&i.str.trim()).map(i=>{const[a,b,,,e,f]=i.transform;const[px,py]=vp.convertToViewportPoint(e,f);return{t:i.str,x:px,y:py,rot:Math.abs(b)>Math.abs(a)*.2,w:(i.width||0)*k}});
         const hz=raw.filter(r=>!r.rot).sort((a,b)=>a.y-b.y||a.x-b.x),out=raw.filter(r=>r.rot).map(r=>[r.t.trim(),r.x,r.y]);let cur=null;
@@ -1531,7 +1558,7 @@ async function editor(id){
     function shown(){$("#pCrop",m).hidden=false;R={x:0,y:0,w:cv.width,h:cv.height};drawSel();$("#pOk",m).disabled=false;msg.textContent="Arraste sobre o desenho para recortar. Sem recorte, a página inteira é usada."}
     function drawSel(){const sc=cv.clientWidth/cv.width;sel.hidden=false;Object.assign(sel.style,{left:R.x*sc+"px",top:R.y*sc+"px",width:R.w*sc+"px",height:R.h*sc+"px"})}
     $("#pFile",m).onchange=async e=>{const f=e.target.files[0];if(!f)return;
-      try{if(f.type==="application/pdf"||/\.pdf$/i.test(f.name)){isPdf=true;msg.textContent="Abrindo PDF…";const lib=await pdfjs();
+      try{if(f.type==="application/pdf"||/\.pdf$/i.test(f.name)){isPdf=true;pdfFile=f;msg.textContent="Abrindo PDF…";const lib=await pdfjs();
           pdf=await lib.getDocument({data:new Uint8Array(await f.arrayBuffer()),isEvalSupported:false}).promise;
           const ps=$("#pPage",m);ps.innerHTML=Array.from({length:pdf.numPages},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join("");$("#pPageW",m).hidden=pdf.numPages<2;ps.onchange=()=>renderPage(+ps.value);await renderPage(1)}
         else{isPdf=false;const u=URL.createObjectURL(f);const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=u});const s=Math.min(1,7000/Math.max(im.naturalWidth,im.naturalHeight));
@@ -1544,13 +1571,16 @@ async function editor(id){
     crop.onpointerup=()=>{st=null;if(R.w<40||R.h<40)R={x:0,y:0,w:cv.width,h:cv.height};drawSel()};
     $("#pOk",m).onclick=async()=>{const ok=$("#pOk",m);ok.disabled=true;ok.textContent="Enviando…";
       try{const out=document.createElement("canvas");out.width=Math.round(R.w);out.height=Math.round(R.h);out.getContext("2d").drawImage(cv,R.x,R.y,R.w,R.h,0,0,out.width,out.height);
-        const blob=await new Promise(r=>out.toBlob(r,"image/jpeg",.85));
-        const path=`orcarede/${ORC.id}/${Date.now().toString(36)}.jpg`;
-        const {error}=await sb.storage.from("negocios").upload(path,blob,{contentType:"image/jpeg",upsert:false});if(error)throw error;
+        msg.textContent="Gerando a imagem em alta qualidade…";
+        let blob=await new Promise(r=>out.toBlob(r,"image/png"));let ext="png",ct="image/png";
+        if(!blob||blob.size>25e6){blob=await new Promise(r=>out.toBlob(r,"image/jpeg",.95));ext="jpg";ct="image/jpeg"}
+        const stamp=Date.now().toString(36);const path=`orcarede/${ORC.id}/${stamp}.${ext}`;msg.textContent=`Enviando a planta (${num(blob.size/1e6,1)} MB)…`;
+        const {error}=await sb.storage.from("negocios").upload(path,blob,{contentType:ct,upsert:false});if(error)throw error;
+        let pdfPath=null;if(isPdf&&pdfFile){const pp=`orcarede/${ORC.id}/${stamp}.pdf`;const up=await sb.storage.from("negocios").upload(pp,pdfFile,{contentType:"application/pdf",upsert:false});if(!up.error)pdfPath=pp}
         const url="storage:"+path;
         const codes=new Set(EST.map(e=>e.codigo.toUpperCase()));
         const tx=isPdf?txt.filter(([t,x,y])=>x>=R.x&&y>=R.y&&x<=R.x+R.w&&y<=R.y+R.h&&(/;/.test(t)||/^\d+\(\d+\)/.test(t)||codes.has(t.toUpperCase()))).map(([t,x,y])=>[t,Math.round(x-R.x),Math.round(y-R.y)]):[];
-        const upd={planta_url:url,planta_w:out.width,planta_h:out.height,planta_tipo:isPdf?"pdf":"imagem",planta_textos:tx};
+        const upd={planta_url:url,planta_w:out.width,planta_h:out.height,planta_tipo:isPdf?"pdf":"imagem",planta_textos:tx,planta_pdf:pdfPath,planta_pdf_pag:isPdf?pag:null,planta_pdf_k:isPdf?k:null,planta_off_x:isPdf?R.x:null,planta_off_y:isPdf?R.y:null};
         if(isPdf&&k){const esc1=parseFloat($("#pEsc",m).value)||1000;upd.escala_m_por_unid=(esc1/1000)/(k*72/25.4)}else upd.escala_m_por_unid=null;
         await chk(O.from("orcamentos").update(upd).eq("id",ORC.id));Object.assign(ORC,upd);escala=+ORC.escala_m_por_unid||0;
         if(escala)for(const v of VAOS.filter(v=>!v.manual)){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}
@@ -1728,7 +1758,19 @@ async function editor(id){
     const den=1-ps-pt-l/100;return den>0?(fixo+(pm+pt+l/100)*M)/den:NaN}
   const servicoA=M=>P.valor_servico!=null&&P.valor_servico!==""?+P.valor_servico:M*(+P.pct_materiais||0)/100;
   let salvarT=null;
-  function salvarP(){clearTimeout(salvarT);salvarT=setTimeout(()=>chk(O.from("precificacao").upsert({orcamento_id:ORC.id,metodo:P.metodo,pct_materiais:P.pct_materiais,valor_servico:P.valor_servico,lucro_pct:P.lucro_pct,custos:P.custos,materiais_ref:P.materiais_ref,atualizado_em:new Date().toISOString()})),500)}
+  let sujoP=false,P0=JSON.parse(JSON.stringify(P)),T0P=null;
+  function salvarP(){sujoP=true;window.onbeforeunload=()=>"Há alterações não salvas na precificação."}
+  const quemSou=()=>perfil.nome||perfil.apelido||perfil.email||"usuário";
+  function difP(a,b){const o=[];const f=(k,t,fmt=v=>v)=>{if(JSON.stringify(a[k])!==JSON.stringify(b[k]))o.push(`${t}: ${fmt(a[k])} → ${fmt(b[k])}`)};
+    f("metodo","método");f("pct_materiais","% sobre materiais",v=>v==null?"—":num(v,2)+"%");f("valor_servico","valor do serviço",v=>v==null||v===""?"—":brl(v));f("lucro_pct","lucro desejado",v=>v==null?"—":num(v,2)+"%");
+    const ca=a.custos||[],cb=b.custos||[];const nm=c=>c.desc||c.grupo||"custo";
+    cb.forEach((c,i)=>{const x=ca[i];if(!x){o.push(`+ custo ${nm(c)}`);return}const ks=["pct","pessoas","dias","diaria","qtd","valor","tipo","base","desc","grupo"].filter(k=>JSON.stringify(x[k])!==JSON.stringify(c[k]));
+      if(ks.length)o.push(`${nm(c)}: `+ks.map(k=>`${k} ${["desc","grupo","tipo","base"].includes(k)?x[k]:num(x[k],2)} → ${["desc","grupo","tipo","base"].includes(k)?c[k]:num(c[k],2)}`).join(", "))});
+    if(ca.length>cb.length)ca.slice(cb.length).forEach(c=>o.push(`− custo ${nm(c)}`));return o}
+  async function gravarP(acao,totalAgora,extra={}){const row={orcamento_id:ORC.id,metodo:P.metodo,pct_materiais:P.pct_materiais,valor_servico:P.valor_servico,lucro_pct:P.lucro_pct,custos:P.custos,materiais_ref:P.materiais_ref,atualizado_em:new Date().toISOString(),travado:!!P.travado,travado_por:P.travado_por||null,travado_nome:P.travado_nome||null,travado_em:P.travado_em||null,...extra};
+    await chk(O.from("precificacao").upsert(row));Object.assign(P,extra);
+    const d=difP(P0,P);await chk(O.from("precificacao_log").insert({orcamento_id:ORC.id,acao,resumo:acao==="salvar"?(d.join(" · ")||"sem alterações nos parâmetros"):null,total_antes:T0P,total_depois:totalAgora,dados:{metodo:P.metodo,pct_materiais:P.pct_materiais,lucro_pct:P.lucro_pct,custos:P.custos},quem:perfil.id,quem_nome:quemSou()}));
+    P0=JSON.parse(JSON.stringify(P));T0P=totalAgora;sujoP=false;window.onbeforeunload=null}
   function telaPreco(){
     const el=$("#full");const M=totalMat();
     const SA=servicoA(M),SB=servicoPorLucro(M,+P.lucro_pct||0);
@@ -1743,11 +1785,16 @@ async function editor(id){
         :c.tipo==="mo"?`<input class="nn" data-k="pessoas" value="${num(c.pessoas,2)}" inputmode="decimal" title="pessoas" aria-label="Pessoas"> pes. ×<input class="nn" data-k="dias" value="${num(c.dias,2)}" inputmode="decimal" title="dias" aria-label="Dias"> dias × R$<input class="nn" data-k="diaria" value="${num(c.diaria,2)}" inputmode="decimal" title="diária" aria-label="Diária" style="width:80px">`
         :`<input class="nn" data-k="qtd" value="${num(c.qtd,3)}" inputmode="decimal" aria-label="Quantidade"> × R$<input class="nn" data-k="valor" value="${num(c.valor,2)}" inputmode="decimal" aria-label="Valor" style="width:90px">`}</div></td>
       <td class="n">${brl(R.L[i].v)}</td><td class="n">${R.S?pct(R.L[i].v/R.S*100):"—"}</td><td><button class="xb" data-del="${i}" title="Remover">×</button></td></tr>`;
+    if(T0P==null)T0P=R.T;
     el.innerHTML=`<div class="wrap2">
+     ${P.travado?`<div class="lockbar">🔒 Precificação travada por <b>${esc(P.travado_nome||"—")}</b> em ${P.travado_em?new Date(P.travado_em).toLocaleString("pt-BR"):"—"}. Os valores não podem ser alterados até destravar.</div>`:""}
      ${painelPreco(R)}
      ${desat?`<div class="warnbar"><span>Os materiais mudaram desde a última precificação: eram ${brl(P.materiais_ref)}, agora são ${brl(M)}. Os valores abaixo já usam o total atual.</span><button class="btn sm" id="pOkRef">Ciente</button></div>`:""}
      <div class="cols"><div style="display:grid;gap:12px">
-      <div class="card"><div class="row"><h2>Método de precificação</h2><span class="tools"><span class="note">Salvo na v${ORC.versao||1}${P.atualizado_em?" · "+quando2(P.atualizado_em):""}</span><button class="btn sm" id="pDup">Duplicar como nova versão</button><button class="btn sm pri" id="pXls">⬇ Excel para proposta</button></span></div>
+      <div class="card"><div class="row"><h2>Método de precificação</h2><span class="tools"><span class="note">${sujoP?'<b style="color:var(--warn)">● alterações não salvas</b>':`Salvo na v${ORC.versao||1}${P.atualizado_em?" · "+quando2(P.atualizado_em):""}`}</span>
+         <button class="btn sm ${sujoP?"pri":""}" id="pSalvar" ${P.travado||!sujoP?"disabled":""}>💾 Salvar</button>
+         ${P.travado?`<button class="btn sm" id="pDestravar">🔓 Destravar</button>`:`<button class="btn sm" id="pTravar" title="Congela a precificação desta versão">🔒 Travar</button>`}
+         <button class="btn sm" id="pDup">Duplicar como nova versão</button><button class="btn sm pri" id="pXls">⬇ Excel para proposta</button></span></div>
        <div class="metodo"><button data-m="A" class="${P.metodo==="A"?"on":""}"><b>A · % sobre materiais</b><span>Você define o percentual (ou o valor) do serviço; o lucro é o resultado.</span></button>
         <button data-m="B" class="${P.metodo==="B"?"on":""}"><b>B · Custos + lucro desejado</b><span>Você define o lucro líquido; o valor do serviço é calculado.</span></button></div>
        ${P.metodo==="A"?`<div class="grid2"><label class="fld">% sobre os materiais<input id="pA" value="${num(M?SA/M*100:P.pct_materiais,2)}" inputmode="decimal"></label><label class="fld">ou valor do serviço (R$)<input id="pAv" value="${P.valor_servico!=null&&P.valor_servico!==""?num(P.valor_servico,2):""}" placeholder="${num(SA,2)}" inputmode="decimal"></label></div>`
@@ -1766,9 +1813,18 @@ async function editor(id){
        <div class="box ${R.lucro>=0?"good":"bad"}"><span class="k">Lucro líquido</span><span class="big">${brl(R.lucro)}</span><small>${R.T?num(R.lucro/R.T*100,2):0}% do total · ${R.S?num(R.lucro/R.S*100,1):0}% do serviço</small></div>
        <div class="box" style="background:var(--accent-soft);border-color:transparent"><span class="k">Total ao cliente</span><span class="big" style="color:var(--accent)">${brl(R.T)}</span></div></div>
       <div class="card"><h2>Detalhamento dos custos</h2>${R.L.map(c=>`<div class="kv"><span>${esc(c.desc||c.grupo)}<span class="note"> · ${esc(c.grupo)}</span></span><b>${brl(c.v)}</b></div>`).join("")||'<p class="note">—</p>'}</div>
-     </div></div></div>`;
-    const re=()=>{P.atualizado_em=new Date().toISOString();salvarP();telaPreco()};
+     </div></div>
+     <details class="card plog" id="pLog"><summary><b>Registro de ajustes</b> <span class="note">quem fez, quando e o que mudou</span></summary><div id="pLogL" class="note">Carregando…</div></details></div>`;
+    $("#pLog").ontoggle=async()=>{if(!$("#pLog").open)return;const L=await todos(()=>O.from("precificacao_log").select("*").eq("orcamento_id",ORC.id).order("quando",{ascending:false}));
+      $("#pLogL").innerHTML=L.length?`<table class="tbl"><thead><tr><th>Quando</th><th>Quem</th><th>Ação</th><th>O que mudou</th><th class="n">Total antes</th><th class="n">Total depois</th></tr></thead><tbody>${L.map(l=>`<tr><td>${new Date(l.quando).toLocaleString("pt-BR")}</td><td>${esc(l.quem_nome||"")}</td><td><span class="chip ${l.acao==="travar"?"finalizado":l.acao==="destravar"?"andamento":""}">${({salvar:"Salvou",travar:"Travou",destravar:"Destravou"})[l.acao]||esc(l.acao)}</span></td><td>${esc(l.resumo||"")}</td><td class="n">${l.total_antes!=null?brl(l.total_antes):"—"}</td><td class="n">${l.total_depois!=null?brl(l.total_depois):"—"}</td></tr>`).join("")}</tbody></table>`:"Nenhum ajuste registrado ainda."};
+    const re=()=>{if(P.travado){toast("Precificação travada. Destrave para alterar.");telaPreco();return}salvarP();telaPreco()};
     $("#pDup").onclick=()=>$("#bVer").click();
+    $("#pSalvar").onclick=async()=>{await gravarP("salvar",R.T);toast("Precificação salva.");telaPreco()};
+    $("#pTravar")&&($("#pTravar").onclick=()=>modal(`<h2>Travar a precificação da v${ORC.versao||1}?</h2><p class="note">Os valores ficam congelados (total ${brl(R.T)}). Só um administrador destrava, e fica registrado.</p>${sujoP?'<p class="note" style="color:var(--warn)">As alterações não salvas serão salvas antes de travar.</p>':""}`,async()=>{
+      if(sujoP)await gravarP("salvar",R.T);P.travado=true;await gravarP("travar",R.T,{travado:true,travado_por:perfil.id,travado_nome:quemSou(),travado_em:new Date().toISOString()});toast("Precificação travada.");telaPreco()},"Travar"));
+    $("#pDestravar")&&($("#pDestravar").onclick=()=>{if(perfil.papel!=="admin"){toast("Só um administrador pode destravar.");return}modal(`<h2>Destravar a precificação?</h2><p class="note">Fica registrado quem destravou e quando.</p>`,async()=>{
+      P.travado=false;await gravarP("destravar",R.T,{travado:false,travado_por:null,travado_nome:null,travado_em:null});toast("Precificação destravada.");telaPreco()},"Destravar")});
+    if(P.travado)$$(".cols input,.cols select,.cols textarea,.cols .xb,.cols #pAdd,.metodo button,#pUsaA,#pUsaB,#pOkRef",el).forEach(x=>x.disabled=true);
     $("#pXls").onclick=()=>excelProposta(R).catch(e=>{console.error(e);toast("Não foi possível gerar o Excel.")});
     $$("[data-m]",el).forEach(b=>b.onclick=()=>{P.metodo=b.dataset.m;re()});
     $("#pUsaB")&&($("#pUsaB").onclick=()=>{P.metodo="B";re()});
