@@ -287,8 +287,16 @@ function modal(html,onOk,okTxt="OK"){const m=document.createElement("div");m.cla
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
 const PALETA=["#2f6f9f","#c2185b","#1565c0","#e0a800","#00897b","#7a8b99","#8d6e63","#ef6c00","#5d4037","#6a3fbf","#2e7d32","#ad1457"];
 const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/[^A-Z0-9,./]+/g," ").replace(/\s+/g," ").trim();
-window.addEventListener("popstate",()=>location.reload());
-document.addEventListener("click",e=>{const b=e.target.closest("[data-nav]");if(!b)return;e.preventDefault();b.dataset.nav==="-1"?history.back():history.forward()});
+if(!window.__popOk){window.__popOk=1;window.addEventListener("popstate",()=>location.reload())}
+/* pilha própria de navegação: funciona no site e na prévia */
+const NAV=(()=>{let mem=null;const ld=()=>{try{return JSON.parse(sessionStorage.getItem("orcarede_nav")||"null")}catch(e){return mem}};const sv=v=>{mem=v;try{sessionStorage.setItem("orcarede_nav",JSON.stringify(v))}catch(e){}};
+  const url=()=>{const q=(window.__Q!==undefined?window.__Q:location.search.replace(/^\?/,""));return "?"+q};
+  return{marca(){const v=ld()||{h:[],i:-1};const u=url();if(v.h[v.i]===u)return;if(v.pulando===u){v.pulando=null;sv(v);return}v.h=v.h.slice(0,v.i+1);v.h.push(u);if(v.h.length>60)v.h.shift();v.i=v.h.length-1;sv(v);this.botoes()},
+    vai(d){const v=ld()||{h:[],i:-1};const j=v.i+d;if(j<0||j>=v.h.length){toast(d<0?"Não há tela anterior.":"Não há próxima tela.");return}v.i=j;v.pulando=v.h[j];sv(v);
+      const u=v.h[j];if(window.__go)window.__go(u);else location.href="orcarede.html"+(u==="?"?"":u)},
+    botoes(){const v=ld()||{h:[],i:-1};document.querySelectorAll('[data-nav="-1"]').forEach(b=>b.disabled=v.i<=0);document.querySelectorAll('[data-nav="1"]').forEach(b=>b.disabled=v.i>=v.h.length-1)}}})();
+if(!window.__navOk){window.__navOk=1;document.addEventListener("click",e=>{const b=e.target.closest("[data-nav]");if(!b)return;e.preventDefault();NAV.vai(+b.dataset.nav)});
+new MutationObserver(()=>{if(document.querySelector("[data-nav]"))NAV.marca()}).observe(document.getElementById("root"),{childList:true})}
 const UNIDADES=[["UN","unidade"],["PÇ","peça"],["M","metro"],["MT","metro (ERP)"],["KG","quilo"],["M²","metro quadrado"],["M³","metro cúbico"],["CJ","conjunto"],["CX","caixa"],["RL","rolo"],["PCT","pacote"],["L","litro"],["PAR","par"],["JG","jogo"],["KIT","kit"],["VB","verba"],["H","hora"],["DIA","dia"],["SV","serviço"]];
 function unNorm(u){u=String(u||"").trim().toUpperCase().replace(/\.$/,"");if(!u)return null;const M={UND:"UN",UNID:"UN",UNI:"UN",U:"UN",PC:"PÇ",PCS:"PÇ",PECA:"PÇ","PEÇA":"PÇ",MTS:"M",METRO:"M",M2:"M²",M3:"M³",KGS:"KG",CONJ:"CJ",ROLO:"RL",PACOTE:"PCT",LT:"L",LITRO:"L",HR:"H",HORA:"H",JOGO:"JG",SERV:"SV"};return M[u]||u}
 function unSel(v){v=unNorm(v);const ex=v&&!UNIDADES.some(x=>x[0]===v);return `<select name="unidade"><option value="">—</option>${UNIDADES.map(([k,t])=>`<option value="${k}" ${k===v?"selected":""}>${k} · ${t}</option>`).join("")}${ex?`<option value="${esc(v)}" selected>${esc(v)} (fora da lista)</option>`:""}</select>`}
