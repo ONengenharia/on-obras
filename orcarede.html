@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OrçaRede · ON Engenharia</title>
+<link rel="icon" href="assets/on-logo.jpg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#eef2f6; --panel:#ffffff; --ink:#1e2f40; --muted:#5a6f83; --line:#d6e1ea;
+  --accent:#2f6f9f; --accent-soft:#e8f1f9; --navy:#1e2f40; --navy2:#2b4157; --onblue:#62a8dc;
+  --ok:#1f8a4c; --ok-soft:#e2f4e9; --warn:#b7791f; --warn-soft:#fbf0dc; --idle-soft:#edf1f5; --map:#ffffff; --danger:#b3261e;
+  --f-body:Montserrat,system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101b26; --panel:#172534; --ink:#e8f1f9; --muted:#9fb8cc; --line:#2b4157;
+  --accent:#62a8dc; --accent-soft:#1d3a52; --navy:#0b141d; --navy2:#1e2f40;
+  --ok:#52c47f; --ok-soft:#173326; --warn:#e3a94b; --warn-soft:#3a2d16; --idle-soft:#1e2f40; --map:#e9edf0; --danger:#f2867d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101b26; --panel:#172534; --ink:#e8f1f9; --muted:#9fb8cc; --line:#2b4157;
+  --accent:#62a8dc; --accent-soft:#1d3a52; --navy:#0b141d; --navy2:#1e2f40;
+  --ok:#52c47f; --ok-soft:#173326; --warn:#e3a94b; --warn-soft:#3a2d16; --idle-soft:#1e2f40; --map:#e9edf0; --danger:#f2867d; color-scheme:dark}
+*{box-sizing:border-box} [hidden]{display:none!important}
+html,body,#root{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:7px 12px;font-weight:600;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:inherit;white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.btn.del{color:var(--danger)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.sm{padding:4px 8px;font-size:12px}
+header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}
+header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c28}
+.lnk{background:none;border:0;color:var(--accent);padding:0;font-size:12.5px;font-weight:600}
+.lnk.del{color:var(--muted);font-weight:500}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.note{font-size:12px;color:var(--muted);margin:0;line-height:1.45}
+.lbl{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.erro{max-width:440px;margin:12vh auto;padding:24px;text-align:center}
+.erro img{height:56px;border-radius:6px}.erro a{color:var(--accent);font-weight:600}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;background:var(--navy);color:#e8f1f9;border-radius:12px;padding:12px 16px}
+header.top img{height:44px;border-radius:4px;display:block}
+.ttl{min-width:0;flex:1 1 260px}
+.eye{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#9fb8cc}
+.ttl h1{font-weight:700;font-size:19px;line-height:1.2;margin:3px 0 1px;letter-spacing:-.01em}
+.ttl .sub{color:#9fb8cc;font-size:12.5px}
+.tot{text-align:right}
+.tot .v{font-family:var(--f-mono);font-size:22px;font-weight:500;color:#fff;font-variant-numeric:tabular-nums}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+/* lista */
+.page{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:14px}
+.tbl{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tbl th,.tbl td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}
+.tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--bg)}
+.tbl tr.go{cursor:pointer}.tbl tr.go:hover td{background:var(--accent-soft)}
+.tbl td.n,.tbl th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em;background:var(--idle-soft);color:var(--muted)}
+.chip.aprovado{background:var(--ok-soft);color:var(--ok)}.chip.enviado{background:var(--warn-soft);color:var(--warn)}
+/* editor */
+.app{display:grid;grid-template-columns:var(--sidew,400px) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:100%;gap:10px;padding:10px max(16px,env(safe-area-inset-left,0px))}
+.app header.top{grid-column:1/-1}
+aside{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;background:none;padding:10px 6px;font-weight:600;font-size:12.5px;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+.pane{overflow:auto;padding:14px;display:grid;gap:12px;align-content:start;flex:1;min-height:0}
+.fld{display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
+.fld input,.fld select,.fld textarea{padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:13.5px;width:100%}
+.row{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.est{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.est>summary{list-style:none;display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 10px;background:var(--bg);cursor:pointer;font-weight:600;font-size:13px}
+.est>summary::-webkit-details-marker{display:none}
+.est .ed{font-size:10px;font-weight:700;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:1px 6px;margin-left:6px}
+.its{width:100%;border-collapse:collapse;font-size:12px}
+.its td{padding:4px 8px;border-top:1px solid var(--line);vertical-align:middle}
+.its td.q{width:74px}.its td.v{width:86px;text-align:right}.its td.x{width:22px}
+.its input{width:66px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;background:var(--bg);font-family:var(--f-mono);font-size:12px;text-align:right}
+.its input.pr{width:78px}
+.its .m{line-height:1.3}.its .m small{display:block;color:var(--muted);font-family:var(--f-mono);font-size:10.5px}
+.its tr.man td{background:var(--warn-soft)}
+.xb{border:0;background:none;color:var(--muted);font-size:15px;padding:0 2px;line-height:1}
+.xb:hover{color:var(--danger)}
+.plist{display:grid;gap:2px}
+.plist button{display:flex;justify-content:space-between;gap:8px;border:0;background:none;padding:7px 8px;border-radius:6px;text-align:left;font-size:12.5px}
+.plist button:hover{background:var(--accent-soft)}
+.plist b{font-family:var(--f-mono);font-weight:500}
+.sg{display:flex;justify-content:space-between;font-weight:700;font-size:12px;padding:8px 8px 4px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.kv{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+.kv b{font-family:var(--f-mono);font-weight:500}
+.seg2{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg2 button{border:0;background:var(--panel);padding:6px 10px;font-size:12px;font-weight:600;color:var(--muted)}
+.seg2 button.on{background:var(--accent);color:#fff}
+/* mapa */
+.mapwrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--map);min-height:0;touch-action:none;cursor:grab}
+.mapwrap.drag{cursor:grabbing}.mapwrap.place,.mapwrap.trace,.mapwrap.calib{cursor:crosshair}
+.stage{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.stage img{display:block;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.stage .blank{background-color:#fff;background-image:linear-gradient(#e7edf3 1px,transparent 1px),linear-gradient(90deg,#e7edf3 1px,transparent 1px);background-size:100px 100px}
+.pin{position:absolute;min-width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:13px;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);background:#5a6f83;color:#fff;padding:0 4px;font:600 11px/21px var(--f-mono);transform:scale(var(--inv,1))}
+.pin.poste{background:#2f6f9f}.pin.vazio{background:#b7791f}
+.pin.sel{outline:3px solid #c2185b;outline-offset:2px;z-index:2;cursor:move}
+.pin.anchor{outline:3px dashed #c2185b;outline-offset:3px}
+svg.net{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+svg.net line{pointer-events:stroke;cursor:pointer;stroke-linecap:round}
+svg.net line.hit{stroke:transparent}
+svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke:#fff;pointer-events:none}
+.mapbar{position:absolute;left:10px;top:10px;right:56px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
+.mapbar>*{pointer-events:auto;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.mapui{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+.mapui button{width:36px;height:36px;border-radius:7px;border:1px solid var(--line);background:var(--panel);font-size:18px;font-weight:600}
+.hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:var(--navy);color:#e8f1f9;padding:7px 12px;border-radius:7px;font-size:12.5px;max-width:calc(100% - 20px);text-align:center}
+.esc{position:absolute;right:10px;bottom:10px;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:11.5px;color:var(--muted)}
+.dot{display:inline-block;width:14px;height:0;border-top:3px solid;vertical-align:middle;margin-right:4px}
+/* modal / toast */
+.modal{position:fixed;inset:0;background:rgba(10,16,22,.55);display:grid;place-items:center;padding:16px;z-index:20}
+.modal .box{background:var(--panel);border-radius:12px;padding:18px;width:min(460px,100%);display:grid;gap:12px;max-height:100%;overflow:auto}
+.modal .box.wide{width:min(1100px,100%)}
+.modal h2{margin:0;font-size:18px}
+.crop{position:relative;max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:8px;touch-action:none}
+.crop canvas{display:block;width:100%;height:auto}
+.crop .sel{position:absolute;border:2px solid #c2185b;background:rgba(194,24,91,.08);pointer-events:none}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--navy);color:#e8f1f9;padding:9px 14px;border-radius:7px;font-size:13px;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.busy{opacity:.6;pointer-events:none}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 55vh auto;height:auto}
+  .mapwrap{grid-row:2}aside{grid-row:3;max-height:none}
+  .tbl .hm{display:none}
+}
+</style>
+</head>
+<body>
+<div id="root"><p class="note" style="padding:24px">Carregando…</p></div>
+<script src="vendor/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script>
+(async()=>{
+const sb=DB.sb, O=sb.schema("orcarede");
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const brl=n=>Number(n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const num=(n,d=2)=>Number(n||0).toLocaleString("pt-BR",{maximumFractionDigits:d});
+const pnum=s=>{if(typeof s==="number")return s;s=String(s||"").trim();if(s.includes(",")||/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,"").replace(",",".");const v=parseFloat(s);return isNaN(v)?0:v};
+const root=$("#root");
+function toast(t){$$(".toast").forEach(x=>x.remove());const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3500)}
+function falha(msg){root.innerHTML=`<div class="erro"><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1>OrçaRede</h1><p>${esc(msg)}</p><a href="index.html">Ir para o início</a></div>`}
+async function chk(p){const r=await p;if(r.error){console.error(r.error);toast("Erro ao gravar: "+(r.error.message||r.error.code));throw r.error}return r.data}
+async function todos(q){let out=[],i=0;for(;;){const {data,error}=await q().range(i,i+999);if(error)throw error;out=out.concat(data);if(data.length<1000)return out;i+=1000}}
+function modal(html,onOk){const m=document.createElement("div");m.className="modal";m.innerHTML=`<form class="box">${html}<div class="row"><span></span><span style="display:flex;gap:8px"><button type="button" class="btn" data-x>Cancelar</button><button class="btn pri">OK</button></span></div></form>`;
+  document.body.appendChild(m);m.querySelector("[data-x]").onclick=()=>m.remove();
+  m.querySelector("form").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));m.querySelector("form").classList.add("busy");try{if(await onOk(f,m)!==false)m.remove()}catch(err){m.querySelector("form").classList.remove("busy")}};
+  setTimeout(()=>{const i=m.querySelector("input,select");i&&i.focus()},20);return m}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
+
+/* ---------- acesso ---------- */
+const sess=await DB.sessao();
+if(!sess){location.href="index.html?volta="+encodeURIComponent(location.pathname+location.search);return}
+const perfil=await DB.meuPerfil();
+if(!perfil||perfil.papel!=="admin"){falha("O OrçaRede está disponível só para administradores.");return}
+const teste=await O.from("concessionarias").select("id,sigla,nome");
+if(teste.error){falha(/schema|PGRST106|not.*exposed|Invalid schema/i.test(teste.error.message+teste.error.code)?"A gaveta “orcarede” ainda não foi liberada no Supabase (Project Settings → Data API → Exposed schemas).":"Não foi possível ler o banco: "+teste.error.message);return}
+const CONCS=teste.data;
+const Q=new URLSearchParams(location.search);
+if(Q.get("id"))return editor(Q.get("id"));
+if(Q.get("neg"))return deNegocio(Q.get("neg"));
+return lista();
+
+/* ---------- lista de orçamentos ---------- */
+async function lista(){
+  const [orcs,its]=await Promise.all([
+    todos(()=>O.from("orcamentos").select("id,titulo,cliente,status,concessionaria_id,negocio_id,atualizado_em").order("atualizado_em",{ascending:false})),
+    todos(()=>O.from("v_orc_itens").select("orcamento_id,subtotal"))]);
+  const tot={};its.forEach(i=>tot[i.orcamento_id]=(tot[i.orcamento_id]||0)+(+i.subtotal||0));
+  const cs=Object.fromEntries(CONCS.map(c=>[c.id,c.sigla]));
+  root.innerHTML=`<div class="page">
+   <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">ON Engenharia</div><h1>OrçaRede</h1><div class="sub">Orçamentos de rede de distribuição</div></div>
+    <div class="tools"><a class="btn" href="index.html">← Obras</a><a class="btn" href="negocios.html">Negócios</a><button class="btn pri" id="bNovo">+ Novo orçamento</button></div></header>
+   ${orcs.length?`<table class="tbl"><thead><tr><th>Orçamento</th><th class="hm">Cliente</th><th>Conc.</th><th class="hm">Situação</th><th class="n">Material</th></tr></thead><tbody>
+   ${orcs.map(o=>`<tr class="go" data-id="${o.id}"><td><b>${esc(o.titulo)}</b></td><td class="hm">${esc(o.cliente||"")}</td><td>${esc(cs[o.concessionaria_id]||"")}</td><td class="hm"><span class="chip ${o.status}">${esc(o.status)}</span></td><td class="n">${brl(tot[o.id])}</td></tr>`).join("")}</tbody></table>`
+   :`<p class="note">Nenhum orçamento ainda.</p>`}</div>`;
+  $$("tr.go").forEach(r=>r.onclick=()=>location.href="orcarede.html?id="+r.dataset.id);
+  $("#bNovo").onclick=()=>novoOrc({});
+}
+function novoOrc(pre){
+  modal(`<h2>Novo orçamento</h2>
+   <label class="fld">Título<input name="titulo" required value="${esc(pre.titulo||"")}"></label>
+   <label class="fld">Cliente<input name="cliente" value="${esc(pre.cliente||"")}"></label>
+   <label class="fld">Concessionária<select name="conc">${CONCS.map(c=>`<option value="${c.id}" ${pre.conc==c.id?"selected":""}>${esc(c.sigla)}</option>`).join("")}</select></label>`,
+  async f=>{const r=await chk(O.from("orcamentos").insert({titulo:f.titulo.trim(),cliente:f.cliente.trim()||null,concessionaria_id:+f.conc,negocio_id:pre.negocio||null,criado_por:perfil.id}).select("id").single());location.href="orcarede.html?id="+r.id});
+}
+async function deNegocio(nid){
+  const ja=await O.from("orcamentos").select("id").eq("negocio_id",nid).limit(1);
+  if(ja.data&&ja.data[0]){location.replace("orcarede.html?id="+ja.data[0].id);return}
+  const {data:n}=await sb.from("negocios").select("id,titulo,cliente,conc").eq("id",nid).single();
+  await lista();
+  if(!n){toast("Negócio não encontrado.");return}
+  const c=CONCS.find(c=>n.conc&&n.conc.toUpperCase().includes(c.sigla.toUpperCase()));
+  novoOrc({titulo:n.titulo,cliente:n.cliente,conc:c&&c.id,negocio:n.id});
+}
+
+/* ---------- editor ---------- */
+async function editor(id){
+  let ORC;
+  {const r=await O.from("orcamentos").select("*").eq("id",id).single();if(r.error||!r.data){falha("Orçamento não encontrado.");return}ORC=r.data}
+  const conc=ORC.concessionaria_id;
+  const [PTS,PE,IT,VAOS,EST,POSTES,TR,TRI,MATS,PV,OPL]=await Promise.all([
+    todos(()=>O.from("orc_pontos").select("*").eq("orcamento_id",id).order("numero")),
+    todos(()=>O.from("orc_ponto_estruturas").select("id,ponto_id,estrutura_id,ordem,orc_pontos!inner(orcamento_id)").eq("orc_pontos.orcamento_id",id)),
+    todos(()=>O.from("orc_ponto_itens").select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado,orc_pontos!inner(orcamento_id)").eq("orc_pontos.orcamento_id",id)),
+    todos(()=>O.from("orc_vaos").select("*").eq("orcamento_id",id)),
+    todos(()=>O.from("estruturas").select("id,codigo,descricao").eq("concessionaria_id",conc).order("codigo")),
+    todos(()=>O.from("postes").select("id,codigo,material_codigo,altura_m,esforco_kn,tipo").eq("concessionaria_id",conc).order("altura_m")),
+    todos(()=>O.from("tipos_rede").select("*").eq("concessionaria_id",conc).order("ordem")),
+    todos(()=>O.from("tipos_rede_itens").select("*")),
+    todos(()=>O.from("materiais").select("codigo,nome,unidade,subgrupo").eq("ativo",true).order("nome")),
+    todos(()=>O.from("v_preco_vigente").select("material_codigo,valor")),
+    todos(()=>O.from("orc_precos").select("material_codigo,preco_unit,manual").eq("orcamento_id",id))]);
+  [PE,IT].forEach(a=>a.forEach(r=>delete r.orc_pontos));
+  const MAT=Object.fromEntries(MATS.map(m=>[m.codigo,m]));
+  const VIG=Object.fromEntries(PV.map(p=>[p.material_codigo,+p.valor]));
+  let OP=Object.fromEntries(OPL.map(p=>[p.material_codigo,{v:+p.preco_unit,manual:p.manual}]));
+  const ESTM=Object.fromEntries(EST.map(e=>[e.id,e])), POM=Object.fromEntries(POSTES.map(p=>[p.id,p]));
+  TR.forEach(t=>t.itens=TRI.filter(i=>i.tipo_rede_id===t.id));const TRM=Object.fromEntries(TR.map(t=>[t.id,t]));
+  let selP=null,selV=null,tab="ponto",placing=false,tracing=null,anchor=null,calib=null,fMat="";
+
+  /* preços e cálculo (espelha a view v_orc_itens do banco) */
+  const preco=c=>{const o=OP[c];return (o&&(o.manual||ORC.modo_preco==="travado"))?(o?o.v:VIG[c]):(VIG[c]??(o&&o.v))};
+  const ptById=i=>PTS.find(p=>p.id===i);
+  const sobra=v=>v.sobra_pct??ORC.sobra_condutor_pct;
+  function linhasPonto(p){const L=IT.filter(i=>i.ponto_id===p.id).map(i=>({c:i.material_codigo,q:+i.quantidade}));if(p.poste_id&&POM[p.poste_id])L.push({c:POM[p.poste_id].material_codigo,q:1});return L}
+  function linhasVao(v){const k=(1+sobra(v)/100)*(+v.comprimento_m);const t=TRM[v.tipo_rede_id];if(t)return t.itens.map(i=>({c:i.material_codigo,q:k*i.multiplicador}));return v.material_codigo?[{c:v.material_codigo,q:k}]:[]}
+  const soma=L=>L.reduce((s,l)=>s+l.q*(preco(l.c)||0),0);
+  function agregado(){const A={};const add=l=>{(A[l.c]=A[l.c]||{c:l.c,q:0}).q+=l.q};PTS.forEach(p=>linhasPonto(p).forEach(add));VAOS.forEach(v=>linhasVao(v).forEach(add));return Object.values(A)}
+  const total=()=>soma(agregado());
+
+  /* planta */
+  let escala=+ORC.escala_m_por_unid||0;
+  function dims(){if(ORC.planta_url)return{w:ORC.planta_w,h:ORC.planta_h};let w=3000,h=2000;PTS.forEach(p=>{w=Math.max(w,(p.x||0)+400);h=Math.max(h,(p.y||0)+400)});return{w,h}}
+  let D=dims();
+  const lenPx=v=>{const a=ptById(v.ponto_a),b=ptById(v.ponto_b);return a&&b?Math.hypot(a.x-b.x,a.y-b.y):0};
+
+  root.innerHTML=`<div class="app">
+   <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">OrçaRede · <span id="hConc"></span></div><h1 id="hT"></h1><div class="sub" id="hS"></div></div>
+    <div class="tot"><div class="eye">Material</div><div class="v" id="hTot"></div></div>
+    <div class="tools"><a class="btn" href="orcarede.html">← Orçamentos</a><button class="btn" id="bPlanta">Planta</button><button class="btn pri" id="bXls">Exportar Excel</button></div></header>
+   <aside><div class="tabs">${[["ponto","Ponto"],["vaos","Vãos"],["mat","Materiais"],["dados","Dados"]].map(([k,l])=>`<button data-t="${k}">${l}</button>`).join("")}</div><div class="pane" id="pane"></div></aside>
+   <div class="mapwrap" id="map"><div class="stage" id="stage"><img id="img" alt="" hidden><div class="blank" id="blank"></div><svg class="net" id="net"></svg><div id="pins"></div></div>
+    <div class="mapbar" id="mapbar"></div><div class="mapui"><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Enquadrar" style="font-size:13px">⤢</button></div>
+    <div class="hint" id="hint" hidden></div><div class="esc" id="esc"></div></div></div>`;
+  $$(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderSide()});
+
+  function renderHead(){
+    $("#hT").textContent=ORC.titulo;document.title=ORC.titulo+" · OrçaRede";
+    $("#hConc").textContent=(CONCS.find(c=>c.id===conc)||{}).sigla||"";
+    const nP=PTS.filter(p=>p.poste_id).length,m=VAOS.reduce((s,v)=>s+(+v.comprimento_m),0);
+    $("#hS").textContent=[ORC.cliente,`${PTS.length} pontos · ${nP} postes · ${num(m,0)} m de vãos`,ORC.modo_preco==="travado"?"preços travados":"preços da base"].filter(Boolean).join(" · ");
+    $("#hTot").textContent=brl(total());
+    $("#esc").textContent=escala?`Escala: 100 px = ${num(100*escala,1)} m`:"Sem escala: calibre para medir os vãos";
+  }
+  function renderAll(){renderHead();renderMapbar();renderPins();renderSide()}
+
+  /* ---------- painel lateral ---------- */
+  function itRow(i,showVal=true){const m=MAT[i.material_codigo]||{nome:i.material_codigo};const v=(preco(i.material_codigo)||0)*i.quantidade;
+    return `<tr><td class="m">${esc(m.nome)}<small>${esc(i.material_codigo)} · ${esc(m.unidade||"")}</small></td><td class="q"><input class="mono" data-q="${i.id}" value="${num(i.quantidade,3)}" inputmode="decimal"></td>${showVal?`<td class="v mono">${num(v)}</td>`:""}<td class="x"><button class="xb" data-di="${i.id}" title="Remover">×</button></td></tr>`}
+  function renderSide(){
+    $$(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));
+    const p=$("#pane");
+    if(tab==="ponto")return selP?paneP(p,ptById(selP)):paneLista(p);
+    if(tab==="vaos")return paneVaos(p);
+    if(tab==="mat")return paneMat(p);
+    return paneDados(p);
+  }
+  function paneLista(p){
+    p.innerHTML=`<p class="note">Toque num ponto da planta para ver e editar as estruturas. Use <b>+ Ponto</b> para lançar um novo.</p>
+     <div class="plist">${PTS.map(x=>`<button data-p="${x.id}"><span><b>${x.numero}</b> · ${esc(x.titulo||(POM[x.poste_id]||{}).codigo||"sem poste")}</span><b>${brl(soma(linhasPonto(x)))}</b></button>`).join("")||'<p class="note">Nenhum ponto ainda.</p>'}</div>`;
+    $$("[data-p]",p).forEach(b=>b.onclick=()=>{selP=b.dataset.p;selV=null;renderPins();renderSide();centrar(ptById(selP))});
+  }
+  function paneP(p,pt){
+    if(!pt){selP=null;return paneLista(p)}
+    const pes=PE.filter(e=>e.ponto_id===pt.id).sort((a,b)=>a.ordem-b.ordem);
+    const avulsos=IT.filter(i=>i.ponto_id===pt.id&&!i.ponto_estrutura_id);
+    p.innerHTML=`<div class="row"><button class="lnk" id="pBack">← Todos os pontos</button><b class="mono">${brl(soma(linhasPonto(pt)))}</b></div>
+     <div class="grid2"><label class="fld">Ponto nº<input id="pNum" type="number" value="${pt.numero}"></label>
+      <label class="fld">Poste<select id="pPoste"><option value="">— sem poste —</option>${POSTES.map(x=>`<option value="${x.id}" ${x.id===pt.poste_id?"selected":""}>${esc(x.codigo)}</option>`).join("")}</select></label></div>
+     <label class="fld">Descrição<input id="pTit" value="${esc(pt.titulo||"")}" placeholder="ex.: CE3-2; IT_50; IP 01"></label>
+     <div class="lbl">Estruturas</div>
+     ${pes.map(e=>{const its=IT.filter(i=>i.ponto_estrutura_id===e.id);const ed=its.some(i=>i.editado);const s=soma(its.map(i=>({c:i.material_codigo,q:+i.quantidade})));
+       return `<details class="est"><summary><span>${esc((ESTM[e.estrutura_id]||{}).codigo||"?")}${ed?'<span class="ed">editada</span>':""}</span><span style="display:flex;gap:10px;align-items:center"><span class="mono">${num(s)}</span><button class="xb" data-de="${e.id}" title="Remover estrutura">×</button></span></summary>
+        <table class="its">${its.map(i=>itRow(i)).join("")}</table><div style="padding:6px 8px"><button class="lnk" data-addm="${e.id}">+ material nesta estrutura</button></div></details>`}).join("")||'<p class="note">Nenhuma estrutura.</p>'}
+     <div class="row" style="flex-wrap:nowrap"><input list="dlEst" id="pEst" placeholder="Adicionar estrutura (digite o código)" style="flex:1;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)"><button class="btn pri" id="pEstOk">Adicionar</button></div>
+     <datalist id="dlEst">${EST.map(e=>`<option value="${esc(e.codigo)}">`).join("")}</datalist>
+     ${avulsos.length?`<div class="lbl">Materiais avulsos</div><table class="its">${avulsos.map(i=>itRow(i)).join("")}</table>`:""}
+     <div class="row"><button class="lnk" data-addm="">+ material avulso</button><button class="btn del sm" id="pDel">Excluir ponto</button></div>`;
+    $("#pBack").onclick=()=>{selP=null;renderPins();renderSide()};
+    $("#pNum").onchange=async e=>{const n=+e.target.value;if(PTS.some(x=>x.numero===n&&x.id!==pt.id)){toast("Já existe o ponto "+n);e.target.value=pt.numero;return}await chk(O.from("orc_pontos").update({numero:n}).eq("id",pt.id));pt.numero=n;PTS.sort((a,b)=>a.numero-b.numero);renderPins()};
+    $("#pPoste").onchange=async e=>{const v=e.target.value?+e.target.value:null;await chk(O.from("orc_pontos").update({poste_id:v}).eq("id",pt.id));pt.poste_id=v;renderAll()};
+    $("#pTit").onchange=async e=>{await chk(O.from("orc_pontos").update({titulo:e.target.value}).eq("id",pt.id));pt.titulo=e.target.value};
+    const addEst=async()=>{const cod=$("#pEst").value.trim();const e=EST.find(x=>x.codigo.toUpperCase()===cod.toUpperCase());if(!e){toast("Estrutura não encontrada: "+cod);return}
+      await chk(O.rpc("aplicar_estrutura",{p_ponto:pt.id,p_estrutura:e.id}));await recarregaPonto(pt.id);renderAll();setTimeout(()=>$("#pEst")&&$("#pEst").focus(),10)};
+    $("#pEstOk").onclick=addEst;$("#pEst").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addEst()}};
+    $$("[data-de]",p).forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();await chk(O.from("orc_ponto_estruturas").delete().eq("id",b.dataset.de));
+      for(let i=PE.length-1;i>=0;i--)if(PE[i].id===b.dataset.de)PE.splice(i,1);for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_estrutura_id===b.dataset.de)IT.splice(i,1);renderAll()});
+    $$("[data-addm]",p).forEach(b=>b.onclick=()=>addMaterial(pt,b.dataset.addm||null));
+    bindItens(p);
+    $("#pDel").onclick=()=>modal(`<h2>Excluir o ponto ${pt.numero}?</h2><p class="note">As estruturas, os materiais e os vãos ligados a ele também serão apagados.</p>`,async()=>{
+      await chk(O.from("orc_pontos").delete().eq("id",pt.id));PTS.splice(PTS.indexOf(pt),1);
+      for(let i=VAOS.length-1;i>=0;i--)if(VAOS[i].ponto_a===pt.id||VAOS[i].ponto_b===pt.id)VAOS.splice(i,1);
+      for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_id===pt.id)IT.splice(i,1);selP=null;renderAll()});
+    // mantém abertas as estruturas que o usuário abriu
+    $$("details.est",p).forEach((d,k)=>{const key=pt.id+":"+k;if(abertos.has(key))d.open=true;d.ontoggle=()=>d.open?abertos.add(key):abertos.delete(key)});
+  }
+  const abertos=new Set();
+  function bindItens(p){
+    $$("[data-q]",p).forEach(inp=>inp.onchange=async()=>{const it=IT.find(i=>i.id===inp.dataset.q);const q=pnum(inp.value);
+      await chk(O.from("orc_ponto_itens").update({quantidade:q,editado:true}).eq("id",it.id));it.quantidade=q;it.editado=true;renderHead();renderSide()});
+    $$("[data-di]",p).forEach(b=>b.onclick=async()=>{await chk(O.from("orc_ponto_itens").delete().eq("id",b.dataset.di));const k=IT.findIndex(i=>i.id===b.dataset.di);const it=IT[k];IT.splice(k,1);
+      if(it.ponto_estrutura_id)await chk(O.from("orc_ponto_itens").update({editado:true}).eq("ponto_estrutura_id",it.ponto_estrutura_id)),IT.forEach(i=>{if(i.ponto_estrutura_id===it.ponto_estrutura_id)i.editado=true});renderHead();renderSide()});
+  }
+  function addMaterial(pt,peId){
+    modal(`<h2>Adicionar material</h2><label class="fld">Material<input name="m" list="dlMat" required placeholder="Digite parte do nome ou o código"></label>
+     <datalist id="dlMat">${MATS.map(m=>`<option value="${esc(m.codigo)} · ${esc(m.nome)}">`).join("")}</datalist>
+     <label class="fld">Quantidade<input name="q" value="1" inputmode="decimal" required></label>`,async f=>{
+      const cod=f.m.split(" · ")[0].trim();if(!MAT[cod]){toast("Escolha um material da lista.");return false}
+      const r=await chk(O.from("orc_ponto_itens").insert({ponto_id:pt.id,ponto_estrutura_id:peId,material_codigo:cod,quantidade:pnum(f.q),editado:true}).select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado").single());
+      IT.push(r);if(peId){IT.forEach(i=>{if(i.ponto_estrutura_id===peId)i.editado=true});await O.from("orc_ponto_itens").update({editado:true}).eq("ponto_estrutura_id",peId)}renderHead();renderSide()});
+  }
+  async function recarregaPonto(pid){
+    const [a,b]=await Promise.all([chk(O.from("orc_ponto_estruturas").select("id,ponto_id,estrutura_id,ordem").eq("ponto_id",pid)),chk(O.from("orc_ponto_itens").select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado").eq("ponto_id",pid))]);
+    for(let i=PE.length-1;i>=0;i--)if(PE[i].ponto_id===pid)PE.splice(i,1);for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_id===pid)IT.splice(i,1);PE.push(...a);IT.push(...b);
+  }
+  function paneVaos(p){
+    const v=selV&&VAOS.find(x=>x.id===selV);
+    const porTipo={};VAOS.forEach(x=>{const k=x.tipo_rede_id?TRM[x.tipo_rede_id].nome:(MAT[x.material_codigo]||{}).nome||"?";porTipo[k]=(porTipo[k]||0)+(+x.comprimento_m)});
+    p.innerHTML=(v?`<div class="row"><b>Vão ${ptById(v.ponto_a)?.numero} → ${ptById(v.ponto_b)?.numero}</b><button class="lnk" id="vBack">fechar</button></div>
+      <label class="fld">Tipo de rede<select id="vTipo">${TR.map(t=>`<option value="${t.id}" ${t.id===v.tipo_rede_id?"selected":""}>${esc(t.nome)}</option>`).join("")}</select></label>
+      <div class="grid2"><label class="fld">Comprimento (m)${v.manual?' · <b style="color:var(--warn)">manual</b>':""}<input id="vLen" value="${num(v.comprimento_m,2)}" inputmode="decimal"></label>
+      <label class="fld">Sobra % (vazio = ${num(ORC.sobra_condutor_pct)}%)<input id="vSob" value="${v.sobra_pct??""}" inputmode="decimal"></label></div>
+      <div class="row">${v.manual?'<button class="lnk" id="vAuto">Voltar a medir pela planta</button>':"<span></span>"}<button class="btn del sm" id="vDel">Excluir vão</button></div><hr style="border:0;border-top:1px solid var(--line);width:100%">`:"")
+     +`<p class="note">Para lançar rede, escolha o tipo na barra da planta e toque nos postes em sequência. Cada vão é medido pela escala da planta.</p>
+      <div class="lbl">Totais por tipo de rede</div>${Object.entries(porTipo).map(([k,m])=>`<div class="kv"><span>${esc(k)}</span><b>${num(m,1)} m</b></div>`).join("")||'<p class="note">Nenhum vão lançado.</p>'}
+      <label class="fld" style="max-width:200px">Sobra padrão dos condutores (%)<input id="vSobP" value="${num(ORC.sobra_condutor_pct)}" inputmode="decimal"></label>`;
+    $("#vSobP").onchange=async e=>{const s=pnum(e.target.value);await chk(O.from("orcamentos").update({sobra_condutor_pct:s}).eq("id",ORC.id));ORC.sobra_condutor_pct=s;renderHead();renderSide()};
+    if(!v)return;
+    $("#vBack").onclick=()=>{selV=null;renderNet();renderSide()};
+    $("#vTipo").onchange=async e=>{await chk(O.from("orc_vaos").update({tipo_rede_id:+e.target.value}).eq("id",v.id));v.tipo_rede_id=+e.target.value;renderAll()};
+    $("#vLen").onchange=async e=>{const m=pnum(e.target.value);await chk(O.from("orc_vaos").update({comprimento_m:m,manual:true}).eq("id",v.id));v.comprimento_m=m;v.manual=true;renderAll()};
+    $("#vSob").onchange=async e=>{const s=e.target.value.trim()===""?null:pnum(e.target.value);await chk(O.from("orc_vaos").update({sobra_pct:s}).eq("id",v.id));v.sobra_pct=s;renderHead();renderSide()};
+    $("#vAuto")&&($("#vAuto").onclick=async()=>{if(!escala){toast("Calibre a escala primeiro.");return}const m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:m,manual:false}).eq("id",v.id));v.comprimento_m=m;v.manual=false;renderAll()});
+    $("#vDel").onclick=async()=>{await chk(O.from("orc_vaos").delete().eq("id",v.id));VAOS.splice(VAOS.indexOf(v),1);selV=null;renderAll()};
+  }
+  function paneMat(p){
+    const A=agregado().map(l=>({...l,m:MAT[l.c]||{nome:l.c,subgrupo:"?"}})).sort((a,b)=>(a.m.subgrupo||"").localeCompare(b.m.subgrupo||"")||a.m.nome.localeCompare(b.m.nome));
+    const f=fMat.toLowerCase(),F=A.filter(l=>!f||l.m.nome.toLowerCase().includes(f)||l.c.includes(f));
+    const grupos={};F.forEach(l=>(grupos[l.m.subgrupo||"SEM SUBGRUPO"]=grupos[l.m.subgrupo||"SEM SUBGRUPO"]||[]).push(l));
+    const semPreco=A.filter(l=>preco(l.c)==null).length;
+    p.innerHTML=`<div class="row"><div class="seg2"><button data-mp="base" class="${ORC.modo_preco==="base"?"on":""}">Acompanhar base</button><button data-mp="travado" class="${ORC.modo_preco==="travado"?"on":""}">Preços travados</button></div><b class="mono">${brl(total())}</b></div>
+     <p class="note">${ORC.modo_preco==="travado"?`Valores congelados${ORC.travado_em?" em "+new Date(ORC.travado_em).toLocaleDateString("pt-BR"):""}. Mudanças na base não alteram este orçamento.`:"Os valores seguem o preço vigente da base de materiais."} Preço editado aqui vale só para este orçamento (linha amarela).</p>
+     ${semPreco?`<p class="note" style="color:var(--danger)">${semPreco} material(is) sem preço na base.</p>`:""}
+     <input id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)">
+     ${Object.entries(grupos).map(([g,L])=>`<div><div class="sg"><span>${esc(g)}</span><span class="mono">${num(soma(L))}</span></div><table class="its">${L.map(l=>{const o=OP[l.c],pr=preco(l.c);
+       return `<tr class="${o&&o.manual?"man":""}"><td class="m">${esc(l.m.nome)}<small>${esc(l.c)} · ${num(l.q,2)} ${esc(l.m.unidade||"")}</small></td><td class="q"><input class="mono pr" data-pr="${esc(l.c)}" value="${pr==null?"":num(pr,4)}" inputmode="decimal" title="Preço unitário"></td><td class="v mono">${num(l.q*(pr||0))}</td><td class="x">${o&&o.manual?`<button class="xb" data-rp="${esc(l.c)}" title="Voltar ao preço da base">↺</button>`:""}</td></tr>`}).join("")}</table></div>`).join("")}`;
+    $("#mF").oninput=e=>{fMat=e.target.value;const pos=e.target.selectionStart;paneMat(p);const i=$("#mF");i.focus();i.setSelectionRange(pos,pos)};
+    $$("[data-mp]",p).forEach(b=>b.onclick=async()=>{if(b.dataset.mp===ORC.modo_preco)return;
+      if(b.dataset.mp==="travado"){await chk(O.rpc("travar_precos",{p_orc:ORC.id}));ORC.modo_preco="travado";ORC.travado_em=new Date().toISOString()}
+      else{await chk(O.from("orcamentos").update({modo_preco:"base"}).eq("id",ORC.id));ORC.modo_preco="base"}
+      OP=Object.fromEntries((await chk(O.from("orc_precos").select("material_codigo,preco_unit,manual").eq("orcamento_id",ORC.id))).map(x=>[x.material_codigo,{v:+x.preco_unit,manual:x.manual}]));renderHead();renderSide()});
+    $$("[data-pr]",p).forEach(inp=>inp.onchange=async()=>{const c=inp.dataset.pr,v=pnum(inp.value);
+      await chk(O.from("orc_precos").upsert({orcamento_id:ORC.id,material_codigo:c,preco_unit:v,manual:true}));OP[c]={v,manual:true};renderHead();renderSide()});
+    $$("[data-rp]",p).forEach(b=>b.onclick=async()=>{const c=b.dataset.rp;
+      if(ORC.modo_preco==="travado"&&VIG[c]!=null){await chk(O.from("orc_precos").update({preco_unit:VIG[c],manual:false}).eq("orcamento_id",ORC.id).eq("material_codigo",c));OP[c]={v:VIG[c],manual:false}}
+      else{await chk(O.from("orc_precos").delete().eq("orcamento_id",ORC.id).eq("material_codigo",c));delete OP[c]}renderHead();renderSide()});
+  }
+  async function paneDados(p){
+    p.innerHTML=`<label class="fld">Título<input id="dT" value="${esc(ORC.titulo)}"></label>
+     <label class="fld">Cliente<input id="dC" value="${esc(ORC.cliente||"")}"></label>
+     <div class="grid2"><label class="fld">Situação<select id="dS">${["rascunho","enviado","aprovado","perdido","cancelado"].map(s=>`<option ${s===ORC.status?"selected":""}>${s}</option>`).join("")}</select></label>
+     <label class="fld">Concessionária<input value="${esc((CONCS.find(c=>c.id===conc)||{}).sigla||"")}" disabled></label></div>
+     <label class="fld">Negócio do comercial<select id="dN"><option value="">— nenhum —</option></select></label>
+     <label class="fld">Observações<textarea id="dO" rows="4">${esc(ORC.obs||"")}</textarea></label>
+     <div class="row"><span></span><button class="btn del sm" id="dDel">Excluir orçamento</button></div>`;
+    const sv=(k,v)=>chk(O.from("orcamentos").update({[k]:v,atualizado_em:new Date().toISOString()}).eq("id",ORC.id)).then(()=>{ORC[k]=v;renderHead()});
+    $("#dT").onchange=e=>sv("titulo",e.target.value.trim()||ORC.titulo);$("#dC").onchange=e=>sv("cliente",e.target.value.trim()||null);
+    $("#dS").onchange=e=>sv("status",e.target.value);$("#dO").onchange=e=>sv("obs",e.target.value);$("#dN").onchange=e=>sv("negocio_id",e.target.value||null);
+    $("#dDel").onclick=()=>modal(`<h2>Excluir “${esc(ORC.titulo)}”?</h2><p class="note">Pontos, estruturas e vãos deste orçamento serão apagados. Não dá para desfazer.</p>`,async()=>{await chk(O.from("orcamentos").delete().eq("id",ORC.id));location.href="orcarede.html"});
+    const {data:ns}=await sb.from("negocios").select("id,titulo,cliente").order("criado_em",{ascending:false}).limit(500);
+    const sel=$("#dN");if(sel&&ns)sel.innerHTML=`<option value="">— nenhum —</option>`+ns.map(n=>`<option value="${n.id}" ${n.id===ORC.negocio_id?"selected":""}>${esc(n.titulo)}</option>`).join("");
+  }
+
+  /* ---------- planta: pinos e rede ---------- */
+  const wrap=$("#map"),stage=$("#stage"),img=$("#img"),blank=$("#blank");
+  let T={x:0,y:0,s:.2};
+  function setPlanta(){D=dims();if(ORC.planta_url){img.hidden=false;img.src=ORC.planta_url;img.width=D.w;img.height=D.h;blank.hidden=true}else{img.hidden=true;blank.hidden=false;blank.style.width=D.w+"px";blank.style.height=D.h+"px"}}
+  const inv=()=>Math.min(1/T.s,40);
+  function apply(){stage.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`;$("#pins").style.setProperty("--inv",inv());renderNet()}
+  function fit(){const r=wrap.getBoundingClientRect();if(!r.width)return;const s=Math.min(r.width/D.w,r.height/D.h)*.98;T={s,x:(r.width-D.w*s)/2,y:(r.height-D.h*s)/2};apply()}
+  function centrar(p){if(!p)return;const r=wrap.getBoundingClientRect();T.x=r.width/2-p.x*T.s;T.y=r.height/2-p.y*T.s;apply()}
+  function zoomAt(f,cx,cy){const r=wrap.getBoundingClientRect();const minS=Math.min(r.width/D.w,r.height/D.h)*.5;const ns=Math.max(minS,Math.min(4,T.s*f));f=ns/T.s;T.x=cx-(cx-T.x)*f;T.y=cy-(cy-T.y)*f;T.s=ns;apply()}
+  function renderMapbar(){
+    const b=$("#mapbar");
+    b.innerHTML=`<button class="btn ${placing?"on":""}" id="mPlace">${placing?"Cancelar":"+ Ponto"}</button>`
+      +TR.map(t=>`<button class="btn ${tracing===t.id?"on":""}" data-tr="${t.id}"><span class="dot" style="border-color:${t.cor}"></span>${tracing===t.id?"Concluir":"Traçar"} ${esc(t.nome)}</button>`).join("")
+      +`<button class="btn ${calib?"on":""}" id="mCal">${calib?"Cancelar escala":"Escala"}</button>`;
+    $("#mPlace").onclick=()=>{placing=!placing;tracing=null;anchor=null;calib=null;renderMapbar();updHint();renderPins()};
+    $$("[data-tr]",b).forEach(x=>x.onclick=()=>{if(!escala&&tracing!==+x.dataset.tr){toast("Calibre a escala da planta antes de traçar a rede.");return}tracing=tracing===+x.dataset.tr?null:+x.dataset.tr;anchor=null;placing=false;calib=null;renderMapbar();updHint();renderPins()});
+    $("#mCal").onclick=()=>{calib=calib?null:[];placing=false;tracing=null;anchor=null;renderMapbar();updHint();renderNet()};
+    b.onpointerdown=e=>e.stopPropagation();
+  }
+  function updHint(){wrap.classList.toggle("place",placing);wrap.classList.toggle("trace",!!tracing);wrap.classList.toggle("calib",!!calib);const h=$("#hint");
+    h.hidden=!(placing||tracing||calib);
+    h.textContent=placing?"Toque na planta onde fica o ponto":tracing?(anchor?"Toque no próximo poste · toque no vazio para começar outro trecho":"Toque no poste de início"):calib?(calib.length?"Agora toque no segundo ponto da medida conhecida":"Toque no primeiro ponto de uma medida conhecida (ex.: cota de 100 m)"):""}
+  function renderPins(){
+    $("#pins").innerHTML=PTS.map(p=>`<button class="pin ${p.poste_id?"poste":"vazio"} ${p.id===selP?"sel":""} ${p.id===anchor?"anchor":""}" data-id="${p.id}" style="left:${p.x}px;top:${p.y}px" title="${esc(p.titulo||"")}">${p.numero}</button>`).join("");
+    $$("#pins .pin").forEach(b=>{
+      b.onpointerdown=e=>{e.stopPropagation();if(tracing||placing||calib||b.dataset.id!==selP)return;
+        const p=ptById(b.dataset.id),sx=e.clientX,sy=e.clientY,ox=p.x,oy=p.y;let dragged=false;b.setPointerCapture(e.pointerId);
+        b.onpointermove=ev=>{if(!dragged&&Math.hypot(ev.clientX-sx,ev.clientY-sy)<5)return;dragged=true;p.x=Math.round(ox+(ev.clientX-sx)/T.s);p.y=Math.round(oy+(ev.clientY-sy)/T.s);b.style.left=p.x+"px";b.style.top=p.y+"px";renderNet()};
+        b.onpointerup=b.onpointercancel=async()=>{b.onpointermove=null;b.onpointerup=null;if(!dragged)return;b._drag=1;await chk(O.from("orc_pontos").update({x:p.x,y:p.y}).eq("id",p.id));await remedir(p.id);renderHead();renderSide()}};
+      b.onclick=e=>{e.stopPropagation();if(b._drag){b._drag=0;return}
+        if(tracing){traceTap(b.dataset.id);return}if(placing||calib)return;
+        selP=b.dataset.id;selV=null;tab="ponto";renderPins();renderSide()}});
+    renderNet();
+  }
+  async function remedir(pid){if(!escala)return;for(const v of VAOS.filter(v=>!v.manual&&(v.ponto_a===pid||v.ponto_b===pid))){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}}
+  async function traceTap(id){
+    if(!anchor||anchor===id){anchor=id;renderPins();updHint();return}
+    const dup=VAOS.some(g=>g.tipo_rede_id===tracing&&((g.ponto_a===anchor&&g.ponto_b===id)||(g.ponto_a===id&&g.ponto_b===anchor)));
+    if(!dup){const v={orcamento_id:ORC.id,ponto_a:anchor,ponto_b:id,tipo_rede_id:tracing,comprimento_m:0};v.comprimento_m=+(lenPx(v)*escala).toFixed(2);
+      const r=await chk(O.from("orc_vaos").insert(v).select("*").single());VAOS.push(r);renderHead()}
+    anchor=id;renderPins();updHint();
+  }
+  function renderNet(){
+    const svg=$("#net");svg.setAttribute("width",D.w);svg.setAttribute("height",D.h);const w=inv();
+    const ordem=Object.fromEntries(TR.map((t,i)=>[t.id,i]));
+    svg.innerHTML=VAOS.map(g=>{const a=ptById(g.ponto_a),b=ptById(g.ponto_b);if(!a||!b)return"";const t=TRM[g.tipo_rede_id]||{cor:"#555"};
+      const k=(ordem[g.tipo_rede_id]||0),dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1;let nx=-dy/L,ny=dx/L;if(ny<0||(ny===0&&nx<0)){nx=-nx;ny=-ny}
+      const off=(k===0?0:(k%2?1:-1)*Math.ceil(k/2)*8)*w,ax=a.x+nx*off,ay=a.y+ny*off,bx=b.x+nx*off,by=b.y+ny*off,sel=g.id===selV;
+      const mx=(ax+bx)/2+nx*12*w,my=(ay+by)/2+ny*12*w;
+      return `<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="${t.cor}" stroke-width="${(sel?7:4)*w}"/><line class="hit" data-v="${g.id}" x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke-width="${14*w}"/>${T.s>.35||sel?`<text x="${mx}" y="${my}" font-size="${11*w}" stroke-width="${3*w}" fill="${t.cor}" text-anchor="middle">${num(g.comprimento_m,0)}</text>`:""}`}).join("")
+      +(calib&&calib.length?`<circle cx="${calib[0].x}" cy="${calib[0].y}" r="${6*w}" fill="#c2185b"/>`:"");
+    $$("[data-v]",svg).forEach(l=>{l.onpointerdown=e=>e.stopPropagation();l.onclick=e=>{e.stopPropagation();if(tracing||placing||calib)return;selV=l.dataset.v;selP=null;tab="vaos";renderPins();renderSide()}});
+  }
+  $("#zin").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1.5,r.width/2,r.height/2)};
+  $("#zout").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1/1.5,r.width/2,r.height/2)};
+  $("#zfit").onclick=fit;["zin","zout","zfit"].forEach(i=>$("#"+i).onpointerdown=e=>e.stopPropagation());
+  wrap.addEventListener("wheel",e=>{e.preventDefault();const r=wrap.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
+  const ptrs=new Map();let moved=0,pinch=null;
+  wrap.addEventListener("pointerdown",e=>{wrap.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}}wrap.classList.add("drag")});
+  wrap.addEventListener("pointermove",e=>{const p=ptrs.get(e.pointerId);if(!p)return;const r=wrap.getBoundingClientRect();
+    if(ptrs.size===2&&pinch){p.x=e.clientX;p.y=e.clientY;const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);zoomAt(d/pinch.d,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top);pinch.d=d;moved+=10;return}
+    const dx=e.clientX-p.x,dy=e.clientY-p.y;moved+=Math.abs(dx)+Math.abs(dy);T.x+=dx;T.y+=dy;p.x=e.clientX;p.y=e.clientY;apply()});
+  const up=async e=>{const had=ptrs.has(e.pointerId);ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size)wrap.classList.remove("drag");
+    if(!(had&&e.type==="pointerup"&&moved<6&&!ptrs.size))return;
+    const r=wrap.getBoundingClientRect(),x=Math.round((e.clientX-r.left-T.x)/T.s),y=Math.round((e.clientY-r.top-T.y)/T.s);
+    if(placing){placing=false;renderMapbar();updHint();
+      const n=PTS.reduce((m,p)=>Math.max(m,p.numero),0)+1;
+      const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:n,x,y}).select("*").single());PTS.push(pt);selP=pt.id;selV=null;tab="ponto";renderAll();setTimeout(()=>$("#pPoste")&&$("#pPoste").focus(),30)}
+    else if(calib){calib.push({x,y});if(calib.length<2){renderNet();updHint();return}
+      const px=Math.hypot(calib[1].x-calib[0].x,calib[1].y-calib[0].y);const c=calib;calib=null;renderMapbar();updHint();renderNet();
+      if(px<5){toast("Os dois pontos ficaram muito próximos.");return}
+      modal(`<h2>Calibrar escala</h2><p class="note">Qual é a distância real entre os dois pontos que você marcou?</p><label class="fld">Distância (m)<input name="m" inputmode="decimal" required></label>
+       <p class="note">Os vãos já lançados (exceto os de comprimento manual) serão medidos de novo.</p>`,async f=>{const m=pnum(f.m);if(!(m>0))return false;escala=m/px;
+        await chk(O.from("orcamentos").update({escala_m_por_unid:escala}).eq("id",ORC.id));ORC.escala_m_por_unid=escala;
+        for(const v of VAOS.filter(v=>!v.manual)){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}renderAll();toast("Escala calibrada.")});
+      void c}
+    else if(tracing&&anchor){anchor=null;renderPins();updHint()}
+    else if(selP||selV){selP=null;selV=null;renderPins();renderSide()}};
+  wrap.addEventListener("pointerup",up);wrap.addEventListener("pointercancel",up);
+  new ResizeObserver(()=>{if(!wrap._fit&&wrap.clientWidth){wrap._fit=1;fit()}}).observe(wrap);
+
+  /* ---------- trocar planta (PDF ou imagem) ---------- */
+  let pdfReady=null;
+  const pdfjs=()=>pdfReady||(pdfReady=loadScript("vendor/pdf.worker.min.js").then(()=>loadScript("vendor/pdf.min.js")).then(()=>window.pdfjsLib));
+  $("#bPlanta").onclick=()=>{
+    const m=document.createElement("div");m.className="modal";
+    m.innerHTML=`<div class="box wide"><h2>Planta do projeto</h2>
+     <p class="note">Escolha o PDF do projeto ou uma imagem. Depois arraste sobre o desenho para recortar só a área da rede. Em PDF, informe a escala do desenho e a metragem sai direto; em imagem, use o botão <b>Escala</b> na planta para calibrar.</p>
+     <div class="row" style="justify-content:flex-start"><label class="btn pri" style="position:relative;overflow:hidden">Escolher arquivo<input type="file" accept="application/pdf,image/*" id="pFile" style="position:absolute;inset:0;opacity:0"></label>
+     <label class="fld" id="pPageW" hidden>Página <select id="pPage"></select></label>
+     <label class="fld">Escala do desenho 1:<input type="number" id="pEsc" value="1000" min="1" style="width:100px"></label></div>
+     <div class="crop" id="pCrop" hidden><canvas id="pCv"></canvas><div class="sel" id="pSel" hidden></div></div><p class="note" id="pMsg"></p>
+     ${PTS.length?`<p class="note">Os ${PTS.length} pontos já lançados continuam nas mesmas posições: use uma planta com o mesmo enquadramento ou reposicione os pontos depois.</p>`:""}
+     <div class="row"><span></span><span style="display:flex;gap:8px"><button class="btn" id="pCancel">Cancelar</button><button class="btn pri" id="pOk" disabled>Usar seleção</button></span></div></div>`;
+    document.body.appendChild(m);
+    const cv=$("#pCv",m),sel=$("#pSel",m),msg=$("#pMsg",m);let k=1,isPdf=false,pdf=null,R=null;
+    $("#pCancel",m).onclick=()=>m.remove();
+    async function renderPage(n){msg.textContent="Gerando a imagem da página…";const page=await pdf.getPage(n);const vp1=page.getViewport({scale:1});
+      k=Math.min(7000/Math.max(vp1.width,vp1.height),Math.sqrt(16e6/(vp1.width*vp1.height)));const vp=page.getViewport({scale:k});
+      cv.width=Math.floor(vp.width);cv.height=Math.floor(vp.height);const x=cv.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,cv.width,cv.height);await page.render({canvasContext:x,viewport:vp}).promise;shown()}
+    function shown(){$("#pCrop",m).hidden=false;R={x:0,y:0,w:cv.width,h:cv.height};drawSel();$("#pOk",m).disabled=false;msg.textContent="Arraste sobre o desenho para recortar. Sem recorte, a página inteira é usada."}
+    function drawSel(){const sc=cv.clientWidth/cv.width;sel.hidden=false;Object.assign(sel.style,{left:R.x*sc+"px",top:R.y*sc+"px",width:R.w*sc+"px",height:R.h*sc+"px"})}
+    $("#pFile",m).onchange=async e=>{const f=e.target.files[0];if(!f)return;
+      try{if(f.type==="application/pdf"||/\.pdf$/i.test(f.name)){isPdf=true;msg.textContent="Abrindo PDF…";const lib=await pdfjs();
+          pdf=await lib.getDocument({data:new Uint8Array(await f.arrayBuffer()),isEvalSupported:false}).promise;
+          const ps=$("#pPage",m);ps.innerHTML=Array.from({length:pdf.numPages},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join("");$("#pPageW",m).hidden=pdf.numPages<2;ps.onchange=()=>renderPage(+ps.value);await renderPage(1)}
+        else{isPdf=false;const u=URL.createObjectURL(f);const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=u});const s=Math.min(1,7000/Math.max(im.naturalWidth,im.naturalHeight));
+          cv.width=Math.round(im.naturalWidth*s);cv.height=Math.round(im.naturalHeight*s);const x=cv.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,cv.width,cv.height);x.drawImage(im,0,0,cv.width,cv.height);URL.revokeObjectURL(u);k=null;shown()}}
+      catch(err){msg.textContent="Não consegui abrir o arquivo. Tente outro PDF ou uma imagem JPG/PNG."}};
+    let st=null;const crop=$("#pCrop",m);
+    const pos=e=>{const r=cv.getBoundingClientRect(),sc=cv.width/r.width;return{x:Math.max(0,Math.min(cv.width,(e.clientX-r.left)*sc)),y:Math.max(0,Math.min(cv.height,(e.clientY-r.top)*sc))}};
+    crop.onpointerdown=e=>{crop.setPointerCapture(e.pointerId);st=pos(e)};
+    crop.onpointermove=e=>{if(!st)return;const p=pos(e);R={x:Math.min(st.x,p.x),y:Math.min(st.y,p.y),w:Math.abs(p.x-st.x),h:Math.abs(p.y-st.y)};drawSel()};
+    crop.onpointerup=()=>{st=null;if(R.w<40||R.h<40)R={x:0,y:0,w:cv.width,h:cv.height};drawSel()};
+    $("#pOk",m).onclick=async()=>{const ok=$("#pOk",m);ok.disabled=true;ok.textContent="Enviando…";
+      try{const out=document.createElement("canvas");out.width=Math.round(R.w);out.height=Math.round(R.h);out.getContext("2d").drawImage(cv,R.x,R.y,R.w,R.h,0,0,out.width,out.height);
+        const blob=await new Promise(r=>out.toBlob(r,"image/jpeg",.85));
+        const path=`orcarede/${ORC.id}/${Date.now().toString(36)}.jpg`;
+        const {error}=await sb.storage.from("negocios").upload(path,blob,{contentType:"image/jpeg",upsert:false});if(error)throw error;
+        const url=sb.storage.from("negocios").getPublicUrl(path).data.publicUrl;
+        const upd={planta_url:url,planta_w:out.width,planta_h:out.height,planta_tipo:isPdf?"pdf":"imagem"};
+        if(isPdf&&k){const esc1=parseFloat($("#pEsc",m).value)||1000;upd.escala_m_por_unid=(esc1/1000)/(k*72/25.4)}else upd.escala_m_por_unid=null;
+        await chk(O.from("orcamentos").update(upd).eq("id",ORC.id));Object.assign(ORC,upd);escala=+ORC.escala_m_por_unid||0;
+        if(escala)for(const v of VAOS.filter(v=>!v.manual)){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}
+        setPlanta();fit();renderAll();m.remove();toast(escala?"Planta atualizada com escala.":"Planta atualizada. Use o botão Escala para calibrar.")}
+      catch(err){console.error(err);ok.disabled=false;ok.textContent="Usar seleção";msg.textContent="Não foi possível enviar a planta"+(err&&err.message?" ("+err.message+")":"")+"."}};
+  };
+
+  /* ---------- exportar Excel ---------- */
+  $("#bXls").onclick=async()=>{
+    const X=window.XLSX||(await loadScript("vendor/xlsx.full.min.js"),window.XLSX);
+    const nm=c=>(MAT[c]||{}).nome||c,un=c=>(MAT[c]||{}).unidade||"",sg=c=>(MAT[c]||{}).subgrupo||"";
+    const r2=n=>Math.round(n*100)/100;
+    const A=agregado().sort((a,b)=>sg(a.c).localeCompare(sg(b.c))||nm(a.c).localeCompare(nm(b.c)));
+    const mats=[["Código","Material","Subgrupo","Unidade","Quantidade","Preço unitário (R$)","Subtotal (R$)"],...A.map(l=>[l.c,nm(l.c),sg(l.c),un(l.c),r2(l.q),preco(l.c)??"",r2(l.q*(preco(l.c)||0))]),[],["","TOTAL","","","","",r2(total())]];
+    const pp=[["Ponto","Descrição","Poste","Estrutura","Código","Material","Unidade","Quantidade","Preço unitário (R$)","Subtotal (R$)"]];
+    PTS.forEach(p=>{const ps=POM[p.poste_id];if(ps)pp.push([p.numero,p.titulo||"",ps.codigo,"POSTE",ps.material_codigo,nm(ps.material_codigo),un(ps.material_codigo),1,preco(ps.material_codigo)??"",r2(preco(ps.material_codigo)||0)]);
+      IT.filter(i=>i.ponto_id===p.id).forEach(i=>{const e=PE.find(x=>x.id===i.ponto_estrutura_id);pp.push([p.numero,p.titulo||"",ps?ps.codigo:"",e?(ESTM[e.estrutura_id]||{}).codigo:"AVULSO",i.material_codigo,nm(i.material_codigo),un(i.material_codigo),+i.quantidade,preco(i.material_codigo)??"",r2(i.quantidade*(preco(i.material_codigo)||0))])})});
+    const vv=[["De","Para","Tipo de rede","Comprimento (m)","Sobra %","Material","Quantidade","Subtotal (R$)"]];
+    VAOS.forEach(v=>linhasVao(v).forEach(l=>vv.push([ptById(v.ponto_a)?.numero,ptById(v.ponto_b)?.numero,(TRM[v.tipo_rede_id]||{}).nome||"",+v.comprimento_m,sobra(v),nm(l.c),r2(l.q),r2(l.q*(preco(l.c)||0))])));
+    const wb=X.utils.book_new();
+    const inf=[["Orçamento",ORC.titulo],["Cliente",ORC.cliente||""],["Concessionária",(CONCS.find(c=>c.id===conc)||{}).sigla||""],["Preços",ORC.modo_preco==="travado"?"Travados":"Base vigente"],["Pontos",PTS.length],["Total de material (R$)",r2(total())],["Exportado em",new Date().toLocaleString("pt-BR")]];
+    [[inf,"Informações"],[mats,"Materiais"],[pp,"Por ponto"],[vv,"Vãos"]].forEach(([d,n])=>X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet(d),n));
+    X.writeFile(wb,`${ORC.titulo.replace(/[\\/:*?"<>|]/g,"_")}_materiais.xlsx`);
+  };
+
+  setPlanta();renderAll();
+}
+})().catch(e=>{console.error(e);document.getElementById("root").innerHTML=`<div class="erro"><h1>OrçaRede</h1><p>Erro inesperado: ${String(e.message||e).replace(/</g,"&lt;")}</p><a href="index.html">Ir para o início</a></div>`});
+</script>
+</body>
+</html>
