@@ -117,7 +117,7 @@ header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}header .b
 .pinx{filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}.pinx.fraco{opacity:.75}
 .pop{display:grid;gap:4px;min-width:230px;font-family:var(--f)}.pop small{color:#5a6f83}.pop .tipo{justify-self:start}
 .leaflet-popup-content{margin:12px 14px}
-.areas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.areas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .areas a,.areas button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 12px;text-align:left;display:grid;gap:2px}
 .areas a b,.areas button b{font-size:14px}.areas a small,.areas button small{font-size:11.5px;color:var(--muted)}
 .areas a.on,.areas button.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 -3px 0 var(--accent)}
@@ -151,7 +151,7 @@ header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}header .b
  .bar input{min-width:0;flex:1 1 100%}
  .board{min-height:70dvh;align-items:stretch}.col{max-height:none}
  header{gap:8px}header h1{font-size:15px}
- .areas{grid-template-columns:repeat(3,1fr)!important;gap:6px!important}.areas a,.areas button{padding:8px 6px!important;text-align:center}.areas a b,.areas button b{font-size:12.5px}
+ .areas{grid-template-columns:repeat(4,1fr)!important;gap:6px!important}.areas a,.areas button{padding:8px 6px!important;text-align:center}.areas a b,.areas button b{font-size:12.5px}
  .gvp.win{inset:0!important;left:0!important;top:0!important;width:100vw!important;height:100dvh!important;min-width:0!important;min-height:0!important;border-radius:0!important;resize:none!important}
  .grab{display:none!important}
  .board{scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}.col{scroll-snap-align:start}
@@ -229,6 +229,7 @@ const eu=perfil.id,ADM=perfil.papel==="admin";
 /* ---------- dados ---------- */
 let verFiltros=false,LEMB=[],verSaidos=(()=>{try{return localStorage.getItem("neg.saidos")!=="0"}catch(e){return true}})(),AREAS=[],ACESSO={},fArea="",U=[],QUADROS={},COLS=[],ETQ=[],LISTAS={tipo:[],origem:[],pagto:[],conc:[]},CARDS=[],PERM={},CRIA={},INBOX=[];
 let quadro=(()=>{try{return localStorage.getItem("neg.quadro")||"eletrica"}catch(e){return"eletrica"}})();
+{const qq=new URLSearchParams(location.search).get("q");if(qq==="eletrica"||qq==="solar")quadro=qq;}
 let busca="",fEtq="",soMeus=false,aberto=null,abaCard="resumo",win=null,gravando=null;
 const uById=id=>U.find(u=>u.id===id)||{id,nome:"(removido)",sig:"?",cor:"#999",setor:""};
 const colsDe=q=>COLS.filter(c=>c.quadro===q).sort((a,b)=>a.ordem-b.ordem);
@@ -282,7 +283,7 @@ async function salvarCampos(c,campos){
 }
 
 /* ---------- tela ---------- */
-function navHtml(){return `<nav class="areas"><a class="on" href="negocios.html"><b>💼 Negócios</b><small>Elétrica e Solar · do comercial às compras</small></a><a href="index.html#kanban" data-aba="kanban"><b>⚡ Gerenciador de obras</b><small>Obras elétricas · postes, rede, fotos, diário</small></a><a href="index.html#inicio" data-aba="inicio"><b>📍 Mapa</b><small>Todas as obras e instalações</small></a></nav>`}
+function navHtml(){return `<nav class="areas"><a href="index.html#painel"><b>🏠 Início</b><small>Painel geral</small></a><a class="on" href="negocios.html"><b>💼 Negócios</b><small>Elétrica e Solar · do comercial às compras</small></a><a href="index.html#kanban" data-aba="kanban"><b>🏗️ Obras</b><small>Obras elétricas · postes, rede, fotos, diário</small></a><a href="index.html#inicio" data-aba="inicio"><b>📍 Mapa</b><small>Todas as obras e instalações</small></a></nav>`}
 function render(){
   const Q=QUADROS[quadro]||{nome:"",cor:"#999"},todas=colsDe(quadro),cols=todas.filter(c=>veCol(c.id)&&(!fArea||c.area===fArea));
   const mAreas=minhasAreas().filter(a=>todas.some(c=>c.area===a.id));

@@ -140,6 +140,26 @@ button.kp:hover{border-color:var(--c)}
 @media (max-width:720px){.board{grid-auto-flow:column;grid-template-columns:none!important;grid-auto-columns:82vw;scroll-snap-type:x mandatory}.col{scroll-snap-align:start}}
 .nlbls{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px}.nlbls span{color:#fff;font-size:10.5px;font-weight:700;border-radius:5px;padding:1px 7px}
 .nref{font-size:11.5px;color:var(--muted);margin:3px 0}.nref a{color:var(--accent);font-weight:700;text-decoration:none}
+.pn{display:grid;gap:14px}
+.pn-hi{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.pn-hi h2{margin:0;font-size:22px}.pn-hi p{margin:2px 0 0;text-transform:none}
+.mods{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.mod{position:relative;display:grid;gap:2px;background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--m);border-radius:14px;padding:14px 16px;text-decoration:none;color:var(--ink);transition:transform .15s,box-shadow .15s}
+.mod:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.12)}
+.mi{font-size:22px}.mt{font-weight:700;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.mb{font-size:32px;font-weight:800;line-height:1.1}.ms{font-size:12.5px;color:var(--muted)}
+.mbar{display:block;height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:6px}.mbar b{display:block;height:100%;background:var(--ok)}
+.pn-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pcx{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:6px;align-content:start}
+.pcx h3{margin:0 0 4px;font-size:15px}.pcx h4{margin:8px 0 2px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.pcx-k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pk{background:var(--bg);border-radius:10px;padding:10px;text-decoration:none;color:var(--ink);display:grid}.pk b{font-size:24px}.pk span{font-size:11.5px;color:var(--muted)}
+.li{display:flex;gap:10px;align-items:center;padding:7px 8px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:13px}.li:hover{background:var(--accent-soft)}
+.li small{display:block;color:var(--muted);font-size:11.5px}.li .lq{font-family:var(--f-mono);font-size:12px;color:var(--muted);white-space:nowrap}.li.atr .lq{color:var(--bad);font-weight:700}
+.li .ob{flex:1;min-width:0}.li > span:not(.lq){flex:1;min-width:0}
+.fl{display:grid;grid-template-columns:minmax(110px,1.3fr) 2fr 26px 90px;gap:8px;align-items:center;text-decoration:none;color:var(--ink);font-size:12.5px;padding:3px 0}
+.fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fn i{font-style:normal;font-size:9.5px;font-weight:700;color:var(--a);border:1px solid var(--a);border-radius:5px;padding:0 4px;margin-left:5px;text-transform:uppercase}
+.fb{height:10px;background:var(--bg);border-radius:5px;overflow:hidden}.fb b{display:block;height:100%;border-radius:5px;min-width:2px}
+.fq{font-weight:700;text-align:right}.fv{font-size:11.5px;color:var(--muted);text-align:right}
+@media (max-width:900px){.mods{grid-template-columns:1fr 1fr}.pn-grid{grid-template-columns:1fr}}
+@media (max-width:520px){.fl{grid-template-columns:1fr 1fr 22px}.fv{display:none}.mb{font-size:26px}}
 </style>
 <script src="vendor/supabase.js"></script>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
@@ -201,8 +221,8 @@ function novaSenha(conv){
 
 /* ---------- dados ---------- */
 let fCol="",corPor=(()=>{try{return localStorage.getItem("on.cor")||"coluna"}catch(e){return"coluna"}})();
-let colunas=[],aba=(()=>{try{return localStorage.getItem("on.aba")||"inicio"}catch(e){return"inicio"}})(),fTipo="",mapa=null,camadaPinos=null;
-{const hA=location.hash.replace("#","");if(["kanban","inicio"].includes(hA))aba=hA;}
+let colunas=[],aba=(()=>{try{return"painel"}catch(e){return"painel"}})(),fTipo="",mapa=null,camadaPinos=null;
+{const hA=location.hash.replace("#","");if(["kanban","inicio","painel"].includes(hA))aba=hA;}
 const TIPOS_SUG=["Loteamento","Rede urbana","Rede rural","Subestação","Medição em MT","Usina fotovoltaica","Instalação MT/BT","Manutenção","Outro"];
 const PAL=["#2f6f9f","#d18b16","#1f8a4c","#c2185b","#6a4fb3","#00897b","#b3261e","#5d6b78","#8c6d1f","#1565c0"];
 function corTipo(t){if(!t)return"#8a96a3";let h=0;for(const c of t.toLowerCase())h=(h*31+c.charCodeAt(0))>>>0;const i=TIPOS_SUG.findIndex(x=>x.toLowerCase()===t.toLowerCase());return PAL[(i>=0?i:h)%PAL.length]}
@@ -249,16 +269,62 @@ async function contarAvisos(){try{const {count}=await sb.from("notificacoes").se
 /* ---------- estrutura ---------- */
 function render(){
   $("#app").innerHTML=`<div class="wrap">
-   <header><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1><small>Gerenciador de obras</small>${ADM()?"Todas as obras":"Minhas obras"}</h1>
-    <nav class="abas"><button data-aba="inicio" class="${aba==="inicio"?"on":""}">Início</button><button data-aba="kanban" class="${aba==="kanban"?"on":""}">Kanban</button><a class="abalink" href="negocios.html">💼 Negócios<b class="nbadge" id="nBadge" hidden></b></a></nav>
+   <header><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1><small>${aba==="painel"?"ON Engenharia":"Gerenciador de obras"}</small>${aba==="painel"?"Painel geral":ADM()?"Todas as obras":"Minhas obras"}</h1>
+    <nav class="abas"><button data-aba="painel" class="${aba==="painel"?"on":""}">🏠 Início</button><button data-aba="kanban" class="${aba==="kanban"?"on":""}">Obras</button><button data-aba="inicio" class="${aba==="inicio"?"on":""}">Mapa</button><a class="abalink" href="negocios.html">💼 Negócios<b class="nbadge" id="nBadge" hidden></b></a></nav>
     <div class="tools"><span class="who">${esc(perfil.nome||perfil.email)} · ${ADM()?"Administrador":"Executor"}</span>${ADM()?'<button class="btn" id="bU">Usuários</button>':""}<a class="btn" href="portfolio.html" target="_blank" rel="noopener">Portfólio</a><button class="btn" id="bS">Sair</button></div></header>
    <div id="corpo"></div></div>`;
   $("#bS").onclick=async()=>{await sb.auth.signOut();telaLogin()};
-  document.querySelectorAll("[data-aba]").forEach(b=>b.onclick=()=>{aba=b.dataset.aba;try{localStorage.setItem("on.aba",aba)}catch(e){}render()});
+  document.querySelectorAll("[data-aba]").forEach(b=>b.onclick=()=>{aba=b.dataset.aba;try{history.replaceState(null,"","#"+aba)}catch(e){}render()});
   if(ADM()){$("#bU").onclick=usuarios}
   const nb=$("#nBadge");if(nb){nb.hidden=!nAvisos;nb.textContent=nAvisos}
   if(mapa){mapa.remove();mapa=null}
-  aba==="inicio"?renderInicio():renderKanban();
+  aba==="painel"?renderPainel():aba==="inicio"?renderInicio():renderKanban();
+}
+window.addEventListener("hashchange",()=>{const h=location.hash.replace("#","");if(["kanban","inicio","painel"].includes(h)&&h!==aba&&perfil){aba=h;render()}});
+async function renderPainel(){
+  const corpo=$("#corpo");corpo.innerHTML='<p class="note" style="padding:20px">Carregando…</p>';
+  const eu=perfil.id,fimHoje=new Date();fimHoje.setHours(23,59,59,999);const em3=new Date(fimHoje.getTime()+3*864e5);
+  const q=async x=>{try{const r=await x;return r.data||[]}catch(e){return[]}};
+  const [N,C,A,AV,LB,H]=await Promise.all([
+    q(sb.from("negocios").select("id,quadro,coluna,valor,titulo,cliente,cidade,membros,resp,atualizado_em,obra_id")),
+    q(sb.from("neg_colunas").select("id,quadro,nome,cor,ordem,area").order("ordem")),
+    q(sb.from("neg_areas").select("id,nome,cor,ordem").order("ordem")),
+    q(sb.from("notificacoes").select("id,tipo,texto,negocio_id,criado_em,lido").eq("lido",false).order("criado_em",{ascending:false}).limit(6)),
+    q(sb.from("neg_lembretes").select("id,negocio_id,quando,texto,negocios(titulo)").eq("para",eu).eq("feito",false).lte("quando",em3.toISOString()).order("quando").limit(8)),
+    q(sb.from("neg_historico").select("negocio_id,texto,criado_em").order("criado_em",{ascending:false}).limit(8))]);
+  if(aba!=="painel")return;
+  const brl=v=>"R$ "+(+v||0).toLocaleString("pt-BR",{maximumFractionDigits:0});
+  const colN=id=>C.find(c=>c.id===id)||{};const tit=id=>(N.find(n=>n.id===id)||{}).titulo||"";
+  const ultimaCol=q=>{const cs=C.filter(c=>c.quadro===q);return cs.length?cs[cs.length-1].id:null};
+  const ativos=q=>N.filter(n=>n.quadro===q&&n.coluna!==ultimaCol(q));
+  const meus=N.filter(n=>(n.membros||[]).includes(eu)||n.resp===eu);
+  const h=new Date().getHours(),saud=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";
+  const media=obras.length?Math.round(obras.reduce((a,o)=>a+(+o.avanco||0),0)/obras.length):0;
+  const funil=q=>{const cs=C.filter(c=>c.quadro===q);const mx=Math.max(1,...cs.map(c=>N.filter(n=>n.coluna===c.id).length));
+    return cs.length?cs.map(c=>{const L=N.filter(n=>n.coluna===c.id),v=L.reduce((a,n)=>a+(+n.valor||0),0);const ar=A.find(a=>a.id===c.area);
+      return `<a class="fl" href="negocios.html?q=${q}" title="${esc(c.nome)}"><span class="fn">${esc(c.nome)}${ar?`<i style="--a:${ar.cor}">${esc(ar.nome)}</i>`:""}</span><span class="fb"><b style="width:${L.length/mx*100}%;background:${c.cor}"></b></span><span class="fq">${L.length}</span><span class="fv">${v?brl(v):""}</span></a>`}).join(""):'<p class="note">Sem colunas.</p>'};
+  const card=(href,ic,t,sub,big,extra,cor)=>`<a class="mod" href="${href}" style="--m:${cor}"><span class="mi">${ic}</span><span class="mt">${t}</span><span class="mb">${big}</span><span class="ms">${sub}</span>${extra||""}</a>`;
+  const el=ativos("eletrica"),so=ativos("solar");
+  const andamento=obras.filter(o=>(+o.avanco||0)<100).sort((a,b)=>(b.atualizado_em||"").localeCompare(a.atualizado_em||"")).slice(0,6);
+  corpo.innerHTML=`<div class="pn">
+   <div class="pn-hi"><div><h2>${saud}, ${esc((perfil.nome||perfil.email||"").split(" ")[0])}!</h2><p class="note">${new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"})} · do comercial à obra entregue, tudo num lugar.</p></div>
+    <a class="btn pri" href="negocios.html">+ Novo negócio</a></div>
+   <div class="mods">
+    ${card("negocios.html?q=eletrica","⚡","Negócios · Elétrica","em andamento · "+brl(el.reduce((a,n)=>a+(+n.valor||0),0)),el.length,"","#2f6f9f")}
+    ${card("negocios.html?q=solar","☀️","Negócios · Solar","em andamento · "+brl(so.reduce((a,n)=>a+(+n.valor||0),0)),so.length,"","#d18b16")}
+    ${card("#kanban","🏗️","Obras","avanço médio "+media+"%",obras.length,`<span class="mbar"><b style="width:${media}%"></b></span>`,"#1f8a4c")}
+    ${card("#inicio","📍","Mapa","obras e usinas solares no mapa",obras.filter(o=>posObra(o)).length+solares.length,"","#6a4fb3")}
+   </div>
+   <div class="pn-grid">
+    <section class="pcx"><h3>📌 Para você</h3>
+     <div class="pcx-k"><a href="negocios.html" class="pk"><b>${AV.length}${AV.length>5?"+":""}</b><span>avisos não lidos</span></a><a href="negocios.html" class="pk"><b>${LB.filter(l=>new Date(l.quando)<=fimHoje).length}</b><span>lembretes hoje</span></a><a href="negocios.html" class="pk"><b>${meus.length}</b><span>negócios com você</span></a></div>
+     ${LB.length?`<h4>⏰ Próximos lembretes</h4>${LB.map(l=>{const d=new Date(l.quando),atr=d<new Date();return `<a class="li ${atr?"atr":""}" href="negocios.html?n=${l.negocio_id}"><span class="lq">${d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}</span><span>${esc(l.texto||"Lembrete")}<small>${esc((l.negocios||{}).titulo||"")}</small></span></a>`}).join("")}`:""}
+     ${AV.length?`<h4>🔔 Avisos</h4>${AV.slice(0,5).map(n=>`<a class="li" href="negocios.html${n.negocio_id?"?n="+n.negocio_id:""}"><span class="lq">${n.tipo==="mencao"?"@":"•"}</span><span>${esc(n.texto)}<small>${fdate(n.criado_em)}</small></span></a>`).join("")}`:'<p class="note">Nenhum aviso pendente. 👌</p>'}
+    </section>
+    <section class="pcx"><h3>🔀 Funil · Elétrica</h3>${funil("eletrica")}<h3 style="margin-top:14px">🔀 Funil · Solar</h3>${funil("solar")}</section>
+    <section class="pcx"><h3>🏗️ Obras em andamento</h3>${andamento.length?andamento.map(o=>{const p=Math.round(+o.avanco||0);return `<a class="li" href="obra.html?id=${o.id}"><span class="ob"><b>${esc(o.titulo)}</b><small>${esc(o.cliente||"")} · ${esc(nomeCol(o.coluna))}</small><span class="mbar"><b style="width:${p}%"></b></span></span><span class="lq">${p}%</span></a>`}).join(""):'<p class="note">Nenhuma obra em andamento.</p>'}</section>
+    <section class="pcx"><h3>🕘 Movimentações recentes</h3>${H.length?H.map(x=>`<a class="li" href="negocios.html?n=${x.negocio_id}"><span>${esc(x.texto)}<small>${esc(tit(x.negocio_id))} · ${fdate(x.criado_em)}</small></span></a>`).join(""):'<p class="note">Nada ainda.</p>'}</section>
+   </div></div>`;
 }
 
 /* ---------- início: mapa ---------- */
