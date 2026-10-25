@@ -10,17 +10,17 @@
 :root{
   --bg:#eef2f6; --panel:#ffffff; --ink:#1e2f40; --muted:#5a6f83; --line:#d6e1ea;
   --accent:#2f6f9f; --accent-soft:#e8f1f9; --navy:#1e2f40; --navy2:#2b4157; --onblue:#62a8dc;
-  --ok:#1f8a4c; --ok-soft:#e2f4e9; --warn:#b7791f; --warn-soft:#fbf0dc; --idle-soft:#edf1f5; --map:#ffffff; --danger:#b3261e;
+  --ok:#1f8a4c; --ok-soft:#e2f4e9; --warn:#b7791f; --warn-soft:#fbf0dc; --idle-soft:#edf1f5; --map:#ffffff; --danger:#b3261e; --danger-soft:#fbe9e7;
   --f-body:Montserrat,system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace; color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#101b26; --panel:#172534; --ink:#e8f1f9; --muted:#9fb8cc; --line:#2b4157;
   --accent:#62a8dc; --accent-soft:#1d3a52; --navy:#0b141d; --navy2:#1e2f40;
-  --ok:#52c47f; --ok-soft:#173326; --warn:#e3a94b; --warn-soft:#3a2d16; --idle-soft:#1e2f40; --map:#e9edf0; --danger:#f2867d; color-scheme:dark}}
+  --ok:#52c47f; --ok-soft:#173326; --warn:#e3a94b; --warn-soft:#3a2d16; --idle-soft:#1e2f40; --map:#e9edf0; --danger:#f2867d; --danger-soft:#3a1d1b; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#101b26; --panel:#172534; --ink:#e8f1f9; --muted:#9fb8cc; --line:#2b4157;
   --accent:#62a8dc; --accent-soft:#1d3a52; --navy:#0b141d; --navy2:#1e2f40;
-  --ok:#52c47f; --ok-soft:#173326; --warn:#e3a94b; --warn-soft:#3a2d16; --idle-soft:#1e2f40; --map:#e9edf0; --danger:#f2867d; color-scheme:dark}
+  --ok:#52c47f; --ok-soft:#173326; --warn:#e3a94b; --warn-soft:#3a2d16; --idle-soft:#1e2f40; --map:#e9edf0; --danger:#f2867d; --danger-soft:#3a1d1b; color-scheme:dark}
 *{box-sizing:border-box} [hidden]{display:none!important}
 html,body,#root{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px}
@@ -32,77 +32,123 @@ button{cursor:pointer}
 .btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .btn.del{color:var(--danger)}
 .btn:disabled{opacity:.5;cursor:default}
-.btn.sm{padding:4px 8px;font-size:12px}
+.btn.sm{padding:4px 9px;font-size:12px}
 header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}
 header .btn.pri{background:var(--onblue);border-color:var(--onblue);color:#0f1c28}
 .lnk{background:none;border:0;color:var(--accent);padding:0;font-size:12.5px;font-weight:600}
-.lnk.del{color:var(--muted);font-weight:500}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .note{font-size:12px;color:var(--muted);margin:0;line-height:1.45}
 .lbl{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .erro{max-width:440px;margin:12vh auto;padding:24px;text-align:center}
 .erro img{height:56px;border-radius:6px}.erro a{color:var(--accent);font-weight:600}
-header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;background:var(--navy);color:#e8f1f9;border-radius:12px;padding:12px 16px}
-header.top img{height:44px;border-radius:4px;display:block}
-.ttl{min-width:0;flex:1 1 260px}
-.eye{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#9fb8cc}
-.ttl h1{font-weight:700;font-size:19px;line-height:1.2;margin:3px 0 1px;letter-spacing:-.01em}
-.ttl .sub{color:#9fb8cc;font-size:12.5px}
-.tot{text-align:right}
-.tot .v{font-family:var(--f-mono);font-size:22px;font-weight:500;color:#fff;font-variant-numeric:tabular-nums}
-.tools{display:flex;gap:6px;flex-wrap:wrap}
-/* lista */
-.page{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:14px}
-.tbl{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.tbl th,.tbl td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}
-.tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--bg)}
-.tbl tr.go{cursor:pointer}.tbl tr.go:hover td{background:var(--accent-soft)}
-.tbl td.n,.tbl th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
-.chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em;background:var(--idle-soft);color:var(--muted)}
-.chip.aprovado{background:var(--ok-soft);color:var(--ok)}.chip.enviado{background:var(--warn-soft);color:var(--warn)}
-/* editor */
-.app{display:grid;grid-template-columns:var(--sidew,400px) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:100%;gap:10px;padding:10px max(16px,env(safe-area-inset-left,0px))}
-.app header.top{grid-column:1/-1}
-aside{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-.tabs{display:flex;border-bottom:1px solid var(--line)}
-.tabs button{flex:1;border:0;background:none;padding:10px 6px;font-weight:600;font-size:12.5px;color:var(--muted);border-bottom:2px solid transparent}
-.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
-.pane{overflow:auto;padding:14px;display:grid;gap:12px;align-content:start;flex:1;min-height:0}
+.inp{padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:13.5px}
 .fld{display:grid;gap:4px;font-size:12.5px;color:var(--muted)}
 .fld input,.fld select,.fld textarea{padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:13.5px;width:100%}
 .row{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.03em;background:var(--idle-soft);color:var(--muted);white-space:nowrap}
+.chip.andamento{background:var(--warn-soft);color:var(--warn)}.chip.finalizado{background:var(--ok-soft);color:var(--ok)}
+.chip.vig{background:var(--accent-soft);color:var(--accent)}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;background:var(--navy);color:#e8f1f9;border-radius:12px;padding:12px 16px}
+header.top img{height:44px;border-radius:4px;display:block}
+.ttl{min-width:0;flex:1 1 260px}
+.eye{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#9fb8cc}
+.eye a{color:#9fb8cc;text-decoration:none}.eye a:hover{color:#fff}
+.ttl h1{font-weight:700;font-size:19px;line-height:1.2;margin:3px 0 1px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ttl h1 .chip{font-size:10px}
+.ttl .sub{color:#9fb8cc;font-size:12.5px}
+.tot{text-align:right}
+.tot .v{font-family:var(--f-mono);font-size:22px;font-weight:500;color:#fff;font-variant-numeric:tabular-nums}
+.tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.steps{display:flex;gap:4px;flex-wrap:wrap;width:100%}
+.steps button{border:1px solid #3b5670;background:transparent;color:#9fb8cc;border-radius:999px;padding:6px 14px;font-weight:600;font-size:12.5px;display:flex;align-items:center;gap:7px}
+.steps button b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#2b4157;color:#e8f1f9;font-size:11px}
+.steps button.on{background:#e8f1f9;color:#1e2f40;border-color:#e8f1f9}.steps button.on b{background:#2f6f9f;color:#fff}
+.steps button:disabled{opacity:.45;cursor:default}
+.page{max-width:1180px;margin:0 auto;padding:16px;display:grid;gap:14px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:6px}
+.kpi .k{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kpi .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.kpi .kx{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.dash2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px}
+.rec{display:grid;gap:2px}
+.rec button{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;border:0;background:none;padding:8px 6px;border-radius:8px;text-align:left}
+.rec button:hover{background:var(--accent-soft)}
+.rec .t b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rec .t small,.rec .r small{display:block;font-size:11.5px;color:var(--muted)}
+.rec .r{text-align:right;font-family:var(--f-mono);font-size:12.5px;white-space:nowrap}.rec .r b{font-weight:500}
+.sit{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}.sit .k{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.sitb{height:8px;margin-top:4px}
+.bar{height:6px;border-radius:3px;background:var(--idle-soft);overflow:hidden}.bar>b{display:block;height:100%;background:var(--ok);border-radius:3px}
+.bc{display:flex;gap:6px;align-items:center;font-size:13px;flex-wrap:wrap}
+.bc button{border:0;background:none;color:var(--accent);font-weight:600;padding:0}
+.tbl{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.tbl th,.tbl td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+.tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--bg)}
+.tbl tr.go{cursor:pointer}.tbl tr.go:hover td{background:var(--accent-soft)}
+.tbl td.n,.tbl th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl .sm{display:block;font-size:11.5px;color:var(--muted);font-weight:400;font-family:var(--f-body)}
+.ico{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:7px;background:var(--accent-soft);color:var(--accent);margin-right:10px;font-size:15px;flex:none}
+.ico.f{background:var(--warn-soft);color:var(--warn)}
+.nm{display:flex;align-items:center}
+.app{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:100%;gap:10px;padding:10px max(16px,env(safe-area-inset-left,0px))}
+.app header.top{grid-column:1/-1}
+.app.maxed{padding:0;gap:0}.app.maxed header.top{display:none}
+.proj{display:grid;grid-template-columns:var(--listw,330px) 10px minmax(0,1fr) auto;min-height:0}
+.proj.max{grid-template-columns:minmax(0,1fr) auto}.proj.max #side,.proj.max .split{display:none}
+.app.maxed .mapwrap,.app.maxed #ptpanel{border-radius:0}
+.split{cursor:col-resize;display:grid;place-items:center;touch-action:none}
+.split::after{content:"";width:4px;height:44px;border-radius:2px;background:var(--line)}
+.split:hover::after,.split.on::after{background:var(--accent)}
+#ptpanel{width:var(--pw,410px);margin-left:10px}
+#ptpanel .x{border:0;background:none;font-size:20px;line-height:1;color:var(--muted);padding:0 4px}
+.pl.sel{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.resumo{border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.resumo>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:8px 10px;font-size:12.5px;font-weight:600}
+.resumo>summary::-webkit-details-marker{display:none}
+.resumo .segbars{padding:2px 10px 10px;gap:6px;max-height:150px;overflow:auto}.resumo .sb{grid-template-columns:110px minmax(0,1fr) 78px;font-size:11.5px}.resumo .sb .bar{height:7px}
+.pin .lp{position:absolute;top:-11px;right:-11px;width:17px;height:17px;border-radius:50%;background:#ffd54f;border:1.5px solid #fff;display:grid;place-items:center;font-size:10px;line-height:1;box-shadow:0 1px 2px rgba(0,0,0,.35)}
+.pin .lp.no{background:#cfd8dc;filter:grayscale(1);opacity:.85}
+.ipbox{border:1px solid var(--line);border-radius:8px;padding:9px 10px;display:grid;gap:8px;background:var(--bg)}
+.ipbox .row b{font-size:13px}
+.sug{background:var(--accent-soft);border-radius:8px;padding:8px 10px;font-size:12px;display:grid;gap:6px}
+.sug code{font-family:var(--f-mono);font-size:12px;overflow-wrap:anywhere}
+.full-pane{overflow:auto;min-height:0}
+aside{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.ah{padding:12px 14px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.pane{overflow:auto;padding:12px 14px;display:grid;gap:12px;align-content:start;flex:1;min-height:0}
+.plist{display:grid;gap:1px}
+.pl{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 6px;border-radius:7px;cursor:pointer}
+.pl:hover{background:var(--accent-soft)}
+.pl .n{font-family:var(--f-mono);font-size:11.5px;font-weight:600;min-width:28px;height:22px;border-radius:11px;display:grid;place-items:center;background:var(--accent);color:#fff;padding:0 6px}
+.pl .n.v{background:var(--warn)}
+.pl .t{font-size:12.5px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.pl .t small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+.pl .r{text-align:right;font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+.pl .r small{display:block;font-family:var(--f-body);font-size:10.5px;color:var(--muted)}
+.pl input[type=checkbox]{width:16px;height:16px;margin:0}
+.segtag{display:inline-block;font-size:10px;font-weight:700;border-radius:8px;padding:1px 6px;margin-left:4px;color:#fff;vertical-align:middle}
+.bulk{display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:8px;padding:7px 9px;font-size:12.5px}
 .est{border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .est>summary{list-style:none;display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 10px;background:var(--bg);cursor:pointer;font-weight:600;font-size:13px}
 .est>summary::-webkit-details-marker{display:none}
 .est .ed{font-size:10px;font-weight:700;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:1px 6px;margin-left:6px}
+.est .seg{font-size:11.5px;padding:2px 4px;border:1px solid var(--line);border-radius:5px;background:var(--panel);max-width:120px}
 .its{width:100%;border-collapse:collapse;font-size:12px}
 .its td{padding:4px 8px;border-top:1px solid var(--line);vertical-align:middle}
 .its td.q{width:74px}.its td.v{width:86px;text-align:right}.its td.x{width:22px}
 .its input{width:66px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;background:var(--bg);font-family:var(--f-mono);font-size:12px;text-align:right}
-.its input.pr{width:78px}
 .its .m{line-height:1.3}.its .m small{display:block;color:var(--muted);font-family:var(--f-mono);font-size:10.5px}
-.its tr.man td{background:var(--warn-soft)}
 .xb{border:0;background:none;color:var(--muted);font-size:15px;padding:0 2px;line-height:1}
 .xb:hover{color:var(--danger)}
-.plist{display:grid;gap:2px}
-.plist button{display:flex;justify-content:space-between;gap:8px;border:0;background:none;padding:7px 8px;border-radius:6px;text-align:left;font-size:12.5px}
-.plist button:hover{background:var(--accent-soft)}
-.plist b{font-family:var(--f-mono);font-weight:500}
-.sg{display:flex;justify-content:space-between;font-weight:700;font-size:12px;padding:8px 8px 4px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-.kv{display:flex;justify-content:space-between;gap:8px;font-size:13px}
-.kv b{font-family:var(--f-mono);font-weight:500}
-.seg2{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
-.seg2 button{border:0;background:var(--panel);padding:6px 10px;font-size:12px;font-weight:600;color:var(--muted)}
-.seg2 button.on{background:var(--accent);color:#fff}
-/* mapa */
+.seq{display:flex;gap:6px}.seq input{flex:1;min-width:0;font-family:var(--f-mono);font-size:12.5px}
+.kv{display:flex;justify-content:space-between;gap:8px;font-size:13px}.kv b{font-family:var(--f-mono);font-weight:500}
 .mapwrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--map);min-height:0;touch-action:none;cursor:grab}
 .mapwrap.drag{cursor:grabbing}.mapwrap.place,.mapwrap.trace,.mapwrap.calib{cursor:crosshair}
 .stage{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
 .stage img{display:block;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
 .stage .blank{background-color:#fff;background-image:linear-gradient(#e7edf3 1px,transparent 1px),linear-gradient(90deg,#e7edf3 1px,transparent 1px);background-size:100px 100px}
-.pin{position:absolute;min-width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:13px;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);background:#5a6f83;color:#fff;padding:0 4px;font:600 11px/21px var(--f-mono);transform:scale(var(--inv,1))}
-.pin.poste{background:#2f6f9f}.pin.vazio{background:#b7791f}
+.pin{position:absolute;min-width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:13px;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);background:#2f6f9f;color:#fff;padding:0 4px;font:600 11px/21px var(--f-mono);transform:scale(var(--inv,1))}
+.pin.vazio{background:#b7791f}
 .pin.sel{outline:3px solid #c2185b;outline-offset:2px;z-index:2;cursor:move}
 .pin.anchor{outline:3px dashed #c2185b;outline-offset:3px}
 svg.net{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
@@ -116,20 +162,48 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:var(--navy);color:#e8f1f9;padding:7px 12px;border-radius:7px;font-size:12.5px;max-width:calc(100% - 20px);text-align:center}
 .esc{position:absolute;right:10px;bottom:10px;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:11.5px;color:var(--muted)}
 .dot{display:inline-block;width:14px;height:0;border-top:3px solid;vertical-align:middle;margin-right:4px}
-/* modal / toast */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:10px;align-content:start}
+.card h2{margin:0;font-size:15px}
+.wrap2{max-width:1400px;margin:0 auto;display:grid;gap:12px;padding-bottom:20px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:12px;align-items:start}
+.mt td input{width:96px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);font-family:var(--f-mono);font-size:12.5px;text-align:right}
+.mt tr.man td{background:var(--warn-soft)}
+.orig{font-size:12px;line-height:1.3}.orig small{display:block;color:var(--muted);font-size:11px}
+.segbars{display:grid;gap:9px}
+.sb{display:grid;grid-template-columns:96px minmax(0,1fr) 40px;gap:4px 10px;align-items:center;font-size:12.5px}
+.sb .bar{height:10px}.sb .bar>b{background:var(--c,var(--accent))}
+.sb .n{text-align:right;font-family:var(--f-mono)}.sb .v{grid-column:2/4;font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.big{font-family:var(--f-mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.box{border:1px solid var(--line);border-radius:9px;padding:10px 12px;display:grid;gap:4px;background:var(--bg)}
+.box.good{background:var(--ok-soft);border-color:transparent}.box.good .big{color:var(--ok)}
+.box.bad{background:var(--danger-soft);border-color:transparent}.box.bad .big{color:var(--danger)}
+.box .k{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.box small{color:var(--muted);font-size:11.5px}
+.metodo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.metodo button{border:1.5px solid var(--line);background:var(--panel);border-radius:10px;padding:10px 12px;text-align:left;display:grid;gap:3px}
+.metodo button b{font-size:13.5px}.metodo button span{font-size:12px;color:var(--muted);line-height:1.35}
+.metodo button.on{border-color:var(--accent);background:var(--accent-soft)}
+.custos{width:100%;border-collapse:collapse;font-size:12.5px}
+.custos th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:6px 4px;font-weight:600}
+.custos td{padding:4px;border-top:1px solid var(--line);vertical-align:middle}
+.custos input,.custos select{padding:5px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);font-size:12.5px;width:100%}
+.custos input.nn{font-family:var(--f-mono);text-align:right;width:64px}
+.custos .calc{display:flex;gap:4px;align-items:center;white-space:nowrap;font-size:11.5px;color:var(--muted)}
+.custos td.n{text-align:right;font-family:var(--f-mono);white-space:nowrap}
+.warnbar{background:var(--warn-soft);color:var(--warn);border-radius:9px;padding:9px 12px;font-size:12.5px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.cmp{font-size:12.5px;line-height:1.5;background:var(--accent-soft);border-radius:9px;padding:10px 12px}
 .modal{position:fixed;inset:0;background:rgba(10,16,22,.55);display:grid;place-items:center;padding:16px;z-index:20}
-.modal .box{background:var(--panel);border-radius:12px;padding:18px;width:min(460px,100%);display:grid;gap:12px;max-height:100%;overflow:auto}
-.modal .box.wide{width:min(1100px,100%)}
+.modal .mbox{background:var(--panel);border-radius:12px;padding:18px;width:min(460px,100%);display:grid;gap:12px;max-height:100%;overflow:auto}
+.modal .mbox.wide{width:min(1100px,100%)}
 .modal h2{margin:0;font-size:18px}
 .crop{position:relative;max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:8px;touch-action:none}
 .crop canvas{display:block;width:100%;height:auto}
 .crop .sel{position:absolute;border:2px solid #c2185b;background:rgba(194,24,91,.08);pointer-events:none}
 .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--navy);color:#e8f1f9;padding:9px 14px;border-radius:7px;font-size:13px;z-index:50;max-width:calc(100% - 32px);text-align:center}
 .busy{opacity:.6;pointer-events:none}
-@media (max-width:820px){
-  .app{grid-template-columns:1fr;grid-template-rows:auto 55vh auto;height:auto}
-  .mapwrap{grid-row:2}aside{grid-row:3;max-height:none}
-  .tbl .hm{display:none}
+@media (max-width:900px){
+  .app{height:auto}.proj{grid-template-columns:1fr;grid-template-rows:55vh auto auto}.proj .mapwrap{grid-row:1}.split{display:none}#ptpanel{width:auto;margin:10px 0 0}.dash2{grid-template-columns:1fr}
+  .kpis{grid-template-columns:1fr 1fr}.cols{grid-template-columns:1fr}.tbl .hm{display:none}
 }
 </style>
 </head>
@@ -145,181 +219,358 @@ const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelect
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const brl=n=>Number(n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const num=(n,d=2)=>Number(n||0).toLocaleString("pt-BR",{maximumFractionDigits:d});
+const pct=n=>num(n,2)+"%";
 const pnum=s=>{if(typeof s==="number")return s;s=String(s||"").trim();if(s.includes(",")||/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,"").replace(",",".");const v=parseFloat(s);return isNaN(v)?0:v};
+const fdata=d=>d?new Date(String(d).length===10?d+"T12:00":d).toLocaleDateString("pt-BR"):"";
 const root=$("#root");
 function toast(t){$$(".toast").forEach(x=>x.remove());const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3500)}
 function falha(msg){root.innerHTML=`<div class="erro"><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1>OrçaRede</h1><p>${esc(msg)}</p><a href="index.html">Ir para o início</a></div>`}
 async function chk(p){const r=await p;if(r.error){console.error(r.error);toast("Erro ao gravar: "+(r.error.message||r.error.code));throw r.error}return r.data}
 async function todos(q){let out=[],i=0;for(;;){const {data,error}=await q().range(i,i+999);if(error)throw error;out=out.concat(data);if(data.length<1000)return out;i+=1000}}
-function modal(html,onOk){const m=document.createElement("div");m.className="modal";m.innerHTML=`<form class="box">${html}<div class="row"><span></span><span style="display:flex;gap:8px"><button type="button" class="btn" data-x>Cancelar</button><button class="btn pri">OK</button></span></div></form>`;
+function modal(html,onOk,okTxt="OK"){const m=document.createElement("div");m.className="modal";m.innerHTML=`<form class="mbox">${html}<div class="row"><span></span><span style="display:flex;gap:8px"><button type="button" class="btn" data-x>Cancelar</button><button class="btn pri">${okTxt}</button></span></div></form>`;
   document.body.appendChild(m);m.querySelector("[data-x]").onclick=()=>m.remove();
-  m.querySelector("form").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));m.querySelector("form").classList.add("busy");try{if(await onOk(f,m)!==false)m.remove()}catch(err){m.querySelector("form").classList.remove("busy")}};
+  m.querySelector("form").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));m.querySelector("form").classList.add("busy");try{if(await onOk(f,m)!==false)m.remove();else m.querySelector("form").classList.remove("busy")}catch(err){m.querySelector("form").classList.remove("busy")}};
   setTimeout(()=>{const i=m.querySelector("input,select");i&&i.focus()},20);return m}
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
+const SEG_PADRAO=[["MT","#c2185b"],["BT","#1565c0"],["IP","#e0a800"],["Transformação","#6a3fbf"]];
 
-/* ---------- acesso ---------- */
 const sess=await DB.sessao();
 if(!sess){location.href="index.html?volta="+encodeURIComponent(location.pathname+location.search);return}
 const perfil=await DB.meuPerfil();
 if(!perfil||perfil.papel!=="admin"){falha("O OrçaRede está disponível só para administradores.");return}
 const teste=await O.from("concessionarias").select("id,sigla,nome");
-if(teste.error){falha(/schema|PGRST106|not.*exposed|Invalid schema/i.test(teste.error.message+teste.error.code)?"A gaveta “orcarede” ainda não foi liberada no Supabase (Project Settings → Data API → Exposed schemas).":"Não foi possível ler o banco: "+teste.error.message);return}
+if(teste.error){falha("Não foi possível ler o banco: "+teste.error.message);return}
 const CONCS=teste.data;
+const concSig=id=>(CONCS.find(c=>c.id===id)||{}).sigla||"";
 const Q=new URLSearchParams(location.search);
 if(Q.get("id"))return editor(Q.get("id"));
 if(Q.get("neg"))return deNegocio(Q.get("neg"));
-return lista();
+return lista(Q.get("pasta"));
 
-/* ---------- lista de orçamentos ---------- */
-async function lista(){
-  const [orcs,its]=await Promise.all([
-    todos(()=>O.from("orcamentos").select("id,titulo,cliente,status,concessionaria_id,negocio_id,atualizado_em").order("atualizado_em",{ascending:false})),
+/* ============ LISTA: pastas e versões ============ */
+async function lista(pastaId){
+  const [PAS,ORCS,ITS]=await Promise.all([
+    todos(()=>O.from("pastas").select("*").order("nome")),
+    todos(()=>O.from("orcamentos").select("id,titulo,cliente,cidade,status,concessionaria_id,negocio_id,pasta_id,versao,vigente,atualizado_em").order("atualizado_em",{ascending:false})),
     todos(()=>O.from("v_orc_itens").select("orcamento_id,subtotal"))]);
-  const tot={};its.forEach(i=>tot[i.orcamento_id]=(tot[i.orcamento_id]||0)+(+i.subtotal||0));
-  const cs=Object.fromEntries(CONCS.map(c=>[c.id,c.sigla]));
-  root.innerHTML=`<div class="page">
-   <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">ON Engenharia</div><h1>OrçaRede</h1><div class="sub">Orçamentos de rede de distribuição</div></div>
-    <div class="tools"><a class="btn" href="index.html">← Obras</a><a class="btn" href="negocios.html">Negócios</a><button class="btn pri" id="bNovo">+ Novo orçamento</button></div></header>
-   ${orcs.length?`<table class="tbl"><thead><tr><th>Orçamento</th><th class="hm">Cliente</th><th>Conc.</th><th class="hm">Situação</th><th class="n">Material</th></tr></thead><tbody>
-   ${orcs.map(o=>`<tr class="go" data-id="${o.id}"><td><b>${esc(o.titulo)}</b></td><td class="hm">${esc(o.cliente||"")}</td><td>${esc(cs[o.concessionaria_id]||"")}</td><td class="hm"><span class="chip ${o.status}">${esc(o.status)}</span></td><td class="n">${brl(tot[o.id])}</td></tr>`).join("")}</tbody></table>`
-   :`<p class="note">Nenhum orçamento ainda.</p>`}</div>`;
-  $$("tr.go").forEach(r=>r.onclick=()=>location.href="orcarede.html?id="+r.dataset.id);
-  $("#bNovo").onclick=()=>novoOrc({});
+  const tot={};ITS.forEach(i=>tot[i.orcamento_id]=(tot[i.orcamento_id]||0)+(+i.subtotal||0));
+  const filhos=id=>PAS.filter(p=>(p.pai_id||null)===(id||null));
+  const descend=id=>{let s=[id];filhos(id).forEach(f=>s=s.concat(descend(f.id)));return s};
+  let q="";
+  const nFin=ORCS.filter(o=>o.status==="finalizado").length;
+  const stTxt=s=>s==="finalizado"?"Finalizado":"Em andamento";
+  const quando=d=>{if(!d)return"";const dd=Math.floor((Date.now()-new Date(d))/864e5);return dd<=0?"hoje":dd===1?"ontem":dd<30?`há ${dd} dias`:fdata(String(d).slice(0,10))};
+  function dash(){
+    const vig=ORCS.filter(o=>o.vigente!==false);
+    const and=vig.filter(o=>o.status!=="finalizado"),fin=vig.filter(o=>o.status==="finalizado");
+    const sv=L=>L.reduce((s,o)=>s+(tot[o.id]||0),0);
+    const porC={};vig.forEach(o=>{const k=concSig(o.concessionaria_id)||"—";(porC[k]=porC[k]||{n:0,v:0});porC[k].n++;porC[k].v+=tot[o.id]||0});
+    const maxC=Math.max(1,...Object.values(porC).map(x=>x.v));
+    const rec=[...ORCS].sort((a,b)=>String(b.atualizado_em).localeCompare(String(a.atualizado_em))).slice(0,6);
+    const tx=vig.length?fin.length/vig.length*100:0;
+    return `<div class="kpis">
+      <div class="kpi"><span class="k">Em andamento</span><span class="v" style="color:var(--warn)">${and.length}</span><span class="kx">${brl(sv(and))} em material</span></div>
+      <div class="kpi"><span class="k">Finalizados</span><span class="v" style="color:var(--ok)">${fin.length}</span><span class="kx">${brl(sv(fin))} em material</span></div>
+      <div class="kpi"><span class="k">Projetos</span><span class="v">${PAS.filter(p=>ORCS.some(o=>o.pasta_id===p.id)).length}</span><span class="kx">${ORCS.length} versões no total</span></div>
+      <div class="kpi"><span class="k">Taxa de conclusão</span><span class="v">${Math.round(tx)}%</span><div class="bar"><b style="width:${tx}%"></b></div></div></div>
+     <div class="dash2">
+      <div class="card"><div class="row"><h2>Movimentados recentemente</h2></div>
+       <div class="rec">${rec.map(o=>`<button data-rec="${o.id}"><span class="ico">⚡</span><span class="t"><b>${esc(o.titulo)} · v${o.versao}</b><small>${esc([o.cliente,o.cidade].filter(Boolean).join(" · "))}</small></span><span class="chip ${o.status}">${stTxt(o.status)}</span><span class="r"><b>${brl(tot[o.id])}</b><small>${quando(o.atualizado_em)}</small></span></button>`).join("")||'<p class="note">Nenhum orçamento ainda.</p>'}</div></div>
+      <div class="card"><h2>Por concessionária</h2><p class="note">Versões vigentes · valor de material</p>
+       <div class="segbars">${Object.entries(porC).sort((a,b)=>b[1].v-a[1].v).map(([k,x])=>`<div class="sb"><span>${esc(k)} <span class="note">(${x.n})</span></span><div class="bar"><b style="width:${x.v/maxC*100}%;background:var(--accent)"></b></div><span class="n"></span><span></span><span class="v">${brl(x.v)}</span></div>`).join("")||'<p class="note">—</p>'}</div>
+       <div class="sit"><div><span class="k">Andamento</span><div class="bar sitb"><b style="width:${100-tx}%;background:var(--warn)"></b></div></div><div><span class="k">Finalizado</span><div class="bar sitb"><b style="width:${tx}%"></b></div></div></div></div></div>
+     <div class="row"><h2 style="margin:4px 0 0;font-size:15px">Pastas e orçamentos</h2></div>`;
+  }
+  function render(){
+    const cur=PAS.find(p=>p.id===pastaId)||null;
+    const trilha=[];for(let p=cur;p;p=PAS.find(x=>x.id===p.pai_id))trilha.unshift(p);
+    const busca=q.trim().toLowerCase();
+    let pastas,orcs;
+    if(busca){orcs=ORCS.filter(o=>[o.titulo,o.cliente,o.cidade].some(v=>(v||"").toLowerCase().includes(busca)));pastas=PAS.filter(p=>p.nome.toLowerCase().includes(busca))}
+    else{pastas=filhos(pastaId);orcs=ORCS.filter(o=>(o.pasta_id||null)===(pastaId||null)).sort((a,b)=>b.versao-a.versao)}
+    const cont=p=>{const ids=descend(p.id);const n=ORCS.filter(o=>ids.includes(o.pasta_id)).length,s=filhos(p.id).length;return `${n} ${n===1?"versão":"versões"}${s?` · ${s} ${s===1?"pasta":"pastas"}`:""}`};
+    const vig=p=>ORCS.filter(o=>o.pasta_id===p.id).sort((a,b)=>(b.vigente-a.vigente)||(b.versao-a.versao))[0];
+    root.innerHTML=`<div class="page">
+     <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">ON Engenharia</div><h1>OrçaRede</h1><div class="sub">Projete a rede, consolide os materiais e siga para a precificação</div></div>
+      <div class="tools"><a class="btn" href="index.html">← Obras</a><a class="btn" href="negocios.html">Negócios</a><button class="btn" id="bPasta">+ Pasta</button><button class="btn pri" id="bNovo">+ Novo orçamento</button></div></header>
+     ${pastaId||busca?"":dash()}
+     <div class="row"><div class="bc"><button data-go="">Todos</button>${trilha.map(p=>`<span>›</span><button data-go="${p.id}">${esc(p.nome)}</button>`).join("")}</div>
+      <input class="inp" id="q" placeholder="Buscar por projeto, cliente ou cidade" value="${esc(q)}" style="width:min(360px,100%)"></div>
+     ${pastas.length||orcs.length?`<table class="tbl"><thead><tr><th>Nome</th><th class="hm">Cliente</th><th class="hm">Conc.</th><th>Situação</th><th class="n">Material</th></tr></thead><tbody>
+      ${pastas.map(p=>{const v=vig(p);return `<tr class="go" data-p="${p.id}"><td><div class="nm"><span class="ico f">▤</span><div><b>${esc(p.nome)}</b><span class="sm">${cont(p)}${p.negocio_id?" · ligada ao negócio":""}</span></div></div></td><td class="hm">${esc(v?v.cliente||"":"")}</td><td class="hm">${v?esc(concSig(v.concessionaria_id)):""}</td><td>${v?`<span class="chip ${v.status}">${stTxt(v.status)}</span>`:""}</td><td class="n">${v?brl(tot[v.id])+`<span class="sm">v${v.versao}${v.vigente?" vigente":""}</span>`:""}</td></tr>`}).join("")}
+      ${orcs.map(o=>`<tr class="go" data-o="${o.id}"><td><div class="nm"><span class="ico">⚡</span><div><b>${esc(o.titulo)} · v${o.versao}</b><span class="sm">${o.vigente?"vigente":"versão anterior"}${busca&&o.pasta_id?" · em "+esc((PAS.find(p=>p.id===o.pasta_id)||{}).nome||""):""}</span></div></div></td><td class="hm">${esc(o.cliente||"")}${o.cidade?`<span class="sm">${esc(o.cidade)}</span>`:""}</td><td class="hm">${esc(concSig(o.concessionaria_id))}</td><td><span class="chip ${o.status}">${stTxt(o.status)}</span></td><td class="n">${brl(tot[o.id])}</td></tr>`).join("")}
+     </tbody></table>`:`<p class="note">${busca?"Nada encontrado.":"Pasta vazia."}</p>`}</div>`;
+    $$("[data-go]").forEach(b=>b.onclick=()=>{pastaId=b.dataset.go||null;q="";history.replaceState(null,"",pastaId?"?pasta="+pastaId:"orcarede.html");render()});
+    $$("tr[data-p]").forEach(r=>r.onclick=()=>{pastaId=r.dataset.p;q="";history.replaceState(null,"","?pasta="+pastaId);render()});
+    $$("tr[data-o],[data-rec]").forEach(r=>r.onclick=()=>location.href="orcarede.html?id="+(r.dataset.o||r.dataset.rec));
+    $("#q").oninput=e=>{q=e.target.value;const pos=e.target.selectionStart;render();const i=$("#q");i.focus();i.setSelectionRange(pos,pos)};
+    $("#bNovo").onclick=()=>novoOrc({pasta:pastaId});
+    $("#bPasta").onclick=()=>modal(`<h2>Nova pasta${cur?" em “"+esc(cur.nome)+"”":""}</h2><label class="fld">Nome<input name="nome" required></label>`,async f=>{
+      const r=await chk(O.from("pastas").insert({nome:f.nome.trim(),pai_id:pastaId||null}).select("*").single());PAS.push(r);render()},"Criar");
+  }
+  render();
 }
 function novoOrc(pre){
   modal(`<h2>Novo orçamento</h2>
-   <label class="fld">Título<input name="titulo" required value="${esc(pre.titulo||"")}"></label>
-   <label class="fld">Cliente<input name="cliente" value="${esc(pre.cliente||"")}"></label>
-   <label class="fld">Concessionária<select name="conc">${CONCS.map(c=>`<option value="${c.id}" ${pre.conc==c.id?"selected":""}>${esc(c.sigla)}</option>`).join("")}</select></label>`,
-  async f=>{const r=await chk(O.from("orcamentos").insert({titulo:f.titulo.trim(),cliente:f.cliente.trim()||null,concessionaria_id:+f.conc,negocio_id:pre.negocio||null,criado_por:perfil.id}).select("id").single());location.href="orcarede.html?id="+r.id});
+   <label class="fld">Projeto<input name="titulo" required value="${esc(pre.titulo||"")}"></label>
+   <div class="grid2"><label class="fld">Cliente<input name="cliente" value="${esc(pre.cliente||"")}"></label><label class="fld">Cidade<input name="cidade" value="${esc(pre.cidade||"")}"></label></div>
+   <label class="fld">Concessionária<select name="conc">${CONCS.map(c=>`<option value="${c.id}" ${pre.conc==c.id?"selected":""}>${esc(c.sigla)}</option>`).join("")}</select></label>
+   <p class="note">É criada uma pasta com este nome, e o orçamento entra nela como versão 1.</p>`,
+  async f=>{
+    const pasta=await chk(O.from("pastas").insert({nome:f.titulo.trim(),pai_id:pre.pasta||null,negocio_id:pre.negocio||null}).select("*").single());
+    const r=await chk(O.from("orcamentos").insert({titulo:f.titulo.trim(),cliente:f.cliente.trim()||null,cidade:f.cidade.trim()||null,concessionaria_id:+f.conc,negocio_id:pre.negocio||null,pasta_id:pasta.id,versao:1,vigente:true,status:"andamento",criado_por:perfil.id}).select("id").single());
+    await chk(O.from("orc_segmentos").insert(SEG_PADRAO.map(([nome,cor],i)=>({orcamento_id:r.id,nome,cor,ordem:i}))));
+    location.href="orcarede.html?id="+r.id},"Criar");
 }
 async function deNegocio(nid){
-  const ja=await O.from("orcamentos").select("id").eq("negocio_id",nid).limit(1);
-  if(ja.data&&ja.data[0]){location.replace("orcarede.html?id="+ja.data[0].id);return}
-  const {data:n}=await sb.from("negocios").select("id,titulo,cliente,conc").eq("id",nid).single();
-  await lista();
+  const ja=await O.from("pastas").select("id").eq("negocio_id",nid).limit(1);
+  if(ja.data&&ja.data[0]){location.replace("orcarede.html?pasta="+ja.data[0].id);return}
+  const {data:n}=await sb.from("negocios").select("id,titulo,cliente,cidade,conc").eq("id",nid).single();
+  await lista(null);
   if(!n){toast("Negócio não encontrado.");return}
   const c=CONCS.find(c=>n.conc&&n.conc.toUpperCase().includes(c.sigla.toUpperCase()));
-  novoOrc({titulo:n.titulo,cliente:n.cliente,conc:c&&c.id,negocio:n.id});
+  novoOrc({titulo:n.titulo,cliente:n.cliente,cidade:n.cidade,conc:c&&c.id,negocio:n.id});
 }
 
-/* ---------- editor ---------- */
+/* ============ EDITOR ============ */
 async function editor(id){
   let ORC;
   {const r=await O.from("orcamentos").select("*").eq("id",id).single();if(r.error||!r.data){falha("Orçamento não encontrado.");return}ORC=r.data}
   const conc=ORC.concessionaria_id;
-  const [PTS,PE,IT,VAOS,EST,POSTES,TR,TRI,MATS,PV,OPL]=await Promise.all([
+  const [PTS,PE,IT,VAOS,EST,POSTES,TR,TRI,MATS,PV,OPL,SEGS,IRMAS,PRC,MIP]=await Promise.all([
     todos(()=>O.from("orc_pontos").select("*").eq("orcamento_id",id).order("numero")),
-    todos(()=>O.from("orc_ponto_estruturas").select("id,ponto_id,estrutura_id,ordem,orc_pontos!inner(orcamento_id)").eq("orc_pontos.orcamento_id",id)),
+    todos(()=>O.from("orc_ponto_estruturas").select("id,ponto_id,estrutura_id,ordem,segmento_id,orc_pontos!inner(orcamento_id)").eq("orc_pontos.orcamento_id",id)),
     todos(()=>O.from("orc_ponto_itens").select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado,orc_pontos!inner(orcamento_id)").eq("orc_pontos.orcamento_id",id)),
     todos(()=>O.from("orc_vaos").select("*").eq("orcamento_id",id)),
-    todos(()=>O.from("estruturas").select("id,codigo,descricao").eq("concessionaria_id",conc).order("codigo")),
+    todos(()=>O.from("estruturas").select("id,codigo,descricao,categoria").eq("concessionaria_id",conc).order("codigo")),
     todos(()=>O.from("postes").select("id,codigo,material_codigo,altura_m,esforco_kn,tipo").eq("concessionaria_id",conc).order("altura_m")),
     todos(()=>O.from("tipos_rede").select("*").eq("concessionaria_id",conc).order("ordem")),
     todos(()=>O.from("tipos_rede_itens").select("*")),
     todos(()=>O.from("materiais").select("codigo,nome,unidade,subgrupo").eq("ativo",true).order("nome")),
-    todos(()=>O.from("v_preco_vigente").select("material_codigo,valor")),
-    todos(()=>O.from("orc_precos").select("material_codigo,preco_unit,manual").eq("orcamento_id",id))]);
+    todos(()=>O.from("v_preco_vigente").select("material_codigo,valor,data,origem,fornecedor,documento")),
+    todos(()=>O.from("orc_precos").select("material_codigo,preco_unit,manual").eq("orcamento_id",id)),
+    todos(()=>O.from("orc_segmentos").select("*").eq("orcamento_id",id).order("ordem")),
+    ORC.pasta_id?todos(()=>O.from("orcamentos").select("id,versao,vigente,status").eq("pasta_id",ORC.pasta_id).order("versao")):Promise.resolve([]),
+    O.from("precificacao").select("*").eq("orcamento_id",id).limit(1),
+    todos(()=>O.from("modelos_ip").select("*").eq("concessionaria_id",conc).order("nome"))]);
   [PE,IT].forEach(a=>a.forEach(r=>delete r.orc_pontos));
+  const PASTA=ORC.pasta_id?(await O.from("pastas").select("*").eq("id",ORC.pasta_id).single()).data:null;
   const MAT=Object.fromEntries(MATS.map(m=>[m.codigo,m]));
-  const VIG=Object.fromEntries(PV.map(p=>[p.material_codigo,+p.valor]));
+  const VIGR=Object.fromEntries(PV.map(p=>[p.material_codigo,p]));const VIG=Object.fromEntries(PV.map(p=>[p.material_codigo,+p.valor]));
   let OP=Object.fromEntries(OPL.map(p=>[p.material_codigo,{v:+p.preco_unit,manual:p.manual}]));
   const ESTM=Object.fromEntries(EST.map(e=>[e.id,e])), POM=Object.fromEntries(POSTES.map(p=>[p.id,p]));
   TR.forEach(t=>t.itens=TRI.filter(i=>i.tipo_rede_id===t.id));const TRM=Object.fromEntries(TR.map(t=>[t.id,t]));
-  let selP=null,selV=null,tab="ponto",placing=false,tracing=null,anchor=null,calib=null,fMat="";
+  const SEGM=()=>Object.fromEntries(SEGS.map(s=>[s.id,s]));
+  const ehIP=eid=>{const e=ESTM[eid];return !!e&&(e.categoria==="IP"||/^(CONJ_IP|FIX_IP)/i.test(e.codigo))};
+  const temIP=p=>PE.some(e=>e.ponto_id===p.id&&ehIP(e.estrutura_id));
+  const fixIP=p=>{const ps=POM[p.poste_id];if(!ps)return null;const c=`FIX_IP_${+ps.altura_m}(${+ps.esforco_kn})`.toUpperCase();return EST.find(e=>e.codigo.toUpperCase()===c)||null};
+  let P=(PRC.data&&PRC.data[0])||{orcamento_id:id,metodo:"A",pct_materiais:50,valor_servico:null,lucro_pct:15,custos:[],materiais_ref:null};
+  let etapa=["projeto","materiais","precificacao"].includes(Q.get("etapa"))?Q.get("etapa"):"projeto";
+  let selP=null,selV=null,placing=false,tracing=null,anchor=null,calib=null,fMat="",fPt="";const marcados=new Set();
 
-  /* preços e cálculo (espelha a view v_orc_itens do banco) */
   const preco=c=>{const o=OP[c];return (o&&(o.manual||ORC.modo_preco==="travado"))?(o?o.v:VIG[c]):(VIG[c]??(o&&o.v))};
   const ptById=i=>PTS.find(p=>p.id===i);
   const sobra=v=>v.sobra_pct??ORC.sobra_condutor_pct;
-  function linhasPonto(p){const L=IT.filter(i=>i.ponto_id===p.id).map(i=>({c:i.material_codigo,q:+i.quantidade}));if(p.poste_id&&POM[p.poste_id])L.push({c:POM[p.poste_id].material_codigo,q:1});return L}
-  function linhasVao(v){const k=(1+sobra(v)/100)*(+v.comprimento_m);const t=TRM[v.tipo_rede_id];if(t)return t.itens.map(i=>({c:i.material_codigo,q:k*i.multiplicador}));return v.material_codigo?[{c:v.material_codigo,q:k}]:[]}
+  const segVao=v=>{if(v.segmento_id)return v.segmento_id;const t=TRM[v.tipo_rede_id];if(!t)return null;const k=/^MT/i.test(t.nome)?"MT":/^BT/i.test(t.nome)?"BT":"";const s=SEGS.find(s=>s.nome===k);return s?s.id:null};
+  function linhasPonto(p){const L=IT.filter(i=>i.ponto_id===p.id).map(i=>{const e=i.ponto_estrutura_id&&PE.find(x=>x.id===i.ponto_estrutura_id);return{c:i.material_codigo,q:+i.quantidade,s:(e&&e.segmento_id)||p.segmento_id}});if(p.poste_id&&POM[p.poste_id])L.push({c:POM[p.poste_id].material_codigo,q:1,s:p.segmento_id,poste:1});return L}
+  function linhasVao(v){const k=(1+sobra(v)/100)*(+v.comprimento_m);const t=TRM[v.tipo_rede_id];const s=segVao(v);if(t)return t.itens.map(i=>({c:i.material_codigo,q:k*i.multiplicador,s}));return v.material_codigo?[{c:v.material_codigo,q:k,s}]:[]}
+  const todas=()=>PTS.flatMap(linhasPonto).concat(VAOS.flatMap(linhasVao));
   const soma=L=>L.reduce((s,l)=>s+l.q*(preco(l.c)||0),0);
-  function agregado(){const A={};const add=l=>{(A[l.c]=A[l.c]||{c:l.c,q:0}).q+=l.q};PTS.forEach(p=>linhasPonto(p).forEach(add));VAOS.forEach(v=>linhasVao(v).forEach(add));return Object.values(A)}
-  const total=()=>soma(agregado());
+  function agregado(){const A={};todas().forEach(l=>{(A[l.c]=A[l.c]||{c:l.c,q:0}).q+=l.q});return Object.values(A)}
+  const totalMat=()=>soma(todas());
+  function porSegmento(){const R={};todas().forEach(l=>{const k=l.s||"";R[k]=(R[k]||0)+l.q*(preco(l.c)||0)});return R}
+  const nomePonto=p=>{const t=(p.titulo||"").trim();return (t?t+" ":"Ponto ")+String(p.numero).padStart(2,"0")};
 
-  /* planta */
   let escala=+ORC.escala_m_por_unid||0;
   function dims(){if(ORC.planta_url)return{w:ORC.planta_w,h:ORC.planta_h};let w=3000,h=2000;PTS.forEach(p=>{w=Math.max(w,(p.x||0)+400);h=Math.max(h,(p.y||0)+400)});return{w,h}}
   let D=dims();
   const lenPx=v=>{const a=ptById(v.ponto_a),b=ptById(v.ponto_b);return a&&b?Math.hypot(a.x-b.x,a.y-b.y):0};
+  let T={x:0,y:0,s:.2},wrap,stage,img,blank;
 
-  root.innerHTML=`<div class="app">
-   <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">OrçaRede · <span id="hConc"></span></div><h1 id="hT"></h1><div class="sub" id="hS"></div></div>
-    <div class="tot"><div class="eye">Material</div><div class="v" id="hTot"></div></div>
-    <div class="tools"><a class="btn" href="orcarede.html">← Orçamentos</a><button class="btn" id="bPlanta">Planta</button><button class="btn pri" id="bXls">Exportar Excel</button></div></header>
-   <aside><div class="tabs">${[["ponto","Ponto"],["vaos","Vãos"],["mat","Materiais"],["dados","Dados"]].map(([k,l])=>`<button data-t="${k}">${l}</button>`).join("")}</div><div class="pane" id="pane"></div></aside>
-   <div class="mapwrap" id="map"><div class="stage" id="stage"><img id="img" alt="" hidden><div class="blank" id="blank"></div><svg class="net" id="net"></svg><div id="pins"></div></div>
-    <div class="mapbar" id="mapbar"></div><div class="mapui"><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Enquadrar" style="font-size:13px">⤢</button></div>
-    <div class="hint" id="hint" hidden></div><div class="esc" id="esc"></div></div></div>`;
-  $$(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;renderSide()});
-
+  function shell(){
+    const vers=IRMAS.length>1?`<select class="inp" id="hVer" aria-label="Versão" style="padding:3px 6px;font-size:12px;background:#2b4157;color:#e8f1f9;border-color:#3b5670">${IRMAS.map(v=>`<option value="${v.id}" ${v.id===ORC.id?"selected":""}>v${v.versao}${v.vigente?" · vigente":""}</option>`).join("")}</select>`:`<span class="chip vig">v${ORC.versao||1}</span>`;
+    root.innerHTML=`<div class="app ${etapa==="projeto"?"":"full"}">
+     <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia">
+      <div class="ttl"><div class="eye"><a href="orcarede.html">OrçaRede</a>${PASTA?` › <a href="orcarede.html?pasta=${PASTA.id}">${esc(PASTA.nome)}</a>`:""} · ${esc(concSig(conc))}</div>
+       <h1><span id="hT"></span>${vers}${ORC.vigente&&IRMAS.length>1?"":""}<span class="chip" id="hSt"></span></h1><div class="sub" id="hS"></div></div>
+      <div class="tot"><div class="eye">Material</div><div class="v" id="hTot"></div></div>
+      <div class="tools"><button class="btn" id="bVer">+ Nova versão</button>${ORC.vigente?"":'<button class="btn" id="bVig">Tornar vigente</button>'}<button class="btn" id="bFin"></button><button class="btn" id="bDados">Dados</button></div>
+      <nav class="steps">${[["projeto","1","Projeto"],["materiais","2","Materiais"],["precificacao","3","Precificação"],["proposta","4","Proposta"]].map(([k,n,l])=>`<button data-e="${k}" class="${etapa===k?"on":""}" ${k==="proposta"?'disabled title="Em breve"':""}><b>${n}</b>${l}</button>`).join("")}</nav></header>
+     ${etapa==="projeto"?`<div class="proj" id="proj"><aside id="side"></aside><div class="split" id="split" title="Arraste para ajustar a largura · duplo clique volta ao padrão"></div>
+      <div class="mapwrap" id="map"><div class="stage" id="stage"><img id="img" alt="" hidden><div class="blank" id="blank"></div><svg class="net" id="lbls"></svg><svg class="net" id="net"></svg><div id="pins"></div></div>
+       <div class="mapbar" id="mapbar"></div><div class="mapui"><button id="zmax" aria-label="Expandir mapa" title="Expandir o mapa (Esc volta)" style="font-size:15px">⛶</button><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Enquadrar" style="font-size:13px">⤢</button></div>
+       <div class="hint" id="hint" hidden></div><div class="esc" id="esc"></div></div><aside id="ptpanel" hidden></aside></div>`:`<div class="full-pane" id="full"></div>`}</div>`;
+    $$("[data-e]").forEach(b=>b.onclick=()=>{if(b.dataset.e===etapa)return;etapa=b.dataset.e;history.replaceState(null,"","?id="+ORC.id+(etapa==="projeto"?"":"&etapa="+etapa));shell()});
+    $("#hVer")&&($("#hVer").onchange=e=>location.href="orcarede.html?id="+e.target.value+(etapa==="projeto"?"":"&etapa="+etapa));
+    $("#bVer").onclick=()=>modal(`<h2>Nova versão</h2><p class="note">Cria a v${Math.max(0,...IRMAS.map(v=>v.versao),ORC.versao||1)+1} como cópia completa desta: pontos, estruturas, vãos, segmentos, preços e precificação. A versão atual fica guardada como está.</p><label class="fld" style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" name="vig" checked style="width:18px;height:18px"> Tornar a nova versão vigente</label>`,async f=>{
+      const nid=await chk(O.rpc("duplicar_orcamento",{p_orc:ORC.id,p_vigente:!!f.vig}));location.href="orcarede.html?id="+nid},"Criar versão");
+    $("#bVig")&&($("#bVig").onclick=async()=>{await chk(O.from("orcamentos").update({vigente:false}).eq("pasta_id",ORC.pasta_id));await chk(O.from("orcamentos").update({vigente:true}).eq("id",ORC.id));location.reload()});
+    $("#bFin").onclick=async()=>{const s=ORC.status==="finalizado"?"andamento":"finalizado";await chk(O.from("orcamentos").update({status:s}).eq("id",ORC.id));ORC.status=s;renderHead()};
+    $("#bDados").onclick=dadosDialog;
+    if(etapa==="projeto")montarProjeto();else if(etapa==="materiais")telaMateriais();else telaPreco();
+    renderHead();
+  }
   function renderHead(){
     $("#hT").textContent=ORC.titulo;document.title=ORC.titulo+" · OrçaRede";
-    $("#hConc").textContent=(CONCS.find(c=>c.id===conc)||{}).sigla||"";
-    const nP=PTS.filter(p=>p.poste_id).length,m=VAOS.reduce((s,v)=>s+(+v.comprimento_m),0);
-    $("#hS").textContent=[ORC.cliente,`${PTS.length} pontos · ${nP} postes · ${num(m,0)} m de vãos`,ORC.modo_preco==="travado"?"preços travados":"preços da base"].filter(Boolean).join(" · ");
-    $("#hTot").textContent=brl(total());
-    $("#esc").textContent=escala?`Escala: 100 px = ${num(100*escala,1)} m`:"Sem escala: calibre para medir os vãos";
+    $("#hSt").textContent=ORC.status==="finalizado"?"Finalizado":"Em andamento";$("#hSt").className="chip "+ORC.status;
+    $("#bFin").textContent=ORC.status==="finalizado"?"Reabrir":"✓ Finalizar";
+    const nP=PTS.filter(p=>p.poste_id).length,m=VAOS.reduce((s,v)=>s+(+v.comprimento_m),0),cs=PTS.filter(p=>p.segmento_id).length;
+    $("#hS").textContent=[ORC.cliente,ORC.cidade,`${PTS.length} pontos · ${nP} postes · ${num(m,0)} m de rede`,`${cs}/${PTS.length} com segmento`].filter(Boolean).join(" · ");
+    $("#hTot").textContent=brl(totalMat());
+    $("#esc")&&($("#esc").textContent=escala?`Escala: 100 px = ${num(100*escala,1)} m`:"Sem escala: calibre para medir os vãos");
   }
-  function renderAll(){renderHead();renderMapbar();renderPins();renderSide()}
+  function dadosDialog(){
+    modal(`<h2>Dados do orçamento</h2><label class="fld">Projeto<input name="titulo" value="${esc(ORC.titulo)}" required></label>
+     <div class="grid2"><label class="fld">Cliente<input name="cliente" value="${esc(ORC.cliente||"")}"></label><label class="fld">Cidade<input name="cidade" value="${esc(ORC.cidade||"")}"></label></div>
+     <label class="fld">Segmentos da obra (um por linha)<textarea name="segs" rows="4">${esc(SEGS.map(s=>s.nome).join("\n"))}</textarea></label>
+     <label class="fld">Observações<textarea name="obs" rows="3">${esc(ORC.obs||"")}</textarea></label>
+     <div><button type="button" class="btn del sm" id="dDel">Excluir esta versão</button></div>`,async f=>{
+      const upd={titulo:f.titulo.trim(),cliente:f.cliente.trim()||null,cidade:f.cidade.trim()||null,obs:f.obs};await chk(O.from("orcamentos").update(upd).eq("id",ORC.id));Object.assign(ORC,upd);
+      const nomes=f.segs.split("\n").map(s=>s.trim()).filter(Boolean);
+      for(const s of SEGS.filter(s=>!nomes.includes(s.nome))){await chk(O.from("orc_segmentos").delete().eq("id",s.id));SEGS.splice(SEGS.indexOf(s),1);PTS.forEach(p=>{if(p.segmento_id===s.id)p.segmento_id=null});PE.forEach(e=>{if(e.segmento_id===s.id)e.segmento_id=null});VAOS.forEach(v=>{if(v.segmento_id===s.id)v.segmento_id=null})}
+      const cores=["#c2185b","#1565c0","#e0a800","#6a3fbf","#00897b","#ef6c00","#5d4037"];
+      for(const [i,n] of nomes.entries()){if(!SEGS.some(s=>s.nome===n)){const r=await chk(O.from("orc_segmentos").insert({orcamento_id:ORC.id,nome:n,cor:cores[SEGS.length%cores.length],ordem:i}).select("*").single());SEGS.push(r)}}
+      shell()},"Salvar");
+    setTimeout(()=>{const b=$("#dDel");b&&(b.onclick=()=>{$$(".modal").forEach(m=>m.remove());modal(`<h2>Excluir a v${ORC.versao} de “${esc(ORC.titulo)}”?</h2><p class="note">Pontos, estruturas, vãos e precificação desta versão serão apagados. Não dá para desfazer.</p>`,async()=>{await chk(O.from("orcamentos").delete().eq("id",ORC.id));location.href="orcarede.html"+(ORC.pasta_id?"?pasta="+ORC.pasta_id:"")},"Excluir")})},30);
+  }
 
-  /* ---------- painel lateral ---------- */
-  function itRow(i,showVal=true){const m=MAT[i.material_codigo]||{nome:i.material_codigo};const v=(preco(i.material_codigo)||0)*i.quantidade;
-    return `<tr><td class="m">${esc(m.nome)}<small>${esc(i.material_codigo)} · ${esc(m.unidade||"")}</small></td><td class="q"><input class="mono" data-q="${i.id}" value="${num(i.quantidade,3)}" inputmode="decimal"></td>${showVal?`<td class="v mono">${num(v)}</td>`:""}<td class="x"><button class="xb" data-di="${i.id}" title="Remover">×</button></td></tr>`}
-  function renderSide(){
-    $$(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));
-    const p=$("#pane");
-    if(tab==="ponto")return selP?paneP(p,ptById(selP)):paneLista(p);
-    if(tab==="vaos")return paneVaos(p);
-    if(tab==="mat")return paneMat(p);
-    return paneDados(p);
+  /* ---------- 1. PROJETO ---------- */
+  function montarProjeto(){wrap=$("#map");stage=$("#stage");img=$("#img");blank=$("#blank");setPlanta();renderMapbar();renderPins();renderSide();bindMapa();bindLayout();renderLbls();requestAnimationFrame(()=>fit())}
+  const lsG=k=>{try{return localStorage.getItem("orc."+k)}catch(e){return null}},lsS=(k,v)=>{try{localStorage.setItem("orc."+k,v)}catch(e){}};
+  function bindLayout(){
+    const pj=$("#proj"),sp=$("#split");const w0=lsG("listw");if(w0)pj.style.setProperty("--listw",w0+"px");
+    sp.onpointerdown=e=>{e.preventDefault();sp.setPointerCapture(e.pointerId);sp.classList.add("on");const sx=e.clientX,w=$("#side").getBoundingClientRect().width;
+      sp.onpointermove=ev=>{const nw=Math.round(Math.max(230,Math.min(innerWidth*.55,w+ev.clientX-sx)));pj.style.setProperty("--listw",nw+"px");lsS("listw",nw)};
+      sp.onpointerup=sp.onpointercancel=()=>{sp.classList.remove("on");sp.onpointermove=null}};
+    sp.ondblclick=()=>{pj.style.removeProperty("--listw");lsS("listw","")};
+    const tg=on=>{pj.classList.toggle("max",on);$(".app").classList.toggle("maxed",on);$("#zmax").textContent=on?"⤡":"⛶";$("#zmax").title=on?"Voltar (Esc)":"Expandir o mapa (Esc volta)"};
+    $("#zmax").onclick=()=>tg(!pj.classList.contains("max"));$("#zmax").onpointerdown=e=>e.stopPropagation();
+    document.onkeydown=e=>{if(e.key==="Escape"&&!$(".modal")){if(placing||tracing||calib){placing=false;tracing=null;anchor=null;calib=null;renderMapbar();updHint();renderPins()}else if(pj.classList.contains("max"))tg(false);else if(selP||selV){selP=null;selV=null;renderPins();renderSide()}}};
+    let rf=0;new ResizeObserver(()=>{cancelAnimationFrame(rf);rf=requestAnimationFrame(()=>apply())}).observe(wrap);
   }
-  function paneLista(p){
-    p.innerHTML=`<p class="note">Toque num ponto da planta para ver e editar as estruturas. Use <b>+ Ponto</b> para lançar um novo.</p>
-     <div class="plist">${PTS.map(x=>`<button data-p="${x.id}"><span><b>${x.numero}</b> · ${esc(x.titulo||(POM[x.poste_id]||{}).codigo||"sem poste")}</span><b>${brl(soma(linhasPonto(x)))}</b></button>`).join("")||'<p class="note">Nenhum ponto ainda.</p>'}</div>`;
-    $$("[data-p]",p).forEach(b=>b.onclick=()=>{selP=b.dataset.p;selV=null;renderPins();renderSide();centrar(ptById(selP))});
+  /* etiquetas lidas do PDF */
+  const TXT=()=>Array.isArray(ORC.planta_textos)?ORC.planta_textos:[];
+  function etiquetaPerto(pt){let best=null,bd=1e9;const lim=escala?Math.max(25,12/escala):180;
+    TXT().forEach(([t,x,y])=>{if(!/;|\(\d+\)/.test(t))return;const d=Math.hypot(x-pt.x,y-pt.y);if(d<bd){bd=d;best=t}});return bd<=lim?best:null}
+  function renderLbls(){const g=$("#lbls");if(!g)return;g.setAttribute("width",D.w);g.setAttribute("height",D.h);
+    g.innerHTML=ORC.planta_url?"":TXT().map(([t,x,y])=>`<text x="${x}" y="${y}" font-size="13" fill="#7a8b99" style="stroke:none;font-weight:500">${esc(t)}</text>`).join("")}
+  const segOpts=(sel,vazio="— sem segmento —")=>`<option value="">${vazio}</option>`+SEGS.map(s=>`<option value="${s.id}" ${s.id===sel?"selected":""}>${esc(s.nome)}</option>`).join("");
+  const segTag=id=>{const s=SEGM()[id];return s?`<span class="segtag" style="background:${s.cor}">${esc(s.nome)}</span>`:""};
+  function renderSide(){const a=$("#side"),pn=$("#ptpanel");if(!a)return;
+    const v=selV&&VAOS.find(x=>x.id===selV),p=!v&&selP&&ptById(selP);if(!v)selV=null;if(!p)selP=null;
+    sideLista(a);
+    const was=!pn.hidden;pn.hidden=!(v||p);if(v)sideVao(pn,v);else if(p)sidePonto(pn,p);
+    if(was!==!pn.hidden)requestAnimationFrame(()=>{if(p&&!pinVisivel(p))centrar(p)})}
+  function pinVisivel(p){if(!wrap)return true;const r=wrap.getBoundingClientRect(),x=p.x*T.s+T.x,y=p.y*T.s+T.y;return x>20&&y>20&&x<r.width-20&&y<r.height-20}
+  function sideLista(a){
+    const f=fPt.trim().toLowerCase();
+    const L=PTS.filter(p=>!f||nomePonto(p).toLowerCase().includes(f)||((POM[p.poste_id]||{}).codigo||"").toLowerCase().includes(f));
+    const st=a.querySelector(".pane")?a.querySelector(".pane").scrollTop:0;
+    a.innerHTML=`<div class="ah">${resumoHtml()}<div class="row"><b>Lista de postes</b><span class="note">${L.length} de ${PTS.length}</span></div>
+      <input class="inp" id="fPt" placeholder="Buscar ponto, estrutura ou poste" value="${esc(fPt)}">
+      ${marcados.size?`<div class="bulk"><b>${marcados.size} marcado(s)</b> → segmento <select class="inp" id="bSeg" style="padding:3px 6px">${segOpts("","— escolher —")}</select><button class="lnk" id="bClr">limpar</button></div>`
+        :`<div class="row"><span class="note">Marque as caixas para aplicar segmento em lote.</span><button class="lnk" id="bAll">Marcar os ${L.length}</button></div>`}</div>
+     <div class="pane"><div class="plist">${L.map(p=>{const ps=POM[p.poste_id],ne=PE.filter(e=>e.ponto_id===p.id).length;
+        return `<div class="pl ${p.id===selP?"sel":""}" data-p="${p.id}"><input type="checkbox" data-ck="${p.id}" ${marcados.has(p.id)?"checked":""} aria-label="Marcar ponto ${p.numero}"><span class="n ${ps?"":"v"}">${p.numero}</span><span class="t">${esc(nomePonto(p))}${segTag(p.segmento_id)}<small>${ps?esc(ps.codigo):"sem poste"} · ${ne} ${ne===1?"estrutura":"estruturas"}</small></span><span class="r">${num(soma(linhasPonto(p)),0)}<small>R$</small></span></div>`}).join("")||'<p class="note">Nenhum ponto ainda. Clique com o botão direito na planta para lançar.</p>'}</div></div>`;
+    a.querySelector(".pane").scrollTop=st;
+    const rs=a.querySelector(".resumo");rs&&(rs.ontoggle=()=>{resumoAberto=rs.open});
+    $("#fPt").oninput=e=>{fPt=e.target.value;const pos=e.target.selectionStart;sideLista(a);const i=$("#fPt");i.focus();i.setSelectionRange(pos,pos)};
+    $$("[data-ck]",a).forEach(c=>{c.onclick=e=>e.stopPropagation();c.onchange=()=>{c.checked?marcados.add(c.dataset.ck):marcados.delete(c.dataset.ck);sideLista(a)}});
+    $$(".pl",a).forEach(r=>r.onclick=()=>{selP=r.dataset.p;selV=null;renderPins();renderSide();centrar(ptById(selP))});
+    const sel=a.querySelector(".pl.sel");sel&&!rolou&&(rolou=1,sel.scrollIntoView({block:"nearest"}));
+    $("#bAll")&&($("#bAll").onclick=()=>{L.forEach(p=>marcados.add(p.id));sideLista(a)});
+    $("#bClr")&&($("#bClr").onclick=()=>{marcados.clear();sideLista(a)});
+    $("#bSeg")&&($("#bSeg").onchange=async e=>{const s=e.target.value||null;const ids=[...marcados];
+      await chk(O.from("orc_pontos").update({segmento_id:s}).in("id",ids));PTS.forEach(p=>{if(marcados.has(p.id))p.segmento_id=s});
+      toast(`Segmento aplicado em ${ids.length} ponto(s).`);marcados.clear();renderHead();renderPins();sideLista(a)});
   }
-  function paneP(p,pt){
-    if(!pt){selP=null;return paneLista(p)}
-    const pes=PE.filter(e=>e.ponto_id===pt.id).sort((a,b)=>a.ordem-b.ordem);
-    const avulsos=IT.filter(i=>i.ponto_id===pt.id&&!i.ponto_estrutura_id);
-    p.innerHTML=`<div class="row"><button class="lnk" id="pBack">← Todos os pontos</button><b class="mono">${brl(soma(linhasPonto(pt)))}</b></div>
-     <div class="grid2"><label class="fld">Ponto nº<input id="pNum" type="number" value="${pt.numero}"></label>
-      <label class="fld">Poste<select id="pPoste"><option value="">— sem poste —</option>${POSTES.map(x=>`<option value="${x.id}" ${x.id===pt.poste_id?"selected":""}>${esc(x.codigo)}</option>`).join("")}</select></label></div>
-     <label class="fld">Descrição<input id="pTit" value="${esc(pt.titulo||"")}" placeholder="ex.: CE3-2; IT_50; IP 01"></label>
-     <div class="lbl">Estruturas</div>
-     ${pes.map(e=>{const its=IT.filter(i=>i.ponto_estrutura_id===e.id);const ed=its.some(i=>i.editado);const s=soma(its.map(i=>({c:i.material_codigo,q:+i.quantidade})));
-       return `<details class="est"><summary><span>${esc((ESTM[e.estrutura_id]||{}).codigo||"?")}${ed?'<span class="ed">editada</span>':""}</span><span style="display:flex;gap:10px;align-items:center"><span class="mono">${num(s)}</span><button class="xb" data-de="${e.id}" title="Remover estrutura">×</button></span></summary>
-        <table class="its">${its.map(i=>itRow(i)).join("")}</table><div style="padding:6px 8px"><button class="lnk" data-addm="${e.id}">+ material nesta estrutura</button></div></details>`}).join("")||'<p class="note">Nenhuma estrutura.</p>'}
-     <div class="row" style="flex-wrap:nowrap"><input list="dlEst" id="pEst" placeholder="Adicionar estrutura (digite o código)" style="flex:1;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)"><button class="btn pri" id="pEstOk">Adicionar</button></div>
-     <datalist id="dlEst">${EST.map(e=>`<option value="${esc(e.codigo)}">`).join("")}</datalist>
-     ${avulsos.length?`<div class="lbl">Materiais avulsos</div><table class="its">${avulsos.map(i=>itRow(i)).join("")}</table>`:""}
-     <div class="row"><button class="lnk" data-addm="">+ material avulso</button><button class="btn del sm" id="pDel">Excluir ponto</button></div>`;
+  const abertos=new Set();let resumoAberto=true,rolou=0;
+  function resumoHtml(){
+    const R={};todas().forEach(l=>{const g=(MAT[l.c]||{}).subgrupo||"OUTROS";R[g]=(R[g]||0)+l.q*(preco(l.c)||0)});
+    const T0=totalMat(),L=Object.entries(R).sort((a,b)=>b[1]-a[1]);
+    return `<details class="resumo" ${resumoAberto?"open":""}><summary><span>Prévia de valores</span><span class="mono">${brl(T0)} ▾</span></summary>
+     <div class="segbars">${L.map(([g,v])=>`<div class="sb"><span>${esc(g)}</span><div class="bar"><b style="width:${T0?v/T0*100:0}%;background:var(--accent)"></b></div><span class="n">${num(v,0)}</span></div>`).join("")}</div></details>`}
+  function itRow(i){const m=MAT[i.material_codigo]||{nome:i.material_codigo};const v=(preco(i.material_codigo)||0)*i.quantidade;
+    return `<tr><td class="m">${esc(m.nome)}<small>${esc(i.material_codigo)} · ${esc(m.unidade||"")}</small></td><td class="q"><input data-q="${i.id}" value="${num(i.quantidade,3)}" inputmode="decimal" aria-label="Quantidade"></td><td class="v mono">${num(v)}</td><td class="x"><button class="xb" data-di="${i.id}" title="Remover">×</button></td></tr>`}
+  function sidePonto(a,pt){
+    const pes=PE.filter(e=>e.ponto_id===pt.id).sort((x,y)=>x.ordem-y.ordem);
+    const avulsos=IT.filter(i=>i.ponto_id===pt.id&&!i.ponto_estrutura_id);const ps=POM[pt.poste_id];
+    a.innerHTML=`<div class="ah"><div class="row"><span class="lbl">Poste ${pt.numero} · ${brl(soma(linhasPonto(pt)))}</span><button class="x" id="pBack" aria-label="Fechar" title="Fechar">×</button></div>
+      <div style="font-weight:700;font-size:15px;overflow-wrap:anywhere">${esc(nomePonto(pt))}${ps?` <span class="note">· ${esc(ps.codigo)}</span>`:""}</div></div>
+     <div class="pane">
+      ${(()=>{const t=etiquetaPerto(pt);return t&&!PE.some(e=>e.ponto_id===pt.id)?`<div class="sug"><span>📄 Lido na planta, perto deste ponto:</span><code>${esc(t)}</code><div class="row"><span class="note">Confira antes de aplicar.</span><button class="btn sm pri" id="sugOk">Aplicar</button></div></div>`:""})()}
+      <div class="lbl">Lançamento rápido</div>
+      <div class="seq"><input class="inp" id="pSeq" placeholder="12(10);CE3-2;IF_50;BC10;IP" aria-label="Sequência de poste e estruturas"><button class="btn pri" id="pSeqOk">Aplicar</button></div>
+      <p class="note" style="margin-top:-6px">Poste e estruturas separados por “;”. O que já está no ponto não se repete.</p>
+      <div class="grid2"><label class="fld">Nome do ponto<input id="pTit" value="${esc(pt.titulo||"")}" placeholder="sequência de estruturas"></label>
+       <label class="fld">Contador<input id="pNum" type="number" value="${pt.numero}"></label></div>
+      <div class="grid2"><label class="fld">Poste<select id="pPoste"><option value="">— sem poste —</option>${POSTES.map(x=>`<option value="${x.id}" ${x.id===pt.poste_id?"selected":""}>${esc(x.codigo)}</option>`).join("")}</select></label>
+       <label class="fld">Segmento da obra<select id="pSeg">${segOpts(pt.segmento_id)}</select></label></div>
+      ${ipHtml(pt)}
+      <div class="lbl">Grupos de itens (estruturas)</div>
+      ${pes.map((e,k)=>{const its=IT.filter(i=>i.ponto_estrutura_id===e.id);const ed=its.some(i=>i.editado);const s=soma(its.map(i=>({c:i.material_codigo,q:+i.quantidade})));
+        return `<details class="est" data-k="${k}"><summary><span>${esc((ESTM[e.estrutura_id]||{}).codigo||"?")} <span class="note">(${its.length})</span>${ed?'<span class="ed">editada</span>':""}</span><span style="display:flex;gap:8px;align-items:center"><select class="seg" data-segpe="${e.id}" title="Segmento desta estrutura" aria-label="Segmento da estrutura">${segOpts(e.segmento_id,"seg. do ponto")}</select><span class="mono">${num(s)}</span><button class="xb" data-de="${e.id}" title="Remover estrutura">×</button></span></summary>
+         <table class="its">${its.map(itRow).join("")}</table><div style="padding:6px 8px"><button class="lnk" data-addm="${e.id}">+ material nesta estrutura</button></div></details>`}).join("")||'<p class="note">Nenhuma estrutura.</p>'}
+      <div class="seq"><input class="inp" list="dlEst" id="pEst" placeholder="Adicionar estrutura (código)" aria-label="Adicionar estrutura"><button class="btn" id="pEstOk">Adicionar</button></div>
+      <datalist id="dlEst">${EST.map(e=>`<option value="${esc(e.codigo)}">`).join("")}</datalist>
+      <div class="lbl">Materiais avulsos</div>
+      ${avulsos.length?`<table class="its">${avulsos.map(itRow).join("")}</table>`:'<p class="note">Nenhum.</p>'}
+      <div class="row"><button class="lnk" data-addm="">+ material avulso</button><button class="btn del sm" id="pDel">Excluir ponto</button></div></div>`;
     $("#pBack").onclick=()=>{selP=null;renderPins();renderSide()};
-    $("#pNum").onchange=async e=>{const n=+e.target.value;if(PTS.some(x=>x.numero===n&&x.id!==pt.id)){toast("Já existe o ponto "+n);e.target.value=pt.numero;return}await chk(O.from("orc_pontos").update({numero:n}).eq("id",pt.id));pt.numero=n;PTS.sort((a,b)=>a.numero-b.numero);renderPins()};
-    $("#pPoste").onchange=async e=>{const v=e.target.value?+e.target.value:null;await chk(O.from("orc_pontos").update({poste_id:v}).eq("id",pt.id));pt.poste_id=v;renderAll()};
-    $("#pTit").onchange=async e=>{await chk(O.from("orc_pontos").update({titulo:e.target.value}).eq("id",pt.id));pt.titulo=e.target.value};
-    const addEst=async()=>{const cod=$("#pEst").value.trim();const e=EST.find(x=>x.codigo.toUpperCase()===cod.toUpperCase());if(!e){toast("Estrutura não encontrada: "+cod);return}
-      await chk(O.rpc("aplicar_estrutura",{p_ponto:pt.id,p_estrutura:e.id}));await recarregaPonto(pt.id);renderAll();setTimeout(()=>$("#pEst")&&$("#pEst").focus(),10)};
+    $("#pNum").onchange=async e=>{const n=+e.target.value;if(PTS.some(x=>x.numero===n&&x.id!==pt.id)){toast("Já existe o ponto "+n);e.target.value=pt.numero;return}await chk(O.from("orc_pontos").update({numero:n}).eq("id",pt.id));pt.numero=n;PTS.sort((x,y)=>x.numero-y.numero);renderPins();renderSide()};
+    $("#pPoste").onchange=async e=>{const v=e.target.value?+e.target.value:null;await chk(O.from("orc_pontos").update({poste_id:v}).eq("id",pt.id));pt.poste_id=v;renderHead();renderPins();renderSide()};
+    $("#pSeg").onchange=async e=>{const v=e.target.value||null;await chk(O.from("orc_pontos").update({segmento_id:v}).eq("id",pt.id));pt.segmento_id=v;renderHead();renderPins()};
+    $("#pTit").onchange=async e=>{await chk(O.from("orc_pontos").update({titulo:e.target.value.trim()}).eq("id",pt.id));pt.titulo=e.target.value.trim();renderSide()};
+    const addEst=async()=>{const cod=$("#pEst").value.trim();const e=acharEstrutura(cod);if(!e){toast("Estrutura não encontrada: "+cod);return}
+      await chk(O.rpc("aplicar_estrutura",{p_ponto:pt.id,p_estrutura:e.id}));await recarregaPonto(pt.id);renderHead();renderSide();setTimeout(()=>$("#pEst")&&$("#pEst").focus(),10)};
     $("#pEstOk").onclick=addEst;$("#pEst").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addEst()}};
-    $$("[data-de]",p).forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();await chk(O.from("orc_ponto_estruturas").delete().eq("id",b.dataset.de));
-      for(let i=PE.length-1;i>=0;i--)if(PE[i].id===b.dataset.de)PE.splice(i,1);for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_estrutura_id===b.dataset.de)IT.splice(i,1);renderAll()});
-    $$("[data-addm]",p).forEach(b=>b.onclick=()=>addMaterial(pt,b.dataset.addm||null));
-    bindItens(p);
-    $("#pDel").onclick=()=>modal(`<h2>Excluir o ponto ${pt.numero}?</h2><p class="note">As estruturas, os materiais e os vãos ligados a ele também serão apagados.</p>`,async()=>{
+    const seq=async()=>{const r=await aplicarSequencia(pt,$("#pSeq").value);renderHead();renderPins();renderSide();
+      toast([r.ok.length?`Aplicado: ${r.ok.join(", ")}`:"",r.nok.length?`Não reconhecido: ${r.nok.join(", ")}`:""].filter(Boolean).join(" · ")||"Nada novo para aplicar.")};
+    $("#pSeqOk").onclick=seq;$("#sugOk")&&($("#sugOk").onclick=()=>{$("#pSeq").value=etiquetaPerto(pt);seq()});$("#pSeq").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();seq()}};
+    $$("[data-segpe]",a).forEach(s=>{s.onclick=e=>e.stopPropagation();s.onchange=async()=>{const v=s.value||null;await chk(O.from("orc_ponto_estruturas").update({segmento_id:v}).eq("id",s.dataset.segpe));PE.find(e=>e.id===s.dataset.segpe).segmento_id=v}});
+    $$("[data-de]",a).forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();await chk(O.from("orc_ponto_estruturas").delete().eq("id",b.dataset.de));
+      for(let i=PE.length-1;i>=0;i--)if(PE[i].id===b.dataset.de)PE.splice(i,1);for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_estrutura_id===b.dataset.de)IT.splice(i,1);renderHead();renderSide()});
+    $$("[data-addm]",a).forEach(b=>b.onclick=()=>addMaterial(pt,b.dataset.addm||null));
+    bindItens(a);bindIP(a,pt);
+    $("#pDel").onclick=()=>modal(`<h2>Excluir ${esc(nomePonto(pt))}?</h2><p class="note">Estruturas, materiais e vãos ligados a este ponto também serão apagados.</p>`,async()=>{
       await chk(O.from("orc_pontos").delete().eq("id",pt.id));PTS.splice(PTS.indexOf(pt),1);
       for(let i=VAOS.length-1;i>=0;i--)if(VAOS[i].ponto_a===pt.id||VAOS[i].ponto_b===pt.id)VAOS.splice(i,1);
-      for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_id===pt.id)IT.splice(i,1);selP=null;renderAll()});
-    // mantém abertas as estruturas que o usuário abriu
-    $$("details.est",p).forEach((d,k)=>{const key=pt.id+":"+k;if(abertos.has(key))d.open=true;d.ontoggle=()=>d.open?abertos.add(key):abertos.delete(key)});
+      for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_id===pt.id)IT.splice(i,1);selP=null;renderHead();renderPins();renderSide()},"Excluir");
+    $$("details.est",a).forEach(d=>{const key=pt.id+":"+d.dataset.k;if(abertos.has(key))d.open=true;d.ontoggle=()=>d.open?abertos.add(key):abertos.delete(key)});
   }
-  const abertos=new Set();
-  function bindItens(p){
-    $$("[data-q]",p).forEach(inp=>inp.onchange=async()=>{const it=IT.find(i=>i.id===inp.dataset.q);const q=pnum(inp.value);
+  function ipHtml(pt){
+    const pes=PE.filter(e=>e.ponto_id===pt.id&&ehIP(e.estrutura_id));
+    const v=soma(IT.filter(i=>pes.some(e=>e.id===i.ponto_estrutura_id)).map(i=>({c:i.material_codigo,q:+i.quantidade})));
+    return `<div class="ipbox"><div class="row"><b>💡 Iluminação pública</b>${pes.length?`<span class="mono">${num(v)}</span>`:'<span class="note">não orçada</span>'}</div>
+     ${pes.length?`<div class="note">${pes.map(e=>esc(ESTM[e.estrutura_id].codigo)).join(" + ")}</div><div class="row"><span></span><button class="lnk" id="ipDel">Remover luminária</button></div>`
+      :MIP.length?`<div class="seq"><select class="inp" id="ipMod" aria-label="Modelo de luminária">${MIP.map(m=>`<option value="${m.id}">${esc(m.nome)}</option>`).join("")}</select><button class="btn pri" id="ipAdd">Incluir</button></div><p class="note" style="margin:0">${fixIP(pt)?`A fixação ${esc(fixIP(pt).codigo)} entra junto, pelo poste.`:pt.poste_id?"Sem fixação cadastrada para este poste.":"Escolha o poste para a fixação entrar junto."}</p>`
+      :'<p class="note">Nenhum modelo de luminária cadastrado.</p>'}</div>`}
+  function bindIP(a,pt){
+    $("#ipAdd",a)&&($("#ipAdd",a).onclick=async()=>{const m=MIP.find(x=>x.id==$("#ipMod",a).value);const segIP=(SEGS.find(s=>/^IP$/i.test(s.nome))||{}).id||null;
+      const alvo=(m.estruturas||[]).map(c=>EST.find(e=>e.codigo.toUpperCase()===String(c).toUpperCase())).filter(Boolean);const fx=m.fixacao!==false&&fixIP(pt);if(fx&&!alvo.includes(fx))alvo.push(fx);
+      for(const e of alvo){const pid=await chk(O.rpc("aplicar_estrutura",{p_ponto:pt.id,p_estrutura:e.id}));if(segIP&&pid)await chk(O.from("orc_ponto_estruturas").update({segmento_id:segIP}).eq("id",pid))}
+      await recarregaPonto(pt.id);renderHead();renderPins();renderSide();toast("Luminária incluída: "+alvo.map(e=>e.codigo).join(" + "))});
+    $("#ipDel",a)&&($("#ipDel",a).onclick=async()=>{const ids=PE.filter(e=>e.ponto_id===pt.id&&ehIP(e.estrutura_id)).map(e=>e.id);
+      await chk(O.from("orc_ponto_estruturas").delete().in("id",ids));for(let i=PE.length-1;i>=0;i--)if(ids.includes(PE[i].id))PE.splice(i,1);for(let i=IT.length-1;i>=0;i--)if(ids.includes(IT[i].ponto_estrutura_id))IT.splice(i,1);
+      renderHead();renderPins();renderSide()});
+  }
+  function acharEstrutura(cod){const c=cod.trim().toUpperCase();if(!c)return null;
+    return EST.find(e=>e.codigo.toUpperCase()===c)||EST.find(e=>e.codigo.toUpperCase()===c+"-2")||(()=>{const L=EST.filter(e=>e.codigo.toUpperCase().startsWith(c));return L.length===1?L[0]:null})()}
+  function acharPoste(tok){const t0=tok.replace(/\s/g,"");const m=t0.match(/^(\d+(?:[.,]\d+)?)\((\d+(?:[.,]\d+)?)\)(?:-?(TC|DT))?$/i)||t0.match(/^(\d+)-(\d+)kN(?:-?(TC|DT))?$/i);
+    if(!m)return null;const h=pnum(m[1]),e=pnum(m[2]),t=(m[3]||"TC").toUpperCase();return POSTES.find(p=>+p.altura_m===h&&+p.esforco_kn===e&&(p.tipo||"TC")===t)||null}
+  async function aplicarSequencia(pt,txt){const ok=[],nok=[];
+    for(const tok of txt.split(/[;,]/).map(s=>s.trim()).filter(Boolean)){
+      const ps=acharPoste(tok);if(ps){if(pt.poste_id!==ps.id){await chk(O.from("orc_pontos").update({poste_id:ps.id}).eq("id",pt.id));pt.poste_id=ps.id;ok.push(ps.codigo)}continue}
+      const e=acharEstrutura(tok);if(!e){nok.push(tok);continue}
+      if(PE.some(x=>x.ponto_id===pt.id&&x.estrutura_id===e.id))continue;
+      await chk(O.rpc("aplicar_estrutura",{p_ponto:pt.id,p_estrutura:e.id}));ok.push(e.codigo)}
+    if(!pt.titulo&&ok.length){pt.titulo=txt.trim();await chk(O.from("orc_pontos").update({titulo:pt.titulo}).eq("id",pt.id))}
+    await recarregaPonto(pt.id);return{ok,nok}}
+  function bindItens(a){
+    $$("[data-q]",a).forEach(inp=>inp.onchange=async()=>{const it=IT.find(i=>i.id===inp.dataset.q);const q=pnum(inp.value);
       await chk(O.from("orc_ponto_itens").update({quantidade:q,editado:true}).eq("id",it.id));it.quantidade=q;it.editado=true;renderHead();renderSide()});
-    $$("[data-di]",p).forEach(b=>b.onclick=async()=>{await chk(O.from("orc_ponto_itens").delete().eq("id",b.dataset.di));const k=IT.findIndex(i=>i.id===b.dataset.di);const it=IT[k];IT.splice(k,1);
-      if(it.ponto_estrutura_id)await chk(O.from("orc_ponto_itens").update({editado:true}).eq("ponto_estrutura_id",it.ponto_estrutura_id)),IT.forEach(i=>{if(i.ponto_estrutura_id===it.ponto_estrutura_id)i.editado=true});renderHead();renderSide()});
+    $$("[data-di]",a).forEach(b=>b.onclick=async()=>{await chk(O.from("orc_ponto_itens").delete().eq("id",b.dataset.di));const k=IT.findIndex(i=>i.id===b.dataset.di);const it=IT[k];IT.splice(k,1);
+      if(it.ponto_estrutura_id){await chk(O.from("orc_ponto_itens").update({editado:true}).eq("ponto_estrutura_id",it.ponto_estrutura_id));IT.forEach(i=>{if(i.ponto_estrutura_id===it.ponto_estrutura_id)i.editado=true})}renderHead();renderSide()});
   }
   function addMaterial(pt,peId){
     modal(`<h2>Adicionar material</h2><label class="fld">Material<input name="m" list="dlMat" required placeholder="Digite parte do nome ou o código"></label>
@@ -327,84 +578,43 @@ async function editor(id){
      <label class="fld">Quantidade<input name="q" value="1" inputmode="decimal" required></label>`,async f=>{
       const cod=f.m.split(" · ")[0].trim();if(!MAT[cod]){toast("Escolha um material da lista.");return false}
       const r=await chk(O.from("orc_ponto_itens").insert({ponto_id:pt.id,ponto_estrutura_id:peId,material_codigo:cod,quantidade:pnum(f.q),editado:true}).select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado").single());
-      IT.push(r);if(peId){IT.forEach(i=>{if(i.ponto_estrutura_id===peId)i.editado=true});await O.from("orc_ponto_itens").update({editado:true}).eq("ponto_estrutura_id",peId)}renderHead();renderSide()});
+      IT.push(r);if(peId){IT.forEach(i=>{if(i.ponto_estrutura_id===peId)i.editado=true});await O.from("orc_ponto_itens").update({editado:true}).eq("ponto_estrutura_id",peId)}renderHead();renderSide()},"Adicionar");
   }
   async function recarregaPonto(pid){
-    const [a,b]=await Promise.all([chk(O.from("orc_ponto_estruturas").select("id,ponto_id,estrutura_id,ordem").eq("ponto_id",pid)),chk(O.from("orc_ponto_itens").select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado").eq("ponto_id",pid))]);
-    for(let i=PE.length-1;i>=0;i--)if(PE[i].ponto_id===pid)PE.splice(i,1);for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_id===pid)IT.splice(i,1);PE.push(...a);IT.push(...b);
+    const [x,y]=await Promise.all([chk(O.from("orc_ponto_estruturas").select("id,ponto_id,estrutura_id,ordem,segmento_id").eq("ponto_id",pid)),chk(O.from("orc_ponto_itens").select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado").eq("ponto_id",pid))]);
+    for(let i=PE.length-1;i>=0;i--)if(PE[i].ponto_id===pid)PE.splice(i,1);for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_id===pid)IT.splice(i,1);PE.push(...x);IT.push(...y);
   }
-  function paneVaos(p){
-    const v=selV&&VAOS.find(x=>x.id===selV);
-    const porTipo={};VAOS.forEach(x=>{const k=x.tipo_rede_id?TRM[x.tipo_rede_id].nome:(MAT[x.material_codigo]||{}).nome||"?";porTipo[k]=(porTipo[k]||0)+(+x.comprimento_m)});
-    p.innerHTML=(v?`<div class="row"><b>Vão ${ptById(v.ponto_a)?.numero} → ${ptById(v.ponto_b)?.numero}</b><button class="lnk" id="vBack">fechar</button></div>
-      <label class="fld">Tipo de rede<select id="vTipo">${TR.map(t=>`<option value="${t.id}" ${t.id===v.tipo_rede_id?"selected":""}>${esc(t.nome)}</option>`).join("")}</select></label>
+  function sideVao(a,v){
+    const porTipo={};VAOS.forEach(x=>{const k=x.tipo_rede_id?TRM[x.tipo_rede_id].nome:"?";porTipo[k]=(porTipo[k]||0)+(+x.comprimento_m)});
+    a.innerHTML=`<div class="ah"><div class="row"><span class="lbl">Vão · ${brl(soma(linhasVao(v)))}</span><button class="x" id="vBack" aria-label="Fechar" title="Fechar">×</button></div><div style="font-weight:700;font-size:15px">Vão ${ptById(v.ponto_a)?.numero} → ${ptById(v.ponto_b)?.numero}</div></div>
+     <div class="pane"><label class="fld">Tipo de rede<select id="vTipo">${TR.map(t=>`<option value="${t.id}" ${t.id===v.tipo_rede_id?"selected":""}>${esc(t.nome)}</option>`).join("")}</select></label>
       <div class="grid2"><label class="fld">Comprimento (m)${v.manual?' · <b style="color:var(--warn)">manual</b>':""}<input id="vLen" value="${num(v.comprimento_m,2)}" inputmode="decimal"></label>
-      <label class="fld">Sobra % (vazio = ${num(ORC.sobra_condutor_pct)}%)<input id="vSob" value="${v.sobra_pct??""}" inputmode="decimal"></label></div>
-      <div class="row">${v.manual?'<button class="lnk" id="vAuto">Voltar a medir pela planta</button>':"<span></span>"}<button class="btn del sm" id="vDel">Excluir vão</button></div><hr style="border:0;border-top:1px solid var(--line);width:100%">`:"")
-     +`<p class="note">Para lançar rede, escolha o tipo na barra da planta e toque nos postes em sequência. Cada vão é medido pela escala da planta.</p>
-      <div class="lbl">Totais por tipo de rede</div>${Object.entries(porTipo).map(([k,m])=>`<div class="kv"><span>${esc(k)}</span><b>${num(m,1)} m</b></div>`).join("")||'<p class="note">Nenhum vão lançado.</p>'}
-      <label class="fld" style="max-width:200px">Sobra padrão dos condutores (%)<input id="vSobP" value="${num(ORC.sobra_condutor_pct)}" inputmode="decimal"></label>`;
-    $("#vSobP").onchange=async e=>{const s=pnum(e.target.value);await chk(O.from("orcamentos").update({sobra_condutor_pct:s}).eq("id",ORC.id));ORC.sobra_condutor_pct=s;renderHead();renderSide()};
-    if(!v)return;
+       <label class="fld">Sobra % (vazio = ${num(ORC.sobra_condutor_pct)}%)<input id="vSob" value="${v.sobra_pct??""}" inputmode="decimal"></label></div>
+      <label class="fld">Segmento<select id="vSeg">${segOpts(v.segmento_id,"automático pelo tipo de rede")}</select></label>
+      <div class="row">${v.manual?'<button class="lnk" id="vAuto">Voltar a medir pela planta</button>':"<span></span>"}<button class="btn del sm" id="vDel">Excluir vão</button></div>
+      <div class="lbl">Rede lançada no orçamento</div>${Object.entries(porTipo).map(([k,m])=>`<div class="kv"><span>${esc(k)}</span><b>${num(m,1)} m</b></div>`).join("")}
+      <label class="fld" style="max-width:220px">Sobra padrão dos condutores (%)<input id="vSobP" value="${num(ORC.sobra_condutor_pct)}" inputmode="decimal"></label></div>`;
     $("#vBack").onclick=()=>{selV=null;renderNet();renderSide()};
-    $("#vTipo").onchange=async e=>{await chk(O.from("orc_vaos").update({tipo_rede_id:+e.target.value}).eq("id",v.id));v.tipo_rede_id=+e.target.value;renderAll()};
-    $("#vLen").onchange=async e=>{const m=pnum(e.target.value);await chk(O.from("orc_vaos").update({comprimento_m:m,manual:true}).eq("id",v.id));v.comprimento_m=m;v.manual=true;renderAll()};
+    $("#vSobP").onchange=async e=>{const s=pnum(e.target.value);await chk(O.from("orcamentos").update({sobra_condutor_pct:s}).eq("id",ORC.id));ORC.sobra_condutor_pct=s;renderHead();renderSide()};
+    $("#vTipo").onchange=async e=>{await chk(O.from("orc_vaos").update({tipo_rede_id:+e.target.value}).eq("id",v.id));v.tipo_rede_id=+e.target.value;renderHead();renderNet();renderSide()};
+    $("#vSeg").onchange=async e=>{const s=e.target.value||null;await chk(O.from("orc_vaos").update({segmento_id:s}).eq("id",v.id));v.segmento_id=s};
+    $("#vLen").onchange=async e=>{const m=pnum(e.target.value);await chk(O.from("orc_vaos").update({comprimento_m:m,manual:true}).eq("id",v.id));v.comprimento_m=m;v.manual=true;renderHead();renderNet();renderSide()};
     $("#vSob").onchange=async e=>{const s=e.target.value.trim()===""?null:pnum(e.target.value);await chk(O.from("orc_vaos").update({sobra_pct:s}).eq("id",v.id));v.sobra_pct=s;renderHead();renderSide()};
-    $("#vAuto")&&($("#vAuto").onclick=async()=>{if(!escala){toast("Calibre a escala primeiro.");return}const m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:m,manual:false}).eq("id",v.id));v.comprimento_m=m;v.manual=false;renderAll()});
-    $("#vDel").onclick=async()=>{await chk(O.from("orc_vaos").delete().eq("id",v.id));VAOS.splice(VAOS.indexOf(v),1);selV=null;renderAll()};
+    $("#vAuto")&&($("#vAuto").onclick=async()=>{if(!escala){toast("Calibre a escala primeiro.");return}const m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:m,manual:false}).eq("id",v.id));v.comprimento_m=m;v.manual=false;renderHead();renderNet();renderSide()});
+    $("#vDel").onclick=async()=>{await chk(O.from("orc_vaos").delete().eq("id",v.id));VAOS.splice(VAOS.indexOf(v),1);selV=null;renderHead();renderNet();renderSide()};
   }
-  function paneMat(p){
-    const A=agregado().map(l=>({...l,m:MAT[l.c]||{nome:l.c,subgrupo:"?"}})).sort((a,b)=>(a.m.subgrupo||"").localeCompare(b.m.subgrupo||"")||a.m.nome.localeCompare(b.m.nome));
-    const f=fMat.toLowerCase(),F=A.filter(l=>!f||l.m.nome.toLowerCase().includes(f)||l.c.includes(f));
-    const grupos={};F.forEach(l=>(grupos[l.m.subgrupo||"SEM SUBGRUPO"]=grupos[l.m.subgrupo||"SEM SUBGRUPO"]||[]).push(l));
-    const semPreco=A.filter(l=>preco(l.c)==null).length;
-    p.innerHTML=`<div class="row"><div class="seg2"><button data-mp="base" class="${ORC.modo_preco==="base"?"on":""}">Acompanhar base</button><button data-mp="travado" class="${ORC.modo_preco==="travado"?"on":""}">Preços travados</button></div><b class="mono">${brl(total())}</b></div>
-     <p class="note">${ORC.modo_preco==="travado"?`Valores congelados${ORC.travado_em?" em "+new Date(ORC.travado_em).toLocaleDateString("pt-BR"):""}. Mudanças na base não alteram este orçamento.`:"Os valores seguem o preço vigente da base de materiais."} Preço editado aqui vale só para este orçamento (linha amarela).</p>
-     ${semPreco?`<p class="note" style="color:var(--danger)">${semPreco} material(is) sem preço na base.</p>`:""}
-     <input id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)">
-     ${Object.entries(grupos).map(([g,L])=>`<div><div class="sg"><span>${esc(g)}</span><span class="mono">${num(soma(L))}</span></div><table class="its">${L.map(l=>{const o=OP[l.c],pr=preco(l.c);
-       return `<tr class="${o&&o.manual?"man":""}"><td class="m">${esc(l.m.nome)}<small>${esc(l.c)} · ${num(l.q,2)} ${esc(l.m.unidade||"")}</small></td><td class="q"><input class="mono pr" data-pr="${esc(l.c)}" value="${pr==null?"":num(pr,4)}" inputmode="decimal" title="Preço unitário"></td><td class="v mono">${num(l.q*(pr||0))}</td><td class="x">${o&&o.manual?`<button class="xb" data-rp="${esc(l.c)}" title="Voltar ao preço da base">↺</button>`:""}</td></tr>`}).join("")}</table></div>`).join("")}`;
-    $("#mF").oninput=e=>{fMat=e.target.value;const pos=e.target.selectionStart;paneMat(p);const i=$("#mF");i.focus();i.setSelectionRange(pos,pos)};
-    $$("[data-mp]",p).forEach(b=>b.onclick=async()=>{if(b.dataset.mp===ORC.modo_preco)return;
-      if(b.dataset.mp==="travado"){await chk(O.rpc("travar_precos",{p_orc:ORC.id}));ORC.modo_preco="travado";ORC.travado_em=new Date().toISOString()}
-      else{await chk(O.from("orcamentos").update({modo_preco:"base"}).eq("id",ORC.id));ORC.modo_preco="base"}
-      OP=Object.fromEntries((await chk(O.from("orc_precos").select("material_codigo,preco_unit,manual").eq("orcamento_id",ORC.id))).map(x=>[x.material_codigo,{v:+x.preco_unit,manual:x.manual}]));renderHead();renderSide()});
-    $$("[data-pr]",p).forEach(inp=>inp.onchange=async()=>{const c=inp.dataset.pr,v=pnum(inp.value);
-      await chk(O.from("orc_precos").upsert({orcamento_id:ORC.id,material_codigo:c,preco_unit:v,manual:true}));OP[c]={v,manual:true};renderHead();renderSide()});
-    $$("[data-rp]",p).forEach(b=>b.onclick=async()=>{const c=b.dataset.rp;
-      if(ORC.modo_preco==="travado"&&VIG[c]!=null){await chk(O.from("orc_precos").update({preco_unit:VIG[c],manual:false}).eq("orcamento_id",ORC.id).eq("material_codigo",c));OP[c]={v:VIG[c],manual:false}}
-      else{await chk(O.from("orc_precos").delete().eq("orcamento_id",ORC.id).eq("material_codigo",c));delete OP[c]}renderHead();renderSide()});
-  }
-  async function paneDados(p){
-    p.innerHTML=`<label class="fld">Título<input id="dT" value="${esc(ORC.titulo)}"></label>
-     <label class="fld">Cliente<input id="dC" value="${esc(ORC.cliente||"")}"></label>
-     <div class="grid2"><label class="fld">Situação<select id="dS">${["rascunho","enviado","aprovado","perdido","cancelado"].map(s=>`<option ${s===ORC.status?"selected":""}>${s}</option>`).join("")}</select></label>
-     <label class="fld">Concessionária<input value="${esc((CONCS.find(c=>c.id===conc)||{}).sigla||"")}" disabled></label></div>
-     <label class="fld">Negócio do comercial<select id="dN"><option value="">— nenhum —</option></select></label>
-     <label class="fld">Observações<textarea id="dO" rows="4">${esc(ORC.obs||"")}</textarea></label>
-     <div class="row"><span></span><button class="btn del sm" id="dDel">Excluir orçamento</button></div>`;
-    const sv=(k,v)=>chk(O.from("orcamentos").update({[k]:v,atualizado_em:new Date().toISOString()}).eq("id",ORC.id)).then(()=>{ORC[k]=v;renderHead()});
-    $("#dT").onchange=e=>sv("titulo",e.target.value.trim()||ORC.titulo);$("#dC").onchange=e=>sv("cliente",e.target.value.trim()||null);
-    $("#dS").onchange=e=>sv("status",e.target.value);$("#dO").onchange=e=>sv("obs",e.target.value);$("#dN").onchange=e=>sv("negocio_id",e.target.value||null);
-    $("#dDel").onclick=()=>modal(`<h2>Excluir “${esc(ORC.titulo)}”?</h2><p class="note">Pontos, estruturas e vãos deste orçamento serão apagados. Não dá para desfazer.</p>`,async()=>{await chk(O.from("orcamentos").delete().eq("id",ORC.id));location.href="orcarede.html"});
-    const {data:ns}=await sb.from("negocios").select("id,titulo,cliente").order("criado_em",{ascending:false}).limit(500);
-    const sel=$("#dN");if(sel&&ns)sel.innerHTML=`<option value="">— nenhum —</option>`+ns.map(n=>`<option value="${n.id}" ${n.id===ORC.negocio_id?"selected":""}>${esc(n.titulo)}</option>`).join("");
-  }
-
-  /* ---------- planta: pinos e rede ---------- */
-  const wrap=$("#map"),stage=$("#stage"),img=$("#img"),blank=$("#blank");
-  let T={x:0,y:0,s:.2};
   function setPlanta(){D=dims();if(ORC.planta_url){img.hidden=false;img.src=ORC.planta_url;img.width=D.w;img.height=D.h;blank.hidden=true}else{img.hidden=true;blank.hidden=false;blank.style.width=D.w+"px";blank.style.height=D.h+"px"}}
   const inv=()=>Math.min(1/T.s,40);
   function apply(){stage.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`;$("#pins").style.setProperty("--inv",inv());renderNet()}
-  function fit(){const r=wrap.getBoundingClientRect();if(!r.width)return;const s=Math.min(r.width/D.w,r.height/D.h)*.98;T={s,x:(r.width-D.w*s)/2,y:(r.height-D.h*s)/2};apply()}
-  function centrar(p){if(!p)return;const r=wrap.getBoundingClientRect();T.x=r.width/2-p.x*T.s;T.y=r.height/2-p.y*T.s;apply()}
+  function fit(){if(!wrap)return;const r=wrap.getBoundingClientRect();if(!r.width)return;const s=Math.min(r.width/D.w,r.height/D.h)*.98;T={s,x:(r.width-D.w*s)/2,y:(r.height-D.h*s)/2};apply()}
+  function centrar(p){if(!p||!wrap)return;const r=wrap.getBoundingClientRect();T.x=r.width/2-p.x*T.s;T.y=r.height/2-p.y*T.s;apply()}
   function zoomAt(f,cx,cy){const r=wrap.getBoundingClientRect();const minS=Math.min(r.width/D.w,r.height/D.h)*.5;const ns=Math.max(minS,Math.min(4,T.s*f));f=ns/T.s;T.x=cx-(cx-T.x)*f;T.y=cy-(cy-T.y)*f;T.s=ns;apply()}
   function renderMapbar(){
-    const b=$("#mapbar");
-    b.innerHTML=`<button class="btn ${placing?"on":""}" id="mPlace">${placing?"Cancelar":"+ Ponto"}</button>`
-      +TR.map(t=>`<button class="btn ${tracing===t.id?"on":""}" data-tr="${t.id}"><span class="dot" style="border-color:${t.cor}"></span>${tracing===t.id?"Concluir":"Traçar"} ${esc(t.nome)}</button>`).join("")
+    const b=$("#mapbar");if(!b)return;
+    b.innerHTML=`<button class="btn" id="bPlanta">Planta</button><button class="btn ${placing?"on":""}" id="mPlace">${placing?"Cancelar":"+ Ponto"}</button>`
+      +TR.map(t=>`<button class="btn ${tracing===t.id?"on":""}" data-tr="${t.id}"><span class="dot" style="border-color:${t.cor}"></span>${tracing===t.id?"Concluir ":""}${esc(t.nome)}</button>`).join("")
       +`<button class="btn ${calib?"on":""}" id="mCal">${calib?"Cancelar escala":"Escala"}</button>`;
+    $("#bPlanta").onclick=plantaDialog;
     $("#mPlace").onclick=()=>{placing=!placing;tracing=null;anchor=null;calib=null;renderMapbar();updHint();renderPins()};
     $$("[data-tr]",b).forEach(x=>x.onclick=()=>{if(!escala&&tracing!==+x.dataset.tr){toast("Calibre a escala da planta antes de traçar a rede.");return}tracing=tracing===+x.dataset.tr?null:+x.dataset.tr;anchor=null;placing=false;calib=null;renderMapbar();updHint();renderPins()});
     $("#mCal").onclick=()=>{calib=calib?null:[];placing=false;tracing=null;anchor=null;renderMapbar();updHint();renderNet()};
@@ -414,27 +624,28 @@ async function editor(id){
     h.hidden=!(placing||tracing||calib);
     h.textContent=placing?"Toque na planta onde fica o ponto":tracing?(anchor?"Toque no próximo poste · toque no vazio para começar outro trecho":"Toque no poste de início"):calib?(calib.length?"Agora toque no segundo ponto da medida conhecida":"Toque no primeiro ponto de uma medida conhecida (ex.: cota de 100 m)"):""}
   function renderPins(){
-    $("#pins").innerHTML=PTS.map(p=>`<button class="pin ${p.poste_id?"poste":"vazio"} ${p.id===selP?"sel":""} ${p.id===anchor?"anchor":""}" data-id="${p.id}" style="left:${p.x}px;top:${p.y}px" title="${esc(p.titulo||"")}">${p.numero}</button>`).join("");
-    $$("#pins .pin").forEach(b=>{
-      b.onpointerdown=e=>{e.stopPropagation();if(tracing||placing||calib||b.dataset.id!==selP)return;
+    const el=$("#pins");if(!el)return;const SG=SEGM();
+    el.innerHTML=PTS.map(p=>`<button class="pin ${p.poste_id?"":"vazio"} ${p.id===selP?"sel":""} ${p.id===anchor?"anchor":""}" data-id="${p.id}" style="left:${p.x}px;top:${p.y}px${SG[p.segmento_id]?";background:"+SG[p.segmento_id].cor:""}" title="${esc(nomePonto(p))}">${p.numero}${p.poste_id||temIP(p)?`<span class="lp ${temIP(p)?"":"no"}" title="${temIP(p)?"Luminária orçada":"Sem luminária"}">💡</span>`:""}</button>`).join("");
+    $$(".pin",el).forEach(b=>{
+      b.onpointerdown=e=>{e.stopPropagation();if(e.button!==0||tracing||placing||calib||b.dataset.id!==selP)return;
         const p=ptById(b.dataset.id),sx=e.clientX,sy=e.clientY,ox=p.x,oy=p.y;let dragged=false;b.setPointerCapture(e.pointerId);
         b.onpointermove=ev=>{if(!dragged&&Math.hypot(ev.clientX-sx,ev.clientY-sy)<5)return;dragged=true;p.x=Math.round(ox+(ev.clientX-sx)/T.s);p.y=Math.round(oy+(ev.clientY-sy)/T.s);b.style.left=p.x+"px";b.style.top=p.y+"px";renderNet()};
         b.onpointerup=b.onpointercancel=async()=>{b.onpointermove=null;b.onpointerup=null;if(!dragged)return;b._drag=1;await chk(O.from("orc_pontos").update({x:p.x,y:p.y}).eq("id",p.id));await remedir(p.id);renderHead();renderSide()}};
       b.onclick=e=>{e.stopPropagation();if(b._drag){b._drag=0;return}
         if(tracing){traceTap(b.dataset.id);return}if(placing||calib)return;
-        selP=b.dataset.id;selV=null;tab="ponto";renderPins();renderSide()}});
+        selP=b.dataset.id;selV=null;rolou=0;renderPins();renderSide()}});
     renderNet();
   }
   async function remedir(pid){if(!escala)return;for(const v of VAOS.filter(v=>!v.manual&&(v.ponto_a===pid||v.ponto_b===pid))){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}}
-  async function traceTap(id){
-    if(!anchor||anchor===id){anchor=id;renderPins();updHint();return}
-    const dup=VAOS.some(g=>g.tipo_rede_id===tracing&&((g.ponto_a===anchor&&g.ponto_b===id)||(g.ponto_a===id&&g.ponto_b===anchor)));
-    if(!dup){const v={orcamento_id:ORC.id,ponto_a:anchor,ponto_b:id,tipo_rede_id:tracing,comprimento_m:0};v.comprimento_m=+(lenPx(v)*escala).toFixed(2);
+  async function traceTap(pid){
+    if(!anchor||anchor===pid){anchor=pid;renderPins();updHint();return}
+    const dup=VAOS.some(g=>g.tipo_rede_id===tracing&&((g.ponto_a===anchor&&g.ponto_b===pid)||(g.ponto_a===pid&&g.ponto_b===anchor)));
+    if(!dup){const v={orcamento_id:ORC.id,ponto_a:anchor,ponto_b:pid,tipo_rede_id:tracing,comprimento_m:0};v.comprimento_m=+(lenPx(v)*escala).toFixed(2);
       const r=await chk(O.from("orc_vaos").insert(v).select("*").single());VAOS.push(r);renderHead()}
-    anchor=id;renderPins();updHint();
+    anchor=pid;renderPins();updHint();
   }
   function renderNet(){
-    const svg=$("#net");svg.setAttribute("width",D.w);svg.setAttribute("height",D.h);const w=inv();
+    const svg=$("#net");if(!svg)return;svg.setAttribute("width",D.w);svg.setAttribute("height",D.h);const w=inv();
     const ordem=Object.fromEntries(TR.map((t,i)=>[t.id,i]));
     svg.innerHTML=VAOS.map(g=>{const a=ptById(g.ponto_a),b=ptById(g.ponto_b);if(!a||!b)return"";const t=TRM[g.tipo_rede_id]||{cor:"#555"};
       const k=(ordem[g.tipo_rede_id]||0),dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1;let nx=-dy/L,ny=dx/L;if(ny<0||(ny===0&&nx<0)){nx=-nx;ny=-ny}
@@ -442,55 +653,60 @@ async function editor(id){
       const mx=(ax+bx)/2+nx*12*w,my=(ay+by)/2+ny*12*w;
       return `<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="${t.cor}" stroke-width="${(sel?7:4)*w}"/><line class="hit" data-v="${g.id}" x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke-width="${14*w}"/>${T.s>.35||sel?`<text x="${mx}" y="${my}" font-size="${11*w}" stroke-width="${3*w}" fill="${t.cor}" text-anchor="middle">${num(g.comprimento_m,0)}</text>`:""}`}).join("")
       +(calib&&calib.length?`<circle cx="${calib[0].x}" cy="${calib[0].y}" r="${6*w}" fill="#c2185b"/>`:"");
-    $$("[data-v]",svg).forEach(l=>{l.onpointerdown=e=>e.stopPropagation();l.onclick=e=>{e.stopPropagation();if(tracing||placing||calib)return;selV=l.dataset.v;selP=null;tab="vaos";renderPins();renderSide()}});
+    $$("[data-v]",svg).forEach(l=>{l.onpointerdown=e=>e.stopPropagation();l.onclick=e=>{e.stopPropagation();if(tracing||placing||calib)return;selV=l.dataset.v;selP=null;renderPins();renderSide()}});
   }
-  $("#zin").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1.5,r.width/2,r.height/2)};
-  $("#zout").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1/1.5,r.width/2,r.height/2)};
-  $("#zfit").onclick=fit;["zin","zout","zfit"].forEach(i=>$("#"+i).onpointerdown=e=>e.stopPropagation());
-  wrap.addEventListener("wheel",e=>{e.preventDefault();const r=wrap.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
-  const ptrs=new Map();let moved=0,pinch=null;
-  wrap.addEventListener("pointerdown",e=>{wrap.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}}wrap.classList.add("drag")});
-  wrap.addEventListener("pointermove",e=>{const p=ptrs.get(e.pointerId);if(!p)return;const r=wrap.getBoundingClientRect();
-    if(ptrs.size===2&&pinch){p.x=e.clientX;p.y=e.clientY;const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);zoomAt(d/pinch.d,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top);pinch.d=d;moved+=10;return}
-    const dx=e.clientX-p.x,dy=e.clientY-p.y;moved+=Math.abs(dx)+Math.abs(dy);T.x+=dx;T.y+=dy;p.x=e.clientX;p.y=e.clientY;apply()});
-  const up=async e=>{const had=ptrs.has(e.pointerId);ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size)wrap.classList.remove("drag");
-    if(!(had&&e.type==="pointerup"&&moved<6&&!ptrs.size))return;
-    const r=wrap.getBoundingClientRect(),x=Math.round((e.clientX-r.left-T.x)/T.s),y=Math.round((e.clientY-r.top-T.y)/T.s);
-    if(placing){placing=false;renderMapbar();updHint();
-      const n=PTS.reduce((m,p)=>Math.max(m,p.numero),0)+1;
-      const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:n,x,y}).select("*").single());PTS.push(pt);selP=pt.id;selV=null;tab="ponto";renderAll();setTimeout(()=>$("#pPoste")&&$("#pPoste").focus(),30)}
-    else if(calib){calib.push({x,y});if(calib.length<2){renderNet();updHint();return}
-      const px=Math.hypot(calib[1].x-calib[0].x,calib[1].y-calib[0].y);const c=calib;calib=null;renderMapbar();updHint();renderNet();
-      if(px<5){toast("Os dois pontos ficaram muito próximos.");return}
-      modal(`<h2>Calibrar escala</h2><p class="note">Qual é a distância real entre os dois pontos que você marcou?</p><label class="fld">Distância (m)<input name="m" inputmode="decimal" required></label>
-       <p class="note">Os vãos já lançados (exceto os de comprimento manual) serão medidos de novo.</p>`,async f=>{const m=pnum(f.m);if(!(m>0))return false;escala=m/px;
-        await chk(O.from("orcamentos").update({escala_m_por_unid:escala}).eq("id",ORC.id));ORC.escala_m_por_unid=escala;
-        for(const v of VAOS.filter(v=>!v.manual)){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}renderAll();toast("Escala calibrada.")});
-      void c}
-    else if(tracing&&anchor){anchor=null;renderPins();updHint()}
-    else if(selP||selV){selP=null;selV=null;renderPins();renderSide()}};
-  wrap.addEventListener("pointerup",up);wrap.addEventListener("pointercancel",up);
-  new ResizeObserver(()=>{if(!wrap._fit&&wrap.clientWidth){wrap._fit=1;fit()}}).observe(wrap);
-
-  /* ---------- trocar planta (PDF ou imagem) ---------- */
+  async function novoPonto(x,y){
+    const n=PTS.reduce((m,p)=>Math.max(m,p.numero),0)+1;
+    const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:n,x,y}).select("*").single());PTS.push(pt);selP=pt.id;selV=null;renderHead();renderPins();renderSide();setTimeout(()=>$("#pSeq")&&$("#pSeq").focus(),30)}
+  function bindMapa(){
+    $("#zin").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1.5,r.width/2,r.height/2)};
+    $("#zout").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1/1.5,r.width/2,r.height/2)};
+    $("#zfit").onclick=fit;["zin","zout","zfit"].forEach(i=>$("#"+i).onpointerdown=e=>e.stopPropagation());
+    wrap.addEventListener("wheel",e=>{e.preventDefault();const r=wrap.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
+    wrap.addEventListener("contextmenu",e=>{e.preventDefault();if(e.target.closest(".pin,.mapbar,.mapui"))return;const r=wrap.getBoundingClientRect();novoPonto(Math.round((e.clientX-r.left-T.x)/T.s),Math.round((e.clientY-r.top-T.y)/T.s))});
+    const ptrs=new Map();let moved=0,pinch=null;
+    wrap.addEventListener("pointerdown",e=>{if(e.button===2)return;wrap.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}}wrap.classList.add("drag")});
+    wrap.addEventListener("pointermove",e=>{const p=ptrs.get(e.pointerId);if(!p)return;const r=wrap.getBoundingClientRect();
+      if(ptrs.size===2&&pinch){p.x=e.clientX;p.y=e.clientY;const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);zoomAt(d/pinch.d,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top);pinch.d=d;moved+=10;return}
+      const dx=e.clientX-p.x,dy=e.clientY-p.y;moved+=Math.abs(dx)+Math.abs(dy);T.x+=dx;T.y+=dy;p.x=e.clientX;p.y=e.clientY;apply()});
+    const up=async e=>{const had=ptrs.has(e.pointerId);ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size)wrap.classList.remove("drag");
+      if(!(had&&e.type==="pointerup"&&moved<6&&!ptrs.size))return;
+      const r=wrap.getBoundingClientRect(),x=Math.round((e.clientX-r.left-T.x)/T.s),y=Math.round((e.clientY-r.top-T.y)/T.s);
+      if(placing){placing=false;renderMapbar();updHint();novoPonto(x,y)}
+      else if(calib){calib.push({x,y});if(calib.length<2){renderNet();updHint();return}
+        const px=Math.hypot(calib[1].x-calib[0].x,calib[1].y-calib[0].y);calib=null;renderMapbar();updHint();renderNet();
+        if(px<5){toast("Os dois pontos ficaram muito próximos.");return}
+        modal(`<h2>Calibrar escala</h2><p class="note">Qual é a distância real entre os dois pontos marcados?</p><label class="fld">Distância (m)<input name="m" inputmode="decimal" required></label><p class="note">Os vãos já lançados (exceto os manuais) serão medidos de novo.</p>`,async f=>{const m=pnum(f.m);if(!(m>0))return false;escala=m/px;
+          await chk(O.from("orcamentos").update({escala_m_por_unid:escala}).eq("id",ORC.id));ORC.escala_m_por_unid=escala;
+          for(const v of VAOS.filter(v=>!v.manual)){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}renderHead();renderNet();renderSide();toast("Escala calibrada.")},"Calibrar")}
+      else if(tracing&&anchor){anchor=null;renderPins();updHint()}
+      else if(selP||selV){selP=null;selV=null;renderPins();renderSide()}};
+    wrap.addEventListener("pointerup",up);wrap.addEventListener("pointercancel",up);
+    new ResizeObserver(()=>{if(!wrap._fit&&wrap.clientWidth){wrap._fit=1;fit()}}).observe(wrap);
+    updHint();
+  }
   let pdfReady=null;
   const pdfjs=()=>pdfReady||(pdfReady=loadScript("vendor/pdf.worker.min.js").then(()=>loadScript("vendor/pdf.min.js")).then(()=>window.pdfjsLib));
-  $("#bPlanta").onclick=()=>{
+  function plantaDialog(){
     const m=document.createElement("div");m.className="modal";
-    m.innerHTML=`<div class="box wide"><h2>Planta do projeto</h2>
-     <p class="note">Escolha o PDF do projeto ou uma imagem. Depois arraste sobre o desenho para recortar só a área da rede. Em PDF, informe a escala do desenho e a metragem sai direto; em imagem, use o botão <b>Escala</b> na planta para calibrar.</p>
+    m.innerHTML=`<div class="mbox wide"><h2>Planta do projeto</h2>
+     <p class="note">Escolha o PDF do projeto ou uma imagem e arraste sobre o desenho para recortar a área da rede. Em PDF, informe a escala do desenho e a metragem sai direto; em imagem, use o botão <b>Escala</b> depois.</p>
      <div class="row" style="justify-content:flex-start"><label class="btn pri" style="position:relative;overflow:hidden">Escolher arquivo<input type="file" accept="application/pdf,image/*" id="pFile" style="position:absolute;inset:0;opacity:0"></label>
      <label class="fld" id="pPageW" hidden>Página <select id="pPage"></select></label>
      <label class="fld">Escala do desenho 1:<input type="number" id="pEsc" value="1000" min="1" style="width:100px"></label></div>
      <div class="crop" id="pCrop" hidden><canvas id="pCv"></canvas><div class="sel" id="pSel" hidden></div></div><p class="note" id="pMsg"></p>
-     ${PTS.length?`<p class="note">Os ${PTS.length} pontos já lançados continuam nas mesmas posições: use uma planta com o mesmo enquadramento ou reposicione os pontos depois.</p>`:""}
      <div class="row"><span></span><span style="display:flex;gap:8px"><button class="btn" id="pCancel">Cancelar</button><button class="btn pri" id="pOk" disabled>Usar seleção</button></span></div></div>`;
     document.body.appendChild(m);
-    const cv=$("#pCv",m),sel=$("#pSel",m),msg=$("#pMsg",m);let k=1,isPdf=false,pdf=null,R=null;
+    const cv=$("#pCv",m),sel=$("#pSel",m),msg=$("#pMsg",m);let k=1,isPdf=false,pdf=null,R=null,txt=[];
     $("#pCancel",m).onclick=()=>m.remove();
     async function renderPage(n){msg.textContent="Gerando a imagem da página…";const page=await pdf.getPage(n);const vp1=page.getViewport({scale:1});
       k=Math.min(7000/Math.max(vp1.width,vp1.height),Math.sqrt(16e6/(vp1.width*vp1.height)));const vp=page.getViewport({scale:k});
-      cv.width=Math.floor(vp.width);cv.height=Math.floor(vp.height);const x=cv.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,cv.width,cv.height);await page.render({canvasContext:x,viewport:vp}).promise;shown()}
+      cv.width=Math.floor(vp.width);cv.height=Math.floor(vp.height);const x=cv.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,cv.width,cv.height);await page.render({canvasContext:x,viewport:vp}).promise;
+      try{const tc=await page.getTextContent();const raw=tc.items.filter(i=>i.str&&i.str.trim()).map(i=>{const[a,b,,,e,f]=i.transform;const[px,py]=vp.convertToViewportPoint(e,f);return{t:i.str,x:px,y:py,rot:Math.abs(b)>Math.abs(a)*.2,w:(i.width||0)*k}});
+        const hz=raw.filter(r=>!r.rot).sort((a,b)=>a.y-b.y||a.x-b.x),out=raw.filter(r=>r.rot).map(r=>[r.t.trim(),r.x,r.y]);let cur=null;
+        hz.forEach(r=>{if(cur&&Math.abs(r.y-cur.y)<4&&r.x-cur.x2<12){cur.t+=r.t;cur.x2=r.x+r.w}else{cur&&out.push([cur.t.trim(),cur.x,cur.y]);cur={t:r.t,x:r.x,y:r.y,x2:r.x+r.w}}});cur&&out.push([cur.t.trim(),cur.x,cur.y]);
+        txt=out.filter(([t])=>t.length>=3)}catch(e){txt=[]}
+      shown()}
     function shown(){$("#pCrop",m).hidden=false;R={x:0,y:0,w:cv.width,h:cv.height};drawSel();$("#pOk",m).disabled=false;msg.textContent="Arraste sobre o desenho para recortar. Sem recorte, a página inteira é usada."}
     function drawSel(){const sc=cv.clientWidth/cv.width;sel.hidden=false;Object.assign(sel.style,{left:R.x*sc+"px",top:R.y*sc+"px",width:R.w*sc+"px",height:R.h*sc+"px"})}
     $("#pFile",m).onchange=async e=>{const f=e.target.files[0];if(!f)return;
@@ -511,33 +727,149 @@ async function editor(id){
         const path=`orcarede/${ORC.id}/${Date.now().toString(36)}.jpg`;
         const {error}=await sb.storage.from("negocios").upload(path,blob,{contentType:"image/jpeg",upsert:false});if(error)throw error;
         const url=sb.storage.from("negocios").getPublicUrl(path).data.publicUrl;
-        const upd={planta_url:url,planta_w:out.width,planta_h:out.height,planta_tipo:isPdf?"pdf":"imagem"};
+        const codes=new Set(EST.map(e=>e.codigo.toUpperCase()));
+        const tx=isPdf?txt.filter(([t,x,y])=>x>=R.x&&y>=R.y&&x<=R.x+R.w&&y<=R.y+R.h&&(/;/.test(t)||/^\d+\(\d+\)/.test(t)||codes.has(t.toUpperCase()))).map(([t,x,y])=>[t,Math.round(x-R.x),Math.round(y-R.y)]):[];
+        const upd={planta_url:url,planta_w:out.width,planta_h:out.height,planta_tipo:isPdf?"pdf":"imagem",planta_textos:tx};
         if(isPdf&&k){const esc1=parseFloat($("#pEsc",m).value)||1000;upd.escala_m_por_unid=(esc1/1000)/(k*72/25.4)}else upd.escala_m_por_unid=null;
         await chk(O.from("orcamentos").update(upd).eq("id",ORC.id));Object.assign(ORC,upd);escala=+ORC.escala_m_por_unid||0;
         if(escala)for(const v of VAOS.filter(v=>!v.manual)){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}
-        setPlanta();fit();renderAll();m.remove();toast(escala?"Planta atualizada com escala.":"Planta atualizada. Use o botão Escala para calibrar.")}
+        setPlanta();fit();renderHead();renderPins();renderLbls();m.remove();toast((escala?"Planta atualizada com escala.":"Planta atualizada. Use o botão Escala para calibrar.")+(tx.length?` ${tx.length} etiquetas de estrutura lidas do PDF.`:""))}
       catch(err){console.error(err);ok.disabled=false;ok.textContent="Usar seleção";msg.textContent="Não foi possível enviar a planta"+(err&&err.message?" ("+err.message+")":"")+"."}};
-  };
+  }
 
-  /* ---------- exportar Excel ---------- */
-  $("#bXls").onclick=async()=>{
-    const X=window.XLSX||(await loadScript("vendor/xlsx.full.min.js"),window.XLSX);
-    const nm=c=>(MAT[c]||{}).nome||c,un=c=>(MAT[c]||{}).unidade||"",sg=c=>(MAT[c]||{}).subgrupo||"";
-    const r2=n=>Math.round(n*100)/100;
+  /* ---------- 2. MATERIAIS ---------- */
+  const ORIG={orcamento:"Orçamento importado",manual:"Manual",compra:"Ordem de compra",proposta:"Proposta de fornecedor",importacao:"Importação"};
+  function telaMateriais(){
+    const el=$("#full");
+    const A=agregado().map(l=>({...l,m:MAT[l.c]||{nome:l.c,subgrupo:""}}));
+    const f=fMat.toLowerCase();
+    const F=A.filter(l=>!f||l.m.nome.toLowerCase().includes(f)||l.c.includes(f)||(l.m.subgrupo||"").toLowerCase().includes(f)).sort((a,b)=>(a.m.subgrupo||"").localeCompare(b.m.subgrupo||"")||a.m.nome.localeCompare(b.m.nome));
+    const PS=porSegmento(),T0=totalMat(),SG=SEGM();
+    const segRows=Object.entries(PS).sort((a,b)=>b[1]-a[1]);
+    const nManual=Object.values(OP).filter(o=>o.manual).length,semPreco=A.filter(l=>preco(l.c)==null).length;
+    el.innerHTML=`<div class="wrap2"><div class="cols">
+      <div class="card"><div class="row"><h2>Consolidação de materiais</h2>
+        <div class="tools"><span class="lbl">Completo</span><button class="btn sm" data-x="c">Excel</button><button class="btn sm" data-x="c-csv">CSV</button><span class="lbl" style="margin-left:8px">Fornecedores · sem preço</span><button class="btn sm" data-x="f">Excel</button><button class="btn sm" data-x="f-csv">CSV</button></div></div>
+       <div class="row"><div class="tools"><button class="btn sm ${ORC.modo_preco==="base"?"on":""}" data-mp="base">Acompanhar base</button><button class="btn sm ${ORC.modo_preco==="travado"?"on":""}" data-mp="travado">Preços travados</button>
+         <span class="note">${ORC.modo_preco==="travado"?`congelados${ORC.travado_em?" em "+fdata(ORC.travado_em):""}`:"seguem o preço vigente da base"}${nManual?` · ${nManual} editado(s) só neste orçamento`:""}</span></div>
+        <input class="inp" id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="width:240px"></div>
+       ${semPreco?`<div class="warnbar">${semPreco} material(is) sem preço na base.</div>`:""}
+       <div style="overflow:auto"><table class="tbl mt"><thead><tr><th>Material</th><th class="n">Qtd. total</th><th class="n">Preço unit. (R$)</th><th class="n">Subtotal</th><th class="hm">Origem do preço</th><th></th></tr></thead><tbody>
+       ${F.map(l=>{const o=OP[l.c],pr=preco(l.c),vg=VIGR[l.c],man=o&&o.manual;
+         return `<tr class="${man?"man":""}"><td><b style="font-weight:600">${esc(l.m.nome)}</b><span class="sm">${esc(l.c)}${l.m.subgrupo?" · "+esc(l.m.subgrupo):""}</span></td><td class="n">${num(l.q,2)} ${esc(l.m.unidade||"")}</td>
+          <td class="n"><input data-pr="${esc(l.c)}" value="${pr==null?"":num(pr,4)}" inputmode="decimal" aria-label="Preço unitário" title="Editar vale só para este orçamento"></td><td class="n">${brl(l.q*(pr||0))}</td>
+          <td class="hm orig">${man?`<b>Manual neste orçamento</b><small>base: ${vg?brl(vg.valor):"—"}</small>`:vg?`<b>${esc(vg.fornecedor||ORIG[vg.origem]||vg.origem)}</b><small>${fdata(vg.data)}${vg.documento&&vg.fornecedor?" · "+esc(vg.documento):""}</small>`:"—"}</td>
+          <td class="n">${man?`<button class="xb" data-rp="${esc(l.c)}" title="Voltar ao preço da base">↺</button>`:""}<button class="xb" data-rm="${esc(l.c)}" title="Remover do orçamento">🗑</button></td></tr>`}).join("")}
+       </tbody><tfoot><tr><td colspan="3"><b>Total (${A.length} materiais)</b></td><td class="n"><b>${brl(T0)}</b></td><td colspan="2"></td></tr></tfoot></table></div></div>
+      <div class="card"><h2>Custo por segmento</h2><p class="note">Quanto cada parte da obra pesa no material. Os segmentos se editam em “Dados”.</p>
+       <div class="segbars">${segRows.map(([k,v])=>{const s=SG[k];return `<div class="sb" style="--c:${s?s.cor:"#8a96a3"}"><span>${esc(s?s.nome:"Sem segmento")}</span><div class="bar"><b style="width:${T0?v/T0*100:0}%"></b></div><span class="n">${T0?Math.round(v/T0*100):0}%</span><span></span><span class="v">${brl(v)}</span></div>`}).join("")}</div>
+       ${PS[""]?`<p class="note">Para distribuir o que está “sem segmento”, marque os pontos na lista do Projeto.</p>`:""}</div>
+     </div></div>`;
+    $("#mF").oninput=e=>{fMat=e.target.value;const pos=e.target.selectionStart;telaMateriais();const i=$("#mF");i.focus();i.setSelectionRange(pos,pos)};
+    $$("[data-mp]",el).forEach(b=>b.onclick=async()=>{if(b.dataset.mp===ORC.modo_preco)return;
+      if(b.dataset.mp==="travado"){await chk(O.rpc("travar_precos",{p_orc:ORC.id}));ORC.modo_preco="travado";ORC.travado_em=new Date().toISOString()}
+      else{await chk(O.from("orcamentos").update({modo_preco:"base"}).eq("id",ORC.id));ORC.modo_preco="base"}
+      OP=Object.fromEntries((await chk(O.from("orc_precos").select("material_codigo,preco_unit,manual").eq("orcamento_id",ORC.id))).map(x=>[x.material_codigo,{v:+x.preco_unit,manual:x.manual}]));renderHead();telaMateriais()});
+    $$("[data-pr]",el).forEach(inp=>inp.onchange=async()=>{const c=inp.dataset.pr,v=pnum(inp.value);
+      await chk(O.from("orc_precos").upsert({orcamento_id:ORC.id,material_codigo:c,preco_unit:v,manual:true}));OP[c]={v,manual:true};renderHead();telaMateriais()});
+    $$("[data-rp]",el).forEach(b=>b.onclick=async()=>{const c=b.dataset.rp;
+      if(ORC.modo_preco==="travado"&&VIG[c]!=null){await chk(O.from("orc_precos").update({preco_unit:VIG[c],manual:false}).eq("orcamento_id",ORC.id).eq("material_codigo",c));OP[c]={v:VIG[c],manual:false}}
+      else{await chk(O.from("orc_precos").delete().eq("orcamento_id",ORC.id).eq("material_codigo",c));delete OP[c]}renderHead();telaMateriais()});
+    $$("[data-rm]",el).forEach(b=>b.onclick=()=>{const c=b.dataset.rm;const its=IT.filter(i=>i.material_codigo===c);const pts=new Set(its.map(i=>i.ponto_id));const pos=PTS.filter(p=>(POM[p.poste_id]||{}).material_codigo===c);
+      const vs=VAOS.filter(v=>linhasVao(v).some(l=>l.c===c));
+      modal(`<h2>Remover ${esc((MAT[c]||{}).nome||c)}?</h2><p class="note">Aparece em <b>${pts.size}</b> ponto(s)${pos.length?`, como poste em <b>${pos.length}</b>`:""}${vs.length?` e em <b>${vs.length}</b> vão(s) de rede`:""}. Os itens dos pontos serão apagados${pos.length||vs.length?"; postes e rede precisam ser trocados no Projeto":""}.</p>`,async()=>{
+        if(its.length)await chk(O.from("orc_ponto_itens").delete().in("id",its.map(i=>i.id)));for(let i=IT.length-1;i>=0;i--)if(IT[i].material_codigo===c)IT.splice(i,1);renderHead();telaMateriais()},"Remover")});
+    $$("[data-x]",el).forEach(b=>b.onclick=()=>exportar(b.dataset.x));
+  }
+  async function exportar(tipo){
+    const forn=tipo.startsWith("f"),csv=tipo.endsWith("csv");
+    const nm=c=>(MAT[c]||{}).nome||c,un=c=>(MAT[c]||{}).unidade||"",sg=c=>(MAT[c]||{}).subgrupo||"";const r2=n=>Math.round(n*100)/100;
     const A=agregado().sort((a,b)=>sg(a.c).localeCompare(sg(b.c))||nm(a.c).localeCompare(nm(b.c)));
-    const mats=[["Código","Material","Subgrupo","Unidade","Quantidade","Preço unitário (R$)","Subtotal (R$)"],...A.map(l=>[l.c,nm(l.c),sg(l.c),un(l.c),r2(l.q),preco(l.c)??"",r2(l.q*(preco(l.c)||0))]),[],["","TOTAL","","","","",r2(total())]];
-    const pp=[["Ponto","Descrição","Poste","Estrutura","Código","Material","Unidade","Quantidade","Preço unitário (R$)","Subtotal (R$)"]];
-    PTS.forEach(p=>{const ps=POM[p.poste_id];if(ps)pp.push([p.numero,p.titulo||"",ps.codigo,"POSTE",ps.material_codigo,nm(ps.material_codigo),un(ps.material_codigo),1,preco(ps.material_codigo)??"",r2(preco(ps.material_codigo)||0)]);
-      IT.filter(i=>i.ponto_id===p.id).forEach(i=>{const e=PE.find(x=>x.id===i.ponto_estrutura_id);pp.push([p.numero,p.titulo||"",ps?ps.codigo:"",e?(ESTM[e.estrutura_id]||{}).codigo:"AVULSO",i.material_codigo,nm(i.material_codigo),un(i.material_codigo),+i.quantidade,preco(i.material_codigo)??"",r2(i.quantidade*(preco(i.material_codigo)||0))])})});
-    const vv=[["De","Para","Tipo de rede","Comprimento (m)","Sobra %","Material","Quantidade","Subtotal (R$)"]];
-    VAOS.forEach(v=>linhasVao(v).forEach(l=>vv.push([ptById(v.ponto_a)?.numero,ptById(v.ponto_b)?.numero,(TRM[v.tipo_rede_id]||{}).nome||"",+v.comprimento_m,sobra(v),nm(l.c),r2(l.q),r2(l.q*(preco(l.c)||0))])));
-    const wb=X.utils.book_new();
-    const inf=[["Orçamento",ORC.titulo],["Cliente",ORC.cliente||""],["Concessionária",(CONCS.find(c=>c.id===conc)||{}).sigla||""],["Preços",ORC.modo_preco==="travado"?"Travados":"Base vigente"],["Pontos",PTS.length],["Total de material (R$)",r2(total())],["Exportado em",new Date().toLocaleString("pt-BR")]];
-    [[inf,"Informações"],[mats,"Materiais"],[pp,"Por ponto"],[vv,"Vãos"]].forEach(([d,n])=>X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet(d),n));
-    X.writeFile(wb,`${ORC.titulo.replace(/[\\/:*?"<>|]/g,"_")}_materiais.xlsx`);
-  };
+    const mats=forn?[["Código","Material","Unidade","Quantidade"],...A.map(l=>[l.c,nm(l.c),un(l.c),r2(l.q)])]
+      :[["Código","Material","Subgrupo","Unidade","Quantidade","Preço unitário (R$)","Subtotal (R$)","Origem do preço"],...A.map(l=>{const vg=VIGR[l.c],o=OP[l.c];return [l.c,nm(l.c),sg(l.c),un(l.c),r2(l.q),preco(l.c)??"",r2(l.q*(preco(l.c)||0)),o&&o.manual?"Manual neste orçamento":vg?[vg.fornecedor||ORIG[vg.origem]||vg.origem,fdata(vg.data)].filter(Boolean).join(" · "):""]}),[],["","TOTAL","","","","",r2(totalMat())]];
+    const base=`${ORC.titulo} v${ORC.versao||1}`.replace(/[\\/:*?"<>|]/g,"_")+(forn?"_cotacao":"_materiais");
+    if(csv){const t=mats.map(r=>r.map(v=>{v=typeof v==="number"?String(v).replace(".",","):String(v??"");return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(";")).join("\r\n");
+      const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+t],{type:"text/csv"}));a.download=base+".csv";a.click();return}
+    const X=window.XLSX||(await loadScript("vendor/xlsx.full.min.js"),window.XLSX);const wb=X.utils.book_new();
+    if(forn)X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([["Solicitação de cotação"],["Projeto",ORC.titulo],["Data",new Date().toLocaleDateString("pt-BR")],[],...mats]),"Cotação");
+    else{const SG=SEGM();const pp=[["Ponto","Poste","Estrutura","Segmento","Código","Material","Unidade","Quantidade","Preço unitário (R$)","Subtotal (R$)"]];
+      PTS.forEach(p=>{const ps=POM[p.poste_id];
+        if(ps)pp.push([nomePonto(p),ps.codigo,"POSTE",(SG[p.segmento_id]||{}).nome||"",ps.material_codigo,nm(ps.material_codigo),un(ps.material_codigo),1,preco(ps.material_codigo)??"",r2(preco(ps.material_codigo)||0)]);
+        IT.filter(i=>i.ponto_id===p.id).forEach(i=>{const e=PE.find(x=>x.id===i.ponto_estrutura_id);pp.push([nomePonto(p),ps?ps.codigo:"",e?(ESTM[e.estrutura_id]||{}).codigo:"AVULSO",(SG[(e&&e.segmento_id)||p.segmento_id]||{}).nome||"",i.material_codigo,nm(i.material_codigo),un(i.material_codigo),+i.quantidade,preco(i.material_codigo)??"",r2(i.quantidade*(preco(i.material_codigo)||0))])})});
+      const vv=[["De","Para","Tipo de rede","Comprimento (m)","Sobra %","Material","Quantidade","Subtotal (R$)"]];
+      VAOS.forEach(v=>linhasVao(v).forEach(l=>vv.push([ptById(v.ponto_a)?.numero,ptById(v.ponto_b)?.numero,(TRM[v.tipo_rede_id]||{}).nome||"",+v.comprimento_m,sobra(v),nm(l.c),r2(l.q),r2(l.q*(preco(l.c)||0))])));
+      const PS=porSegmento(),T0=totalMat();const ss=[["Segmento","Material (R$)","%"],...Object.entries(PS).map(([k,v])=>[(SG[k]||{}).nome||"Sem segmento",r2(v),T0?r2(v/T0*100):0])];
+      const inf=[["Orçamento",ORC.titulo],["Versão",ORC.versao||1],["Cliente",ORC.cliente||""],["Cidade",ORC.cidade||""],["Concessionária",concSig(conc)],["Preços",ORC.modo_preco==="travado"?"Travados":"Base vigente"],["Pontos",PTS.length],["Total de material (R$)",r2(T0)],["Exportado em",new Date().toLocaleString("pt-BR")]];
+      [[inf,"Informações"],[mats,"Materiais"],[ss,"Por segmento"],[pp,"Por ponto"],[vv,"Vãos"]].forEach(([d,n])=>X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet(d),n))}
+    X.writeFile(wb,base+".xlsx");
+  }
 
-  setPlanta();renderAll();
+  /* ---------- 3. PRECIFICAÇÃO ---------- */
+  const GRUPOS=["Imposto","Comissão","Mão de obra","Deslocamento","Frete","Equipamento","Adicional"];
+  const BASES={servico:"Valor do serviço",total:"Total ao cliente",materiais:"Materiais"};
+  const vCusto=(c,M,S)=>c.tipo==="pct"?(+c.pct||0)/100*(c.base==="total"?M+S:c.base==="materiais"?M:S):c.tipo==="mo"?(+c.pessoas||0)*(+c.dias||0)*(+c.diaria||0):(+c.qtd||0)*(+c.valor||0);
+  function calcula(M,S){const L=(P.custos||[]).map(c=>({...c,v:vCusto(c,M,S)}));const custos=L.reduce((s,c)=>s+c.v,0);return{M,S,T:M+S,L,custos,lucro:S-custos}}
+  function servicoPorLucro(M,l){let fixo=0,ps=0,pt=0,pm=0;(P.custos||[]).forEach(c=>{if(c.tipo==="pct"){const k=(+c.pct||0)/100;if(c.base==="total")pt+=k;else if(c.base==="materiais")pm+=k;else ps+=k}else fixo+=vCusto(c,M,0)});
+    const den=1-ps-pt-l/100;return den>0?(fixo+(pm+pt+l/100)*M)/den:NaN}
+  const servicoA=M=>P.valor_servico!=null&&P.valor_servico!==""?+P.valor_servico:M*(+P.pct_materiais||0)/100;
+  let salvarT=null;
+  function salvarP(){clearTimeout(salvarT);salvarT=setTimeout(()=>chk(O.from("precificacao").upsert({orcamento_id:ORC.id,metodo:P.metodo,pct_materiais:P.pct_materiais,valor_servico:P.valor_servico,lucro_pct:P.lucro_pct,custos:P.custos,materiais_ref:P.materiais_ref,atualizado_em:new Date().toISOString()})),500)}
+  function telaPreco(){
+    const el=$("#full");const M=totalMat();
+    const SA=servicoA(M),SB=servicoPorLucro(M,+P.lucro_pct||0);
+    const S=P.metodo==="B"?(isFinite(SB)?SB:0):SA;const R=calcula(M,S);
+    const RA=calcula(M,SA),RB=calcula(M,isFinite(SB)?SB:0);
+    if(P.materiais_ref==null&&M){P.materiais_ref=M}
+    const desat=P.materiais_ref!=null&&Math.abs(P.materiais_ref-M)>0.01;
+    const linha=(c,i)=>`<tr data-i="${i}"><td><input data-k="desc" value="${esc(c.desc||"")}" placeholder="descrição" aria-label="Descrição"></td>
+      <td><select data-k="grupo" aria-label="Grupo">${GRUPOS.map(g=>`<option ${g===c.grupo?"selected":""}>${g}</option>`).join("")}</select></td>
+      <td><select data-k="tipo" aria-label="Tipo"><option value="pct" ${c.tipo==="pct"?"selected":""}>Percentual</option><option value="qv" ${c.tipo==="qv"?"selected":""}>Qtd. × valor</option><option value="mo" ${c.tipo==="mo"?"selected":""}>Pessoas × dias × diária</option></select></td>
+      <td><div class="calc">${c.tipo==="pct"?`<input class="nn" data-k="pct" value="${num(c.pct,3)}" inputmode="decimal" aria-label="Percentual">% de <select data-k="base" style="width:auto" aria-label="Base">${Object.entries(BASES).map(([k,l])=>`<option value="${k}" ${k===(c.base||"servico")?"selected":""}>${l}</option>`).join("")}</select>`
+        :c.tipo==="mo"?`<input class="nn" data-k="pessoas" value="${num(c.pessoas,2)}" inputmode="decimal" title="pessoas" aria-label="Pessoas"> pes. ×<input class="nn" data-k="dias" value="${num(c.dias,2)}" inputmode="decimal" title="dias" aria-label="Dias"> dias × R$<input class="nn" data-k="diaria" value="${num(c.diaria,2)}" inputmode="decimal" title="diária" aria-label="Diária" style="width:80px">`
+        :`<input class="nn" data-k="qtd" value="${num(c.qtd,3)}" inputmode="decimal" aria-label="Quantidade"> × R$<input class="nn" data-k="valor" value="${num(c.valor,2)}" inputmode="decimal" aria-label="Valor" style="width:90px">`}</div></td>
+      <td class="n">${brl(R.L[i].v)}</td><td class="n">${R.S?pct(R.L[i].v/R.S*100):"—"}</td><td><button class="xb" data-del="${i}" title="Remover">×</button></td></tr>`;
+    el.innerHTML=`<div class="wrap2">
+     ${desat?`<div class="warnbar"><span>Os materiais mudaram desde a última precificação: eram ${brl(P.materiais_ref)}, agora são ${brl(M)}. Os valores abaixo já usam o total atual.</span><button class="btn sm" id="pOkRef">Ciente</button></div>`:""}
+     <div class="cols"><div style="display:grid;gap:12px">
+      <div class="card"><h2>Método de precificação</h2>
+       <div class="metodo"><button data-m="A" class="${P.metodo==="A"?"on":""}"><b>A · % sobre materiais</b><span>Você define o percentual (ou o valor) do serviço; o lucro é o resultado.</span></button>
+        <button data-m="B" class="${P.metodo==="B"?"on":""}"><b>B · Custos + lucro desejado</b><span>Você define o lucro líquido; o valor do serviço é calculado.</span></button></div>
+       ${P.metodo==="A"?`<div class="grid2"><label class="fld">% sobre os materiais<input id="pA" value="${num(M?SA/M*100:P.pct_materiais,2)}" inputmode="decimal"></label><label class="fld">ou valor do serviço (R$)<input id="pAv" value="${P.valor_servico!=null&&P.valor_servico!==""?num(P.valor_servico,2):""}" placeholder="${num(SA,2)}" inputmode="decimal"></label></div>`
+        :`<div class="grid2"><label class="fld">Lucro líquido desejado (% do total ao cliente)<input id="pB" value="${num(P.lucro_pct,2)}" inputmode="decimal"></label><div class="box"><span class="k">Serviço calculado</span><span class="big">${isFinite(SB)?brl(SB):"—"}</span><small>${isFinite(SB)&&M?num(SB/M*100,1)+"% sobre os materiais":"os percentuais somam 100% ou mais"}</small></div></div>`}
+       <div class="cmp">${P.metodo==="A"?`<b>Comparativo B:</b> para ${num(P.lucro_pct,1)}% de lucro líquido, o serviço seria <b>${isFinite(SB)?brl(SB):"—"}</b>${isFinite(SB)&&M?` (${num(SB/M*100,1)}% sobre os materiais)`:""}. <button class="lnk" id="pUsaB">Usar B</button>`
+         :`<b>Comparativo A:</b> com ${num(P.pct_materiais,1)}% sobre os materiais, o serviço seria <b>${brl(SA)}</b> e o lucro <b>${brl(RA.lucro)}</b> (${RA.T?num(RA.lucro/RA.T*100,1):0}% do total). <button class="lnk" id="pUsaA">Usar A</button>`}</div></div>
+      <div class="card"><div class="row"><h2>Custos do serviço</h2><div class="tools"><select class="inp" id="pMod" style="padding:5px 8px;font-size:12.5px" aria-label="Aplicar modelo"><option value="">Aplicar modelo…</option><option value="padrao">Padrão ON</option></select><button class="btn sm pri" id="pAdd">+ Custo</button></div></div>
+       <div style="overflow:auto"><table class="custos"><thead><tr><th style="min-width:130px">Descrição</th><th>Grupo (DRE)</th><th>Tipo</th><th>Cálculo</th><th style="text-align:right">Total</th><th style="text-align:right">% serv.</th><th></th></tr></thead>
+        <tbody>${(P.custos||[]).map(linha).join("")||`<tr><td colspan="7"><p class="note" style="padding:8px 0">Nenhum custo ainda. Use “Aplicar modelo” ou “+ Custo”.</p></td></tr>`}</tbody>
+        <tfoot><tr><td colspan="4" style="text-align:right;font-weight:700">Total de custos</td><td class="n"><b>${brl(R.custos)}</b></td><td class="n"><b>${R.S?pct(R.custos/R.S*100):"—"}</b></td><td></td></tr></tfoot></table></div></div>
+     </div>
+     <div style="display:grid;gap:12px">
+      <div class="card"><div class="box"><span class="k">Materiais</span><span class="big">${brl(M)}</span><small>repassados ao cliente sem margem</small></div>
+       <div class="box"><span class="k">Valor do serviço · método ${P.metodo}</span><span class="big">${brl(R.S)}</span><small>${M?num(R.S/M*100,2):0}% sobre os materiais</small></div>
+       <div class="box"><span class="k">Custos do serviço</span><span class="big">${brl(R.custos)}</span><small>${R.T?num(R.custos/R.T*100,2):0}% do total</small></div>
+       <div class="box ${R.lucro>=0?"good":"bad"}"><span class="k">Lucro líquido</span><span class="big">${brl(R.lucro)}</span><small>${R.T?num(R.lucro/R.T*100,2):0}% do total · ${R.S?num(R.lucro/R.S*100,1):0}% do serviço</small></div>
+       <div class="box" style="background:var(--accent-soft);border-color:transparent"><span class="k">Total ao cliente</span><span class="big" style="color:var(--accent)">${brl(R.T)}</span></div></div>
+      <div class="card"><h2>Detalhamento dos custos</h2>${R.L.map(c=>`<div class="kv"><span>${esc(c.desc||c.grupo)}<span class="note"> · ${esc(c.grupo)}</span></span><b>${brl(c.v)}</b></div>`).join("")||'<p class="note">—</p>'}</div>
+     </div></div></div>`;
+    const re=()=>{salvarP();telaPreco()};
+    $$("[data-m]",el).forEach(b=>b.onclick=()=>{P.metodo=b.dataset.m;re()});
+    $("#pUsaB")&&($("#pUsaB").onclick=()=>{P.metodo="B";re()});
+    $("#pUsaA")&&($("#pUsaA").onclick=()=>{P.metodo="A";re()});
+    $("#pA")&&($("#pA").onchange=e=>{P.pct_materiais=pnum(e.target.value);P.valor_servico=null;P.materiais_ref=M;re()});
+    $("#pAv")&&($("#pAv").onchange=e=>{const v=e.target.value.trim();P.valor_servico=v===""?null:pnum(v);if(P.valor_servico!=null&&M)P.pct_materiais=+(P.valor_servico/M*100).toFixed(4);P.materiais_ref=M;re()});
+    $("#pB")&&($("#pB").onchange=e=>{P.lucro_pct=pnum(e.target.value);P.materiais_ref=M;re()});
+    $("#pOkRef")&&($("#pOkRef").onclick=()=>{P.materiais_ref=M;re()});
+    $("#pAdd").onclick=()=>{(P.custos=P.custos||[]).push({desc:"",grupo:"Mão de obra",tipo:"mo",pessoas:1,dias:1,diaria:0});re()};
+    $("#pMod").onchange=e=>{if(e.target.value!=="padrao")return;(P.custos=P.custos||[]).push(
+      {desc:"Imposto",grupo:"Imposto",tipo:"pct",pct:10,base:"servico"},{desc:"Comissão",grupo:"Comissão",tipo:"pct",pct:5,base:"total"},{desc:"Comissão ON",grupo:"Comissão",tipo:"pct",pct:1.9,base:"servico"},
+      {desc:"Mão de obra",grupo:"Mão de obra",tipo:"mo",pessoas:4,dias:5,diaria:250},{desc:"Deslocamento",grupo:"Deslocamento",tipo:"qv",qtd:1,valor:600},{desc:"Frete material",grupo:"Frete",tipo:"pct",pct:.2,base:"total"});re()};
+    $$("tr[data-i]",el).forEach(tr=>{const i=+tr.dataset.i;
+      $$("[data-k]",tr).forEach(inp=>inp.onchange=()=>{const k=inp.dataset.k,c=P.custos[i];c[k]=["desc","grupo","tipo","base"].includes(k)?inp.value:pnum(inp.value);
+        if(k==="tipo")Object.assign(c,inp.value==="pct"?{pct:c.pct||0,base:c.base||"servico"}:inp.value==="mo"?{pessoas:c.pessoas||1,dias:c.dias||1,diaria:c.diaria||0}:{qtd:c.qtd||1,valor:c.valor||0});re()})});
+    $$("[data-del]",el).forEach(b=>b.onclick=()=>{P.custos.splice(+b.dataset.del,1);re()});
+  }
+
+  shell();
 }
 })().catch(e=>{console.error(e);document.getElementById("root").innerHTML=`<div class="erro"><h1>OrçaRede</h1><p>Erro inesperado: ${String(e.message||e).replace(/</g,"&lt;")}</p><a href="index.html">Ir para o início</a></div>`});
 </script>
