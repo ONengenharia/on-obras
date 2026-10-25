@@ -237,6 +237,7 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .tbl.cot td{vertical-align:top}.tbl.cot tr.off td{opacity:.55}.tbl.cot .inp{width:100%}.sugs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.sugs button{border:1px dashed var(--line);background:none;border-radius:6px;padding:2px 6px;font-size:11px;color:var(--accent);text-align:left}
 @media (max-width:760px){.grid3,.grid4{grid-template-columns:1fr}.gl{grid-template-columns:1fr 70px auto}.gl .pv{display:none}.hist>div{grid-template-columns:1fr 1fr}}
 .nm .mais{margin-left:auto;opacity:.55}.tbl tr:hover .mais{opacity:1}.nm{display:flex;align-items:center;gap:10px}.nm>div{flex:1}
+.pads{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:6px 0}.pads .lbl{width:100%}.pad{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}.pad.fq{border-style:dashed;background:none;color:var(--muted);font-weight:500}.inp.sm{padding:3px 6px;font-size:12px}
 </style>
 </head>
 <body>
@@ -468,7 +469,7 @@ async function config(aba){
       todos(()=>O.from("estruturas").select("id,codigo").eq("concessionaria_id",cid).order("codigo"))]);
     const M=MAT();
     el.innerHTML=`<div class="card"><div class="row"><h2>${esc(c.sigla)} <span class="note">${esc(c.nome||"")}</span></h2><button class="btn sm" id="cEd">Editar dados</button></div>
-      <div class="seg3">${[["postes","Postes"],["rede","Tipos de rede"],["ip","Modelos de IP"]].map(([k,t])=>`<button class="${ctab===k?"on":""}" data-ct="${k}">${t}</button>`).join("")}</div><div id="cIn"></div></div>`;
+      <div class="seg3">${[["postes","Postes"],["rede","Tipos de rede"],["ip","Modelos de IP"],["pad","Padrões de ponto"]].map(([k,t])=>`<button class="${ctab===k?"on":""}" data-ct="${k}">${t}</button>`).join("")}</div><div id="cIn"></div></div>`;
     $$("[data-ct]").forEach(b=>b.onclick=()=>{ctab=b.dataset.ct;concDetalhe(cid)});
     $("#cEd").onclick=()=>modal(`<h2>${esc(c.sigla)}</h2><div class="grid2"><label class="fld">Sigla<input name="sigla" required value="${esc(c.sigla)}"></label><label class="fld">Nome<input name="nome" value="${esc(c.nome||"")}"></label></div>`,async f=>{
       await chk(O.from("concessionarias").update({sigla:f.sigla.trim().toUpperCase(),nome:f.nome.trim()||null}).eq("id",cid));c.sigla=f.sigla.trim().toUpperCase();c.nome=f.nome.trim();tConcs()},"Salvar");
@@ -506,6 +507,16 @@ async function config(aba){
       $("#tNovo").onclick=()=>abre();
       $$("[data-te]").forEach(b=>b.onclick=()=>abre(TRD.find(t=>t.id==b.dataset.te)));
       $$("[data-td]").forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este tipo de rede? Vãos já traçados com ele perdem os materiais."))return;await chk(O.from("tipos_rede_itens").delete().eq("tipo_rede_id",b.dataset.td));await chk(O.from("tipos_rede").delete().eq("id",b.dataset.td));concDetalhe(cid)});
+    }else if(ctab==="pad"){
+      const PD=await todos(()=>O.from("padroes_ponto").select("*").eq("concessionaria_id",cid).order("nome"));
+      inn.innerHTML=`<p class="note">Combinações de poste + grupos de itens para aplicar com um clique no painel do ponto. Também dá para criar direto no orçamento, em “salvar este ponto como padrão”.</p>
+       <table class="tbl"><thead><tr><th>Padrão</th><th>Sequência</th><th class="n">Usos</th><th></th></tr></thead><tbody>
+       ${PD.map(x=>`<tr><td><b>${esc(x.nome)}</b></td><td class="mono">${esc(x.sequencia)}</td><td class="n">${x.usos||0}</td><td class="n"><button class="btn sm" data-xe="${x.id}">Editar</button><button class="btn sm" data-xd="${x.id}">✕</button></td></tr>`).join("")||'<tr><td colspan="4" class="note">Nenhum padrão ainda.</td></tr>'}</tbody></table><button class="btn" id="xNovo">+ Padrão</button>`;
+      const form=x=>`<h2>${x?"Editar":"Novo"} padrão</h2><label class="fld">Nome<input name="nome" required value="${esc(x?x.nome:"")}"></label><label class="fld">Sequência (poste e grupos separados por ;)<input name="seq" required value="${esc(x?x.sequencia:"")}" placeholder="12(4);CE1A-2;IT_50;CONJ_50"></label>`;
+      const salvar=id=>async f=>{const row={concessionaria_id:cid,nome:f.nome.trim(),sequencia:f.seq.trim()};await chk(id?O.from("padroes_ponto").update(row).eq("id",id):O.from("padroes_ponto").insert(row));concDetalhe(cid)};
+      $("#xNovo").onclick=()=>modal(form(),salvar(),"Criar");
+      $$("[data-xe]").forEach(b=>b.onclick=()=>modal(form(PD.find(x=>x.id==b.dataset.xe)),salvar(+b.dataset.xe),"Salvar"));
+      $$("[data-xd]").forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este padrão?"))return;await chk(O.from("padroes_ponto").delete().eq("id",b.dataset.xd));concDetalhe(cid)});
     }else{
       inn.innerHTML=`<p class="note">Modelos de luminária que aparecem no campo “Luminária” do poste. Cada modelo junta um ou mais grupos de IP.</p>
        <table class="tbl"><thead><tr><th>Modelo</th><th>Grupos</th><th>Fixação própria</th><th></th></tr></thead><tbody>
@@ -809,6 +820,9 @@ async function editor(id){
   const VIGR=Object.fromEntries(PV.map(p=>[p.material_codigo,p]));const VIG=Object.fromEntries(PV.map(p=>[p.material_codigo,+p.valor]));
   let OP=Object.fromEntries(OPL.map(p=>[p.material_codigo,{v:+p.preco_unit,manual:p.manual}]));
   const ESTM=Object.fromEntries(EST.map(e=>[e.id,e])), POM=Object.fromEntries(POSTES.map(p=>[p.id,p]));
+  let PADS=[];{const r=await O.from("padroes_ponto").select("*").eq("concessionaria_id",conc);PADS=(r.data||[]).sort((a,b)=>(b.usos-a.usos)||a.nome.localeCompare(b.nome))}
+  const seqDoPonto=pt=>{const ps=POM[pt.poste_id];return [ps?ps.codigo:null,...PE.filter(e=>e.ponto_id===pt.id).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>(ESTM[e.estrutura_id]||{}).codigo).filter(Boolean)].filter(Boolean).join(";")};
+  function frequentes(pt){const C={};PTS.forEach(p=>{if(p.id===pt.id)return;const s=seqDoPonto(p);if(s.includes(";"))C[s]=(C[s]||0)+1});return Object.entries(C).filter(([s,n])=>n>=2&&!PADS.some(x=>x.sequencia===s)).sort((a,b)=>b[1]-a[1]).slice(0,4)}
   TR.forEach(t=>t.itens=TRI.filter(i=>i.tipo_rede_id===t.id));const TRM=Object.fromEntries(TR.map(t=>[t.id,t]));
   const SEGM=()=>Object.fromEntries(SEGS.map(s=>[s.id,s]));
   const ehIP=eid=>{const e=ESTM[eid];return !!e&&(e.categoria==="IP"||/^(CONJ_IP|FIX_IP)/i.test(e.codigo))};
@@ -965,6 +979,9 @@ async function editor(id){
       ${(()=>{const t=etiquetaPerto(pt);return t&&!PE.some(e=>e.ponto_id===pt.id)?`<div class="sug"><span>📄 Lido na planta, perto deste ponto:</span><code>${esc(t)}</code><div class="row"><span class="note">Confira item por item antes de lançar.</span><button class="btn sm pri" id="sugOk">Verificar e aplicar</button></div></div>`:""})()}
       <div class="lbl">Lançamento rápido</div>
       <div class="seq"><input class="inp" id="pSeq" placeholder="12(10);CE3-2;IF_50;BC10;IP" aria-label="Sequência de poste e estruturas"><button class="btn pri" id="pSeqOk">Aplicar</button></div>
+      <div class="pads"><span class="lbl">Padrões</span>${PADS.slice(0,10).map(x=>`<button class="pad" data-pad="${x.id}" title="${esc(x.sequencia)}">★ ${esc(x.nome)}</button>`).join("")}${frequentes(pt).map(([s,n])=>`<button class="pad fq" data-fq="${esc(s)}" title="Usado em ${n} pontos deste orçamento">${esc(s.length>34?s.slice(0,34)+"…":s)} <small>×${n}</small></button>`).join("")}
+       ${PADS.length>10?`<select class="inp sm" id="padMais"><option value="">mais padrões…</option>${PADS.slice(10).map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join("")}</select>`:""}
+       <button class="lnk" id="padSalvar" title="Guardar poste + estruturas deste ponto para reutilizar">+ salvar este ponto como padrão</button></div>
       <p class="note" style="margin-top:-6px">Poste e estruturas separados por “;”. O que já está no ponto não se repete.</p>
       <div class="grid2"><label class="fld">Nome do ponto<input id="pTit" value="${esc(pt.titulo||"")}" placeholder="sequência de estruturas"></label>
        <label class="fld">Contador<input id="pNum" type="number" value="${pt.numero}"></label></div>
@@ -990,7 +1007,14 @@ async function editor(id){
     $("#pEstOk").onclick=addEst;$("#pEst").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addEst()}};
     const seq=async()=>{const txt=$("#pSeq").value;if(lerTokens(txt).some(t=>!t.alvo&&!t.ign))return verificar(pt,txt,"digitado");const r=await aplicarSequencia(pt,txt);renderHead();renderPins();renderSide();
       toast([r.ok.length?`Aplicado: ${r.ok.join(", ")}`:"",r.nok.length?`Não reconhecido: ${r.nok.join(", ")}`:""].filter(Boolean).join(" · ")||"Nada novo para aplicar.")};
-    $("#pSeqOk").onclick=seq;$("#sugOk")&&($("#sugOk").onclick=()=>verificar(pt,etiquetaPerto(pt),"planta"));$("#pSeq").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();seq()}};
+    $("#pSeqOk").onclick=seq;
+    const usaPad=async(txt,pad)=>{const r=await aplicarSequencia(pt,txt);if(pad){pad.usos=(pad.usos||0)+1;O.from("padroes_ponto").update({usos:pad.usos}).eq("id",pad.id).then(()=>{})}renderHead();renderPins();renderSide();toast(r.ok.length?`Aplicado: ${r.ok.join(", ")}`:"Nada novo para aplicar.")};
+    $$("[data-pad]",a).forEach(b=>b.onclick=()=>{const x=PADS.find(p=>p.id==b.dataset.pad);usaPad(x.sequencia,x)});
+    $$("[data-fq]",a).forEach(b=>b.onclick=()=>usaPad(b.dataset.fq));
+    $("#padMais")&&($("#padMais").onchange=e=>{const x=PADS.find(p=>p.id==e.target.value);if(x)usaPad(x.sequencia,x)});
+    $("#padSalvar").onclick=()=>{const sq=seqDoPonto(pt);if(!sq){toast("Coloque poste e estruturas no ponto antes de salvar.");return}
+      modal(`<h2>Salvar como padrão</h2><label class="fld">Nome do padrão<input name="nome" required placeholder="ex.: Passagem MT CE1A + BT"></label><label class="fld">Sequência<input name="seq" value="${esc(sq)}"></label><p class="note">Fica disponível em todos os orçamentos da ${esc(concSig(conc))}. Ajuste a sequência se quiser.</p>`,async f=>{
+        const r=await chk(O.from("padroes_ponto").insert({concessionaria_id:conc,nome:f.nome.trim(),sequencia:f.seq.trim(),criado_por:perfil.id}).select("*").single());PADS.unshift(r);renderSide();toast("Padrão salvo.")},"Salvar")};$("#sugOk")&&($("#sugOk").onclick=()=>verificar(pt,etiquetaPerto(pt),"planta"));$("#pSeq").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();seq()}};
     $$("[data-segpe]",a).forEach(s=>{s.onclick=e=>e.stopPropagation();s.onchange=async()=>{const v=s.value||null;await chk(O.from("orc_ponto_estruturas").update({segmento_id:v}).eq("id",s.dataset.segpe));PE.find(e=>e.id===s.dataset.segpe).segmento_id=v}});
     $$("[data-de]",a).forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();await chk(O.from("orc_ponto_estruturas").delete().eq("id",b.dataset.de));
       for(let i=PE.length-1;i>=0;i--)if(PE[i].id===b.dataset.de)PE.splice(i,1);for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_estrutura_id===b.dataset.de)IT.splice(i,1);renderHead();renderSide()});
