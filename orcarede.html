@@ -129,7 +129,7 @@ tr.fc td{background:var(--danger-soft)}
 .full-pane{overflow:auto;min-height:0}
 aside{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .ah{padding:12px 14px;border-bottom:1px solid var(--line);display:grid;gap:8px}
-.pane{overflow:auto;padding:12px 14px;display:grid;gap:12px;align-content:start;flex:1;min-height:0}
+.pane{overflow:auto;padding:12px 14px;display:grid;gap:12px;align-content:start;grid-auto-rows:max-content;flex:1;min-height:0}
 .plist{display:grid;gap:1px}
 .pl{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 6px;border-radius:7px;cursor:pointer}
 .pl:hover{background:var(--accent-soft)}
@@ -466,7 +466,13 @@ async function editor(id){
     sp.ondblclick=()=>{pj.style.removeProperty("--listw");lsS("listw","")};
     const tg=on=>{pj.classList.toggle("max",on);$(".app").classList.toggle("maxed",on);$("#zmax").textContent=on?"⤡":"⛶";$("#zmax").title=on?"Voltar (Esc)":"Expandir o mapa (Esc volta)"};
     $("#zmax").onclick=()=>tg(!pj.classList.contains("max"));$("#zmax").onpointerdown=e=>e.stopPropagation();
-    document.onkeydown=e=>{if(e.key==="Escape"&&!$(".modal")&&pj.isConnected){if(placing||tracing||calib){placing=false;tracing=null;anchor=null;calib=null;renderMapbar();updHint();renderPins()}else if(pj.classList.contains("max"))tg(false);else if(selP||selV){selP=null;selV=null;renderPins();renderSide()}}};
+    wrap.addEventListener("pointermove",e=>{const r=wrap.getBoundingClientRect();mouseMapa={x:Math.round((e.clientX-r.left-T.x)/T.s),y:Math.round((e.clientY-r.top-T.y)/T.s)}});
+    wrap.addEventListener("pointerleave",()=>{mouseMapa=null});
+    let copiado=null;
+    document.onkeydown=e=>{const tag=(e.target.tagName||"").toLowerCase();
+      if((e.ctrlKey||e.metaKey)&&!["input","textarea","select"].includes(tag)&&pj.isConnected){
+        if(e.key.toLowerCase()==="c"&&selP){copiado=selP;toast(`Copiado: ${nomePonto(ptById(selP))}. Passe o mouse na planta e use Ctrl+V.`);return}
+        if(e.key.toLowerCase()==="v"&&copiado){if(!mouseMapa){toast("Passe o mouse sobre a planta, onde quer colar.");return}e.preventDefault();colarPonto(copiado,mouseMapa.x,mouseMapa.y);return}}if(e.key==="Escape"&&!$(".modal")&&pj.isConnected){if(placing||tracing||calib||colando){placing=false;tracing=null;anchor=null;calib=null;colando=null;renderMapbar();updHint();renderPins()}else if(pj.classList.contains("max"))tg(false);else if(selP||selV){selP=null;selV=null;renderPins();renderSide()}}};
     let rf=0;new ResizeObserver(()=>{cancelAnimationFrame(rf);rf=requestAnimationFrame(()=>apply())}).observe(wrap);
   }
   /* etiquetas lidas do PDF */
@@ -540,7 +546,7 @@ async function editor(id){
       <datalist id="dlEst">${EST.map(e=>`<option value="${esc(e.codigo)}">`).join("")}</datalist>
       <div class="lbl">Materiais avulsos</div>
       ${avulsos.length?`<table class="its">${avulsos.map(itRow).join("")}</table>`:'<p class="note">Nenhum.</p>'}
-      <div class="row"><button class="lnk" data-addm="">+ material avulso</button><button class="btn del sm" id="pDel">Excluir ponto</button></div></div>`;
+      <div class="row"><button class="lnk" data-addm="">+ material avulso</button><span class="tools"><button class="btn sm" id="pDup" title="Copiar este ponto e colar em outros lugares da planta (Ctrl+C / Ctrl+V)">⧉ Duplicar</button><button class="btn del sm" id="pDel">Excluir ponto</button></span></div></div>`;
     $("#pBack").onclick=()=>{selP=null;renderPins();renderSide()};
     $("#pNum").onchange=async e=>{const n=+e.target.value;if(PTS.some(x=>x.numero===n&&x.id!==pt.id)){toast("Já existe o ponto "+n);e.target.value=pt.numero;return}await chk(O.from("orc_pontos").update({numero:n}).eq("id",pt.id));pt.numero=n;PTS.sort((x,y)=>x.numero-y.numero);renderPins();renderSide()};
     $("#pPoste").onchange=async e=>{const v=e.target.value?+e.target.value:null;await chk(O.from("orc_pontos").update({poste_id:v}).eq("id",pt.id));pt.poste_id=v;renderHead();renderPins();renderSide()};
@@ -557,6 +563,7 @@ async function editor(id){
       for(let i=PE.length-1;i>=0;i--)if(PE[i].id===b.dataset.de)PE.splice(i,1);for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_estrutura_id===b.dataset.de)IT.splice(i,1);renderHead();renderSide()});
     $$("[data-addm]",a).forEach(b=>b.onclick=()=>addMaterial(pt,b.dataset.addm||null));
     bindItens(a);bindIP(a,pt);
+    $("#pDup").onclick=()=>iniciarColar(pt);
     $("#pDel").onclick=()=>modal(`<h2>Excluir ${esc(nomePonto(pt))}?</h2><p class="note">Estruturas, materiais e vãos ligados a este ponto também serão apagados.</p>`,async()=>{
       await chk(O.from("orc_pontos").delete().eq("id",pt.id));PTS.splice(PTS.indexOf(pt),1);
       for(let i=VAOS.length-1;i>=0;i--)if(VAOS[i].ponto_a===pt.id||VAOS[i].ponto_b===pt.id)VAOS.splice(i,1);
@@ -662,10 +669,10 @@ async function editor(id){
   function zoomAt(f,cx,cy){const r=wrap.getBoundingClientRect();const minS=Math.min(r.width/D.w,r.height/D.h)*.5;const ns=Math.max(minS,Math.min(4,T.s*f));f=ns/T.s;T.x=cx-(cx-T.x)*f;T.y=cy-(cy-T.y)*f;T.s=ns;apply()}
   function renderMapbar(){
     const b=$("#mapbar");if(!b)return;
-    b.innerHTML=`<button class="btn" id="bPlanta">Planta</button><button class="btn ${placing?"on":""}" id="mPlace">${placing?"Cancelar":"+ Ponto"}</button>`
+    b.innerHTML=(colando?`<button class="btn on" id="mStopCol">⧉ Parar de colar</button>`:"")+`<button class="btn" id="bPlanta">Planta</button><button class="btn ${placing?"on":""}" id="mPlace">${placing?"Cancelar":"+ Ponto"}</button>`
       +(tracing?`<button class="btn on" id="mRede"><span class="dot" style="border-color:${TRM[tracing].cor}"></span>Concluir ${esc(TRM[tracing].nome)}${traceSobra!=null?` · sobra ${num(traceSobra)}%`:""}</button>`:`<button class="btn" id="mRede">〰 Rede</button>`)
       +`<button class="btn ${calib?"on":""}" id="mCal">${calib?"Cancelar escala":"Escala"}</button>`;
-    $("#bPlanta").onclick=plantaDialog;
+    $("#bPlanta").onclick=plantaDialog;$("#mStopCol")&&($("#mStopCol").onclick=()=>{colando=null;renderMapbar();updHint()});
     $("#mPlace").onclick=()=>{placing=!placing;tracing=null;anchor=null;calib=null;renderMapbar();updHint();renderPins()};
     $("#mRede").onclick=()=>{if(tracing){tracing=null;anchor=null;renderMapbar();updHint();renderPins();return}
       if(!escala){toast("Calibre a escala da planta antes de traçar a rede.");return}
@@ -676,9 +683,9 @@ async function editor(id){
     $("#mCal").onclick=()=>{calib=calib?null:[];placing=false;tracing=null;anchor=null;renderMapbar();updHint();renderNet()};
     b.onpointerdown=e=>e.stopPropagation();
   }
-  function updHint(){wrap.classList.toggle("place",placing);wrap.classList.toggle("trace",!!tracing);wrap.classList.toggle("calib",!!calib);const h=$("#hint");
-    h.hidden=!(placing||tracing||calib);
-    h.textContent=placing?"Toque na planta onde fica o ponto":tracing?(anchor?"Toque no próximo poste · toque no vazio para começar outro trecho":"Toque no poste de início"):calib?(calib.length?"Agora toque no segundo ponto da medida conhecida":"Toque no primeiro ponto de uma medida conhecida (ex.: cota de 100 m)"):""}
+  function updHint(){wrap.classList.toggle("place",placing||!!colando);wrap.classList.toggle("trace",!!tracing);wrap.classList.toggle("calib",!!calib);const h=$("#hint");
+    h.hidden=!(placing||tracing||calib||colando);
+    h.textContent=colando?`Colando “${nomePonto(ptById(colando)||{numero:0})}”: clique onde vai cada cópia · Esc termina`:placing?"Toque na planta onde fica o ponto":tracing?(anchor?"Toque no próximo poste · toque no vazio para começar outro trecho":"Toque no poste de início"):calib?(calib.length?"Agora toque no segundo ponto da medida conhecida":"Toque no primeiro ponto de uma medida conhecida (ex.: cota de 100 m)"):""}
   function renderPins(){
     const el=$("#pins");if(!el)return;const SG=SEGM();
     el.innerHTML=PTS.map(p=>`<button class="pin ${p.poste_id?"":"vazio"} ${p.id===selP?"sel":""} ${p.id===anchor?"anchor":""}" data-id="${p.id}" style="left:${p.x}px;top:${p.y}px${SG[p.segmento_id]?";background:"+SG[p.segmento_id].cor:""}" title="${esc(nomePonto(p))}">${p.numero}${p.poste_id||temIP(p)?`<span class="lp ${temIP(p)?"":"no"}" title="${temIP(p)?"Luminária orçada":"Sem luminária"}">💡</span>`:""}</button>`).join("");
@@ -715,6 +722,18 @@ async function editor(id){
     renderLegenda();
     $$("[data-v]",svg).forEach(l=>{l.onpointerdown=e=>e.stopPropagation();l.onclick=e=>{e.stopPropagation();if(tracing||placing||calib)return;selV=l.dataset.v;selP=null;renderPins();renderSide()}});
   }
+  let colando=null,mouseMapa=null;
+  function iniciarColar(pt){colando=pt.id;placing=false;tracing=null;anchor=null;calib=null;renderMapbar();updHint();toast(`Copiado: ${nomePonto(pt)}. Clique na planta onde colar; Esc termina.`)}
+  async function colarPonto(srcId,x,y){const src=ptById(srcId);if(!src)return;
+    const n=PTS.reduce((m,p)=>Math.max(m,p.numero),0)+1;const base=(src.titulo||"").replace(/\s+\d{1,3}$/,"");
+    const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:n,x,y,titulo:base||null,poste_id:src.poste_id,segmento_id:src.segmento_id}).select("*").single());PTS.push(pt);
+    for(const e of PE.filter(e=>e.ponto_id===src.id).sort((a,b)=>a.ordem-b.ordem)){
+      const ne=await chk(O.from("orc_ponto_estruturas").insert({ponto_id:pt.id,estrutura_id:e.estrutura_id,ordem:e.ordem,segmento_id:e.segmento_id}).select("id").single());
+      const its=IT.filter(i=>i.ponto_estrutura_id===e.id).map(i=>({ponto_id:pt.id,ponto_estrutura_id:ne.id,material_codigo:i.material_codigo,quantidade:i.quantidade,editado:i.editado}));
+      if(its.length)await chk(O.from("orc_ponto_itens").insert(its))}
+    const av=IT.filter(i=>i.ponto_id===src.id&&!i.ponto_estrutura_id).map(i=>({ponto_id:pt.id,ponto_estrutura_id:null,material_codigo:i.material_codigo,quantidade:i.quantidade,editado:true}));
+    if(av.length)await chk(O.from("orc_ponto_itens").insert(av));
+    await recarregaPonto(pt.id);renderHead();renderPins();renderSide();toast(`Colado como ponto ${n}.`)}
   async function novoPonto(x,y){
     const n=PTS.reduce((m,p)=>Math.max(m,p.numero),0)+1;
     const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:n,x,y}).select("*").single());PTS.push(pt);selP=pt.id;selV=null;renderHead();renderPins();renderSide();setTimeout(()=>$("#pSeq")&&$("#pSeq").focus(),30)}
@@ -723,7 +742,7 @@ async function editor(id){
     $("#zout").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1/1.5,r.width/2,r.height/2)};
     $("#zfit").onclick=fit;["zin","zout","zfit"].forEach(i=>$("#"+i).onpointerdown=e=>e.stopPropagation());
     wrap.addEventListener("wheel",e=>{e.preventDefault();const r=wrap.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
-    wrap.addEventListener("contextmenu",e=>{e.preventDefault();if(e.target.closest(".pin,.mapbar,.mapui"))return;const r=wrap.getBoundingClientRect();novoPonto(Math.round((e.clientX-r.left-T.x)/T.s),Math.round((e.clientY-r.top-T.y)/T.s))});
+    wrap.addEventListener("contextmenu",e=>{e.preventDefault();if(e.target.closest(".pin,.mapbar,.mapui"))return;const r=wrap.getBoundingClientRect();if(colando)return colarPonto(colando,Math.round((e.clientX-r.left-T.x)/T.s),Math.round((e.clientY-r.top-T.y)/T.s));novoPonto(Math.round((e.clientX-r.left-T.x)/T.s),Math.round((e.clientY-r.top-T.y)/T.s))});
     const ptrs=new Map();let moved=0,pinch=null;
     wrap.addEventListener("pointerdown",e=>{if(e.button===2)return;wrap.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}}wrap.classList.add("drag")});
     wrap.addEventListener("pointermove",e=>{const p=ptrs.get(e.pointerId);if(!p)return;const r=wrap.getBoundingClientRect();
@@ -732,7 +751,8 @@ async function editor(id){
     const up=async e=>{const had=ptrs.has(e.pointerId);ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size)wrap.classList.remove("drag");
       if(!(had&&e.type==="pointerup"&&moved<6&&!ptrs.size))return;
       const r=wrap.getBoundingClientRect(),x=Math.round((e.clientX-r.left-T.x)/T.s),y=Math.round((e.clientY-r.top-T.y)/T.s);
-      if(placing){placing=false;renderMapbar();updHint();novoPonto(x,y)}
+      if(colando){colarPonto(colando,x,y)}
+      else if(placing){placing=false;renderMapbar();updHint();novoPonto(x,y)}
       else if(calib){calib.push({x,y});if(calib.length<2){renderNet();updHint();return}
         const px=Math.hypot(calib[1].x-calib[0].x,calib[1].y-calib[0].y);calib=null;renderMapbar();updHint();renderNet();
         if(px<5){toast("Os dois pontos ficaram muito próximos.");return}
