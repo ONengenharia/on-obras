@@ -224,6 +224,18 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
   .app{height:auto}.proj{grid-template-columns:1fr;grid-template-rows:55vh auto auto}.proj .mapwrap{grid-row:1}.split{display:none}#ptpanel{width:auto;margin:10px 0 0}.dash2{grid-template-columns:1fr}
   .kpis{grid-template-columns:1fr 1fr}.cols{grid-template-columns:1fr}.painel{grid-template-columns:1fr}.pp3{border-left:0;padding-left:0}.tbl .hm{display:none}
 }
+.mbox.wide{width:min(860px,96vw)}.h3{font-size:13px;margin:12px 0 4px}.mono{font-family:var(--f-mono);font-size:12px}
+.hist{display:grid;gap:4px;max-height:200px;overflow:auto}.hist>div{display:grid;grid-template-columns:110px 90px 1fr auto auto;gap:8px;align-items:center;font-size:12.5px;border-bottom:1px solid var(--line);padding:3px 0}
+.grid3{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end}
+.btn.sm{padding:3px 8px;font-size:11.5px;margin-left:3px}.tbl tr.ina td{opacity:.55}.sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:middle}
+.dups{display:grid;gap:8px;max-height:46vh;overflow:auto}.dup{border:1px solid var(--line);border-radius:8px;padding:8px;display:grid;gap:3px;font-size:12.5px}.dup button{justify-self:start}
+.ccards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}.ccard{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:12px;text-align:left;display:grid;gap:3px;color:inherit}.ccard.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}.ccard b{font-size:16px}.ccard small{color:var(--muted)}
+.seg3{display:flex;gap:4px;margin:6px 0 10px}.seg3 button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:5px 12px;font-weight:600;font-size:12.5px;color:inherit}.seg3 button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.tredes{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:10px}.tr{border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:4px}.ti{display:grid;grid-template-columns:44px 1fr auto;gap:6px;font-size:12.5px}
+.gl{display:grid;grid-template-columns:1fr 90px 110px auto;gap:6px;margin-bottom:5px;align-items:center}.gl .pv{font-size:12px;color:var(--muted)}.inp.n{text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin:4px 0}.chip.sh{background:var(--accent-soft);color:var(--accent)}
+.tbl.cot td{vertical-align:top}.tbl.cot tr.off td{opacity:.55}.tbl.cot .inp{width:100%}.sugs{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.sugs button{border:1px dashed var(--line);background:none;border-radius:6px;padding:2px 6px;font-size:11px;color:var(--accent);text-align:left}
+@media (max-width:760px){.grid3,.grid4{grid-template-columns:1fr}.gl{grid-template-columns:1fr 70px auto}.gl .pv{display:none}.hist>div{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -251,7 +263,9 @@ function modal(html,onOk,okTxt="OK"){const m=document.createElement("div");m.cla
   m.querySelector("form").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));m.querySelector("form").classList.add("busy");try{if(await onOk(f,m)!==false)m.remove();else m.querySelector("form").classList.remove("busy")}catch(err){m.querySelector("form").classList.remove("busy")}};
   setTimeout(()=>{const i=m.querySelector("input,select");i&&i.focus()},20);return m}
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
-const SEG_PADRAO=[["MT","#c2185b"],["BT","#1565c0"],["IP","#e0a800"],["Transformação","#6a3fbf"]];
+const PALETA=["#2f6f9f","#c2185b","#1565c0","#e0a800","#00897b","#7a8b99","#8d6e63","#ef6c00","#5d4037","#6a3fbf","#2e7d32","#ad1457"];
+const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/[^A-Z0-9,./]+/g," ").replace(/\s+/g," ").trim();
+let SEG_PADRAO=[["MT","#c2185b"],["BT","#1565c0"],["IP","#e0a800"],["Transformação","#6a3fbf"]];
 
 const sess=await DB.sessao();
 if(!sess){location.href="index.html?volta="+encodeURIComponent(location.pathname+location.search);return}
@@ -260,11 +274,407 @@ if(!perfil||perfil.papel!=="admin"){falha("O OrçaRede está disponível só par
 const teste=await O.from("concessionarias").select("id,sigla,nome");
 if(teste.error){falha("Não foi possível ler o banco: "+teste.error.message);return}
 const CONCS=teste.data;
+{const sp=await O.from("segmentos_padrao").select("nome,cor").order("ordem");if(sp.data&&sp.data.length)SEG_PADRAO=sp.data.map(x=>[x.nome,x.cor])}
 const concSig=id=>(CONCS.find(c=>c.id===id)||{}).sigla||"";
 const Q=new URLSearchParams(location.search);
+if(Q.get("cfg")!==null)return config(Q.get("cfg"));
 if(Q.get("id"))return editor(Q.get("id"));
 if(Q.get("neg"))return deNegocio(Q.get("neg"));
 return lista(Q.get("pasta"));
+
+/* ============ CONFIGURAÇÕES ============ */
+async function config(aba){
+  aba=aba||"materiais";
+  const ABAS=[["materiais","Materiais"],["subgrupos","Subgrupos"],["segmentos","Segmentos"],["concessionarias","Concessionárias"],["grupos","Grupos de itens"],["cotacoes","Cotações"]];
+  let MATS=[],PV={},SUBS=[],SEGP=[],CON=[...CONCS];
+  async function carregaBase(){
+    const [m,p,s,g,c]=await Promise.all([
+      todos(()=>O.from("materiais").select("codigo,nome,unidade,subgrupo,ativo,atualizado_em").order("nome")),
+      todos(()=>O.from("v_preco_vigente").select("material_codigo,valor,data,origem,fornecedor,documento")),
+      todos(()=>O.from("subgrupos").select("*").order("ordem")),
+      todos(()=>O.from("segmentos_padrao").select("*").order("ordem")),
+      todos(()=>O.from("concessionarias").select("*").order("sigla"))]);
+    MATS=m;PV={};p.forEach(x=>PV[x.material_codigo]=x);SUBS=s;SEGP=g;CON=c;
+  }
+  await carregaBase();
+  const MAT=()=>{const o={};MATS.forEach(m=>o[m.codigo]=m);return o};
+  const optsMat=()=>`<datalist id="dlMat">${MATS.filter(m=>m.ativo!==false).map(m=>`<option value="${esc(m.codigo)} · ${esc(m.nome)}">`).join("")}</datalist>`;
+  const codDe=v=>String(v||"").split(" · ")[0].trim();
+  const origemTxt=o=>({compra:"Compra",proposta:"Cotação",orcamento:"Orçamento",manual:"Manual",importacao:"Importação"}[o]||o||"");
+  function frame(html){
+    root.innerHTML=`<div class="page">
+     <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">OrçaRede</div><h1>Configurações</h1><div class="sub">Base de materiais, grupos de itens e cadastros usados nos orçamentos</div></div>
+      <div class="tools"><a class="btn" href="orcarede.html">← Orçamentos</a></div>
+      <nav class="steps">${ABAS.map(([k,t],i)=>`<button data-aba="${k}" class="${k===aba?"on":""}"><b>${i+1}</b>${t}</button>`).join("")}</nav></header>
+     <div id="cfgBody">${html}</div></div>`;
+    $$("[data-aba]").forEach(b=>b.onclick=()=>{aba=b.dataset.aba;history.replaceState(null,"","?cfg="+aba);go()});
+  }
+  function go(){({materiais:tMateriais,subgrupos:tSubgrupos,segmentos:tSegmentos,concessionarias:tConcs,grupos:tGrupos,cotacoes:tCotacoes})[aba]()}
+
+  /* ---------- Materiais ---------- */
+  let mq="",msub="",minat=false,mpag=0;
+  function tMateriais(){
+    const b=norm(mq);
+    const L=MATS.filter(m=>(minat||m.ativo!==false)&&(!msub||(msub==="-"?!m.subgrupo:m.subgrupo===msub))&&(!b||norm(m.codigo+" "+m.nome).includes(b)));
+    const PP=100,np=Math.max(1,Math.ceil(L.length/PP));mpag=Math.min(mpag,np-1);
+    const comP=MATS.filter(m=>m.ativo!==false&&PV[m.codigo]).length,ativos=MATS.filter(m=>m.ativo!==false).length;
+    frame(`<div class="kpis"><div class="kpi"><span class="k">Materiais ativos</span><span class="v">${ativos}</span><span class="kx">${MATS.length-ativos} inativos ou unificados</span></div>
+      <div class="kpi"><span class="k">Com preço</span><span class="v">${comP}</span><div class="bar"><b style="width:${comP/Math.max(1,ativos)*100}%"></b></div></div>
+      <div class="kpi"><span class="k">Sem subgrupo</span><span class="v">${MATS.filter(m=>m.ativo!==false&&!m.subgrupo).length}</span><span class="kx">ajuste para os resumos por subgrupo</span></div>
+      <div class="kpi"><span class="k">Preço mais recente</span><span class="v" style="font-size:18px">${fdata(Object.values(PV).map(p=>p.data).sort().pop())||"—"}</span></div></div>
+     <div class="row"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+       <input class="inp" id="mq" placeholder="Buscar por código ou nome" value="${esc(mq)}" style="width:min(320px,100%)">
+       <select class="inp" id="msub"><option value="">Todos os subgrupos</option><option value="-" ${msub==="-"?"selected":""}>— sem subgrupo —</option>${SUBS.map(s=>`<option ${msub===s.nome?"selected":""}>${esc(s.nome)}</option>`).join("")}</select>
+       <label class="note"><input type="checkbox" id="minat" ${minat?"checked":""}> mostrar inativos</label></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn" id="mDup">Duplicados</button><button class="btn" id="mImp">Importar ERP</button><button class="btn" id="mExp">Exportar</button><button class="btn pri" id="mNovo">+ Material</button></div></div>
+     <table class="tbl"><thead><tr><th>Código</th><th>Material</th><th class="hm">Un.</th><th class="hm">Subgrupo</th><th class="n">Preço</th><th class="hm">Origem</th></tr></thead><tbody>
+      ${L.slice(mpag*PP,mpag*PP+PP).map(m=>{const p=PV[m.codigo];return `<tr class="go${m.ativo===false?" ina":""}" data-m="${esc(m.codigo)}"><td class="mono">${esc(m.codigo)}</td><td>${esc(m.nome)}${m.ativo===false?' <span class="chip">inativo</span>':""}</td><td class="hm">${esc(m.unidade||"")}</td><td class="hm">${esc(m.subgrupo||"")}</td><td class="n">${p?brl(p.valor):"—"}</td><td class="hm">${p?`${esc(p.fornecedor||origemTxt(p.origem))}<span class="sm">${fdata(p.data)}</span>`:""}</td></tr>`}).join("")||'<tr><td colspan="6" class="note">Nada encontrado.</td></tr>'}
+     </tbody></table>
+     <div class="row"><span class="note">${L.length} materiais</span><span style="display:flex;gap:6px;align-items:center">${np>1?`<button class="btn" id="mPrev" ${mpag?"":"disabled"}>‹</button><span class="note">${mpag+1} / ${np}</span><button class="btn" id="mNext" ${mpag<np-1?"":"disabled"}>›</button>`:""}</span></div>`);
+    $("#mq").oninput=e=>{mq=e.target.value;mpag=0;const pos=e.target.selectionStart;tMateriais();const i=$("#mq");i.focus();i.setSelectionRange(pos,pos)};
+    $("#msub").onchange=e=>{msub=e.target.value;mpag=0;tMateriais()};
+    $("#minat").onchange=e=>{minat=e.target.checked;tMateriais()};
+    $("#mPrev")&&($("#mPrev").onclick=()=>{mpag--;tMateriais()});$("#mNext")&&($("#mNext").onclick=()=>{mpag++;tMateriais()});
+    $$("tr[data-m]").forEach(r=>r.onclick=()=>fichaMaterial(r.dataset.m));
+    $("#mNovo").onclick=()=>modal(`<h2>Novo material</h2><div class="grid2"><label class="fld">Código<input name="codigo" required></label><label class="fld">Unidade<input name="unidade" placeholder="UN, M, KG…"></label></div>
+      <label class="fld">Nome<input name="nome" required></label><label class="fld">Subgrupo<select name="sub"><option value="">—</option>${SUBS.map(s=>`<option>${esc(s.nome)}</option>`).join("")}</select></label>
+      <p class="note">O código vale também para o ERP — use o que vai lançar lá.</p>`,async f=>{
+      if(MATS.some(m=>m.codigo===f.codigo.trim())){toast("Já existe um material com esse código.");return false}
+      const r=await chk(O.from("materiais").insert({codigo:f.codigo.trim(),nome:f.nome.trim(),unidade:f.unidade.trim()||null,subgrupo:f.sub||null}).select("*").single());MATS.push(r);mq=r.codigo;tMateriais()},"Criar");
+    $("#mExp").onclick=exportarBase;$("#mImp").onclick=importarERP;$("#mDup").onclick=duplicados;
+  }
+  async function fichaMaterial(cod){
+    const m=MATS.find(x=>x.codigo===cod);if(!m)return;
+    const [H,U]=await Promise.all([
+      todos(()=>O.from("precos").select("*").eq("material_codigo",cod).order("data",{ascending:false})),
+      todos(()=>O.from("estrutura_itens").select("quantidade,estruturas(codigo,concessionaria_id)").eq("material_codigo",cod))]);
+    const md=modal(`<h2>${esc(m.nome)}</h2><p class="note mono">${esc(m.codigo)}</p>
+      <label class="fld">Nome<input name="nome" required value="${esc(m.nome)}"></label>
+      <div class="grid2"><label class="fld">Unidade<input name="unidade" value="${esc(m.unidade||"")}"></label><label class="fld">Subgrupo<select name="sub"><option value="">—</option>${SUBS.map(s=>`<option ${m.subgrupo===s.nome?"selected":""}>${esc(s.nome)}</option>`).join("")}</select></label></div>
+      <label class="note"><input type="checkbox" name="ativo" ${m.ativo!==false?"checked":""}> ativo (aparece na busca dos orçamentos)</label>
+      <h3 class="h3">Histórico de preços</h3>
+      <div class="hist">${H.map(p=>`<div><b>${brl(p.valor)}</b><span>${fdata(p.data)}</span><span>${esc(p.fornecedor||"")}</span><span class="note">${esc(origemTxt(p.origem))}${p.documento?" · "+esc(p.documento):""}</span><button type="button" class="btn sm" data-delp="${p.id}" title="Excluir">✕</button></div>`).join("")||'<p class="note">Sem preço registrado.</p>'}</div>
+      <div class="grid4"><input class="inp" id="npV" placeholder="Valor R$"><input class="inp" type="date" id="npD" value="${new Date().toISOString().slice(0,10)}"><input class="inp" id="npF" placeholder="Fornecedor"><button type="button" class="btn" id="npAdd">+ Preço</button></div>
+      <h3 class="h3">Usado em ${U.length} grupo${U.length===1?"":"s"}</h3><p class="note">${U.map(u=>u.estruturas?`${esc(u.estruturas.codigo)} (${esc(concSig(u.estruturas.concessionaria_id))}) ×${num(u.quantidade)}`:"").join(" · ")||"—"}</p>`,
+      async f=>{const up={nome:f.nome.trim(),unidade:f.unidade.trim()||null,subgrupo:f.sub||null,ativo:!!f.ativo,atualizado_em:new Date().toISOString()};
+        await chk(O.from("materiais").update(up).eq("codigo",cod));Object.assign(m,up);tMateriais()},"Salvar");
+    md.querySelector(".mbox").classList.add("wide");
+    $("#npAdd",md).onclick=async()=>{const v=pnum($("#npV",md).value);if(!v){toast("Informe o valor.");return}
+      await chk(O.from("precos").insert({material_codigo:cod,valor:v,data:$("#npD",md).value,origem:"manual",fornecedor:$("#npF",md).value.trim()||null,criado_por:perfil.id}));
+      md.remove();await recarregaPV();fichaMaterial(cod)};
+    $$("[data-delp]",md).forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este preço do histórico?"))return;await chk(O.from("precos").delete().eq("id",b.dataset.delp));md.remove();await recarregaPV();fichaMaterial(cod)});
+  }
+  async function recarregaPV(){PV={};(await todos(()=>O.from("v_preco_vigente").select("material_codigo,valor,data,origem,fornecedor,documento"))).forEach(x=>PV[x.material_codigo]=x)}
+  async function exportarBase(){
+    if(!window.XLSX)await loadScript("vendor/xlsx.full.min.js");
+    const rows=MATS.map(m=>{const p=PV[m.codigo]||{};return{"Código":m.codigo,"Material":m.nome,"Unidade":m.unidade||"","Subgrupo":m.subgrupo||"","Ativo":m.ativo===false?"não":"sim","Preço":p.valor??"","Data do preço":p.data||"","Fornecedor":p.fornecedor||"","Origem":origemTxt(p.origem)}});
+    const ap=await todos(()=>O.from("apelidos").select("texto_norm,material_codigo").eq("fonte","unificacao"));
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Materiais");
+    if(ap.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ap.map(a=>({"Código antigo":a.texto_norm,"Usar o código":a.material_codigo}))),"Códigos unificados");
+    XLSX.writeFile(wb,"OrcaRede_base_materiais.xlsx");
+  }
+  function importarERP(){
+    const md=modal(`<h2>Importar base do ERP</h2><p class="note">Planilha com colunas de código, nome e (opcional) unidade e grupo. Códigos novos entram na base; os que já existem não são alterados, a não ser que você marque a opção abaixo.</p>
+      <input type="file" id="fErp" accept=".xlsx,.xls,.csv"><label class="note"><input type="checkbox" name="atual"> atualizar nome e unidade dos códigos existentes</label><div id="erpMsg" class="note"></div>`,
+      async f=>{const L=md._rows;if(!L||!L.length){toast("Escolha a planilha.");return false}
+        const novos=L.filter(r=>!MATS.some(m=>m.codigo===r.codigo));
+        for(let i=0;i<novos.length;i+=500)await chk(O.from("materiais").insert(novos.slice(i,i+500)));
+        let at=0;if(f.atual){for(const r of L){const m=MATS.find(x=>x.codigo===r.codigo);if(m&&(m.nome!==r.nome||(r.unidade&&m.unidade!==r.unidade))){await chk(O.from("materiais").update({nome:r.nome,unidade:r.unidade||m.unidade,atualizado_em:new Date().toISOString()}).eq("codigo",r.codigo));at++}}}
+        toast(`${novos.length} materiais novos${f.atual?` · ${at} atualizados`:""}.`);await carregaBase();tMateriais()},"Importar");
+    $("#fErp",md).onchange=async e=>{const file=e.target.files[0];if(!file)return;if(!window.XLSX)await loadScript("vendor/xlsx.full.min.js");
+      const wb=XLSX.read(await file.arrayBuffer());const A=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""});
+      let h=A.findIndex(r=>r.some(c=>/c[oó]d/i.test(c))&&r.some(c=>/nome|descri|produto/i.test(c)));if(h<0)h=0;
+      const H=A[h].map(c=>norm(c));const ix=re=>H.findIndex(c=>re.test(c));
+      const ic=ix(/COD/),inm=ix(/NOME|DESCRI|PRODUTO/),iu=ix(/^UN|UNID/),ig=ix(/GRUPO|SUBGRUPO/);
+      if(ic<0||inm<0){$("#erpMsg",md).textContent="Não achei as colunas de código e nome.";return}
+      const subs=new Set(SUBS.map(s=>s.nome));
+      md._rows=A.slice(h+1).filter(r=>String(r[ic]).trim()&&String(r[inm]).trim()).map(r=>({codigo:String(r[ic]).trim(),nome:String(r[inm]).replace(/\s+/g," ").trim(),unidade:iu>=0&&String(r[iu]).trim()||null,subgrupo:ig>=0&&subs.has(String(r[ig]).trim().toUpperCase())?String(r[ig]).trim().toUpperCase():null}));
+      const nv=md._rows.filter(r=>!MATS.some(m=>m.codigo===r.codigo)).length;
+      $("#erpMsg",md).textContent=`${md._rows.length} linhas lidas · ${nv} códigos novos.`};
+  }
+  function duplicados(){
+    const G={};MATS.filter(m=>m.ativo!==false).forEach(m=>{const k=norm(m.nome);(G[k]=G[k]||[]).push(m)});
+    const D=Object.values(G).filter(g=>g.length>1);
+    const md=modal(`<h2>Materiais duplicados</h2><p class="note">Mesmo nome com códigos diferentes. Escolha o código que fica: grupos, orçamentos e histórico de preços passam para ele, e os outros ficam inativos (o código antigo vira apelido, para cotações e orçamentos antigos).</p>
+      <div class="dups">${D.map((g,i)=>`<div class="dup"><b>${esc(g[0].nome)}</b>${g.map((m,j)=>`<label><input type="radio" name="d${i}" value="${esc(m.codigo)}" ${j?"":"checked"}> <span class="mono">${esc(m.codigo)}</span> ${PV[m.codigo]?brl(PV[m.codigo].valor):""}</label>`).join("")}<button type="button" class="btn sm" data-uni="${i}">Unificar</button></div>`).join("")||'<p class="note">Nenhum duplicado por nome. 👍</p>'}</div>
+      <h3 class="h3">Unificar dois códigos quaisquer</h3><div class="grid3">${optsMat()}<input class="inp" list="dlMat" id="uK" placeholder="Código que fica"><input class="inp" list="dlMat" id="uT" placeholder="Código que sai"><button type="button" class="btn" id="uGo">Unificar</button></div>`,()=>{},"Fechar");
+    md.querySelector(".mbox").classList.add("wide");md.querySelector("[data-x]").hidden=true;
+    const uni=async(k,t)=>{const r=await chk(O.rpc("unificar_material",{p_manter:k,p_trocar:t}));return r};
+    $$("[data-uni]",md).forEach(b=>b.onclick=async()=>{const g=D[+b.dataset.uni];const k=md.querySelector(`input[name=d${b.dataset.uni}]:checked`).value;
+      for(const m of g)if(m.codigo!==k)await uni(k,m.codigo);toast("Unificado.");md.remove();await carregaBase();duplicados()});
+    $("#uGo",md).onclick=async()=>{const k=codDe($("#uK",md).value),t=codDe($("#uT",md).value);if(!MAT()[k]||!MAT()[t]||k===t){toast("Escolha dois códigos diferentes da base.");return}
+      if(!confirm(`Manter ${k} e desativar ${t}?`))return;await uni(k,t);toast("Unificado.");md.remove();await carregaBase();tMateriais()};
+  }
+
+  /* ---------- Subgrupos ---------- */
+  function tSubgrupos(){
+    const cnt={};MATS.filter(m=>m.ativo!==false).forEach(m=>cnt[m.subgrupo||""]=(cnt[m.subgrupo||""]||0)+1);
+    frame(`<div class="row"><p class="note">Os subgrupos agrupam os materiais nos resumos e exportações. A ordem aqui é a ordem dos relatórios.</p><button class="btn pri" id="sNovo">+ Subgrupo</button></div>
+     <table class="tbl"><thead><tr><th style="width:60px">Ordem</th><th>Subgrupo</th><th class="n">Materiais</th><th></th></tr></thead><tbody>
+     ${SUBS.map((s,i)=>`<tr><td><span class="sw" style="background:${s.cor||PALETA[i%PALETA.length]}"></span> ${i+1}</td><td><b>${esc(s.nome)}</b></td><td class="n">${cnt[s.nome]||0}</td>
+       <td class="n"><button class="btn sm" data-up="${i}" ${i?"":"disabled"}>↑</button><button class="btn sm" data-dn="${i}" ${i<SUBS.length-1?"":"disabled"}>↓</button><button class="btn sm" data-ed="${s.id}">Editar</button><button class="btn sm" data-del="${s.id}">✕</button></td></tr>`).join("")}
+     <tr><td></td><td class="note">— sem subgrupo —</td><td class="n">${cnt[""]||0}</td><td></td></tr></tbody></table>`);
+    const ord=async()=>{for(let i=0;i<SUBS.length;i++)if(SUBS[i].ordem!==i){SUBS[i].ordem=i;await chk(O.from("subgrupos").update({ordem:i}).eq("id",SUBS[i].id))}tSubgrupos()};
+    $$("[data-up]").forEach(b=>b.onclick=()=>{const i=+b.dataset.up;[SUBS[i-1],SUBS[i]]=[SUBS[i],SUBS[i-1]];ord()});
+    $$("[data-dn]").forEach(b=>b.onclick=()=>{const i=+b.dataset.dn;[SUBS[i+1],SUBS[i]]=[SUBS[i],SUBS[i+1]];ord()});
+    const form=s=>`<h2>${s?"Editar":"Novo"} subgrupo</h2><div class="grid2"><label class="fld">Nome<input name="nome" required value="${esc(s?s.nome:"")}"></label><label class="fld">Cor<input type="color" name="cor" value="${s&&s.cor||PALETA[SUBS.length%PALETA.length]}"></label></div>`;
+    $("#sNovo").onclick=()=>modal(form(),async f=>{const r=await chk(O.from("subgrupos").insert({nome:f.nome.trim().toUpperCase(),cor:f.cor,ordem:SUBS.length}).select("*").single());SUBS.push(r);tSubgrupos()},"Criar");
+    $$("[data-ed]").forEach(b=>b.onclick=()=>{const s=SUBS.find(x=>x.id==b.dataset.ed);modal(form(s)+`<p class="note">Renomear também atualiza os materiais desse subgrupo.</p>`,async f=>{const nv=f.nome.trim().toUpperCase();
+      await chk(O.from("subgrupos").update({nome:nv,cor:f.cor}).eq("id",s.id));if(nv!==s.nome){await chk(O.from("materiais").update({subgrupo:nv}).eq("subgrupo",s.nome));MATS.forEach(m=>{if(m.subgrupo===s.nome)m.subgrupo=nv})}s.nome=nv;s.cor=f.cor;tSubgrupos()},"Salvar")});
+    $$("[data-del]").forEach(b=>b.onclick=async()=>{const s=SUBS.find(x=>x.id==b.dataset.del);const n=cnt[s.nome]||0;
+      if(!confirm(n?`${n} materiais estão em “${s.nome}” e ficarão sem subgrupo. Excluir?`:`Excluir “${s.nome}”?`))return;
+      if(n){await chk(O.from("materiais").update({subgrupo:null}).eq("subgrupo",s.nome));MATS.forEach(m=>{if(m.subgrupo===s.nome)m.subgrupo=null})}
+      await chk(O.from("subgrupos").delete().eq("id",s.id));SUBS=SUBS.filter(x=>x!==s);tSubgrupos()});
+  }
+
+  /* ---------- Segmentos padrão ---------- */
+  function tSegmentos(){
+    frame(`<div class="row"><p class="note">Segmentos que todo orçamento novo recebe (dá para ajustar em cada orçamento depois). Servem para saber o que mais pesa no custo.</p><button class="btn pri" id="gNovo">+ Segmento</button></div>
+     <table class="tbl"><thead><tr><th style="width:60px">Ordem</th><th>Segmento</th><th></th></tr></thead><tbody>
+     ${SEGP.map((s,i)=>`<tr><td><span class="sw" style="background:${s.cor}"></span> ${i+1}</td><td><b>${esc(s.nome)}</b></td><td class="n"><button class="btn sm" data-up="${i}" ${i?"":"disabled"}>↑</button><button class="btn sm" data-dn="${i}" ${i<SEGP.length-1?"":"disabled"}>↓</button><button class="btn sm" data-ed="${s.id}">Editar</button><button class="btn sm" data-del="${s.id}">✕</button></td></tr>`).join("")}</tbody></table>`);
+    const ord=async()=>{for(let i=0;i<SEGP.length;i++)if(SEGP[i].ordem!==i){SEGP[i].ordem=i;await chk(O.from("segmentos_padrao").update({ordem:i}).eq("id",SEGP[i].id))}tSegmentos()};
+    $$("[data-up]").forEach(b=>b.onclick=()=>{const i=+b.dataset.up;[SEGP[i-1],SEGP[i]]=[SEGP[i],SEGP[i-1]];ord()});
+    $$("[data-dn]").forEach(b=>b.onclick=()=>{const i=+b.dataset.dn;[SEGP[i+1],SEGP[i]]=[SEGP[i],SEGP[i+1]];ord()});
+    const form=s=>`<h2>${s?"Editar":"Novo"} segmento</h2><div class="grid2"><label class="fld">Nome<input name="nome" required value="${esc(s?s.nome:"")}"></label><label class="fld">Cor<input type="color" name="cor" value="${s?s.cor:PALETA[SEGP.length%PALETA.length]}"></label></div>`;
+    $("#gNovo").onclick=()=>modal(form(),async f=>{const r=await chk(O.from("segmentos_padrao").insert({nome:f.nome.trim(),cor:f.cor,ordem:SEGP.length}).select("*").single());SEGP.push(r);tSegmentos()},"Criar");
+    $$("[data-ed]").forEach(b=>b.onclick=()=>{const s=SEGP.find(x=>x.id==b.dataset.ed);modal(form(s),async f=>{await chk(O.from("segmentos_padrao").update({nome:f.nome.trim(),cor:f.cor}).eq("id",s.id));s.nome=f.nome.trim();s.cor=f.cor;tSegmentos()},"Salvar")});
+    $$("[data-del]").forEach(b=>b.onclick=async()=>{const s=SEGP.find(x=>x.id==b.dataset.del);if(!confirm(`Excluir “${s.nome}” dos segmentos padrão? Orçamentos existentes não mudam.`))return;await chk(O.from("segmentos_padrao").delete().eq("id",s.id));SEGP=SEGP.filter(x=>x!==s);tSegmentos()});
+  }
+
+  /* ---------- Concessionárias ---------- */
+  let concSel=null,ctab="postes";
+  async function tConcs(){
+    const [EST,PST,TRD,EC]=await Promise.all([
+      todos(()=>O.from("estruturas").select("id,concessionaria_id")),todos(()=>O.from("postes").select("id,concessionaria_id")),
+      todos(()=>O.from("tipos_rede").select("id,concessionaria_id")),todos(()=>O.from("estrutura_conc").select("*"))]);
+    const nG=c=>new Set(EST.filter(e=>e.concessionaria_id===c).map(e=>e.id).concat(EC.filter(x=>x.concessionaria_id===c).map(x=>x.estrutura_id))).size;
+    if(!concSel)concSel=CON[0]&&CON[0].id;
+    frame(`<div class="row"><p class="note">Cada concessionária tem seus postes, tipos de rede (condutores do traçado) e modelos de iluminação.</p><button class="btn pri" id="cNovo">+ Concessionária</button></div>
+     <div class="ccards">${CON.map(c=>`<button class="ccard ${c.id===concSel?"on":""}" data-c="${c.id}"><b>${esc(c.sigla)}</b><span>${esc(c.nome||"")}</span><small>${nG(c.id)} grupos · ${PST.filter(p=>p.concessionaria_id===c.id).length} postes · ${TRD.filter(t=>t.concessionaria_id===c.id).length} tipos de rede</small></button>`).join("")}</div>
+     <div id="cDet"></div>`);
+    $$("[data-c]").forEach(b=>b.onclick=()=>{concSel=+b.dataset.c;tConcs()});
+    $("#cNovo").onclick=()=>modal(`<h2>Nova concessionária</h2><div class="grid2"><label class="fld">Sigla<input name="sigla" required></label><label class="fld">Nome<input name="nome"></label></div>`,async f=>{
+      const r=await chk(O.from("concessionarias").insert({sigla:f.sigla.trim().toUpperCase(),nome:f.nome.trim()||null}).select("*").single());CON.push(r);CONCS.push(r);concSel=r.id;tConcs()},"Criar");
+    if(concSel)concDetalhe(concSel);
+  }
+  async function concDetalhe(cid){
+    const c=CON.find(x=>x.id===cid);const el=$("#cDet");
+    const [PST,TRD,TRI,MIP,EST]=await Promise.all([
+      todos(()=>O.from("postes").select("*").eq("concessionaria_id",cid).order("altura_m")),
+      todos(()=>O.from("tipos_rede").select("*").eq("concessionaria_id",cid).order("ordem")),
+      todos(()=>O.from("tipos_rede_itens").select("*")),
+      todos(()=>O.from("modelos_ip").select("*").eq("concessionaria_id",cid).order("nome")),
+      todos(()=>O.from("estruturas").select("id,codigo").eq("concessionaria_id",cid).order("codigo"))]);
+    const M=MAT();
+    el.innerHTML=`<div class="card"><div class="row"><h2>${esc(c.sigla)} <span class="note">${esc(c.nome||"")}</span></h2><button class="btn sm" id="cEd">Editar dados</button></div>
+      <div class="seg3">${[["postes","Postes"],["rede","Tipos de rede"],["ip","Modelos de IP"]].map(([k,t])=>`<button class="${ctab===k?"on":""}" data-ct="${k}">${t}</button>`).join("")}</div><div id="cIn"></div></div>`;
+    $$("[data-ct]").forEach(b=>b.onclick=()=>{ctab=b.dataset.ct;concDetalhe(cid)});
+    $("#cEd").onclick=()=>modal(`<h2>${esc(c.sigla)}</h2><div class="grid2"><label class="fld">Sigla<input name="sigla" required value="${esc(c.sigla)}"></label><label class="fld">Nome<input name="nome" value="${esc(c.nome||"")}"></label></div>`,async f=>{
+      await chk(O.from("concessionarias").update({sigla:f.sigla.trim().toUpperCase(),nome:f.nome.trim()||null}).eq("id",cid));c.sigla=f.sigla.trim().toUpperCase();c.nome=f.nome.trim();tConcs()},"Salvar");
+    const inn=$("#cIn");
+    if(ctab==="postes"){
+      inn.innerHTML=`${optsMat()}<table class="tbl"><thead><tr><th>Código no projeto</th><th>Tipo</th><th class="n">Altura</th><th class="n">Esforço</th><th>Material</th><th class="n">Preço</th><th></th></tr></thead><tbody>
+       ${PST.map(p=>`<tr><td class="mono">${esc(p.codigo)}</td><td>${p.tipo}</td><td class="n">${num(p.altura_m)} m</td><td class="n">${num(p.esforco_kn)} kN</td><td>${esc(p.material_codigo||"")}<span class="sm">${esc((M[p.material_codigo]||{}).nome||"")}</span></td><td class="n">${PV[p.material_codigo]?brl(PV[p.material_codigo].valor):"—"}</td><td class="n"><button class="btn sm" data-pe="${p.id}">Editar</button><button class="btn sm" data-pd="${p.id}">✕</button></td></tr>`).join("")||'<tr><td colspan="7" class="note">Nenhum poste.</td></tr>'}</tbody></table>
+       <div class="row"><span class="note">O código é como o poste aparece na planta, ex.: 12/600 ou 11(300).</span><button class="btn" id="pNovo">+ Poste</button></div>`;
+      const form=p=>`<h2>${p?"Editar":"Novo"} poste</h2><div class="grid2"><label class="fld">Código<input name="codigo" required value="${esc(p?p.codigo:"")}"></label><label class="fld">Tipo<select name="tipo">${["DT","TC","OUTRO"].map(t=>`<option ${p&&p.tipo===t?"selected":""}>${t}</option>`).join("")}</select></label>
+        <label class="fld">Altura (m)<input name="altura" value="${p?num(p.altura_m):""}"></label><label class="fld">Esforço (kN)<input name="esforco" value="${p?num(p.esforco_kn):""}"></label></div>
+        <label class="fld">Material<input name="mat" list="dlMat" value="${p&&p.material_codigo?esc(p.material_codigo+" · "+((M[p.material_codigo]||{}).nome||"")):""}"></label>`;
+      const salvar=id=>async f=>{const row={concessionaria_id:cid,codigo:f.codigo.trim(),tipo:f.tipo,altura_m:pnum(f.altura)||null,esforco_kn:pnum(f.esforco)||null,material_codigo:codDe(f.mat)||null};
+        if(row.material_codigo&&!M[row.material_codigo]){toast("Material não encontrado na base.");return false}
+        await chk(id?O.from("postes").update(row).eq("id",id):O.from("postes").insert(row));concDetalhe(cid)};
+      $("#pNovo").onclick=()=>modal(form(),salvar(),"Criar");
+      $$("[data-pe]").forEach(b=>b.onclick=()=>modal(form(PST.find(p=>p.id==b.dataset.pe)),salvar(+b.dataset.pe),"Salvar"));
+      $$("[data-pd]").forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este poste do cadastro?"))return;await chk(O.from("postes").delete().eq("id",b.dataset.pd));concDetalhe(cid)});
+    }else if(ctab==="rede"){
+      inn.innerHTML=`${optsMat()}<p class="note">Cada tipo de rede vira uma opção no traçado. Quantidade de cada material = comprimento × multiplicador × (1 + sobra).</p>
+       <div class="tredes">${TRD.map(t=>{const its=TRI.filter(i=>i.tipo_rede_id===t.id);return `<div class="tr"><div class="row"><b><span class="sw" style="background:${t.cor}"></span> ${esc(t.nome)}</b><span><button class="btn sm" data-te="${t.id}">Editar</button><button class="btn sm" data-td="${t.id}">✕</button></span></div>
+         ${its.map(i=>`<div class="ti"><span>${num(i.multiplicador)}×</span><span>${esc((M[i.material_codigo]||{}).nome||i.material_codigo)}</span><span class="note mono">${esc(i.material_codigo)}</span></div>`).join("")||'<p class="note">Sem materiais.</p>'}</div>`}).join("")}</div>
+       <button class="btn" id="tNovo">+ Tipo de rede</button>`;
+      const form=t=>{const its=t?TRI.filter(i=>i.tipo_rede_id===t.id):[];return `<h2>${t?"Editar":"Novo"} tipo de rede</h2><div class="grid2"><label class="fld">Nome<input name="nome" required value="${esc(t?t.nome:"")}" placeholder="MT compacta 50mm 25kV"></label><label class="fld">Cor<input type="color" name="cor" value="${t?t.cor:PALETA[TRD.length%PALETA.length]}"></label></div>
+        <h3 class="h3">Materiais por metro de vão</h3><div id="tIts">${(its.length?its:[{}]).map(i=>trLinha(i)).join("")}</div><button type="button" class="btn sm" id="tAdd">+ material</button>`};
+      const trLinha=i=>`<div class="grid3 tl"><input class="inp" list="dlMat" name="m" placeholder="Material" value="${i.material_codigo?esc(i.material_codigo+" · "+((M[i.material_codigo]||{}).nome||"")):""}"><input class="inp" name="x" placeholder="Multiplicador" value="${i.multiplicador!=null?num(i.multiplicador,3):"1"}"><button type="button" class="btn sm" data-rm>✕</button></div>`;
+      const abre=t=>{const md=modal(form(t),async(f,m)=>{const L=$$(".tl",m).map(r=>({c:codDe(r.querySelector("[name=m]").value),x:pnum(r.querySelector("[name=x]").value)})).filter(r=>r.c);
+          if(L.some(r=>!M[r.c])){toast("Há material que não está na base.");return false}
+          let id=t&&t.id;const row={concessionaria_id:cid,nome:f.nome.trim(),cor:f.cor};
+          if(id)await chk(O.from("tipos_rede").update(row).eq("id",id));else id=(await chk(O.from("tipos_rede").insert({...row,ordem:TRD.length}).select("id").single())).id;
+          await chk(O.from("tipos_rede_itens").delete().eq("tipo_rede_id",id));
+          if(L.length)await chk(O.from("tipos_rede_itens").insert(L.map(r=>({tipo_rede_id:id,material_codigo:r.c,multiplicador:r.x||1}))));concDetalhe(cid)},t?"Salvar":"Criar");
+        md.querySelector(".mbox").classList.add("wide");md.querySelector(".mbox").insertAdjacentHTML("afterbegin",optsMat());
+        const bind=()=>$$("[data-rm]",md).forEach(b=>b.onclick=()=>b.parentElement.remove());bind();
+        $("#tAdd",md).onclick=()=>{$("#tIts",md).insertAdjacentHTML("beforeend",trLinha({}));bind()}};
+      $("#tNovo").onclick=()=>abre();
+      $$("[data-te]").forEach(b=>b.onclick=()=>abre(TRD.find(t=>t.id==b.dataset.te)));
+      $$("[data-td]").forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este tipo de rede? Vãos já traçados com ele perdem os materiais."))return;await chk(O.from("tipos_rede_itens").delete().eq("tipo_rede_id",b.dataset.td));await chk(O.from("tipos_rede").delete().eq("id",b.dataset.td));concDetalhe(cid)});
+    }else{
+      inn.innerHTML=`<p class="note">Modelos de luminária que aparecem no campo “Luminária” do poste. Cada modelo junta um ou mais grupos de IP.</p>
+       <table class="tbl"><thead><tr><th>Modelo</th><th>Grupos</th><th>Fixação própria</th><th></th></tr></thead><tbody>
+       ${MIP.map(m=>`<tr><td><b>${esc(m.nome)}</b></td><td>${(m.estruturas||[]).map(e=>esc(e)).join(", ")}</td><td>${m.fixacao?"sim":"não"}</td><td class="n"><button class="btn sm" data-me="${m.id}">Editar</button><button class="btn sm" data-md="${m.id}">✕</button></td></tr>`).join("")||'<tr><td colspan="4" class="note">Nenhum modelo.</td></tr>'}</tbody></table>
+       <button class="btn" id="miNovo">+ Modelo</button>`;
+      const form=m=>`<h2>${m?"Editar":"Novo"} modelo de IP</h2><label class="fld">Nome<input name="nome" required value="${esc(m?m.nome:"")}" placeholder="LED 100W braço 3m"></label>
+        <label class="fld">Grupos (códigos separados por vírgula)<input name="est" list="dlEst" value="${esc(m?(m.estruturas||[]).join(", "):"")}"></label><datalist id="dlEst">${EST.map(e=>`<option value="${esc(e.codigo)}">`).join("")}</datalist>
+        <label class="note"><input type="checkbox" name="fix" ${m&&m.fixacao?"checked":""}> inclui a fixação no poste</label>`;
+      const salvar=id=>async f=>{const row={concessionaria_id:cid,nome:f.nome.trim(),estruturas:f.est.split(",").map(s=>s.trim()).filter(Boolean),fixacao:!!f.fix};await chk(id?O.from("modelos_ip").update(row).eq("id",id):O.from("modelos_ip").insert(row));concDetalhe(cid)};
+      $("#miNovo").onclick=()=>modal(form(),salvar(),"Criar");
+      $$("[data-me]").forEach(b=>b.onclick=()=>modal(form(MIP.find(m=>m.id==b.dataset.me)),salvar(+b.dataset.me),"Salvar"));
+      $$("[data-md]").forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este modelo?"))return;await chk(O.from("modelos_ip").delete().eq("id",b.dataset.md));concDetalhe(cid)});
+    }
+  }
+
+  /* ---------- Grupos de itens ---------- */
+  let gConc="",gq="",gpag=0;
+  async function tGrupos(){
+    const [EST,EI,EC]=await Promise.all([
+      todos(()=>O.from("estruturas").select("*").order("codigo")),todos(()=>O.from("estrutura_itens").select("*")),todos(()=>O.from("estrutura_conc").select("*"))]);
+    const its=id=>EI.filter(i=>i.estrutura_id===id);
+    const concsDe=e=>{const s=EC.filter(x=>x.estrutura_id===e.id).map(x=>x.concessionaria_id);return s.length?s:[e.concessionaria_id]};
+    const valor=e=>its(e.id).reduce((s,i)=>s+(+i.quantidade)*((PV[i.material_codigo]||{}).valor||0),0);
+    const semP=e=>its(e.id).filter(i=>!PV[i.material_codigo]).length;
+    const b=norm(gq);
+    const L=EST.filter(e=>(!gConc||concsDe(e).includes(+gConc))&&(!b||norm(e.codigo+" "+(e.descricao||"")).includes(b)));
+    const PP=60,np=Math.max(1,Math.ceil(L.length/PP));gpag=Math.min(gpag,np-1);
+    frame(`<div class="row"><div style="display:flex;gap:8px;flex-wrap:wrap"><select class="inp" id="gC"><option value="">Todas as concessionárias</option>${CON.map(c=>`<option value="${c.id}" ${gConc==c.id?"selected":""}>${esc(c.sigla)}</option>`).join("")}</select>
+       <input class="inp" id="gQ" placeholder="Buscar grupo" value="${esc(gq)}" style="width:min(280px,100%)"></div><button class="btn pri" id="gNovo">+ Grupo de itens</button></div>
+     <table class="tbl"><thead><tr><th>Grupo</th><th>Concessionárias</th><th class="hm">Categoria</th><th class="n">Itens</th><th class="n">Valor estimado</th></tr></thead><tbody>
+      ${L.slice(gpag*PP,gpag*PP+PP).map(e=>`<tr class="go" data-e="${e.id}"><td><b>${esc(e.codigo)}</b>${e.descricao?`<span class="sm">${esc(e.descricao)}</span>`:""}</td><td>${concsDe(e).map(c=>`<span class="chip ${e.compartilhada?"sh":""}">${esc(concSig(c))}</span>`).join(" ")}</td><td class="hm">${esc(e.categoria||"")}</td><td class="n">${its(e.id).length}</td><td class="n">${brl(valor(e))}${semP(e)?`<span class="sm" style="color:var(--warn)">${semP(e)} sem preço</span>`:""}</td></tr>`).join("")||'<tr><td colspan="5" class="note">Nenhum grupo.</td></tr>'}</tbody></table>
+     <div class="row"><span class="note">${L.length} grupos · <span class="chip sh">azul</span> = compartilhado</span><span style="display:flex;gap:6px;align-items:center">${np>1?`<button class="btn" id="gPrev" ${gpag?"":"disabled"}>‹</button><span class="note">${gpag+1} / ${np}</span><button class="btn" id="gNext" ${gpag<np-1?"":"disabled"}>›</button>`:""}</span></div>`);
+    $("#gC").onchange=e=>{gConc=e.target.value;gpag=0;tGrupos()};
+    $("#gQ").oninput=e=>{clearTimeout(tGrupos._t);gq=e.target.value;gpag=0;tGrupos._t=setTimeout(async()=>{const pos=e.target.selectionStart;await tGrupos();const i=$("#gQ");i.focus();i.setSelectionRange(pos,pos)},250)};
+    $("#gPrev")&&($("#gPrev").onclick=()=>{gpag--;tGrupos()});$("#gNext")&&($("#gNext").onclick=()=>{gpag++;tGrupos()});
+    $$("tr[data-e]").forEach(r=>r.onclick=()=>{const e=EST.find(x=>x.id==r.dataset.e);editarGrupo(e,its(e.id),concsDe(e))});
+    $("#gNovo").onclick=()=>editarGrupo(null,[],gConc?[+gConc]:[CON[0].id]);
+  }
+  function editarGrupo(e,ITS,concs){
+    const M=MAT();
+    const linha=i=>`<div class="gl"><input class="inp" list="dlMat" name="m" value="${i.material_codigo?esc(i.material_codigo+" · "+((M[i.material_codigo]||{}).nome||"?")):""}" placeholder="Código ou nome do material"><input class="inp n" name="q" value="${i.quantidade!=null?num(i.quantidade,3):""}" placeholder="Qtd"><span class="n pv">${i.material_codigo&&PV[i.material_codigo]?brl(PV[i.material_codigo].valor*i.quantidade):""}</span><button type="button" class="btn sm" data-rm>✕</button></div>`;
+    const md=modal(`${optsMat()}<h2>${e?"Grupo "+esc(e.codigo):"Novo grupo de itens"}</h2>
+      <div class="grid3"><label class="fld">Código<input name="codigo" required value="${esc(e?e.codigo:"")}"></label><label class="fld">Concessionária principal<select name="dono">${CON.map(c=>`<option value="${c.id}" ${(e?e.concessionaria_id:concs[0])===c.id?"selected":""}>${esc(c.sigla)}</option>`).join("")}</select></label>
+       <label class="fld">Categoria<select name="cat"><option value="">—</option>${["MT","BT","IP","Transformação","Aterramento","Proteção","Outros"].map(k=>`<option ${e&&e.categoria===k?"selected":""}>${k}</option>`).join("")}</select></label></div>
+      <label class="fld">Descrição<input name="descricao" value="${esc(e&&e.descricao||"")}"></label>
+      <label class="note"><input type="checkbox" name="comp" id="gComp" ${e&&e.compartilhada?"checked":""}> usar este grupo em mais de uma concessionária</label>
+      <div id="gCs" class="chips" ${e&&e.compartilhada?"":"hidden"}>${CON.map(c=>`<label><input type="checkbox" name="c_${c.id}" ${concs.includes(c.id)?"checked":""}> ${esc(c.sigla)}</label>`).join("")}</div>
+      <h3 class="h3">Materiais <span class="note" id="gTot"></span></h3><div id="gIts">${(ITS.length?ITS:[{}]).map(linha).join("")}</div>
+      <div class="row"><button type="button" class="btn sm" id="gAdd">+ material</button>${e?`<span style="display:flex;gap:6px"><button type="button" class="btn sm" id="gDup">Duplicar</button><button type="button" class="btn sm" id="gDel">Excluir grupo</button></span>`:""}</div>`,
+      async(f,m)=>{
+        const L=$$(".gl",m).map(r=>({c:codDe(r.querySelector("[name=m]").value),q:pnum(r.querySelector("[name=q]").value)})).filter(r=>r.c);
+        if(L.some(r=>!M[r.c])){toast("Há material que não está na base: "+L.filter(r=>!M[r.c]).map(r=>r.c).join(", "));return false}
+        if(L.some(r=>!(r.q>0))){toast("Informe a quantidade de todos os materiais.");return false}
+        const dono=+f.dono;let cs=f.comp?CON.filter(c=>f["c_"+c.id]).map(c=>c.id):[];if(f.comp&&!cs.includes(dono))cs.unshift(dono);
+        const row={codigo:f.codigo.trim(),descricao:f.descricao.trim()||null,categoria:f.cat||null,concessionaria_id:dono,compartilhada:!!f.comp&&cs.length>1};
+        let id=e&&e.id;
+        if(id)await chk(O.from("estruturas").update(row).eq("id",id));else id=(await chk(O.from("estruturas").insert(row).select("id").single())).id;
+        const ag={};L.forEach(r=>ag[r.c]=(ag[r.c]||0)+r.q);
+        await chk(O.from("estrutura_itens").delete().eq("estrutura_id",id));
+        await chk(O.from("estrutura_itens").insert(Object.entries(ag).map(([c,q])=>({estrutura_id:id,material_codigo:c,quantidade:q}))));
+        await chk(O.from("estrutura_conc").delete().eq("estrutura_id",id));
+        if(row.compartilhada)await chk(O.from("estrutura_conc").insert(cs.map(c=>({estrutura_id:id,concessionaria_id:c}))));
+        toast("Grupo salvo.");tGrupos()},e?"Salvar":"Criar");
+    md.querySelector(".mbox").classList.add("wide");
+    const tot=()=>{let s=0,n=0;$$(".gl",md).forEach(r=>{const c=codDe(r.querySelector("[name=m]").value),q=pnum(r.querySelector("[name=q]").value);const v=PV[c]?PV[c].valor*q:0;s+=v;if(c&&!PV[c])n++;r.querySelector(".pv").textContent=v?brl(v):(c&&M[c]?"sem preço":c?"não encontrado":"")});$("#gTot",md).textContent=`· ${brl(s)}${n?` · ${n} sem preço`:""}`};
+    const bind=()=>{$$("[data-rm]",md).forEach(b=>b.onclick=()=>{b.parentElement.remove();tot()});$$(".gl input",md).forEach(i=>i.oninput=tot)};bind();tot();
+    $("#gAdd",md).onclick=()=>{$("#gIts",md).insertAdjacentHTML("beforeend",linha({}));bind();$$(".gl [name=m]",md).pop().focus()};
+    $("#gComp",md).onchange=ev=>$("#gCs",md).hidden=!ev.target.checked;
+    if(e){
+      $("#gDel",md).onclick=async()=>{if(!confirm(`Excluir o grupo ${e.codigo}? Orçamentos que já usam ficam com os materiais copiados.`))return;
+        const r=await O.from("estruturas").delete().eq("id",e.id);if(r.error){await chk(O.from("estruturas").update({ativo:false}).eq("id",e.id));toast("Grupo em uso: foi desativado.")}md.remove();tGrupos()};
+      $("#gDup",md).onclick=()=>{md.remove();modal(`<h2>Duplicar ${esc(e.codigo)}</h2><div class="grid2"><label class="fld">Novo código<input name="codigo" required value="${esc(e.codigo)}-2"></label><label class="fld">Concessionária<select name="c">${CON.map(c=>`<option value="${c.id}" ${c.id===e.concessionaria_id?"selected":""}>${esc(c.sigla)}</option>`).join("")}</select></label></div>`,async f=>{
+        const n=await chk(O.from("estruturas").insert({codigo:f.codigo.trim(),descricao:e.descricao,categoria:e.categoria,concessionaria_id:+f.c,compartilhada:false}).select("*").single());
+        await chk(O.from("estrutura_itens").insert(ITS.map(i=>({estrutura_id:n.id,material_codigo:i.material_codigo,quantidade:i.quantidade}))));
+        editarGrupo(n,ITS,[n.concessionaria_id])},"Duplicar")};
+    }
+  }
+
+  /* ---------- Cotações de fornecedores ---------- */
+  async function tCotacoes(){
+    const H=await todos(()=>O.from("cotacoes").select("*").order("criado_em",{ascending:false}));
+    frame(`<div class="card"><h2>Conciliar uma cotação</h2><p class="note">Envie o orçamento recebido (PDF, Excel ou CSV). O sistema lê as linhas, propõe o material correspondente da base e você confere antes de gravar. Os preços entram no histórico com a data e o fornecedor.</p>
+      <div class="grid4"><label class="fld">Fornecedor<input class="inp" id="cF" list="dlForn" placeholder="Empresa"></label><label class="fld">Nº / documento<input class="inp" id="cD"></label><label class="fld">Data<input class="inp" type="date" id="cDt" value="${new Date().toISOString().slice(0,10)}"></label><label class="fld">Arquivo<input type="file" id="cArq" accept=".pdf,.xlsx,.xls,.csv"></label></div>
+      <datalist id="dlForn">${[...new Set(Object.values(PV).map(p=>p.fornecedor).filter(Boolean))].map(f=>`<option value="${esc(f)}">`).join("")}</datalist>
+      <div id="cMsg" class="note"></div><div id="cRev"></div></div>
+     <h2 style="font-size:15px;margin:8px 0 0">Cotações registradas</h2>
+     <table class="tbl"><thead><tr><th>Data</th><th>Fornecedor</th><th class="hm">Documento</th><th class="n">Itens</th><th>Situação</th></tr></thead><tbody>
+      ${H.map(c=>`<tr class="go" data-ct="${c.id}"><td>${fdata(c.data)}</td><td><b>${esc(c.fornecedor)}</b></td><td class="hm">${esc(c.documento||"")}</td><td class="n">${(c.itens||[]).filter(i=>i.ok).length} / ${(c.itens||[]).length}</td><td><span class="chip ${c.status==="concluida"?"finalizado":"andamento"}">${c.status==="concluida"?"Gravada":"Rascunho"}</span></td></tr>`).join("")||'<tr><td colspan="5" class="note">Nenhuma cotação ainda.</td></tr>'}</tbody></table>`);
+    $$("tr[data-ct]").forEach(r=>r.onclick=()=>{const c=H.find(x=>x.id===r.dataset.ct);$("#cF").value=c.fornecedor;$("#cD").value=c.documento||"";$("#cDt").value=c.data;revisar(c.itens||[],c);window.scrollTo(0,0)});
+    $("#cArq").onchange=async ev=>{const file=ev.target.files[0];if(!file)return;const msg=$("#cMsg");msg.textContent="Lendo o arquivo…";
+      try{const linhas=/\.pdf$/i.test(file.name)?await lerPdf(file):await lerPlanilha(file);
+        if(!$("#cF").value){const g=(linhas._cab||"").match(/([A-ZÀ-Ú][A-ZÀ-Ú&.\s]{3,}(LTDA|S\.?A|EIRELI|ME|EPP))/);if(g)$("#cF").value=g[1].trim()}
+        msg.textContent=`${linhas.length} linhas com preço encontradas. Confira as correspondências abaixo.`;
+        revisar(await casar(linhas),null,file)}catch(e){console.error(e);msg.textContent="Não consegui ler esse arquivo: "+e.message}};
+  }
+  async function lerPlanilha(file){
+    if(!window.XLSX)await loadScript("vendor/xlsx.full.min.js");
+    const wb=XLSX.read(await file.arrayBuffer());const A=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""});
+    let h=A.findIndex(r=>r.some(c=>/descri|produto|material|item/i.test(c))&&r.some(c=>/pre[cç]o|valor|unit/i.test(c)));
+    const H=h>=0?A[h].map(c=>norm(c)):[];const ix=re=>H.findIndex(c=>re.test(c));
+    let id=ix(/DESCRI|PRODUTO|MATERIAL/),iq=ix(/QUANT|QTD|QTDE/),ip=ix(/UNIT/),ic=ix(/^COD|CODIGO/);if(ip<0)ip=ix(/PRECO|VALOR/);
+    const out=[];A.slice(h+1).forEach(r=>{let d=id>=0?String(r[id]):"";if(id<0){d=r.filter(c=>typeof c==="string").sort((a,b)=>b.length-a.length)[0]||""}
+      const nums=r.filter(c=>typeof c==="number"||/^\s*R?\$?\s*[\d.]+,\d{2}\s*$/.test(c)).map(pnum);
+      let p=ip>=0?pnum(r[ip]):nums.length>=2?nums[nums.length-2]:nums[0];const q=iq>=0?pnum(r[iq]):null;
+      if(d.trim().length>3&&p>0)out.push({txt:d.replace(/\s+/g," ").trim(),cod:ic>=0?String(r[ic]).trim():"",q,p})});
+    return out;
+  }
+  async function lerPdf(file){
+    if(!window.pdfjsLib){await loadScript("vendor/pdf.min.js")}
+    if(window.pdfjsLib&&pdfjsLib.GlobalWorkerOptions&&!pdfjsLib.GlobalWorkerOptions.workerSrc)pdfjsLib.GlobalWorkerOptions.workerSrc="vendor/pdf.worker.min.js";
+    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const out=[];let cab="";
+    for(let n=1;n<=pdf.numPages;n++){const tc=await(await pdf.getPage(n)).getTextContent();const R={};
+      tc.items.forEach(it=>{if(!it.str.trim())return;const y=Math.round(it.transform[5]/3);(R[y]=R[y]||[]).push({x:it.transform[4],s:it.str})});
+      Object.keys(R).sort((a,b)=>b-a).forEach(y=>{const ln=R[y].sort((a,b)=>a.x-b.x).map(t=>t.s).join(" ").replace(/\s+/g," ").trim();if(n===1&&cab.length<600)cab+=ln+"\n";
+        const nums=[...ln.matchAll(/(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2,4}|\d+,\d{2,4})/g)].map(m=>({v:pnum(m[1]),i:m.index}));if(!nums.length)return;
+        let d=ln.slice(0,nums[0].i).replace(/R\$\s*$/,"").trim();const cm=d.match(/^(\d{1,4}\s+)?([A-Z0-9.\-]{4,})\s+/);let cod="";if(cm&&/\d/.test(cm[2])){cod=cm[2];d=d.slice(cm[0].length)}
+        d=d.replace(/^\d{1,3}\s+/,"").replace(/\s+(UN|UND|UNID|PC|PÇ|M|MT|KG|CJ|CX|RL|PCT)\.?(\s+\d+([.,]\d+)?)?$/i,"").trim();
+        if(d.replace(/[^A-Za-zÀ-ú]/g,"").length<4)return;
+        let p,q=null;const v=nums.map(x=>x.v);
+        if(v.length>=3){const [a,b,c]=v.slice(-3);if(Math.abs(a*b-c)<=Math.max(.05,c*.01)){q=a;p=b}else{p=v[v.length-2];q=v[v.length-3]}}
+        else if(v.length===2){const iq=ln.slice(0,nums[0].i).match(/(\d+(?:[.,]\d+)?)\s*(UN|UND|PC|PÇ|M|MT|KG|CJ|PCT)?\.?\s*$/i);p=v[0];if(iq){q=pnum(iq[1])}else if(v[1]>v[0])p=v[0];else p=v[1]}
+        else p=v[0];
+        if(p>0)out.push({txt:d,cod,q,p})})}
+    out._cab=cab;return out;
+  }
+  async function casar(linhas){
+    const AP=await todos(()=>O.from("apelidos").select("fonte,fornecedor,texto_norm,material_codigo"));
+    const forn=norm($("#cF").value),M=MAT();
+    const ativos=MATS.filter(m=>m.ativo!==false);
+    const STOP=new Set(["DE","DA","DO","P","C","PARA","COM","E","MM","MM2","MM²","UN","PC","PÇ","M","MT","TIPO","A","EM"]);
+    const tok=s=>norm(s).replace(/(\d)([A-Z])/g,"$1 $2").replace(/([A-Z])(\d)/g,"$1 $2").replace(/(\d)\s*X\s*(\d)/g,"$1 $2").split(" ").filter(t=>t&&!STOP.has(t)&&(t.length>1||/\d/.test(t)));
+    const IDX=ativos.map(m=>({m,t:new Set(tok(m.nome))}));const DF={};IDX.forEach(({t})=>t.forEach(x=>DF[x]=(DF[x]||0)+1));const W=x=>Math.log(1+IDX.length/(DF[x]||1))*(/\d/.test(x)?1.3:1);
+    return linhas.map(l=>{const k=norm(l.txt);
+      let a=AP.find(x=>x.texto_norm===k&&norm(x.fornecedor)===forn)||AP.find(x=>x.texto_norm===k)||(l.cod&&AP.find(x=>x.texto_norm===norm(l.cod)));
+      let c=a&&M[a.material_codigo]?a.material_codigo:(l.cod&&M[l.cod]?l.cod:null);
+      const T=[...new Set(tok(l.txt))];const wT=T.reduce((s,x)=>s+W(x),0)||1;const sc=IDX.map(({m,t})=>{let s=0,nn=0;T.forEach(x=>{if(t.has(x))s+=W(x);else if(/\d/.test(x))nn++});let wm=0;t.forEach(x=>wm+=W(x));return{c:m.codigo,s:s/Math.sqrt(wT*(wm||1))-nn*.08}}).sort((x,y)=>y.s-x.s).slice(0,5);
+      const conf=c?"alta":sc[0]&&sc[0].s>.55?"média":"baixa";
+      const cc=c||(sc[0]&&sc[0].s>.35?sc[0].c:"");const at=PV[cc];const longe=!c&&at&&l.p&&Math.abs(l.p/at.valor-1)>.6;
+      return{...l,sug:sc.filter(x=>x.s>.15).map(x=>x.c),c:cc,conf:longe?"baixa":conf,ok:!longe&&!!(c||(sc[0]&&sc[0].s>.55)),apelido:!a}});
+  }
+  function revisar(IT,reg,file){
+    const M=MATS.reduce((o,m)=>(o[m.codigo]=m,o),{});
+    const rev=$("#cRev");
+    const draw=()=>{rev.innerHTML=`${optsMat()}<table class="tbl cot"><thead><tr><th style="width:28px"><input type="checkbox" id="cAll"></th><th>Na cotação</th><th>Material da base</th><th class="n">Qtd</th><th class="n">Preço unit.</th><th class="n">Atual</th></tr></thead><tbody>
+      ${IT.map((i,n)=>{const at=PV[i.c];const dif=at&&i.p?(i.p/at.valor-1)*100:null;return `<tr class="${i.ok?"":"off"}"><td><input type="checkbox" data-ok="${n}" ${i.ok?"checked":""}></td><td>${esc(i.txt)}${i.cod?`<span class="sm mono">${esc(i.cod)}</span>`:""}</td>
+        <td><input class="inp" list="dlMat" data-c="${n}" value="${i.c?esc(i.c+" · "+((M[i.c]||{}).nome||"")):""}" placeholder="Escolha o material">${i.sug&&i.sug.length?`<span class="sugs">${i.sug.filter(s=>s!==i.c).slice(0,3).map(s=>`<button type="button" data-s="${n}" data-v="${esc(s)}">${esc((M[s]||{}).nome||s)}</button>`).join("")}</span>`:""}<span class="sm">${i.c?`<span class="chip ${i.conf==="alta"?"finalizado":i.conf==="média"?"andamento":""}">${i.conf==="alta"?"já conhecido":"confiança "+i.conf}</span>`:""}</span></td>
+        <td class="n">${i.q!=null?num(i.q):""}</td><td class="n"><input class="inp n" data-p="${n}" value="${num(i.p,4)}" style="width:96px"></td>
+        <td class="n">${at?brl(at.valor)+`<span class="sm" style="color:${dif>0?"var(--bad,#c62828)":"var(--ok)"}">${dif!=null?(dif>0?"+":"")+num(dif,1)+"%":""}</span><span class="sm">${fdata(at.data)}</span>`:"—"}</td></tr>`}).join("")}</tbody></table>
+      <div class="row"><span class="note">${IT.filter(i=>i.ok&&i.c).length} de ${IT.length} itens serão gravados${reg&&reg.status==="concluida"?" · esta cotação já foi gravada antes":""}</span><span style="display:flex;gap:6px"><button class="btn" id="cRasc">Salvar rascunho</button><button class="btn pri" id="cGrava">Gravar preços na base</button></span></div>`;
+      $("#cAll").onchange=e=>{IT.forEach(i=>i.ok=e.target.checked&&!!i.c);draw()};
+      $$("[data-ok]",rev).forEach(b=>b.onchange=()=>{IT[b.dataset.ok].ok=b.checked;draw()});
+      $$("[data-c]",rev).forEach(b=>b.onchange=()=>{const i=IT[b.dataset.c];i.c=codDe(b.value);if(!M[i.c]){toast("Material não encontrado na base.");i.c=""}else{i.ok=true;i.conf="manual";i.apelido=true}draw()});
+      $$("[data-s]",rev).forEach(b=>b.onclick=()=>{const i=IT[b.dataset.s];i.c=b.dataset.v;i.ok=true;i.conf="manual";i.apelido=true;draw()});
+      $$("[data-p]",rev).forEach(b=>b.onchange=()=>{IT[b.dataset.p].p=pnum(b.value);draw()});
+      const salvaReg=async status=>{const row={fornecedor:$("#cF").value.trim(),documento:$("#cD").value.trim()||null,data:$("#cDt").value,status,itens:IT.map(({txt,cod,q,p,c,ok,conf})=>({txt,cod,q,p,c,ok,conf}))};
+        if(!row.fornecedor){toast("Informe o fornecedor.");throw 0}
+        if(file&&!row.arquivo_url){try{const path=`orcarede/cotacoes/${Date.now()}_${file.name.replace(/[^\w.\-]/g,"_")}`;const up=await sb.storage.from("negocios").upload(path,file);if(!up.error)row.arquivo_url=path}catch(e){}}
+        if(reg)await chk(O.from("cotacoes").update(row).eq("id",reg.id));else reg=await chk(O.from("cotacoes").insert({...row,criado_por:perfil.id}).select("*").single());return row};
+      $("#cRasc").onclick=async()=>{try{await salvaReg("aberta");toast("Rascunho salvo.");tCotacoes()}catch(e){}};
+      $("#cGrava").onclick=async()=>{const G=IT.filter(i=>i.ok&&i.c&&i.p>0);if(!G.length){toast("Nenhum item marcado.");return}
+        let row;try{row=await salvaReg("concluida")}catch(e){return}
+        await chk(O.from("precos").insert(G.map(i=>({material_codigo:i.c,valor:i.p,data:row.data,origem:"proposta",fornecedor:row.fornecedor,documento:row.documento,criado_por:perfil.id}))));
+        const ap=G.filter(i=>i.apelido).map(i=>({fonte:"cotacao",fornecedor:row.fornecedor,texto_original:i.txt,texto_norm:norm(i.txt),material_codigo:i.c,criado_por:perfil.id}));
+        if(ap.length)await chk(O.from("apelidos").upsert(ap,{onConflict:"fonte,fornecedor,texto_norm"}));
+        toast(`${G.length} preços gravados de ${row.fornecedor}.`);await recarregaPV();tCotacoes()};
+    };
+    draw();
+  }
+  go();
+}
 
 /* ============ LISTA: pastas e versões ============ */
 async function lista(pastaId){
@@ -311,7 +721,7 @@ async function lista(pastaId){
     const vig=p=>ORCS.filter(o=>o.pasta_id===p.id).sort((a,b)=>(b.vigente-a.vigente)||(b.versao-a.versao))[0];
     root.innerHTML=`<div class="page">
      <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">ON Engenharia</div><h1>OrçaRede</h1><div class="sub">Projete a rede, consolide os materiais e siga para a precificação</div></div>
-      <div class="tools"><a class="btn" href="index.html">← Obras</a><a class="btn" href="negocios.html">Negócios</a><button class="btn" id="bPasta">+ Pasta</button><button class="btn pri" id="bNovo">+ Novo orçamento</button></div></header>
+      <div class="tools"><a class="btn" href="index.html">← Obras</a><a class="btn" href="negocios.html">Negócios</a><a class="btn" href="orcarede.html?cfg=materiais">⚙ Configurações</a><button class="btn" id="bPasta">+ Pasta</button><button class="btn pri" id="bNovo">+ Novo orçamento</button></div></header>
      ${pastaId||busca?"":dash()}
      <div class="row"><div class="bc"><button data-go="">Todos</button>${trilha.map(p=>`<span>›</span><button data-go="${p.id}">${esc(p.nome)}</button>`).join("")}</div>
       <input class="inp" id="q" placeholder="Buscar por projeto, cliente ou cidade" value="${esc(q)}" style="width:min(360px,100%)"></div>
@@ -362,7 +772,9 @@ async function editor(id){
     todos(()=>O.from("orc_ponto_estruturas").select("id,ponto_id,estrutura_id,ordem,segmento_id,orc_pontos!inner(orcamento_id)").eq("orc_pontos.orcamento_id",id)),
     todos(()=>O.from("orc_ponto_itens").select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado,orc_pontos!inner(orcamento_id)").eq("orc_pontos.orcamento_id",id)),
     todos(()=>O.from("orc_vaos").select("*").eq("orcamento_id",id)),
-    todos(()=>O.from("estruturas").select("id,codigo,descricao,categoria").eq("concessionaria_id",conc).order("codigo")),
+    (async()=>{const [a,ec]=await Promise.all([todos(()=>O.from("estruturas").select("id,codigo,descricao,categoria,ativo").eq("concessionaria_id",conc)),todos(()=>O.from("estrutura_conc").select("estrutura_id").eq("concessionaria_id",conc))]);
+      const ids=ec.map(x=>x.estrutura_id).filter(i=>!a.some(e=>e.id===i));let b=[];for(let i=0;i<ids.length;i+=200)b=b.concat(await todos(()=>O.from("estruturas").select("id,codigo,descricao,categoria,ativo").in("id",ids.slice(i,i+200))));
+      return a.concat(b).filter(e=>e.ativo!==false).sort((x,y)=>x.codigo.localeCompare(y.codigo))})(),
     todos(()=>O.from("postes").select("id,codigo,material_codigo,altura_m,esforco_kn,tipo").eq("concessionaria_id",conc).order("altura_m")),
     todos(()=>O.from("tipos_rede").select("*").eq("concessionaria_id",conc).order("ordem")),
     todos(()=>O.from("tipos_rede_itens").select("*")),
