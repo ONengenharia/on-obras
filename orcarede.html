@@ -884,6 +884,7 @@ async function editor(id){
   async function cintasManual(pt,v){await chk(O.from("orc_pontos").update({cintas_manual:v}).eq("id",pt.id));pt.cintas_manual=v;if(!v)await recalcCintas(pt);renderHead();renderSide()}
 
   function frequentes(pt){const C={};PTS.forEach(p=>{if(p.id===pt.id)return;const s=seqDoPonto(p);if(s.includes(";"))C[s]=(C[s]||0)+1});return Object.entries(C).filter(([s,n])=>n>=2&&!PADS.some(x=>x.sequencia===s)).sort((a,b)=>b[1]-a[1]).slice(0,4)}
+  for(let i=TR.length-1;i>=0;i--)if(TR[i].pasta_id&&TR[i].pasta_id!==ORC.pasta_id)TR.splice(i,1);
   TR.forEach(t=>t.itens=TRI.filter(i=>i.tipo_rede_id===t.id));const TRM=Object.fromEntries(TR.map(t=>[t.id,t]));
   const SEGM=()=>Object.fromEntries(SEGS.map(s=>[s.id,s]));
   const ehIP=eid=>{const e=ESTM[eid];return !!e&&(e.categoria==="IP"||/^(CONJ_IP|FIX_IP)/i.test(e.codigo))};
@@ -1048,7 +1049,7 @@ async function editor(id){
      <div class="pane">
       ${(()=>{const t=etiquetaPerto(pt);return t&&!PE.some(e=>e.ponto_id===pt.id)?`<div class="sug"><span>📄 Lido na planta, perto deste ponto:</span><code>${esc(t)}</code><div class="row"><span class="note">Confira item por item antes de lançar.</span><button class="btn sm pri" id="sugOk">Verificar e aplicar</button></div></div>`:""})()}
       <div class="lbl">Lançamento rápido</div>
-      <div class="seq"><input class="inp" id="pSeq" placeholder="12(10);CE3-2;IF_50;BC10;IP" aria-label="Sequência de poste e estruturas"><button class="btn pri" id="pSeqOk">Aplicar</button></div>
+      <div class="seq"><input class="inp" id="pSeq" placeholder="12(10);CE3-2;IF_50;BC10;IP" aria-label="Sequência de poste e estruturas"><button class="btn" id="pCola" title="Colar print da etiqueta (Ctrl+V no campo também funciona)">📋</button><button class="btn pri" id="pSeqOk">Aplicar</button></div>
       <div class="pads"><span class="lbl">Padrões</span>${PADS.slice(0,10).map(x=>`<button class="pad" data-pad="${x.id}" title="${esc(x.sequencia)}">★ ${esc(x.nome)}</button>`).join("")}${frequentes(pt).map(([s,n])=>`<button class="pad fq" data-fq="${esc(s)}" title="Usado em ${n} pontos deste orçamento">${esc(s.length>34?s.slice(0,34)+"…":s)} <small>×${n}</small></button>`).join("")}
        ${PADS.length>10?`<select class="inp sm" id="padMais"><option value="">mais padrões…</option>${PADS.slice(10).map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join("")}</select>`:""}
        <button class="lnk" id="padSalvar" title="Guardar poste + estruturas deste ponto para reutilizar">+ salvar este ponto como padrão</button></div>
@@ -1079,6 +1080,8 @@ async function editor(id){
     const seq=async()=>{const txt=$("#pSeq").value;if(lerTokens(txt).some(t=>!t.alvo&&!t.ign))return verificar(pt,txt,"digitado");const r=await aplicarSequencia(pt,txt);renderHead();renderPins();renderSide();
       toast([r.ok.length?`Aplicado: ${r.ok.join(", ")}`:"",r.nok.length?`Não reconhecido: ${r.nok.join(", ")}`:""].filter(Boolean).join(" · ")||"Nada novo para aplicar.")};
     $("#pSeqOk").onclick=seq;
+    $("#pSeq").onpaste=e=>{const it=[...(e.clipboardData||{}).items||[]].find(i=>i.type.startsWith("image/"));if(!it)return;e.preventDefault();lerPrint(pt,it.getAsFile())};
+    $("#pCola").onclick=async()=>{try{const L=await navigator.clipboard.read();for(const c of L){const t=c.types.find(x=>x.startsWith("image/"));if(t){lerPrint(pt,await c.getType(t));return}}toast("Não há imagem copiada. Tire o print (Win+Shift+S) e tente de novo.")}catch(err){toast("Clique no campo da sequência e use Ctrl+V para colar o print.")}};
     const usaPad=async(txt,pad)=>{const r=await aplicarSequencia(pt,txt);if(pad){pad.usos=(pad.usos||0)+1;O.from("padroes_ponto").update({usos:pad.usos}).eq("id",pad.id).then(()=>{})}renderHead();renderPins();renderSide();toast(r.ok.length?`Aplicado: ${r.ok.join(", ")}`:"Nada novo para aplicar.")};
     $$("[data-pad]",a).forEach(b=>b.onclick=()=>{const x=PADS.find(p=>p.id==b.dataset.pad);usaPad(x.sequencia,x)});
     $$("[data-fq]",a).forEach(b=>b.onclick=()=>usaPad(b.dataset.fq));
@@ -1104,11 +1107,13 @@ async function editor(id){
     const v=soma(IT.filter(i=>pes.some(e=>e.id===i.ponto_estrutura_id)).map(i=>({c:i.material_codigo,q:+i.quantidade})));
     return `<div class="ipbox"><div class="row"><b>💡 Iluminação pública</b>${pes.length?`<span class="mono">${num(v)}</span>`:'<span class="note">não orçada</span>'}</div>
      ${pes.length?`<div class="note">${pes.map(e=>esc(ESTM[e.estrutura_id].codigo)).join(" + ")}</div><div class="row"><span></span><button class="lnk" id="ipDel">Remover luminária</button></div>`
-      :MIP.length?`<div class="seq"><select class="inp" id="ipMod" aria-label="Modelo de luminária">${MIP.map(m=>`<option value="${m.id}">${esc(m.nome)}</option>`).join("")}</select><button class="btn pri" id="ipAdd">Incluir</button></div><p class="note" style="margin:0">${fixIP(pt)?`A fixação ${esc(fixIP(pt).codigo)} entra junto, pelo poste.`:pt.poste_id?"Sem fixação cadastrada para este poste.":"Escolha o poste para a fixação entrar junto."}</p>`
-      :'<p class="note">Nenhum modelo de luminária cadastrado.</p>'}</div>`}
+      :ipOpcoes().length?`<div class="seq"><select class="inp" id="ipMod" aria-label="Luminária">${MIP.length?`<optgroup label="Modelos">${MIP.map(m=>`<option value="m:${m.id}">${esc(m.nome)}</option>`).join("")}</optgroup>`:""}<optgroup label="Grupos de itens de IP">${ipOpcoes().map(e=>`<option value="e:${e.id}">${esc(e.codigo)}</option>`).join("")}</optgroup></select><button class="btn pri" id="ipAdd">Incluir</button></div><p class="note" style="margin:0">${fixIP(pt)?`A fixação ${esc(fixIP(pt).codigo)} entra junto, pelo poste.`:pt.poste_id?"Sem fixação cadastrada para este poste.":"Escolha o poste para a fixação entrar junto."}</p>`
+      :'<p class="note">Nenhum grupo de IP cadastrado para esta concessionária.</p>'}</div>`}
+  function ipOpcoes(){return EST.filter(e=>ehIP(e.id)&&!/^FIX_/i.test(e.codigo)).sort((a,b)=>a.codigo.localeCompare(b.codigo,"pt",{numeric:true}))}
   function bindIP(a,pt){
-    $("#ipAdd",a)&&($("#ipAdd",a).onclick=async()=>{const m=MIP.find(x=>x.id==$("#ipMod",a).value);const segIP=(SEGS.find(s=>/^IP$/i.test(s.nome))||{}).id||null;
-      const alvo=(m.estruturas||[]).map(c=>EST.find(e=>e.codigo.toUpperCase()===String(c).toUpperCase())).filter(Boolean);const fx=m.fixacao!==false&&fixIP(pt);if(fx&&!alvo.includes(fx))alvo.push(fx);
+    $("#ipAdd",a)&&($("#ipAdd",a).onclick=async()=>{const val=$("#ipMod",a).value;const segIP=(SEGS.find(s=>/^IP$|ilumina/i.test(s.nome))||{}).id||null;let m,alvo;
+      if(val.startsWith("m:")){m=MIP.find(x=>"m:"+x.id===val);alvo=(m.estruturas||[]).map(c=>EST.find(e=>e.codigo.toUpperCase()===String(c).toUpperCase())).filter(Boolean)}else{m={};alvo=[EST.find(e=>"e:"+e.id===val)].filter(Boolean)}
+      const fx=m.fixacao!==false&&fixIP(pt);if(fx&&!alvo.includes(fx))alvo.push(fx);
       for(const e of alvo){const pid=await chk(O.rpc("aplicar_estrutura",{p_ponto:pt.id,p_estrutura:e.id}));if(segIP&&pid)await chk(O.from("orc_ponto_estruturas").update({segmento_id:segIP}).eq("id",pid))}
       await recarregaPonto(pt.id);renderHead();renderPins();renderSide();toast("Luminária incluída: "+alvo.map(e=>e.codigo).join(" + "))});
     $("#ipDel",a)&&($("#ipDel",a).onclick=async()=>{const ids=PE.filter(e=>e.ponto_id===pt.id&&ehIP(e.estrutura_id)).map(e=>e.id);
@@ -1123,7 +1128,7 @@ async function editor(id){
   function verificar(pt,txt,origem){
     const L=lerTokens(txt);
     const opts=sel=>`<option value="">— ignorar —</option><optgroup label="Postes">${POSTES.map(p=>`<option value="p${p.id}" ${sel==="p"+p.id?"selected":""}>${esc(p.codigo)}</option>`).join("")}</optgroup><optgroup label="Estruturas">${EST.map(e=>`<option value="e${e.id}" ${sel==="e"+e.id?"selected":""}>${esc(e.codigo)}</option>`).join("")}</optgroup>`;
-    const m=modal(`<h2>Verificar ${origem==="planta"?"leitura da planta":"sequência"}</h2>
+    const m=modal(`<h2>Verificar ${origem==="planta"?"leitura da planta":origem==="print"?"leitura do print":"sequência"}</h2>
       <p class="note">${origem==="planta"?"Texto encontrado no PDF perto do ponto":"Sequência digitada"}: <code class="mono">${esc(txt)}</code></p>
       <table class="vt"><thead><tr><th></th><th>Lido</th><th>Vai lançar</th><th></th></tr></thead><tbody>${L.map((t,i)=>`<tr><td><input type="checkbox" name="u${i}" ${t.alvo?"checked":""} aria-label="Usar"></td><td class="mono">${esc(t.tok)}</td><td><select name="a${i}" aria-label="Associar">${opts(t.alvo||"")}</select></td><td>${t.alvo?(t.mem?'<span class="st m">memória</span>':'<span class="st ok">reconhecido</span>'):t.ign?'<span class="st m">ignorado (memória)</span>':'<span class="st no">não reconhecido</span>'}</td></tr>`).join("")}</tbody></table>
       <label class="fld" style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" name="mem" checked style="width:18px;height:18px"> Lembrar as associações que eu mudar (para as próximas plantas)</label>`,async f=>{
@@ -1228,8 +1233,10 @@ async function editor(id){
       if(!escala){toast("Calibre a escala da planta antes de traçar a rede.");return}
       const m=modal(`<h2>Traçar rede</h2><p class="note">Escolha o condutor e a sobra. Depois clique nos postes em sequência; cada vão é medido pela escala.</p>
         <div class="trl">${TR.map((t,i)=>`<label><input type="radio" name="t" value="${t.id}" ${i===0?"checked":""}><span class="dot" style="border-color:${t.cor};border-top-width:4px;width:22px"></span><span>${esc(t.nome)}<small>${t.itens.map(x=>(x.multiplicador>1?num(x.multiplicador)+"× ":"")+esc((MAT[x.material_codigo]||{}).nome||x.material_codigo)).join(" + ")}</small></span><span class="note">${/^MT/i.test(t.nome)?"centro do poste":"lateral"}</span></label>`).join("")}</div>
+        <div class="row"><button type="button" class="lnk" id="tNovoCabo">+ incluir cabo</button><span></span></div>
         <label class="fld" style="max-width:200px">Sobra deste trecho (%)<input name="sob" value="${num(ORC.sobra_condutor_pct)}" inputmode="decimal"></label>`,f=>{
-        tracing=+f.t;const sv=pnum(f.sob);traceSobra=Math.abs(sv-ORC.sobra_condutor_pct)<1e-9?null:sv;anchor=null;placing=false;calib=null;renderMapbar();updHint();renderPins()},"Começar a traçar")};
+        if(!f.t){toast("Escolha ou inclua um cabo.");return false}tracing=+f.t;const sv=pnum(f.sob);traceSobra=Math.abs(sv-ORC.sobra_condutor_pct)<1e-9?null:sv;anchor=null;placing=false;calib=null;renderMapbar();updHint();renderPins()},"Começar a traçar");
+      $("#tNovoCabo",m).onclick=()=>{m.remove();novoCabo()}};
     $("#mCal").onclick=()=>{calib=calib?null:[];placing=false;tracing=null;anchor=null;renderMapbar();updHint();renderNet()};
     b.onpointerdown=e=>e.stopPropagation();
   }
@@ -1251,6 +1258,36 @@ async function editor(id){
   }
   async function remedir(pid){if(!escala)return;for(const v of VAOS.filter(v=>!v.manual&&(v.ponto_a===pid||v.ponto_b===pid))){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}}
   let traceSobra=null;
+  let OCRW=null;
+  async function ocrWorker(){if(OCRW)return OCRW;if(!window.Tesseract)await loadScript("vendor/tesseract/tesseract.min.js");
+    const base=new URL("vendor/tesseract/",location.href).href;
+    OCRW=await Tesseract.createWorker("eng",1,{workerPath:base+"worker.min.js",corePath:base,langPath:base,gzip:true,workerBlobURL:false});
+    await OCRW.setParameters({tessedit_char_whitelist:"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz();,_-./+ ",preserve_interword_spaces:"1"});return OCRW}
+  async function preparaImg(blob){const bmp=await createImageBitmap(blob);const k=Math.max(1,Math.min(4,1400/Math.max(bmp.width,bmp.height)));const c=document.createElement("canvas");c.width=bmp.width*k;c.height=bmp.height*k;
+    const g=c.getContext("2d");g.imageSmoothingQuality="high";g.drawImage(bmp,0,0,c.width,c.height);const d=g.getImageData(0,0,c.width,c.height),a=d.data;let soma=0;for(let i=0;i<a.length;i+=4){const y=.3*a[i]+.59*a[i+1]+.11*a[i+2];a[i]=y;soma+=y}
+    const lim=soma/(a.length/4)*.75;for(let i=0;i<a.length;i+=4){const v=a[i]<lim?0:255;a[i]=a[i+1]=a[i+2]=v}g.putImageData(d,0,0);return c}
+  function limpaOcr(t){return t.split(/\n+/).map(l=>l.trim()).filter(Boolean).join(";").replace(/\s*;\s*/g,";").replace(/;{2,}/g,";").replace(/\s{2,}/g," ").replace(/^;|;$/g,"").replace(/\bce/gi,"CE").replace(/(\d)[lI|](?=[A-Za-z])/g,"$1").replace(/(\d)[oO](?=[\d)])/g,"$10").replace(/[|]/g,"1").replace(/\(([0-9]+)[oO]\)/g,"($10)")}
+  async function lerPrint(pt,blob){const inp=$("#pSeq");toast("Lendo o texto do print…");inp&&(inp.disabled=true);
+    try{const w=await ocrWorker();const {data}=await w.recognize(await preparaImg(blob));const txt=limpaOcr(data.text||"");
+      if(!txt){toast("Não consegui ler texto nesse print. Tente um recorte mais justo na etiqueta.");return}
+      if(inp){inp.value=txt}verificar(pt,txt,"print")}
+    catch(err){console.error(err);toast("Falha ao ler o print: "+(err.message||err))}finally{inp&&(inp.disabled=false)}}
+  function novoCabo(){
+    const linha=()=>`<div class="gl tl2"><input class="inp" list="dlMat" name="m" placeholder="Material (cabo, cordoalha…)"><input class="inp n" name="x" value="1" placeholder="Mult."><span></span><button type="button" class="btn sm" data-rm>✕</button></div>`;
+    const md=modal(`<h2>Incluir cabo</h2><div class="grid2"><label class="fld">Nome<input name="nome" required placeholder="MT compacta 185 mm² 25 kV"></label><label class="fld">Cor no mapa<input type="color" name="cor" value="${["#c2185b","#1565c0","#00897b","#ef6c00","#6a3fbf"][TR.length%5]}"></label></div>
+      <datalist id="dlMat">${MATS.map(x=>`<option value="${esc(x.codigo)} · ${esc(x.nome)}">`).join("")}</datalist>
+      <div class="lbl">Materiais por metro de vão</div><div id="ncIts">${linha()}</div><button type="button" class="btn sm" id="ncAdd">+ material</button>
+      <p class="note">Ex.: MT compacta = 3× cabo protegido + 1× cordoalha. A quantidade é vão × multiplicador × (1 + sobra).</p>
+      <label class="note"><input type="checkbox" name="glob"> salvar também na ${esc(concSig(conc))}, para usar em outros projetos</label>`,async(f,mm)=>{
+      const L=$$(".tl2",mm).map(r=>({c:r.querySelector("[name=m]").value.split(" · ")[0].trim(),x:pnum(r.querySelector("[name=x]").value)})).filter(r=>r.c);
+      if(!L.length){toast("Inclua pelo menos um material.");return false}if(L.some(r=>!MAT[r.c])){toast("Escolha os materiais da lista.");return false}
+      const t=await chk(O.from("tipos_rede").insert({concessionaria_id:conc,nome:f.nome.trim(),cor:f.cor,ordem:TR.length,pasta_id:f.glob?null:(ORC.pasta_id||null)}).select("*").single());
+      const its=L.map(r=>({tipo_rede_id:t.id,material_codigo:r.c,multiplicador:r.x||1}));await chk(O.from("tipos_rede_itens").insert(its));
+      t.itens=its;TR.push(t);TRM[t.id]=t;tracing=t.id;traceSobra=null;anchor=null;placing=false;calib=null;renderMapbar();updHint();renderPins();toast(`Cabo “${t.nome}” incluído. Clique nos postes para traçar.`)},"Incluir e traçar");
+    md.querySelector(".mbox").classList.add("wide");
+    const bind=()=>$$("[data-rm]",md).forEach(b=>b.onclick=()=>b.parentElement.remove());bind();
+    $("#ncAdd",md).onclick=()=>{$("#ncIts",md).insertAdjacentHTML("beforeend",linha());bind()};
+  }
   function renderLegenda(){const el=$("#leg");if(!el)return;const A={};VAOS.forEach(v=>{(A[v.tipo_rede_id]=A[v.tipo_rede_id]||0);A[v.tipo_rede_id]+=+v.comprimento_m});
     const ks=Object.keys(A);el.hidden=!ks.length;el.innerHTML=ks.map(k=>{const t=TRM[k]||{cor:"#555",nome:"?"};return `<div><span class="dot" style="border-color:${t.cor};border-top-width:4px;width:20px"></span>${esc(t.nome)}<b>${num(A[k],0)} m</b></div>`}).join("")}
   async function traceTap(pid){
