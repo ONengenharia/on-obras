@@ -123,6 +123,11 @@ tr.fc td{background:var(--danger-soft)}
 .leg div{display:flex;align-items:center;gap:6px}.leg b{font-family:var(--f-mono);font-weight:500;margin-left:auto;padding-left:12px}
 .trl{display:grid;gap:6px}.trl label{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:13px;font-weight:600}
 .trl label small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}.trl label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.painel{grid-template-columns:auto minmax(0,1fr) minmax(220px,.8fr);gap:18px;align-items:center}
+.pp1{display:flex;gap:14px;align-items:center}.pp1 svg{color:var(--ink);flex:none}
+.pp1 .lg{display:grid;gap:4px;font-size:12px;min-width:150px}.pp1 .lg div{display:grid;grid-template-columns:10px 1fr auto;gap:6px;align-items:center}.pp1 .lg i{width:10px;height:10px;border-radius:3px}.pp1 .lg b{font-family:var(--f-mono);font-weight:500}
+.pp2{display:grid;gap:7px}.gb{display:grid;grid-template-columns:96px minmax(0,1fr) 110px;gap:8px;align-items:center;font-size:12px}.gb .bar{height:9px}.gb .mono{text-align:right}
+.pp3{display:grid;gap:6px;border-left:1px solid var(--line);padding-left:16px}.pp3 div{display:flex;justify-content:space-between;gap:8px;font-size:12.5px}.pp3 span{color:var(--muted)}.pp3 b{font-family:var(--f-mono);font-weight:500}
 .extra{border:1px dashed var(--line);border-radius:8px;padding:8px}
 .sug{background:var(--accent-soft);border-radius:8px;padding:8px 10px;font-size:12px;display:grid;gap:6px}
 .sug code{font-family:var(--f-mono);font-size:12px;overflow-wrap:anywhere}
@@ -217,7 +222,7 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .busy{opacity:.6;pointer-events:none}
 @media (max-width:900px){
   .app{height:auto}.proj{grid-template-columns:1fr;grid-template-rows:55vh auto auto}.proj .mapwrap{grid-row:1}.split{display:none}#ptpanel{width:auto;margin:10px 0 0}.dash2{grid-template-columns:1fr}
-  .kpis{grid-template-columns:1fr 1fr}.cols{grid-template-columns:1fr}.tbl .hm{display:none}
+  .kpis{grid-template-columns:1fr 1fr}.cols{grid-template-columns:1fr}.painel{grid-template-columns:1fr}.pp3{border-left:0;padding-left:0}.tbl .hm{display:none}
 }
 </style>
 </head>
@@ -829,7 +834,7 @@ async function editor(id){
     const nManual=Object.values(OP).filter(o=>o.manual).length,semPreco=A.filter(l=>preco(l.c)==null).length;
     el.innerHTML=`<div class="wrap2"><div class="cols">
       <div class="card"><div class="row"><h2>Consolidação de materiais</h2>
-        <div class="tools"><span class="lbl">Completo</span><button class="btn sm" data-x="c">Excel</button><button class="btn sm" data-x="c-csv">CSV</button><span class="lbl" style="margin-left:8px">Fornecedores · sem preço</span><button class="btn sm" data-x="f">Excel</button><button class="btn sm" data-x="f-csv">CSV</button></div></div>
+        <div class="tools"><button class="btn sm" id="xComp">⬇ Exportar lista…</button><button class="btn sm" id="xForn" title="Excel com logo e cabeçalho da empresa, sem preço e sem nome da obra">⬇ Lista para fornecedores</button></div></div>
        <div class="row"><div class="tools"><button class="btn sm ${ORC.modo_preco==="base"?"on":""}" data-mp="base">Acompanhar base</button><button class="btn sm ${ORC.modo_preco==="travado"?"on":""}" data-mp="travado">Preços travados</button>
          <span class="note">${ORC.modo_preco==="travado"?`congelados${ORC.travado_em?" em "+fdata(ORC.travado_em):""}`:"seguem o preço vigente da base"}${nManual?` · ${nManual} editado(s) só neste orçamento`:""}</span></div>
         <div class="tools"><button class="btn sm pri" id="mAdd">+ Material avulso</button><input class="inp" id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="width:220px"></div></div>
@@ -862,7 +867,7 @@ async function editor(id){
       modal(`<h2>Remover ${esc((MAT[c]||{}).nome||c)}?</h2><p class="note">Aparece em <b>${pts.size}</b> ponto(s)${pos.length?`, como poste em <b>${pos.length}</b>`:""}${vs.length?` e em <b>${vs.length}</b> vão(s) de rede`:""}. Os itens dos pontos serão apagados${pos.length||vs.length?"; postes e rede precisam ser trocados no Projeto":""}.</p>`,async()=>{
         if(its.length)await chk(O.from("orc_ponto_itens").delete().in("id",its.map(i=>i.id)));
         const xs=EXT.filter(x=>x.material_codigo===c);if(xs.length){await chk(O.from("orc_itens_extra").delete().in("id",xs.map(x=>x.id)));xs.forEach(x=>EXT.splice(EXT.indexOf(x),1))}for(let i=IT.length-1;i>=0;i--)if(IT[i].material_codigo===c)IT.splice(i,1);renderHead();telaMateriais()},"Remover")});
-    $$("[data-x]",el).forEach(b=>b.onclick=()=>exportar(b.dataset.x));
+    $("#xComp").onclick=exportarDialog;$("#xForn").onclick=()=>exportarFornecedor().catch(e=>{console.error(e);toast("Não foi possível gerar o Excel.")});
     $("#mAdd").onclick=()=>modal(`<h2>Material avulso do orçamento</h2><p class="note">Entra na lista completa sem estar ligado a um ponto (ex.: frete, sobressalentes, itens de canteiro).</p>
       <label class="fld">Material<input name="m" list="dlMat2" required placeholder="Digite parte do nome ou o código"></label><datalist id="dlMat2">${MATS.map(m=>`<option value="${esc(m.codigo)} · ${esc(m.nome)}">`).join("")}</datalist>
       <div class="grid2"><label class="fld">Quantidade<input name="q" value="1" inputmode="decimal" required></label><label class="fld">Segmento<select name="s">${segOpts("")}</select></label></div>`,async f=>{
@@ -871,30 +876,113 @@ async function editor(id){
     $$("[data-xq]",el).forEach(i=>i.onchange=async()=>{const x=EXT.find(e=>e.id==i.dataset.xq);x.quantidade=pnum(i.value);await chk(O.from("orc_itens_extra").update({quantidade:x.quantidade}).eq("id",x.id));renderHead();telaMateriais()});
     $$("[data-xd]",el).forEach(b=>b.onclick=async()=>{await chk(O.from("orc_itens_extra").delete().eq("id",b.dataset.xd));EXT.splice(EXT.findIndex(e=>e.id==b.dataset.xd),1);renderHead();telaMateriais()});
   }
-  async function exportar(tipo){
-    const forn=tipo.startsWith("f"),csv=tipo.endsWith("csv");
-    const nm=c=>(MAT[c]||{}).nome||c,un=c=>(MAT[c]||{}).unidade||"",sg=c=>(MAT[c]||{}).subgrupo||"";const r2=n=>Math.round(n*100)/100;
+  /* ---------- exportações (Excel com formatação e logo) ---------- */
+  const EMPRESA={nome:"ON Engenharia Elétrica",linha2:"Projetos e execução de redes de distribuição",contato:"luan@onengenhariaeletrica.com.br"};
+  const NAVY="FF1E2F40",SOFT="FFE8F1F9",LINE="FFD6E1EA",MOEDA='"R$" #,##0.00',QTD='#,##0.###';
+  async function xl(){if(!window.ExcelJS)await loadScript("vendor/exceljs.min.js");return window.ExcelJS}
+  async function logoB64(){try{const r=await fetch($("header.top img")?$("header.top img").src:"assets/on-logo.jpg");const b=new Uint8Array(await r.arrayBuffer());let s="";for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return btoa(s)}catch(e){return null}}
+  async function baixar(wb,nome){const buf=await wb.xlsx.writeBuffer();const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));a.download=nome.replace(/[\\/:*?"<>|]/g,"_")+".xlsx";document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),500)}
+  async function cabecalho(wb,ws,titulo,linhas,cols){
+    const lg=await logoB64();if(lg){const id=wb.addImage({base64:lg,extension:"jpeg"});ws.addImage(id,{tl:{col:0,row:0},ext:{width:120,height:62}})}
+    ws.getRow(1).height=22;ws.getRow(2).height=18;ws.getRow(3).height=18;ws.getRow(4).height=8;
+    const c=ws.getCell(1,3);c.value=EMPRESA.nome;c.font={bold:true,size:14,color:{argb:NAVY}};
+    ws.getCell(2,3).value=titulo;ws.getCell(2,3).font={bold:true,size:12};
+    ws.getCell(3,3).value=linhas;ws.getCell(3,3).font={size:10,color:{argb:"FF5A6F83"}};
+    for(let i=1;i<=cols;i++){ws.getCell(4,i).border={bottom:{style:"medium",color:{argb:NAVY}}}}
+    return 6}
+  function tabela(ws,r0,heads,rows,fmt={},widths){
+    const h=ws.getRow(r0);heads.forEach((t,i)=>{const c=h.getCell(i+1);c.value=t;c.font={bold:true,color:{argb:"FFFFFFFF"}};c.fill={type:"pattern",pattern:"solid",fgColor:{argb:NAVY}};c.alignment={vertical:"middle",wrapText:true}});h.height=22;
+    let r=r0+1;rows.forEach(row=>{const R=ws.getRow(r);
+      if(row&&row.__grupo){R.getCell(1).value=row.__grupo;R.font={bold:true};for(let i=1;i<=heads.length;i++)R.getCell(i).fill={type:"pattern",pattern:"solid",fgColor:{argb:SOFT}};if(row.total!=null){const c=R.getCell(heads.length);c.value=row.total;c.numFmt=MOEDA}r++;return}
+      if(row&&row.__total){R.getCell(heads.length-1).value=row.__total;R.getCell(heads.length).value=row.v;R.getCell(heads.length).numFmt=MOEDA;R.font={bold:true};R.getCell(heads.length).border={top:{style:"thin",color:{argb:NAVY}}};r++;return}
+      row.forEach((v,i)=>{const c=R.getCell(i+1);c.value=v;if(fmt[i])c.numFmt=fmt[i];c.border={bottom:{style:"hair",color:{argb:LINE}}}});r++});
+    (widths||[]).forEach((w,i)=>ws.getColumn(i+1).width=w);ws.views=[{state:"frozen",ySplit:r0}];return r}
+  const nm=c=>(MAT[c]||{}).nome||c,un=c=>(MAT[c]||{}).unidade||"",sg=c=>(MAT[c]||{}).subgrupo||"OUTROS";const r2=n=>Math.round(n*100)/100;
+  function exportarDialog(){
+    const op=[["mat","Materiais consolidados","código, quantidade, preço, origem"],["ponto","Por poste","cada ponto com suas estruturas e materiais"],["cabo","Por cabos","vãos, metragem e sobra por condutor"],["sub","Por subgrupo","materiais agrupados por subgrupo, com subtotais"],["seg","Por segmento","MT, BT, IP... com subtotais"]];
+    modal(`<h2>Exportar lista de materiais</h2><p class="note">Escolha as visões. Cada uma vira uma aba do Excel, com cabeçalho e logo.</p>
+      <div class="trl">${op.map(([k,l,d])=>`<label><input type="checkbox" name="${k}" checked><span></span><span>${l}<small>${d}</small></span><span></span></label>`).join("")}</div>`,async f=>{
+      const ks=op.map(o=>o[0]).filter(k=>f[k]);if(!ks.length){toast("Escolha ao menos uma visão.");return false}await exportarCompleto(ks)},"Gerar Excel");
+  }
+  async function exportarCompleto(ks){
+    const E=await xl(),wb=new E.Workbook();wb.creator=EMPRESA.nome;const SG=SEGM(),T0=totalMat();
+    const sub=`${ORC.titulo} · v${ORC.versao||1} · ${[ORC.cliente,ORC.cidade,concSig(conc),ORC.tensao_kv?ORC.tensao_kv+" kV":""].filter(Boolean).join(" · ")} · ${new Date().toLocaleDateString("pt-BR")}`;
     const A=agregado().sort((a,b)=>sg(a.c).localeCompare(sg(b.c))||nm(a.c).localeCompare(nm(b.c)));
-    const mats=forn?[["Código","Material","Unidade","Quantidade"],...A.map(l=>[l.c,nm(l.c),un(l.c),r2(l.q)])]
-      :[["Código","Material","Subgrupo","Unidade","Quantidade","Preço unitário (R$)","Subtotal (R$)","Origem do preço"],...A.map(l=>{const vg=VIGR[l.c],o=OP[l.c];return [l.c,nm(l.c),sg(l.c),un(l.c),r2(l.q),preco(l.c)??"",r2(l.q*(preco(l.c)||0)),o&&o.manual?"Manual neste orçamento":vg?[vg.fornecedor||ORIG[vg.origem]||vg.origem,fdata(vg.data)].filter(Boolean).join(" · "):""]}),[],["","TOTAL","","","","",r2(totalMat())]];
-    const base=`${ORC.titulo} v${ORC.versao||1}`.replace(/[\\/:*?"<>|]/g,"_")+(forn?"_cotacao":"_materiais");
-    if(csv){const t=mats.map(r=>r.map(v=>{v=typeof v==="number"?String(v).replace(".",","):String(v??"");return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(";")).join("\r\n");
-      const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+t],{type:"text/csv"}));a.download=base+".csv";a.click();return}
-    const X=window.XLSX||(await loadScript("vendor/xlsx.full.min.js"),window.XLSX);const wb=X.utils.book_new();
-    if(forn)X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet([["Solicitação de cotação"],["Projeto",ORC.titulo],["Data",new Date().toLocaleDateString("pt-BR")],[],...mats]),"Cotação");
-    else{const SG=SEGM();const pp=[["Ponto","Poste","Estrutura","Segmento","Código","Material","Unidade","Quantidade","Preço unitário (R$)","Subtotal (R$)"]];
-      PTS.forEach(p=>{const ps=POM[p.poste_id];
-        if(ps)pp.push([nomePonto(p),ps.codigo,"POSTE",(SG[p.segmento_id]||{}).nome||"",ps.material_codigo,nm(ps.material_codigo),un(ps.material_codigo),1,preco(ps.material_codigo)??"",r2(preco(ps.material_codigo)||0)]);
-        IT.filter(i=>i.ponto_id===p.id).forEach(i=>{const e=PE.find(x=>x.id===i.ponto_estrutura_id);pp.push([nomePonto(p),ps?ps.codigo:"",e?(ESTM[e.estrutura_id]||{}).codigo:"AVULSO",(SG[(e&&e.segmento_id)||p.segmento_id]||{}).nome||"",i.material_codigo,nm(i.material_codigo),un(i.material_codigo),+i.quantidade,preco(i.material_codigo)??"",r2(i.quantidade*(preco(i.material_codigo)||0))])})});
-      const vv=[["De","Para","Tipo de rede","Comprimento (m)","Sobra %","Material","Quantidade","Subtotal (R$)"]];
-      VAOS.forEach(v=>linhasVao(v).forEach(l=>vv.push([ptById(v.ponto_a)?.numero,ptById(v.ponto_b)?.numero,(TRM[v.tipo_rede_id]||{}).nome||"",+v.comprimento_m,sobra(v),nm(l.c),r2(l.q),r2(l.q*(preco(l.c)||0))])));
-      const PS=porSegmento(),T0=totalMat();const ss=[["Segmento","Material (R$)","%"],...Object.entries(PS).map(([k,v])=>[(SG[k]||{}).nome||"Sem segmento",r2(v),T0?r2(v/T0*100):0])];
-      const inf=[["Orçamento",ORC.titulo],["Versão",ORC.versao||1],["Cliente",ORC.cliente||""],["Cidade",ORC.cidade||""],["Concessionária",concSig(conc)],["Preços",ORC.modo_preco==="travado"?"Travados":"Base vigente"],["Pontos",PTS.length],["Total de material (R$)",r2(T0)],["Exportado em",new Date().toLocaleString("pt-BR")]];
-      [[inf,"Informações"],[mats,"Materiais"],[ss,"Por segmento"],[pp,"Por ponto"],[vv,"Vãos"]].forEach(([d,n])=>X.utils.book_append_sheet(wb,X.utils.aoa_to_sheet(d),n))}
-    X.writeFile(wb,base+".xlsx");
+    const orig=c=>{const vg=VIGR[c],o=OP[c];return o&&o.manual?"Manual neste orçamento":vg?[vg.fornecedor||ORIG[vg.origem]||vg.origem,fdata(vg.data)].filter(Boolean).join(" · "):""};
+    if(ks.includes("mat")){const ws=wb.addWorksheet("Materiais");const r0=await cabecalho(wb,ws,"Lista de materiais consolidada",sub,7);
+      const r=tabela(ws,r0,["Código","Material","Subgrupo","Un.","Quantidade","Preço unit.","Subtotal","Origem do preço"],A.map(l=>[l.c,nm(l.c),sg(l.c),un(l.c),r2(l.q),preco(l.c)??null,r2(l.q*(preco(l.c)||0)),orig(l.c)]),{4:QTD,5:MOEDA,6:MOEDA},[16,52,16,7,12,14,16,30]);
+      ws.getCell(r,6).value="TOTAL";ws.getCell(r,7).value=r2(T0);ws.getCell(r,7).numFmt=MOEDA;ws.getRow(r).font={bold:true}}
+    if(ks.includes("ponto")){const ws=wb.addWorksheet("Por poste");const r0=await cabecalho(wb,ws,"Materiais por poste",sub,8);const rows=[];
+      PTS.forEach(p=>{const ps=POM[p.poste_id];rows.push({__grupo:`${nomePonto(p)}${ps?"  ·  "+ps.codigo:""}${SG[p.segmento_id]?"  ·  "+SG[p.segmento_id].nome:""}`,total:r2(soma(linhasPonto(p)))});
+        if(ps)rows.push(["POSTE",ps.material_codigo,nm(ps.material_codigo),un(ps.material_codigo),1,preco(ps.material_codigo)??null,r2(preco(ps.material_codigo)||0),""]);
+        PE.filter(e=>e.ponto_id===p.id).sort((a,b)=>a.ordem-b.ordem).forEach(e=>IT.filter(i=>i.ponto_estrutura_id===e.id).forEach(i=>rows.push([(ESTM[e.estrutura_id]||{}).codigo,i.material_codigo,nm(i.material_codigo),un(i.material_codigo),+i.quantidade,preco(i.material_codigo)??null,r2(i.quantidade*(preco(i.material_codigo)||0)),i.editado?"editado":""])));
+        IT.filter(i=>i.ponto_id===p.id&&!i.ponto_estrutura_id).forEach(i=>rows.push(["AVULSO",i.material_codigo,nm(i.material_codigo),un(i.material_codigo),+i.quantidade,preco(i.material_codigo)??null,r2(i.quantidade*(preco(i.material_codigo)||0)),""]))});
+      tabela(ws,r0,["Estrutura","Código","Material","Un.","Qtd.","Preço unit.","Subtotal","Obs."],rows,{4:QTD,5:MOEDA,6:MOEDA},[22,16,48,7,10,14,16,10])}
+    if(ks.includes("cabo")){const ws=wb.addWorksheet("Por cabos");const r0=await cabecalho(wb,ws,"Rede: condutores por vão",sub,9);const rows=[];
+      TR.forEach(t=>{const vs=VAOS.filter(v=>v.tipo_rede_id===t.id);if(!vs.length)return;const m=vs.reduce((s,v)=>s+(+v.comprimento_m),0);rows.push({__grupo:`${t.nome}  ·  ${num(m,1)} m de rede`,total:r2(soma(vs.flatMap(linhasVao)))});
+        vs.forEach(v=>linhasVao(v).forEach(l=>rows.push([`${ptById(v.ponto_a)?.numero} → ${ptById(v.ponto_b)?.numero}`,+v.comprimento_m,sobra(v)/100,l.c,nm(l.c),r2(l.q),un(l.c),preco(l.c)??null,r2(l.q*(preco(l.c)||0))])))});
+      const tot={};VAOS.flatMap(linhasVao).forEach(l=>{(tot[l.c]=tot[l.c]||0);tot[l.c]+=l.q});rows.push({__grupo:"Total por condutor (com sobra)"});
+      Object.entries(tot).forEach(([c,q])=>rows.push(["","","",c,nm(c),r2(q),un(c),preco(c)??null,r2(q*(preco(c)||0))]));
+      tabela(ws,r0,["Vão","Comprimento (m)","Sobra","Código","Condutor","Qtd. c/ sobra","Un.","Preço unit.","Subtotal"],rows,{1:'#,##0.00',2:"0.0%",5:QTD,7:MOEDA,8:MOEDA},[12,15,9,16,44,13,6,13,16])}
+    if(ks.includes("sub")){const ws=wb.addWorksheet("Por subgrupo");const r0=await cabecalho(wb,ws,"Materiais por subgrupo",sub,6);const g={};A.forEach(l=>(g[sg(l.c)]=g[sg(l.c)]||[]).push(l));const rows=[];
+      Object.entries(g).sort((a,b)=>soma(b[1])-soma(a[1])).forEach(([k,L])=>{rows.push({__grupo:`${k}  ·  ${T0?num(soma(L)/T0*100,1):0}%`,total:r2(soma(L))});L.forEach(l=>rows.push([l.c,nm(l.c),un(l.c),r2(l.q),preco(l.c)??null,r2(l.q*(preco(l.c)||0))]))});
+      rows.push({__total:"TOTAL",v:r2(T0)});tabela(ws,r0,["Código","Material","Un.","Quantidade","Preço unit.","Subtotal"],rows,{3:QTD,4:MOEDA,5:MOEDA},[16,54,7,12,14,16])}
+    if(ks.includes("seg")){const ws=wb.addWorksheet("Por segmento");const r0=await cabecalho(wb,ws,"Materiais por segmento da obra",sub,6);const g={};todas().forEach(l=>{const k=l.s||"";(g[k]=g[k]||{});(g[k][l.c]=g[k][l.c]||0);g[k][l.c]+=l.q});const rows=[];
+      Object.entries(g).map(([k,o])=>[k,Object.entries(o).map(([c,q])=>({c,q}))]).sort((a,b)=>soma(b[1])-soma(a[1])).forEach(([k,L])=>{rows.push({__grupo:`${(SG[k]||{}).nome||"Sem segmento"}  ·  ${T0?num(soma(L)/T0*100,1):0}%`,total:r2(soma(L))});
+        L.sort((a,b)=>nm(a.c).localeCompare(nm(b.c))).forEach(l=>rows.push([l.c,nm(l.c),un(l.c),r2(l.q),preco(l.c)??null,r2(l.q*(preco(l.c)||0))]))});
+      rows.push({__total:"TOTAL",v:r2(T0)});tabela(ws,r0,["Código","Material","Un.","Quantidade","Preço unit.","Subtotal"],rows,{3:QTD,4:MOEDA,5:MOEDA},[16,54,7,12,14,16])}
+    await baixar(wb,`${ORC.titulo} v${ORC.versao||1} - materiais`);toast("Excel gerado.");
+  }
+  async function exportarFornecedor(){
+    const E=await xl(),wb=new E.Workbook();wb.creator=EMPRESA.nome;const ws=wb.addWorksheet("Cotação");
+    const d=new Date(),num_=`COT-${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,"0")}-${ORC.id.replace(/-/g,"").slice(-4).toUpperCase()}`;
+    const r0=await cabecalho(wb,ws,"Solicitação de cotação",`${num_} · emitida em ${d.toLocaleDateString("pt-BR")} · ${EMPRESA.contato}`,9);
+    ws.getCell(r0-1,1).value="Pedimos a gentileza de informar preço unitário, prazo de entrega e condições para os itens abaixo.";ws.getCell(r0-1,1).font={italic:true,size:10,color:{argb:"FF5A6F83"}};
+    const A=agregado().sort((a,b)=>sg(a.c).localeCompare(sg(b.c))||nm(a.c).localeCompare(nm(b.c)));
+    const r=tabela(ws,r0,["Item","Código","Descrição","Un.","Quantidade","Preço unit. (R$)","Total (R$)","Prazo de entrega","Observação"],A.map((l,i)=>[i+1,l.c,nm(l.c),un(l.c),r2(l.q),null,null,"",""]),{4:QTD,5:MOEDA,6:MOEDA},[6,16,52,7,12,15,16,16,24]);
+    ws.getColumn(1).alignment={horizontal:"center"};ws.getColumn(2).alignment={horizontal:"left",indent:1};
+    for(let i=r0+1;i<r;i++){ws.getCell(i,7).value={formula:`IF(F${i}="","",E${i}*F${i})`};[6,8,9].forEach(c=>ws.getCell(i,c).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFFDE7"}})}
+    ws.getCell(r,6).value="TOTAL";ws.getCell(r,6).font={bold:true};ws.getCell(r,7).value={formula:`SUM(G${r0+1}:G${r-1})`};ws.getCell(r,7).numFmt=MOEDA;ws.getCell(r,7).font={bold:true};
+    let k=r+2;[["Fornecedor / razão social",""],["CNPJ",""],["Contato (nome, telefone, e-mail)",""],["Condições de pagamento",""],["Frete (CIF/FOB)",""],["Validade da proposta",""]].forEach(([a])=>{ws.getCell(k,2).value=a;ws.getCell(k,2).font={bold:true};ws.mergeCells(k,3,k,7);ws.getCell(k,3).border={bottom:{style:"thin",color:{argb:LINE}}};k++});
+    ws.pageSetup={orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0};
+    await baixar(wb,`Cotacao ${num_}`);toast("Lista para fornecedores gerada (sem nome da obra).");
   }
 
   /* ---------- 3. PRECIFICAÇÃO ---------- */
+  const CORG={"Imposto":"#8e5ec9","Comissão":"#e07a1f","Mão de obra":"#2f9e8f","Deslocamento":"#5b8def","Frete":"#c2185b","Equipamento":"#7a8b99","Adicional":"#b7791f"};
+  function donut(parts,tot){let a=-Math.PI/2;const r=58,R0=84,cx=90,cy=90;return `<svg viewBox="0 0 180 180" width="180" height="180" role="img" aria-label="Composição do preço">${parts.filter(p=>p.v>0).map(p=>{const f=p.v/tot,b=a+f*2*Math.PI,lg=f>.5?1:0;
+      const P=(ang,rr)=>`${cx+rr*Math.cos(ang)},${cy+rr*Math.sin(ang)}`;const d=f>=.9999?`M${P(a,R0)}A${R0},${R0} 0 1 1 ${P(a+6.283,R0)}`:`M${P(a,R0)}A${R0},${R0} 0 ${lg} 1 ${P(b,R0)}L${P(b,r)}A${r},${r} 0 ${lg} 0 ${P(a,r)}Z`;a=b;
+      return `<path d="${d}" fill="${p.cor}"><title>${esc(p.n)}: ${brl(p.v)}</title></path>`}).join("")}<text x="90" y="86" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">Total ao cliente</text><text x="90" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">${num(tot/1000,1)} mil</text></svg>`}
+  function painelPreco(R){
+    const G={};R.L.forEach(c=>{G[c.grupo]=(G[c.grupo]||0)+c.v});const gs=Object.entries(G).sort((a,b)=>b[1]-a[1]);
+    const parts=[{n:"Materiais",v:R.M,cor:"#2f6f9f"},...gs.map(([g,v])=>({n:g,v,cor:CORG[g]||"#999"})),{n:"Lucro líquido",v:Math.max(0,R.lucro),cor:"#1f8a4c"}];
+    const nP=PTS.filter(p=>p.poste_id).length,m=VAOS.reduce((s,v)=>s+(+v.comprimento_m),0),maxG=Math.max(1,...gs.map(g=>g[1]));
+    return `<div class="card painel"><div class="pp1">${donut(parts,R.T)}<div class="lg">${parts.map(p=>`<div><i style="background:${p.cor}"></i><span>${esc(p.n)}</span><b>${R.T?num(p.v/R.T*100,1):0}%</b></div>`).join("")}</div></div>
+      <div class="pp2"><div class="lbl">Custos do serviço por grupo</div>${gs.map(([g,v])=>`<div class="gb"><span>${esc(g)}</span><div class="bar"><b style="width:${v/maxG*100}%;background:${CORG[g]||"#999"}"></b></div><span class="mono">${brl(v)}</span></div>`).join("")||'<p class="note">Sem custos lançados.</p>'}</div>
+      <div class="pp3">${[["Margem líquida",R.T?pct(R.lucro/R.T*100):"—"],["Serviço sobre materiais",R.M?pct(R.S/R.M*100):"—"],["Preço por poste",nP?brl(R.T/nP):"—"],["Preço por metro de rede",m?brl(R.T/m):"—"],["Lucro por poste",nP?brl(R.lucro/nP):"—"]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join("")}</div></div>`}
+  async function excelProposta(R){
+    const E=await xl(),wb=new E.Workbook();wb.creator=EMPRESA.nome;const SG=SEGM();
+    const sub=`${ORC.titulo} · v${ORC.versao||1} · ${[ORC.cliente,ORC.cidade,concSig(conc),ORC.tensao_kv?ORC.tensao_kv+" kV":""].filter(Boolean).join(" · ")} · ${new Date().toLocaleDateString("pt-BR")}`;
+    // 1) proposta ao cliente
+    let ws=wb.addWorksheet("Proposta");let r0=await cabecalho(wb,ws,"Proposta comercial · resumo de valores",sub,4);
+    const PS=porSegmento(),T0=R.M||1;
+    let r=tabela(ws,r0,["Descrição","","","Valor (R$)"],[["Materiais","","",r2(R.M)],["Serviços de execução","","",r2(R.S)],{__total:"TOTAL",v:r2(R.T)}],{3:MOEDA},[44,10,10,20]);
+    r+=1;ws.getCell(r,1).value="Composição por parte da obra";ws.getCell(r,1).font={bold:true,size:12,color:{argb:NAVY}};r+=1;
+    r=tabela(ws,r,["Segmento","Materiais (R$)","Serviço (R$)","Total (R$)"],Object.entries(PS).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[(SG[k]||{}).nome||"Sem segmento",r2(v),r2(R.S*v/T0),r2(v+R.S*v/T0)]),{1:MOEDA,2:MOEDA,3:MOEDA},[44,18,18,20]);
+    ws.getCell(r+1,1).value="O valor de serviço é distribuído entre os segmentos na proporção dos materiais.";ws.getCell(r+1,1).font={italic:true,size:9,color:{argb:"FF5A6F83"}};
+    // 2) materiais
+    ws=wb.addWorksheet("Materiais");r0=await cabecalho(wb,ws,"Relação de materiais",sub,6);
+    const A=agregado().sort((a,b)=>sg(a.c).localeCompare(sg(b.c))||nm(a.c).localeCompare(nm(b.c)));
+    r=tabela(ws,r0,["Código","Material","Un.","Quantidade","Preço unit.","Subtotal"],A.map(l=>[l.c,nm(l.c),un(l.c),r2(l.q),preco(l.c)??null,r2(l.q*(preco(l.c)||0))]),{3:QTD,4:MOEDA,5:MOEDA},[16,54,7,12,14,16]);
+    ws.getCell(r,5).value="TOTAL";ws.getCell(r,6).value=r2(R.M);ws.getCell(r,6).numFmt=MOEDA;ws.getRow(r).font={bold:true};
+    // 3) interno
+    ws=wb.addWorksheet("Composição interna");r0=await cabecalho(wb,ws,"Composição do preço · USO INTERNO",`${sub} · método ${P.metodo==="A"?"A (% sobre materiais)":"B (custos + lucro desejado)"}`,6);
+    ws.getCell(2,3).font={bold:true,size:12,color:{argb:"FFB3261E"}};
+    r=tabela(ws,r0,["Custo","Grupo (DRE)","Cálculo","","% do serviço","Valor (R$)"],R.L.map(c=>[c.desc||c.grupo,c.grupo,c.tipo==="pct"?`${num(c.pct,3)}% de ${BASES[c.base||"servico"]}`:c.tipo==="mo"?`${num(c.pessoas)} pessoas × ${num(c.dias)} dias × ${brl(c.diaria)}`:`${num(c.qtd,3)} × ${brl(c.valor)}`,"",R.S?c.v/R.S:0,r2(c.v)]),{4:"0.00%",5:MOEDA},[28,16,40,4,13,18]);
+    [["Materiais",R.M],["Valor do serviço",R.S],["Total de custos",R.custos],["Lucro líquido",R.lucro],["Total ao cliente",R.T]].forEach(([k,v],i)=>{ws.getCell(r+1+i,5).value=k;ws.getCell(r+1+i,6).value=r2(v);ws.getCell(r+1+i,6).numFmt=MOEDA;ws.getCell(r+1+i,5).font={bold:true}});
+    ws.getCell(r+6,5).value="Margem líquida";ws.getCell(r+6,6).value=R.T?R.lucro/R.T:0;ws.getCell(r+6,6).numFmt="0.00%";ws.getCell(r+6,5).font={bold:true};
+    await baixar(wb,`${ORC.titulo} v${ORC.versao||1} - precificacao`);toast("Excel para proposta gerado.");
+  }
   const quando2=d=>{const m=Math.round((Date.now()-new Date(d))/6e4);return m<1?"agora":m<60?`há ${m} min`:fdata(String(d))};
   const GRUPOS=["Imposto","Comissão","Mão de obra","Deslocamento","Frete","Equipamento","Adicional"];
   const BASES={servico:"Valor do serviço",total:"Total ao cliente",materiais:"Materiais"};
@@ -920,9 +1008,10 @@ async function editor(id){
         :`<input class="nn" data-k="qtd" value="${num(c.qtd,3)}" inputmode="decimal" aria-label="Quantidade"> × R$<input class="nn" data-k="valor" value="${num(c.valor,2)}" inputmode="decimal" aria-label="Valor" style="width:90px">`}</div></td>
       <td class="n">${brl(R.L[i].v)}</td><td class="n">${R.S?pct(R.L[i].v/R.S*100):"—"}</td><td><button class="xb" data-del="${i}" title="Remover">×</button></td></tr>`;
     el.innerHTML=`<div class="wrap2">
+     ${painelPreco(R)}
      ${desat?`<div class="warnbar"><span>Os materiais mudaram desde a última precificação: eram ${brl(P.materiais_ref)}, agora são ${brl(M)}. Os valores abaixo já usam o total atual.</span><button class="btn sm" id="pOkRef">Ciente</button></div>`:""}
      <div class="cols"><div style="display:grid;gap:12px">
-      <div class="card"><div class="row"><h2>Método de precificação</h2><span class="tools"><span class="note">Salvo na v${ORC.versao||1}${P.atualizado_em?" · "+quando2(P.atualizado_em):""}</span><button class="btn sm" id="pDup">Duplicar como nova versão</button></span></div>
+      <div class="card"><div class="row"><h2>Método de precificação</h2><span class="tools"><span class="note">Salvo na v${ORC.versao||1}${P.atualizado_em?" · "+quando2(P.atualizado_em):""}</span><button class="btn sm" id="pDup">Duplicar como nova versão</button><button class="btn sm pri" id="pXls">⬇ Excel para proposta</button></span></div>
        <div class="metodo"><button data-m="A" class="${P.metodo==="A"?"on":""}"><b>A · % sobre materiais</b><span>Você define o percentual (ou o valor) do serviço; o lucro é o resultado.</span></button>
         <button data-m="B" class="${P.metodo==="B"?"on":""}"><b>B · Custos + lucro desejado</b><span>Você define o lucro líquido; o valor do serviço é calculado.</span></button></div>
        ${P.metodo==="A"?`<div class="grid2"><label class="fld">% sobre os materiais<input id="pA" value="${num(M?SA/M*100:P.pct_materiais,2)}" inputmode="decimal"></label><label class="fld">ou valor do serviço (R$)<input id="pAv" value="${P.valor_servico!=null&&P.valor_servico!==""?num(P.valor_servico,2):""}" placeholder="${num(SA,2)}" inputmode="decimal"></label></div>`
@@ -944,6 +1033,7 @@ async function editor(id){
      </div></div></div>`;
     const re=()=>{P.atualizado_em=new Date().toISOString();salvarP();telaPreco()};
     $("#pDup").onclick=()=>$("#bVer").click();
+    $("#pXls").onclick=()=>excelProposta(R).catch(e=>{console.error(e);toast("Não foi possível gerar o Excel.")});
     $$("[data-m]",el).forEach(b=>b.onclick=()=>{P.metodo=b.dataset.m;re()});
     $("#pUsaB")&&($("#pUsaB").onclick=()=>{P.metodo="B";re()});
     $("#pUsaA")&&($("#pUsaA").onclick=()=>{P.metodo="A";re()});
