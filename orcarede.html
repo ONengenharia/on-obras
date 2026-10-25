@@ -1094,7 +1094,8 @@ async function editor(id){
     $("#vAuto")&&($("#vAuto").onclick=async()=>{if(!escala){toast("Calibre a escala primeiro.");return}const m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:m,manual:false}).eq("id",v.id));v.comprimento_m=m;v.manual=false;renderHead();renderNet();renderSide()});
     $("#vDel").onclick=async()=>{await chk(O.from("orc_vaos").delete().eq("id",v.id));VAOS.splice(VAOS.indexOf(v),1);selV=null;renderHead();renderNet();renderSide()};
   }
-  function setPlanta(){D=dims();if(ORC.planta_url){img.hidden=false;img.src=ORC.planta_url;img.width=D.w;img.height=D.h;blank.hidden=true}else{img.hidden=true;blank.hidden=false;blank.style.width=D.w+"px";blank.style.height=D.h+"px"}}
+  async function urlPlanta(u){const m=String(u).match(/^storage:(.+)$/)||String(u).match(/\/object\/(?:public|sign)\/negocios\/([^?]+)/);if(!m)return u;const {data,error}=await sb.storage.from("negocios").createSignedUrl(decodeURIComponent(m[1]),60*60*12);if(error){toast("Não consegui abrir a planta: "+error.message);return""}return data.signedUrl}
+  function setPlanta(){D=dims();if(ORC.planta_url){img.hidden=false;const u0=ORC.planta_url;urlPlanta(u0).then(u=>{if(ORC.planta_url===u0)img.src=u});img.width=D.w;img.height=D.h;blank.hidden=true}else{img.hidden=true;blank.hidden=false;blank.style.width=D.w+"px";blank.style.height=D.h+"px"}}
   const inv=()=>Math.min(1/T.s,40);
   function apply(){if(!stage||!stage.isConnected)return;stage.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`;$("#pins").style.setProperty("--inv",inv());renderNet()}
   function fit(){if(!wrap)return;const r=wrap.getBoundingClientRect();if(!r.width)return;const s=Math.min(r.width/D.w,r.height/D.h)*.98;T={s,x:(r.width-D.w*s)/2,y:(r.height-D.h*s)/2};apply()}
@@ -1239,7 +1240,7 @@ async function editor(id){
         const blob=await new Promise(r=>out.toBlob(r,"image/jpeg",.85));
         const path=`orcarede/${ORC.id}/${Date.now().toString(36)}.jpg`;
         const {error}=await sb.storage.from("negocios").upload(path,blob,{contentType:"image/jpeg",upsert:false});if(error)throw error;
-        const url=sb.storage.from("negocios").getPublicUrl(path).data.publicUrl;
+        const url="storage:"+path;
         const codes=new Set(EST.map(e=>e.codigo.toUpperCase()));
         const tx=isPdf?txt.filter(([t,x,y])=>x>=R.x&&y>=R.y&&x<=R.x+R.w&&y<=R.y+R.h&&(/;/.test(t)||/^\d+\(\d+\)/.test(t)||codes.has(t.toUpperCase()))).map(([t,x,y])=>[t,Math.round(x-R.x),Math.round(y-R.y)]):[];
         const upd={planta_url:url,planta_w:out.width,planta_h:out.height,planta_tipo:isPdf?"pdf":"imagem",planta_textos:tx};
