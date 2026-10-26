@@ -55,7 +55,7 @@ header.top img{height:44px;border-radius:4px;display:block}
 .eye{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#9fb8cc}
 .eye a{color:#9fb8cc;text-decoration:none}.eye a:hover{color:#fff}
 .ttl h1{font-weight:700;font-size:19px;line-height:1.2;margin:3px 0 1px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.ttl h1 .chip{font-size:10px}
+.ttl h1 .chip{font-size:10px}.ttl h1{flex-wrap:nowrap}#hT{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ttl .sub,.ttl .eye{overflow-wrap:anywhere}
 .ttl .sub{color:#9fb8cc;font-size:12.5px}
 .tot{text-align:right}
 .tot .v{font-family:var(--f-mono);font-size:22px;font-weight:500;color:#fff;font-variant-numeric:tabular-nums}
@@ -239,9 +239,9 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .nm .mais{margin-left:auto;opacity:.55}.tbl tr:hover .mais{opacity:1}.nm{display:flex;align-items:center;gap:10px}.nm>div{flex:1}
 .pads{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:6px 0}.pads .lbl{width:100%}.pad{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}.pad.fq{border-style:dashed;background:none;color:var(--muted);font-weight:500}.inp.sm{padding:3px 6px;font-size:12px}
 .cintas{border:1px dashed var(--line);border-radius:8px;padding:8px;display:grid;gap:6px}
-.hmix{flex:1 1 360px;min-width:0;display:grid;gap:5px;align-self:stretch;align-content:center}
+.ttl{flex-basis:300px}.hmix{flex:1 1 360px;min-width:0;display:grid;gap:5px;align-self:stretch;align-content:center}
 .hmt{display:flex;gap:4px}.hmt button{border:1px solid #3b5670;background:transparent;color:#9fb8cc;border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600}.hmt button.on{background:#e8f1f9;color:#1e2f40;border-color:#e8f1f9}
-.hml{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;scrollbar-width:thin}
+.hml{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;scrollbar-width:thin;scrollbar-color:#3b5670 transparent}.hml::-webkit-scrollbar{height:5px}.hml::-webkit-scrollbar-track{background:transparent}.hml::-webkit-scrollbar-thumb{background:#3b5670;border-radius:3px}
 .hmc{flex:0 0 auto;min-width:92px;background:#2b4157;border-radius:7px;padding:5px 8px 7px;display:grid;gap:1px;position:relative;overflow:hidden}
 .hmc span{font-size:10px;letter-spacing:.04em;color:#9fb8cc;text-transform:uppercase;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}.hmc b{font-family:var(--f-mono);font-size:13px;color:#e8f1f9}
 .hmc i{position:absolute;left:0;bottom:0;height:3px}
@@ -249,6 +249,8 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 
 @media (max-width:900px){.hmix{flex-basis:100%;order:5}}
 .addm{display:grid;grid-template-columns:1fr 80px auto;gap:8px;align-items:end}#amL{max-height:40vh;overflow:auto}
+.acw{position:relative}.acl{position:absolute;left:0;right:0;top:100%;margin-top:4px;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-height:320px;overflow:auto;font-size:13px;font-weight:400;text-transform:none;letter-spacing:0}
+.aci{padding:7px 10px;line-height:1.35;white-space:normal;overflow-wrap:anywhere;cursor:pointer;border-bottom:1px solid var(--line)}.aci:last-child{border-bottom:0}.aci.on,.aci:hover{background:var(--accent-soft)}.aci b{font-weight:600;margin-right:4px}
 .kv b{white-space:nowrap}.kv.sub{padding-left:12px;font-size:12px;color:var(--muted)}.kv.sub b{font-weight:600}
 #amL .sm{display:block}
 .cropov{position:absolute;inset:0;z-index:30;cursor:crosshair;touch-action:none;user-select:none}.cropmsg{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border-radius:999px;padding:5px 14px;font-size:12.5px;font-weight:600;pointer-events:none}.croprt{position:absolute;border:2px dashed #e0a800;background:rgba(224,168,0,.12)}
@@ -1091,7 +1093,7 @@ async function editor(id){
     renderHead();
   }
   function renderHead(){
-    $("#hT").textContent=ORC.titulo;document.title=ORC.titulo+" · OrçaRede";
+    $("#hT").textContent=ORC.titulo;$("#hT").title=ORC.titulo;document.title=ORC.titulo+" · OrçaRede";
     $("#hSt").textContent=ORC.status==="finalizado"?"Finalizado":"Em andamento";$("#hSt").className="chip "+ORC.status;
     $("#bFin").textContent=ORC.status==="finalizado"?"Reabrir":"✓ Finalizar";
     const nP=PTS.filter(p=>p.poste_id).length,m=VAOS.reduce((s,v)=>s+(+v.comprimento_m),0),cs=PTS.filter(p=>p.segmento_id).length;
@@ -1330,15 +1332,14 @@ async function editor(id){
   function addMaterial(pt,peId){
     const fila=[];
     const md=modal(`<h2>Adicionar materiais${peId?" na estrutura":" avulsos"}</h2>
-     <div class="addm"><label class="fld">Material<input id="amM" list="dlMat" placeholder="Digite parte do nome ou o código"></label><label class="fld">Qtd<input id="amQ" value="1" inputmode="decimal"></label><button type="button" class="btn" id="amAdd">+ Incluir</button></div>
-     <datalist id="dlMat">${MATS.map(m=>`<option value="${esc(m.codigo)} · ${esc(m.nome)}">`).join("")}</datalist>
+     <div class="addm"><label class="fld acw">Material<input id="amM" autocomplete="off" placeholder="Digite parte do nome ou o código"><div class="acl" id="amAc" hidden></div></label><label class="fld">Qtd<input id="amQ" value="1" inputmode="decimal"></label><button type="button" class="btn" id="amAdd">+ Incluir</button></div>
      <div id="amL"></div><p class="note">Enter inclui na lista e volta para o material. No fim, grave tudo de uma vez.</p>`,async()=>{
       const m=$("#amM",md).value.trim();if(m)incluir();
       if(!fila.length){toast("Inclua pelo menos um material.");return false}
       const rows=await chk(O.from("orc_ponto_itens").insert(fila.map(x=>({ponto_id:pt.id,ponto_estrutura_id:peId,material_codigo:x.c,quantidade:x.q,editado:true}))).select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado,auto"));
       IT.push(...(rows||[]));if(peId){IT.forEach(i=>{if(i.ponto_estrutura_id===peId)i.editado=true});await O.from("orc_ponto_itens").update({editado:true}).eq("ponto_estrutura_id",peId)}
       toast(`${fila.length} material(is) adicionado(s).`);renderHead();renderSide()},"Adicionar todos");
-    const ok=md.querySelector(".btn.pri");
+    const ok=md.querySelector(".btn.pri");md.querySelector(".mbox").classList.add("wide");acMat($("#amM",md),$("#amAc",md));
     const draw=()=>{$("#amL",md).innerHTML=fila.length?`<table class="its">${fila.map((x,i)=>`<tr><td>${esc((MAT[x.c]||{}).nome||x.c)}<span class="sm mono">${esc(x.c)}</span></td><td class="n"><input class="inp n" data-fq="${i}" value="${num(x.q,3)}" style="width:80px"></td><td class="n"><button type="button" class="xb" data-fr="${i}">×</button></td></tr>`).join("")}</table>`:"";
       ok.textContent=fila.length?`Adicionar todos (${fila.length})`:"Adicionar todos";
       $$("[data-fq]",md).forEach(i=>i.onchange=()=>{fila[+i.dataset.fq].q=pnum(i.value)});$$("[data-fr]",md).forEach(b=>b.onclick=()=>{fila.splice(+b.dataset.fr,1);draw()})};
@@ -1409,7 +1410,7 @@ async function editor(id){
   }
   function updHint(){wrap.classList.toggle("place",placing||!!colando);wrap.classList.toggle("trace",!!tracing);wrap.classList.toggle("calib",!!calib);const h=$("#hint");
     h.hidden=!(placing||tracing||calib||colando);
-    h.textContent=colando?`Colando “${nomePonto(ptById(colando)||{numero:0})}”: clique onde vai cada cópia · Esc termina`:placing?"Toque na planta onde fica o ponto":tracing?(anchor?"Toque no próximo poste · toque no vazio para começar outro trecho":"Toque no poste de início"):calib?(calib.length?"Agora toque no segundo ponto da medida conhecida":"Toque no primeiro ponto de uma medida conhecida (ex.: cota de 100 m)"):""}
+    h.textContent=colando?`Colando “${nomePonto(ptById(colando)||{numero:0})}”: clique na planta (novo ponto) ou em pontos existentes · Esc termina`:placing?"Toque na planta onde fica o ponto":tracing?(anchor?"Toque no próximo poste · toque no vazio para começar outro trecho":"Toque no poste de início"):calib?(calib.length?"Agora toque no segundo ponto da medida conhecida":"Toque no primeiro ponto de uma medida conhecida (ex.: cota de 100 m)"):""}
   function renderPins(){
     const el=$("#pins");if(!el)return;const SG=SEGM();
     el.innerHTML=PTS.map(p=>`<button class="pin ${p.poste_id?"":"vazio"} ${p.id===selP?"sel":""} ${p.id===anchor?"anchor":""}" data-id="${p.id}" style="left:${p.x}px;top:${p.y}px${SG[p.segmento_id]?";background:"+SG[p.segmento_id].cor:""}" title="${esc(nomePonto(p))}">${p.numero}${p.poste_id||temIP(p)?`<span class="lp ${temIP(p)?"":"no"}" title="${temIP(p)?"Luminária orçada":"Sem luminária"}">💡</span>`:""}</button>`).join("");
@@ -1420,6 +1421,7 @@ async function editor(id){
         b.onpointerup=b.onpointercancel=async()=>{b.onpointermove=null;b.onpointerup=null;if(!dragged)return;b._drag=1;await chk(O.from("orc_pontos").update({x:p.x,y:p.y}).eq("id",p.id));await remedir(p.id);renderHead();renderSide()}};
       b.onclick=e=>{e.stopPropagation();if(b._drag){b._drag=0;return}
         if(tracing){traceTap(b.dataset.id);return}if(placing||calib)return;
+        if(colando&&b.dataset.id!==colando){colarEm(colando,b.dataset.id);return}
         selP=b.dataset.id;selV=null;rolou=0;renderPins();renderSide()}});
     renderNet();
   }
@@ -1495,7 +1497,7 @@ async function editor(id){
     $$("[data-v]",svg).forEach(l=>{l.onpointerdown=e=>e.stopPropagation();l.onclick=e=>{e.stopPropagation();if(tracing||placing||calib)return;selV=l.dataset.v;selP=null;renderPins();renderSide()}});
   }
   let colando=null,mouseMapa=null;
-  function iniciarColar(pt){colando=pt.id;placing=false;tracing=null;anchor=null;calib=null;renderMapbar();updHint();toast(`Copiado: ${nomePonto(pt)}. Clique na planta onde colar; Esc termina.`)}
+  function iniciarColar(pt){colando=pt.id;placing=false;tracing=null;anchor=null;calib=null;renderMapbar();updHint();toast(`Copiado: ${nomePonto(pt)}. Clique na planta para criar cópias ou em pontos existentes para colar neles; Esc termina.`)}
   async function colarPonto(srcId,x,y){const src=ptById(srcId);if(!src)return;
     const n=PTS.reduce((m,p)=>Math.max(m,p.numero),0)+1;const base=(src.titulo||"").replace(/\s+\d{1,3}$/,"");
     const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:n,x,y,titulo:base||null,poste_id:src.poste_id,segmento_id:src.segmento_id,cintas_manual:!!src.cintas_manual}).select("*").single());PTS.push(pt);
@@ -1506,6 +1508,19 @@ async function editor(id){
     const av=IT.filter(i=>i.ponto_id===src.id&&!i.ponto_estrutura_id&&!i.auto).map(i=>({ponto_id:pt.id,ponto_estrutura_id:null,material_codigo:i.material_codigo,quantidade:i.quantidade,editado:true}));
     if(av.length)await chk(O.from("orc_ponto_itens").insert(av));
     await recarregaPonto(pt.id);renderHead();renderPins();renderSide();toast(`Colado como ponto ${n}.`)}
+  async function colarEm(srcId,dstId){const src=ptById(srcId),pt=ptById(dstId);if(!src||!pt)return;
+    const tem=PE.some(e=>e.ponto_id===pt.id)||IT.some(i=>i.ponto_id===pt.id&&!i.auto);
+    if(tem&&!confirm(`O ponto ${nomePonto(pt)} já tem estruturas/materiais. Substituir pelo conteúdo de ${nomePonto(src)}?`))return;
+    await chk(O.from("orc_ponto_itens").delete().eq("ponto_id",pt.id));await chk(O.from("orc_ponto_estruturas").delete().eq("ponto_id",pt.id));
+    const upd={poste_id:src.poste_id,segmento_id:src.segmento_id,cintas_manual:!!src.cintas_manual};await chk(O.from("orc_pontos").update(upd).eq("id",pt.id));Object.assign(pt,upd);
+    await copiaConteudo(src,pt);await recarregaPonto(pt.id);renderHead();renderPins();renderSide();toast(`Colado em ${nomePonto(pt)}. Clique em outros pontos ou na planta; Esc termina.`)}
+  async function copiaConteudo(src,pt){
+    for(const e of PE.filter(e=>e.ponto_id===src.id).sort((a,b)=>a.ordem-b.ordem)){
+      const ne=await chk(O.from("orc_ponto_estruturas").insert({ponto_id:pt.id,estrutura_id:e.estrutura_id,ordem:e.ordem,segmento_id:e.segmento_id}).select("id").single());
+      const its=IT.filter(i=>i.ponto_estrutura_id===e.id).map(i=>({ponto_id:pt.id,ponto_estrutura_id:ne.id,material_codigo:i.material_codigo,quantidade:i.quantidade,editado:i.editado}));
+      if(its.length)await chk(O.from("orc_ponto_itens").insert(its))}
+    const av=IT.filter(i=>i.ponto_id===src.id&&!i.ponto_estrutura_id&&!i.auto).map(i=>({ponto_id:pt.id,ponto_estrutura_id:null,material_codigo:i.material_codigo,quantidade:i.quantidade,editado:true}));
+    if(av.length)await chk(O.from("orc_ponto_itens").insert(av))}
   async function novoPonto(x,y){
     const n=PTS.reduce((m,p)=>Math.max(m,p.numero),0)+1;
     const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:n,x,y}).select("*").single());PTS.push(pt);selP=pt.id;selV=null;renderHead();renderPins();renderSide();setTimeout(()=>$("#pSeq")&&$("#pSeq").focus(),30)}
@@ -1539,6 +1554,14 @@ async function editor(id){
   }
   let pdfReady=null;
   const pdfjs=()=>pdfReady||(pdfReady=loadScript("vendor/pdf.min.js").then(()=>{const L=window.pdfjsLib;try{L.GlobalWorkerOptions.workerSrc=new URL("vendor/pdf.worker.min.js",location.href).href}catch(e){}return L}));
+  function acMat(inp,box){let L=[],h=0;const N=MATS.map(m=>[m,norm(m.codigo+" "+m.nome)]);
+    const show=()=>{box.hidden=!L.length;box.innerHTML=L.map((m,i)=>`<div class="aci${i===h?" on":""}" data-i="${i}"><b class="mono">${esc(m.codigo)}</b> ${esc(m.nome)}${m.unidade?` <span class="sm">${esc(m.unidade)}</span>`:""}</div>`).join("");const o=box.querySelector(".on");o&&o.scrollIntoView({block:"nearest"})};
+    const pick=i=>{const m=L[i];if(!m)return;inp.value=m.codigo+" · "+m.nome;L=[];show()};
+    inp.addEventListener("input",()=>{const t=norm(inp.value).split(/\s+/).filter(Boolean);h=0;L=t.length?N.filter(([,n])=>t.every(w=>n.includes(w))).slice(0,40).map(x=>x[0]):[];show()});
+    inp.addEventListener("keydown",e=>{if(box.hidden)return;if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();h=(h+(e.key==="ArrowDown"?1:-1)+L.length)%L.length;show()}
+      else if(e.key==="Enter"){e.preventDefault();e.stopImmediatePropagation();pick(h)}else if(e.key==="Escape"){e.stopPropagation();L=[];show()}},true);
+    box.addEventListener("pointerdown",e=>{const d=e.target.closest("[data-i]");if(!d)return;e.preventDefault();pick(+d.dataset.i);inp.focus()});
+    inp.addEventListener("blur",()=>setTimeout(()=>{L=[];show()},150))}
   function plantaDialog(){
     const m=document.createElement("div");m.className="modal";
     m.innerHTML=`<div class="mbox wide"><h2>Planta do projeto</h2>
