@@ -1231,8 +1231,7 @@ async function editor(id){
       ${(()=>{const t=etiquetaPerto(pt);return t&&!PE.some(e=>e.ponto_id===pt.id)?`<div class="sug"><span>📄 Lido na planta, perto deste ponto:</span><code>${esc(t)}</code><div class="row"><span class="note">Confira item por item antes de lançar.</span><button class="btn sm pri" id="sugOk">Verificar e aplicar</button></div></div>`:""})()}
       <div class="lbl">Lançamento rápido</div>
       <div class="seq"><input class="inp" id="pSeq" placeholder="12(10);CE3-2;IF_50;BC10;IP" aria-label="Sequência de poste e estruturas"><button class="btn" id="pCorta" title="Recortar a etiqueta direto na planta e ler o texto">✂</button><button class="btn" id="pCola" title="Colar print da etiqueta (Ctrl+V no campo também funciona)">📋</button><button class="btn pri" id="pSeqOk">Aplicar</button></div>
-      <div class="pads"><span class="lbl">Padrões</span>${PADS.slice(0,10).map(x=>`<button class="pad${x.auto?" au":""}" data-pad="${x.id}" title="${esc(x.sequencia)}${x.auto?" · criado automaticamente":""}">${x.auto?"⟳":"★"} ${esc(x.nome.length>34?x.nome.slice(0,34)+"…":x.nome)}</button>`).join("")}${frequentes(pt).map(([s,n])=>`<button class="pad fq" data-fq="${esc(s)}" title="Usado em ${n} pontos deste orçamento">${esc(s.length>34?s.slice(0,34)+"…":s)} <small>×${n}</small></button>`).join("")}
-       ${PADS.length>10?`<select class="inp sm" id="padMais"><option value="">mais padrões…</option>${PADS.slice(10).map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join("")}</select>`:""}
+      <div class="pads"><span class="lbl">Padrões (${PADS.length})</span><label class="acw" style="flex:1;min-width:220px"><input class="inp sm" id="padBusca" autocomplete="off" placeholder="Buscar padrão por nome ou estrutura (ex.: N3, TR 75)…" style="width:100%"><div class="acl" id="padAc" hidden></div></label>
        <button class="lnk" id="padSalvar" title="Guardar poste + estruturas deste ponto para reutilizar">+ salvar este ponto como padrão</button></div>
       <p class="note" style="margin-top:-6px">Poste e estruturas separados por “;”. O que já está no ponto não se repete.</p>
       <div class="grid2"><label class="fld">Nome do ponto<input id="pTit" value="${esc(pt.titulo||"")}" placeholder="sequência de estruturas"></label>
@@ -1265,7 +1264,15 @@ async function editor(id){
     $("#pSeq").onpaste=e=>{const it=[...(e.clipboardData||{}).items||[]].find(i=>i.type.startsWith("image/"));if(!it)return;e.preventDefault();lerPrint(pt,it.getAsFile())};
     $("#pCola").onclick=async()=>{try{const L=await navigator.clipboard.read();for(const c of L){const t=c.types.find(x=>x.startsWith("image/"));if(t){lerPrint(pt,await c.getType(t));return}}toast("Não há imagem copiada. Tire o print (Win+Shift+S) e tente de novo.")}catch(err){toast("Clique no campo da sequência e use Ctrl+V para colar o print.")}};
     const usaPad=async(txt,pad)=>{const r=await aplicarSequencia(pt,txt);if(pad){pad.usos=(pad.usos||0)+1;O.from("padroes_ponto").update({usos:pad.usos}).eq("id",pad.id).then(()=>{})}renderHead();renderPins();renderSide();toast(r.ok.length?`Aplicado: ${r.ok.join(", ")}`:"Nada novo para aplicar.")};
-    $$("[data-pad]",a).forEach(b=>b.onclick=()=>{const x=PADS.find(p=>p.id==b.dataset.pad);usaPad(x.sequencia,x)});
+    {const inp=$("#padBusca",a),box=$("#padAc",a);if(inp){
+      const ALL=[...PADS.map(x=>({nome:x.nome,seq:x.sequencia,pad:x,tag:x.auto?"⟳":"★",info:(x.usos||0)+" usos"})),...frequentes(pt).map(([sq,n])=>({nome:sq,seq:sq,pad:null,tag:"↻",info:"×"+n+" neste orçamento"}))];
+      let L=[],h=0;const show=()=>{box.hidden=!L.length;box.innerHTML=L.map((x,i)=>`<div class="aci${i===h?" on":""}" data-i="${i}">${x.tag} <b>${esc(x.nome)}</b> <span class="sm">${esc(x.info)}</span>${x.seq!==x.nome?`<div class="sm mono">${esc(x.seq)}</div>`:""}</div>`).join("");const o=box.querySelector(".on");o&&o.scrollIntoView({block:"nearest"})};
+      const filt=()=>{const t=norm(inp.value).split(/\s+/).filter(Boolean);h=0;L=ALL.filter(x=>{const n=norm(x.nome+" "+x.seq);return t.every(w=>n.includes(w))}).slice(0,60);show()};
+      const pick=i=>{const x=L[i];if(!x)return;L=[];show();inp.value="";usaPad(x.seq,x.pad)};
+      inp.onfocus=filt;inp.oninput=filt;
+      inp.onkeydown=e=>{if(box.hidden)return;if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();h=(h+(e.key==="ArrowDown"?1:-1)+L.length)%L.length;show()}else if(e.key==="Enter"){e.preventDefault();pick(h)}else if(e.key==="Escape"){e.stopPropagation();L=[];show();inp.blur()}};
+      box.addEventListener("pointerdown",e=>{const d=e.target.closest("[data-i]");if(!d)return;e.preventDefault();pick(+d.dataset.i)});
+      inp.onblur=()=>setTimeout(()=>{L=[];show()},150)}}
     $$("[data-fq]",a).forEach(b=>b.onclick=()=>usaPad(b.dataset.fq));
     $("#padMais")&&($("#padMais").onchange=e=>{const x=PADS.find(p=>p.id==e.target.value);if(x)usaPad(x.sequencia,x)});
     $("#padSalvar").onclick=()=>{const sq=seqDoPonto(pt);if(!sq){toast("Coloque poste e estruturas no ponto antes de salvar.");return}
