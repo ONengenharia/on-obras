@@ -1064,7 +1064,7 @@ async function editor(id){
   const fixIP=p=>{const ps=POM[p.poste_id];if(!ps)return null;const c=`FIX_IP_${+ps.altura_m}(${+ps.esforco_kn})`.toUpperCase();return EST.find(e=>e.codigo.toUpperCase()===c)||null};
   let P=(PRC.data&&PRC.data[0])||{orcamento_id:id,metodo:"A",pct_materiais:50,valor_servico:null,lucro_pct:15,custos:[],materiais_ref:null};
   let etapa=["projeto","materiais","precificacao"].includes(Q.get("etapa"))?Q.get("etapa"):"projeto";
-  let selP=null,selV=null,placing=false,tracing=null,anchor=null,calib=null,fMat="",fPt="";const marcados=new Set();
+  let selP=null,selV=null,placing=false,tracing=null,anchor=null,calib=null,fMat="",fPt="",soSemPreco=false,ordMat=(()=>{try{return localStorage.getItem("orc_ordMat")||"alfa"}catch(e){return"alfa"}})();const marcados=new Set();
 
   const preco=c=>{const o=OP[c];return (o&&(o.manual||ORC.modo_preco==="travado"))?(o?o.v:VIG[c]):(VIG[c]??(o&&o.v))};
   const ptById=i=>PTS.find(p=>p.id===i);
@@ -1646,12 +1646,20 @@ async function editor(id){
   }
 
   /* ---------- 2. MATERIAIS ---------- */
+  async function editaMatBase(cod){const m=MAT[cod];if(!m)return;const SB=(await O.from("subgrupos").select("nome").order("ordem")).data||[];
+    modal(`<h2>Editar material da base</h2><p class="note">Vale para a base geral e todos os orçamentos.</p>
+      <label class="fld">Código<input name="cod" value="${esc(cod)}" readonly style="opacity:.7" title="Para trocar o código use Configurações → Materiais → Duplicados/Unificar"></label>
+      <label class="fld">Nome<input name="nome" required value="${esc(m.nome)}"></label>
+      <div class="grid2"><label class="fld">Unidade${unSel(m.unidade)}</label><label class="fld">Subgrupo<select name="sub"><option value="">—</option>${SB.map(x=>`<option ${m.subgrupo===x.nome?"selected":""}>${esc(x.nome)}</option>`).join("")}</select></label></div>`,
+      async f=>{const up={nome:f.nome.trim(),unidade:(f.unidade||"").trim()||null,subgrupo:f.sub||null,atualizado_em:new Date().toISOString()};
+        await chk(O.from("materiais").update(up).eq("codigo",cod));Object.assign(m,up);const mm=MATS.find(x=>x.codigo===cod);mm&&Object.assign(mm,up);toast("Material atualizado na base.");renderHead();telaMateriais()},"Salvar")}
   const ORIG={orcamento:"Orçamento importado",manual:"Manual",compra:"Ordem de compra",proposta:"Proposta de fornecedor",importacao:"Importação"};
   function telaMateriais(){
     const el=$("#full");
     const A=agregado().map(l=>({...l,m:MAT[l.c]||{nome:l.c,subgrupo:""}}));
     const f=fMat.toLowerCase();
-    const F=A.filter(l=>!f||l.m.nome.toLowerCase().includes(f)||l.c.includes(f)||(l.m.subgrupo||"").toLowerCase().includes(f)).sort((a,b)=>(a.m.subgrupo||"").localeCompare(b.m.subgrupo||"")||a.m.nome.localeCompare(b.m.nome));
+    const ORDS={alfa:(a,b)=>a.m.nome.localeCompare(b.m.nome),sub:(a,b)=>(a.m.subgrupo||"").localeCompare(b.m.subgrupo||"")||a.m.nome.localeCompare(b.m.nome),subtot:(a,b)=>b.q*(preco(b.c)||0)-a.q*(preco(a.c)||0),preco:(a,b)=>(preco(b.c)||0)-(preco(a.c)||0),qtd:(a,b)=>b.q-a.q};
+    const F=A.filter(l=>(!f||l.m.nome.toLowerCase().includes(f)||l.c.includes(f)||(l.m.subgrupo||"").toLowerCase().includes(f))&&(!soSemPreco||!preco(l.c))).sort(ORDS[ordMat]||ORDS.alfa);
     const PS=porSegmento(),T0=totalMat(),SG=SEGM();
     const segRows=Object.entries(PS).sort((a,b)=>b[1]-a[1]);
     const nManual=Object.values(OP).filter(o=>o.manual).length,semPreco=A.filter(l=>preco(l.c)==null).length;
@@ -1660,13 +1668,13 @@ async function editor(id){
         <div class="tools"><button class="btn sm" id="xComp">⬇ Exportar lista…</button><button class="btn sm" id="xForn" title="Excel com logo e cabeçalho da empresa, sem preço e sem nome da obra">⬇ Lista para fornecedores</button></div></div>
        <div class="row"><div class="tools"><button class="btn sm ${ORC.modo_preco==="base"?"on":""}" data-mp="base">Acompanhar base</button><button class="btn sm ${ORC.modo_preco==="travado"?"on":""}" data-mp="travado">Preços travados</button>
          <span class="note">${ORC.modo_preco==="travado"?`congelados${ORC.travado_em?" em "+fdata(ORC.travado_em):""}`:"seguem o preço vigente da base"}${nManual?` · ${nManual} editado(s) só neste orçamento`:""}</span></div>
-        <div class="tools"><button class="btn sm pri" id="mAdd">+ Material avulso</button><input class="inp" id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="width:220px"></div></div>
+        <div class="tools"><button class="btn sm pri" id="mAdd">+ Material avulso</button><label class="note" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" id="mSP" ${soSemPreco?"checked":""}> só sem preço</label><select class="inp sm" id="mOrd" aria-label="Ordenar">${[["alfa","A–Z"],["sub","Subgrupo"],["subtot","Maior subtotal"],["preco","Maior preço unit."],["qtd","Maior quantidade"]].map(([k,t])=>`<option value="${k}" ${ordMat===k?"selected":""}>Ordenar: ${t}</option>`).join("")}</select><input class="inp" id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="width:220px"></div></div>
        ${(()=>{const cf=conflitos();return cf.length?`<div class="warnbar" style="background:var(--danger-soft);color:var(--danger)">⚠ ${cf.length} material(is) de outra classe de tensão nesta rede de ${ORC.tensao_kv} kV: ${cf.map(x=>esc((MAT[x.c]||{}).nome)).join(" · ")}</div>`:""})()}
        ${EXT.length?`<div class="extra"><div class="lbl">Avulsos do orçamento (fora dos pontos)</div><table class="its">${EXT.map(x=>{const m=MAT[x.material_codigo]||{nome:x.material_codigo};return `<tr><td class="m">${esc(m.nome)}<small>${esc(x.material_codigo)} · ${esc(m.unidade||"")}</small></td><td class="q"><input data-xq="${x.id}" value="${num(x.quantidade,3)}" inputmode="decimal" aria-label="Quantidade"></td><td class="v mono">${num((preco(x.material_codigo)||0)*x.quantidade)}</td><td class="x"><button class="xb" data-xd="${x.id}" title="Remover">×</button></td></tr>`}).join("")}</table></div>`:""}
-       ${semPreco?`<div class="warnbar">${semPreco} material(is) sem preço na base.</div>`:""}
+       ${semPreco?`<div class="warnbar" id="mSPw" style="cursor:pointer" title="Clique para ver só esses">${semPreco} material(is) sem preço na base. <u>${soSemPreco?"mostrar todos":"ver só esses"}</u></div>`:""}
        <div style="overflow:auto"><table class="tbl mt"><thead><tr><th>Material</th><th class="n">Qtd. total</th><th class="n">Preço unit. (R$)</th><th class="n">Subtotal</th><th class="hm">Origem do preço</th><th></th></tr></thead><tbody>
        ${F.map(l=>{const o=OP[l.c],pr=preco(l.c),vg=VIGR[l.c],man=o&&o.manual;
-         const fc=foraClasse(l.c);return `<tr class="${man?"man":""} ${fc?"fc":""}"><td><b style="font-weight:600">${esc(l.m.nome)}</b>${fc?` <span class="kvtag">fora de ${ORC.tensao_kv} kV</span>`:""}${EXT.some(x=>x.material_codigo===l.c)?' <span class="chip">avulso</span>':""}<span class="sm">${esc(l.c)}${l.m.subgrupo?" · "+esc(l.m.subgrupo):""}</span></td><td class="n">${num(l.q,2)} ${esc(l.m.unidade||"")}</td>
+         const fc=foraClasse(l.c);return `<tr class="${man?"man":""} ${fc?"fc":""}"><td><b style="font-weight:600">${esc(l.m.nome)}</b> <button class="xb" data-em="${esc(l.c)}" title="Editar material na base" style="font-size:12px">✏️</button>${fc?` <span class="kvtag">fora de ${ORC.tensao_kv} kV</span>`:""}${EXT.some(x=>x.material_codigo===l.c)?' <span class="chip">avulso</span>':""}<span class="sm">${esc(l.c)}${l.m.subgrupo?" · "+esc(l.m.subgrupo):""}</span></td><td class="n">${num(l.q,2)} ${esc(l.m.unidade||"")}</td>
           <td class="n"><input data-pr="${esc(l.c)}" value="${pr==null?"":num(pr,4)}" inputmode="decimal" aria-label="Preço unitário" title="Editar vale só para este orçamento"></td><td class="n">${brl(l.q*(pr||0))}</td>
           <td class="hm orig">${man?`<b>Manual neste orçamento</b><small>base: ${vg?brl(vg.valor):"—"}</small>`:vg?`<b>${esc(vg.fornecedor||ORIG[vg.origem]||vg.origem)}</b><small>${fdata(vg.data)}${vg.documento&&vg.fornecedor?" · "+esc(vg.documento):""}</small>`:"—"}</td>
           <td class="n">${man?`<button class="xb" data-rp="${esc(l.c)}" title="Voltar ao preço da base">↺</button>`:""}<button class="xb" data-rm="${esc(l.c)}" title="Remover do orçamento">🗑</button></td></tr>`}).join("")}
@@ -1675,6 +1683,9 @@ async function editor(id){
        <div class="segbars">${segRows.map(([k,v])=>{const s=SG[k];return `<div class="sb" style="--c:${s?s.cor:"#8a96a3"}"><span>${esc(s?s.nome:"Sem segmento")}</span><div class="bar"><b style="width:${T0?v/T0*100:0}%"></b></div><span class="n">${T0?Math.round(v/T0*100):0}%</span><span></span><span class="v">${brl(v)}</span></div>`}).join("")}</div>
        ${PS[""]?`<p class="note">Para distribuir o que está “sem segmento”, marque os pontos na lista do Projeto.</p>`:""}</div>
      </div></div>`;
+    $("#mSP").onchange=e=>{soSemPreco=e.target.checked;telaMateriais()};$("#mSPw")&&($("#mSPw").onclick=()=>{soSemPreco=!soSemPreco;telaMateriais()});
+    $("#mOrd").onchange=e=>{ordMat=e.target.value;try{localStorage.setItem("orc_ordMat",ordMat)}catch(x){}telaMateriais()};
+    $$("[data-em]",el).forEach(b=>b.onclick=()=>editaMatBase(b.dataset.em));
     $("#mF").oninput=e=>{fMat=e.target.value;const pos=e.target.selectionStart;telaMateriais();const i=$("#mF");i.focus();i.setSelectionRange(pos,pos)};
     $$("[data-mp]",el).forEach(b=>b.onclick=async()=>{if(b.dataset.mp===ORC.modo_preco)return;
       if(b.dataset.mp==="travado"){await chk(O.rpc("travar_precos",{p_orc:ORC.id}));ORC.modo_preco="travado";ORC.travado_em=new Date().toISOString()}
