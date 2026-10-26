@@ -1534,7 +1534,7 @@ async function editor(id){
     updHint();
   }
   let pdfReady=null;
-  const pdfjs=()=>pdfReady||(pdfReady=loadScript("vendor/pdf.worker.min.js").then(()=>loadScript("vendor/pdf.min.js")).then(()=>window.pdfjsLib));
+  const pdfjs=()=>pdfReady||(pdfReady=loadScript("vendor/pdf.min.js").then(()=>{const L=window.pdfjsLib;try{L.GlobalWorkerOptions.workerSrc=new URL("vendor/pdf.worker.min.js",location.href).href}catch(e){}return L}));
   function plantaDialog(){
     const m=document.createElement("div");m.className="modal";
     m.innerHTML=`<div class="mbox wide"><h2>Planta do projeto</h2>
@@ -1548,8 +1548,11 @@ async function editor(id){
     const cv=$("#pCv",m),sel=$("#pSel",m),msg=$("#pMsg",m);let k=1,isPdf=false,pdf=null,R=null,txt=[],pdfFile=null,pag=1;
     $("#pCancel",m).onclick=()=>m.remove();
     async function renderPage(n){msg.textContent="Gerando a imagem da página…";const page=await pdf.getPage(n);const vp1=page.getViewport({scale:1});
-      pag=n;k=Math.min(300/72,10000/Math.max(vp1.width,vp1.height),Math.sqrt(40e6/(vp1.width*vp1.height)));const vp=page.getViewport({scale:k});
-      cv.width=Math.floor(vp.width);cv.height=Math.floor(vp.height);const x=cv.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,cv.width,cv.height);await page.render({canvasContext:x,viewport:vp}).promise;
+      pag=n;let px=40e6,vp,ok=false,t0=Date.now();const tick=setInterval(()=>{msg.textContent="Gerando a imagem da página… "+Math.round((Date.now()-t0)/1000)+" s (plantas grandes do CAD podem levar até 1 min)"},1000);
+      try{for(let tent=0;tent<4&&!ok;tent++){k=Math.min(300/72,10000/Math.max(vp1.width,vp1.height),Math.sqrt(px/(vp1.width*vp1.height)));vp=page.getViewport({scale:k});
+        try{cv.width=Math.floor(vp.width);cv.height=Math.floor(vp.height);const x=cv.getContext("2d");if(!x)throw 0;x.fillStyle="#fff";x.fillRect(0,0,cv.width,cv.height);if(x.getImageData(0,0,1,1).data[0]!==255)throw 0;
+          await page.render({canvasContext:x,viewport:vp}).promise;ok=true}catch(e){px*=.5;cv.width=cv.height=1}}}finally{clearInterval(tick)}
+      if(!ok)throw new Error("canvas");
       try{const tc=await page.getTextContent();const raw=tc.items.filter(i=>i.str&&i.str.trim()).map(i=>{const[a,b,,,e,f]=i.transform;const[px,py]=vp.convertToViewportPoint(e,f);return{t:i.str,x:px,y:py,rot:Math.abs(b)>Math.abs(a)*.2,w:(i.width||0)*k}});
         const hz=raw.filter(r=>!r.rot).sort((a,b)=>a.y-b.y||a.x-b.x),out=raw.filter(r=>r.rot).map(r=>[r.t.trim(),r.x,r.y]);let cur=null;
         hz.forEach(r=>{if(cur&&Math.abs(r.y-cur.y)<4&&r.x-cur.x2<12){cur.t+=r.t;cur.x2=r.x+r.w}else{cur&&out.push([cur.t.trim(),cur.x,cur.y]);cur={t:r.t,x:r.x,y:r.y,x2:r.x+r.w}}});cur&&out.push([cur.t.trim(),cur.x,cur.y]);
