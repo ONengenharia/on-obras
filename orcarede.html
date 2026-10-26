@@ -951,7 +951,27 @@ async function deNegocio(nid){
   await lista(null);
   if(!n){toast("Negócio não encontrado.");return}
   const c=CONCS.find(c=>n.conc&&n.conc.toUpperCase().includes(c.sigla.toUpperCase()));
-  novoOrc({titulo:n.titulo,cliente:n.cliente,cidade:n.cidade,conc:c&&c.id,negocio:n.id});
+  const novo=()=>novoOrc({titulo:n.titulo,cliente:n.cliente,cidade:n.cidade,conc:c&&c.id,negocio:n.id});
+  const {data:os}=await O.from("orcamentos").select("id,titulo,cliente,cidade,versao,vigente,pasta_id,negocio_id,atualizado_em").order("atualizado_em",{ascending:false});
+  const {data:ps}=await O.from("pastas").select("id,nome,negocio_id");const PS={};(ps||[]).forEach(p=>PS[p.id]=p);
+  const L=(os||[]).filter(o=>o.vigente!==false);
+  const md=document.createElement("div");md.className="modal";
+  md.innerHTML=`<div class="mbox wide"><h2>Orçamento do negócio “${esc(n.titulo||"")}”</h2>
+    <p class="note">Crie um orçamento novo ou vincule um que já existe no OrçaRede. Vincular não copia nada: o orçamento escolhido passa a ser o deste negócio.</p>
+    <div class="row" style="justify-content:flex-start"><button class="btn pri" id="vNovo">+ Criar orçamento novo</button></div>
+    <h3 class="h3">Vincular orçamento existente</h3><input class="inp" id="vBusca" placeholder="Buscar por nome, cliente ou cidade" autocomplete="off">
+    <div id="vL" style="max-height:50vh;overflow:auto"></div>
+    <div class="row"><span></span><button class="btn" id="vX">Cancelar</button></div></div>`;
+  document.body.appendChild(md);
+  const draw=()=>{const t=norm($("#vBusca",md).value).split(/\s+/).filter(Boolean);
+    const F=L.filter(o=>{const h=norm([o.titulo,o.cliente,o.cidade,(PS[o.pasta_id]||{}).nome].join(" "));return t.every(w=>h.includes(w))}).slice(0,80);
+    $("#vL",md).innerHTML=F.length?`<table class="tbl"><tbody>${F.map(o=>{const p=PS[o.pasta_id];const lig=(p&&p.negocio_id)||o.negocio_id;return `<tr class="go" data-o="${o.id}"><td><b>${esc(o.titulo||"")}</b> <span class="chip">v${o.versao||1}</span><span class="sm">${esc([o.cliente,o.cidade].filter(Boolean).join(" · "))}${p?" · pasta "+esc(p.nome):""}</span></td><td class="hm">${lig?'<span class="chip andamento">já ligado a outro negócio</span>':""}</td><td class="n"><button class="btn sm">Vincular</button></td></tr>`}).join("")}</tbody></table>`:'<p class="note">Nenhum orçamento encontrado.</p>'};
+  $("#vBusca",md).oninput=draw;draw();setTimeout(()=>$("#vBusca",md).focus(),30);
+  $("#vX",md).onclick=()=>md.remove();$("#vNovo",md).onclick=()=>{md.remove();novo()};
+  $("#vL",md).onclick=async e=>{const tr=e.target.closest("[data-o]");if(!tr)return;const o=L.find(x=>x.id===tr.dataset.o);const p=PS[o.pasta_id];
+    if(((p&&p.negocio_id)||o.negocio_id)&&!confirm("Este orçamento já está ligado a outro negócio. Mudar para este?"))return;
+    if(p){await chk(O.from("pastas").update({negocio_id:n.id}).eq("id",p.id));await chk(O.from("orcamentos").update({negocio_id:n.id}).eq("pasta_id",p.id));md.remove();toast("Orçamento vinculado ao negócio.");location.replace("orcarede.html?pasta="+p.id)}
+    else{await chk(O.from("orcamentos").update({negocio_id:n.id}).eq("id",o.id));md.remove();toast("Orçamento vinculado ao negócio.");location.replace("orcarede.html?id="+o.id)}};
 }
 
 /* ============ EDITOR ============ */

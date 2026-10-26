@@ -445,7 +445,12 @@ async function abrir(id,manter){
       if(f==="valor")v=+v||0;if(f==="prazo"||f==="resp")v=v||null;
       campos[f]=v;
       if(f==="maps"){campos.lat=null;campos.lng=null;const p=coordsDe(v)||(/^https:/i.test(v)?await resolverLink(v):null);if(p){campos.lat=p.lat;campos.lng=p.lng}}
-      if(await salvarCampos(c,campos)){render();if(["titulo","cliente","cidade","valor","maps"].includes(f))abrir(id,true)}});
+      if(await salvarCampos(c,campos)){render();if(["titulo","cliente","cidade","valor","maps"].includes(f)){
+        const box=el.closest(".gv")||document;const keep={};box.querySelectorAll("[data-f]").forEach(x=>{if(x!==el&&x.dataset.f!==f)keep[x.dataset.f]=x.value});
+        const ae=document.activeElement,af=ae&&ae.dataset&&ae.dataset.f,ss=af&&ae.selectionStart!=null?[ae.selectionStart,ae.selectionEnd]:null;
+        await abrir(id,true);
+        const box2=document.querySelector(".gv")||document;Object.entries(keep).forEach(([k,v])=>{const x=box2.querySelector(`[data-f="${k}"]`);if(x&&x.value!==v)x.value=v});
+        if(af){const x=box2.querySelector(`[data-f="${af}"]`);if(x){x.focus();if(ss)try{x.setSelectionRange(ss[0],ss[1])}catch(e){}}}}}});
     gb.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{const k=b.dataset.m;const mem=c.membros.includes(k)?c.membros.filter(x=>x!==k):[...c.membros,k];if(await salvarCampos(c,{membros:mem})){render();abrir(id,true)}});
     gb.querySelectorAll("[data-l]").forEach(b=>b.onclick=async()=>{const k=b.dataset.l;const et=c.etiquetas.includes(k)?c.etiquetas.filter(x=>x!==k):[...c.etiquetas,k];if(await salvarCampos(c,{etiquetas:et})){render();abrir(id,true)}});
     if($("#nlb",gb))$("#nlb",gb).onclick=()=>pedirNome("Nova etiqueta","Ex.: Aguardando ART",async n=>{const {data,error}=await sb.from("neg_etiquetas").insert({quadro:c.quadro,nome:n,cor:PAL[ETQ.length%PAL.length]}).select().single();if(error){toast(error.message);return}ETQ.push(data);await salvarCampos(c,{etiquetas:[...c.etiquetas,data.id]});render();abrir(id,true)},()=>abrir(id,true));
