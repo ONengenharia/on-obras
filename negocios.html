@@ -238,7 +238,7 @@ if(!perfil||perfil.papel==="pendente"){location.href="index.html";return}
 const eu=perfil.id,ADM=perfil.papel==="admin";let COMPRAS=ADM;try{const r=await sb.schema("orcarede").rpc("pode_compras");COMPRAS=!!r.data}catch(e){}
 
 /* ---------- dados ---------- */
-let verFiltros=false,LEMB=[],verSaidos=(()=>{try{return localStorage.getItem("neg.saidos")!=="0"}catch(e){return true}})(),AREAS=[],ACESSO={},fArea="",U=[],QUADROS={},COLS=[],ETQ=[],LISTAS={tipo:[],origem:[],pagto:[],conc:[]},CARDS=[],PERM={},CRIA={},INBOX=[];
+let VT=new Set();let verFiltros=false,LEMB=[],verSaidos=(()=>{try{return localStorage.getItem("neg.saidos")!=="0"}catch(e){return true}})(),AREAS=[],ACESSO={},fArea="",U=[],QUADROS={},COLS=[],ETQ=[],LISTAS={tipo:[],origem:[],pagto:[],conc:[]},CARDS=[],PERM={},CRIA={},INBOX=[];
 let quadro=(()=>{try{return localStorage.getItem("neg.quadro")||"eletrica"}catch(e){return"eletrica"}})();
 {const qq=new URLSearchParams(location.search).get("q");if(qq==="eletrica"||qq==="solar")quadro=qq;}
 let busca="",fEtq="",soMeus=false,aberto=null,abaCard="resumo",win=null,gravando=null;
@@ -271,6 +271,7 @@ async function carregarTudo(){
     sb.from("negocios").select("*").order("ordem",{ascending:false}),
     sb.from("neg_permissoes").select("*"),
     sb.from("neg_criadores").select("*")]);
+  try{const rv=await sb.from("neg_ver_todos").select("user_id");VT=new Set((rv.data||[]).map(x=>x.user_id))}catch(e){}
   const err=[rp,rq,rc,re,rl,rn,rpe,rcr].find(r=>r.error);if(err)throw err.error;
   U=(rp.data||[]).filter(u=>u.papel!=="pendente").map(u=>({...u,nome:u.nome||u.email,sig:sigla(u.nome||u.email),cor:corDe(u.id)}));
   QUADROS={};(rq.data||[]).forEach(q=>QUADROS[q.id]=q);
@@ -616,7 +617,15 @@ function bindAnexos(c,root){
 async function novo(){
   if(!podeCriar(quadro))return;
   const primeira=colsDe(quadro)[0];if(!primeira){toast("Crie as colunas deste quadro primeiro.");return}
-  const {data,error}=await sb.from("negocios").insert({quadro,coluna:primeira.id,titulo:"Novo negócio "+(quadro==="solar"?"solar":"elétrico"),un:quadro==="solar"?"kWp":"kVA",membros:[eu],resp:eu}).select().single();
+  const cand=U.filter(u=>u.papel!=="pendente");let dono=eu;
+  if(cand.length>1){dono=await new Promise(res=>{const m=document.createElement("div");m.className="modal";
+    m.innerHTML=`<div class="mbox" style="background:var(--panel);border-radius:12px;padding:18px;width:min(420px,100%);display:grid;gap:12px"><h2 style="margin:0">Novo negócio</h2><label class="note">De quem é este card? (responsável / consultor)</label>
+      <select id="ndono" class="btn" style="text-align:left">${cand.map(u=>`<option value="${u.id}" ${u.id===eu?"selected":""}>${esc(u.nome)}${u.id===eu?" (eu)":""}</option>`).join("")}</select>
+      <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" id="nx">Cancelar</button><button class="btn pri" id="nok">Criar</button></div></div>`;
+    document.body.appendChild(m);m.querySelector("#nx").onclick=()=>{m.remove();res(null)};m.querySelector("#nok").onclick=()=>{const v=m.querySelector("#ndono").value;m.remove();res(v)}});
+    if(!dono)return}
+  const mem=[...new Set([dono,...(ADM||dono===eu?[]:[eu])])];
+  const {data,error}=await sb.from("negocios").insert({quadro,coluna:primeira.id,titulo:"Novo negócio "+(quadro==="solar"?"solar":"elétrico"),un:quadro==="solar"?"kWp":"kVA",membros:mem,resp:dono}).select().single();
   if(error){toast("Não foi possível criar: "+error.message);return}
   CARDS.unshift(data);abaCard="resumo";render();abrir(data.id);
 }
@@ -768,12 +777,13 @@ function permissoes(){
    ${pessoas.length?`<h2 style="font-size:15px;margin:4px 0 0">1. Áreas que cada pessoa vê</h2><p class="note" style="margin:0">Vale para os dois quadros. A pessoa só enxerga os negócios que estão em colunas das áreas marcadas.</p>
    <div class="mtx"><table><thead><tr><th>Pessoa</th>${AREAS.map(a=>`<th><span class="atag" style="--a:${a.cor}">${esc(a.nome)}</span></th>`).join("")}</tr></thead><tbody>${pessoas.map(u=>`<tr><td><b>${esc(u.nome)}</b><br><span class="note">${esc(u.setor||"sem setor")}</span></td>${AREAS.map(a=>`<td><input type="checkbox" data-pa="${u.id}" data-aa="${a.id}" ${ACESSO[u.id]&&ACESSO[u.id].has(a.id)?"checked":""} aria-label="${esc(u.nome)} vê ${esc(a.nome)}"></td>`).join("")}</tr>`).join("")}</tbody></table></div>
    <h2 style="font-size:15px;margin:4px 0 0">2. O que cada pessoa faz em cada coluna · ${esc(Q.nome)}</h2>
-   <div class="mtx"><table><thead><tr><th>Pessoa</th><th>Cria negócios</th>${cs.map(c=>`<th>${esc(c.nome)}${areaDe(c.area)?`<br><span class="atag" style="--a:${areaDe(c.area).cor}">${esc(areaDe(c.area).nome)}</span>`:""}</th>`).join("")}</tr></thead><tbody>${pessoas.map(u=>`<tr><td><b>${esc(u.nome)}</b><br><span class="note">${esc(u.setor||"sem setor")}</span></td><td><input type="checkbox" data-cr="${u.id}" ${(CRIA[u.id]||{})[quadro]?"checked":""} aria-label="Cria negócios"></td>${cs.map(c=>{const v=(PERM[u.id]||{})[c.id]||"ver";if(!veArea(u.id,c.area))return `<td class="note" title="Não vê a área ${esc((areaDe(c.area)||{}).nome||"")}">não vê</td>`;return `<td><select data-u="${u.id}" data-c="${c.id}" class="lv-${v}"><option value="ver" ${v==="ver"?"selected":""}>Ver</option><option value="mover" ${v==="mover"?"selected":""}>Mover</option><option value="editar" ${v==="editar"?"selected":""}>Editar</option></select></td>`}).join("")}</tr>`).join("")}</tbody></table></div>`:'<p class="note">Nenhum usuário cadastrado além dos administradores. Convide pessoas em Usuários, no Gerenciador.</p>'}
+   <div class="mtx"><table><thead><tr><th>Pessoa</th><th title="Desmarcado: vê só os cards em que é responsável ou participante">Vê todos os cards</th><th>Cria negócios</th>${cs.map(c=>`<th>${esc(c.nome)}${areaDe(c.area)?`<br><span class="atag" style="--a:${areaDe(c.area).cor}">${esc(areaDe(c.area).nome)}</span>`:""}</th>`).join("")}</tr></thead><tbody>${pessoas.map(u=>`<tr><td><b>${esc(u.nome)}</b><br><span class="note">${esc(u.setor||"sem setor")}</span></td><td><input type="checkbox" data-vt="${u.id}" ${VT.has(u.id)?"checked":""} aria-label="Vê todos os cards"></td><td><input type="checkbox" data-cr="${u.id}" ${(CRIA[u.id]||{})[quadro]?"checked":""} aria-label="Cria negócios"></td>${cs.map(c=>{const v=(PERM[u.id]||{})[c.id]||"ver";if(!veArea(u.id,c.area))return `<td class="note" title="Não vê a área ${esc((areaDe(c.area)||{}).nome||"")}">não vê</td>`;return `<td><select data-u="${u.id}" data-c="${c.id}" class="lv-${v}"><option value="ver" ${v==="ver"?"selected":""}>Ver</option><option value="mover" ${v==="mover"?"selected":""}>Mover</option><option value="editar" ${v==="editar"?"selected":""}>Editar</option></select></td>`}).join("")}</tr>`).join("")}</tbody></table></div>`:'<p class="note">Nenhum usuário cadastrado além dos administradores. Convide pessoas em Usuários, no Gerenciador.</p>'}
    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><span class="note">Exemplo: o Comercial cria o card e edita só na Prospecção; nas demais colunas fica com "Mover" ou "Ver".</span><button class="btn pri" id="ok">Pronto</button></div></div>`;
     m.querySelectorAll("select[data-u]").forEach(s=>s.onchange=async()=>{const u=s.dataset.u,c=s.dataset.c,v=s.value;
       const r=v==="ver"?await sb.from("neg_permissoes").delete().eq("user_id",u).eq("coluna_id",c):await sb.from("neg_permissoes").upsert({user_id:u,coluna_id:c,nivel:v});
       if(r.error){toast(r.error.message);return}(PERM[u]||(PERM[u]={}))[c]=v;s.className="lv-"+v});
     m.querySelectorAll("[data-pa]").forEach(x=>x.onchange=async()=>{const u=x.dataset.pa,a=x.dataset.aa;const r=x.checked?await sb.from("neg_area_acesso").upsert({user_id:u,area_id:a}):await sb.from("neg_area_acesso").delete().eq("user_id",u).eq("area_id",a);if(r.error){toast(r.error.message);x.checked=!x.checked;return}const st=ACESSO[u]||(ACESSO[u]=new Set());x.checked?st.add(a):st.delete(a);draw()});
+    m.querySelectorAll("[data-vt]").forEach(x=>x.onchange=async()=>{const u=x.dataset.vt;const r=x.checked?await sb.from("neg_ver_todos").upsert({user_id:u}):await sb.from("neg_ver_todos").delete().eq("user_id",u);if(r.error){toast(r.error.message);x.checked=!x.checked;return}x.checked?VT.add(u):VT.delete(u);toast(x.checked?"Agora vê todos os cards.":"Agora vê só os próprios cards.")});
     m.querySelectorAll("[data-cr]").forEach(x=>x.onchange=async()=>{const u=x.dataset.cr;const r=x.checked?await sb.from("neg_criadores").upsert({user_id:u,quadro}):await sb.from("neg_criadores").delete().eq("user_id",u).eq("quadro",quadro);if(r.error){toast(r.error.message);x.checked=!x.checked;return}(CRIA[u]||(CRIA[u]={}))[quadro]=x.checked});
     $("#ok",m).onclick=async()=>{m.remove();await recarregar()};};
   draw();document.body.appendChild(m);m.onclick=async e=>{if(e.target===m){m.remove();await recarregar()}};
