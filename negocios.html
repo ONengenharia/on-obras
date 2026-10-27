@@ -208,6 +208,9 @@ img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:no
 .fxm svg .fn.aqui.perd rect{fill:#b3261e;stroke:#f2867d}.fxm svg .fh{font:700 11px Montserrat,sans-serif;fill:#2f6f9f;letter-spacing:.04em}
 .fxm svg .fa{fill:none;stroke:var(--line,#d6e1ea);stroke-width:1.8}.fxm svg .fa.on{stroke:var(--ok,#1f8a4c);stroke-width:2.4}.fxm svg .fl{font:600 10.5px Montserrat,sans-serif;fill:var(--muted)}.fxm svg .fl.on{fill:var(--ok,#1f8a4c)}
 @keyframes fxp{50%{stroke-width:6}}@media (prefers-reduced-motion:reduce){.fxm svg .fn.aqui rect,.fxm svg .fn.aqui polygon{animation:none}}
+.card.mencao{animation:cardPisca 1.2s ease-in-out infinite;border-color:#d32f2f!important}
+@keyframes cardPisca{0%,100%{box-shadow:0 0 0 0 rgba(211,47,47,.0);background-color:var(--bg)}50%{box-shadow:0 0 0 3px rgba(211,47,47,.85),0 0 18px rgba(211,47,47,.55);background-color:rgba(211,47,47,.28)}}
+@media (prefers-reduced-motion:reduce){.card.mencao{animation:none;box-shadow:0 0 0 3px rgba(211,47,47,.85)}}
 </style>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
@@ -346,7 +349,7 @@ function cardHtml(c){
   const atr=c.prazo&&new Date(c.prazo+"T23:59:00")<new Date();
   const nl=naoLidasCard(c.id),lb=lembCard(c.id),fant=fantasma(c);
   const onde=fant?(()=>{const col=COLS.find(x=>x.id===c.coluna);const a=col&&areaDe(col.area);return(a?a.nome+" · ":"")+(col?col.nome:"outra etapa")})():"";
-  return `<article class="card ${fant?"fantasma":""}" data-id="${c.id}" draggable="${!fant&&podeMover(c)}" tabindex="0">${nl.n?`<span class="cdot ${nl.men?"men":""}" title="${nl.n} mensagem(ns) não lida(s)${nl.men?" · você foi mencionado":""}">${nl.n}</span>`:""}
+  return `<article class="card ${fant?"fantasma":""} ${nl.men?"mencao":""}" data-id="${c.id}" draggable="${!fant&&podeMover(c)}" tabindex="0">${nl.n?`<span class="cdot ${nl.men?"men":""}" title="${nl.n} mensagem(ns) não lida(s)${nl.men?" · você foi mencionado":""}">${nl.n}</span>`:""}
    ${fant?`<span class="onde">🔒 Em ${esc(onde)}</span>`:""}
    ${c.etiquetas.length?`<div class="lbls">${c.etiquetas.map(i=>{const e=etqDe(c.quadro,i);return e?`<span class="lbl" style="background:${e.cor}">${esc(e.nome)}</span>`:""}).join("")}</div>`:""}
    <h3>${esc(c.titulo)}</h3><div class="c">${esc(c.cliente||"Sem cliente")}${c.cidade?" · "+esc(c.cidade):""}${c.tipo?` · ${esc(c.tipo)}`:""}${c.pot?` · ${esc(c.pot)} ${esc(c.un||"")}`:""}</div>
