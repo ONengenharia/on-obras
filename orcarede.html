@@ -1446,8 +1446,11 @@ async function editor(id){
   async function blobPlanta(u){const m=String(u).match(/^storage:(.+)$/)||String(u).match(/\/object\/(?:public|sign)\/negocios\/([^?]+)/);
     if(m){try{const {data,error}=await sb.storage.from("negocios").download(decodeURIComponent(m[1]));if(!error&&data&&data.size)return URL.createObjectURL(data)}catch(e){}}
     const su=await urlPlanta(u);if(!su)return"";try{const r=await fetch(su);if(r.ok)return URL.createObjectURL(await r.blob())}catch(e){}img.removeAttribute("crossorigin");return su}
-  function setPlanta(){D=dims();if(ORC.planta_url){img.hidden=false;const u0=ORC.planta_url;img.onerror=()=>toast("A imagem da planta não carregou. Tente importar de novo.");
-      blobPlanta(u0).then(u=>{if(ORC.planta_url!==u0||!u)return;if(img.src&&img.src.startsWith("blob:"))URL.revokeObjectURL(img.src);img.src=u});img.width=D.w;img.height=D.h;blank.hidden=true}else{img.hidden=true;blank.hidden=false;blank.style.width=D.w+"px";blank.style.height=D.h+"px"}}
+  const ocultaKey=()=>"orc.ocultaPlanta."+ORC.id;const plantaOculta=()=>{try{return localStorage.getItem(ocultaKey())==="1"}catch(e){return false}};
+  window.__plantaCache=window.__plantaCache||{};
+  function setPlanta(){D=dims();if(ORC.planta_url&&!plantaOculta()){img.hidden=false;const u0=ORC.planta_url;img.onerror=()=>toast("A imagem da planta não carregou. Tente importar de novo.");
+      const C=window.__plantaCache;if(C[u0]){if(img.src!==C[u0])img.src=C[u0]}else{const pr=C["p:"+u0]||(C["p:"+u0]=blobPlanta(u0));pr.then(u=>{delete C["p:"+u0];if(!u)return;C[u0]=u;if(ORC.planta_url===u0&&!plantaOculta())img.src=u})}
+      img.width=D.w;img.height=D.h;blank.hidden=true}else{img.hidden=true;blank.hidden=false;blank.style.width=D.w+"px";blank.style.height=D.h+"px"}}
   const inv=()=>Math.min(1/T.s,40);
   function apply(){if(!stage||!stage.isConnected)return;stage.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`;$("#pins").style.setProperty("--inv",inv());renderNet()}
   function fit(){if(!wrap)return;const r=wrap.getBoundingClientRect();if(!r.width)return;const s=Math.min(r.width/D.w,r.height/D.h)*.98;T={s,x:(r.width-D.w*s)/2,y:(r.height-D.h*s)/2};apply()}
@@ -1455,10 +1458,10 @@ async function editor(id){
   function zoomAt(f,cx,cy){const r=wrap.getBoundingClientRect();const minS=Math.min(r.width/D.w,r.height/D.h)*.5;const ns=Math.max(minS,Math.min(4,T.s*f));f=ns/T.s;T.x=cx-(cx-T.x)*f;T.y=cy-(cy-T.y)*f;T.s=ns;apply()}
   function renderMapbar(){
     const b=$("#mapbar");if(!b)return;
-    b.innerHTML=(colando?`<button class="btn on" id="mStopCol">⧉ Parar de colar</button>`:"")+`<button class="btn" id="bPlanta">Planta</button><button class="btn ${placing?"on":""}" id="mPlace">${placing?"Cancelar":"+ Ponto"}</button>`
+    b.innerHTML=(colando?`<button class="btn on" id="mStopCol">⧉ Parar de colar</button>`:"")+`<button class="btn" id="bPlanta">Planta</button>${ORC.planta_url?`<button class="btn ${plantaOculta()?"on":""}" id="bOculta" title="Esconder a imagem da planta para a tela ficar mais leve (os pontos continuam)">${plantaOculta()?"👁 Mostrar planta":"🙈 Ocultar planta"}</button>`:""}<button class="btn ${placing?"on":""}" id="mPlace">${placing?"Cancelar":"+ Ponto"}</button>`
       +(tracing?`<button class="btn on" id="mRede"><span class="dot" style="border-color:${TRM[tracing].cor}"></span>Concluir ${esc(TRM[tracing].nome)}${traceSobra!=null?` · sobra ${num(traceSobra)}%`:""}</button>`:`<button class="btn" id="mRede">〰 Rede</button>`)
       +`<button class="btn ${calib?"on":""}" id="mCal">${calib?"Cancelar escala":"Escala"}</button>`;
-    $("#bPlanta").onclick=plantaDialog;$("#mStopCol")&&($("#mStopCol").onclick=()=>{colando=null;renderMapbar();updHint()});
+    $("#bPlanta").onclick=plantaDialog;$("#bOculta")&&($("#bOculta").onclick=()=>{const v=!plantaOculta();try{localStorage.setItem(ocultaKey(),v?"1":"0")}catch(e){}if(v){img.removeAttribute("src")}setPlanta();renderMapbar();toast(v?"Planta oculta: a tela fica mais leve. Os pontos e a rede continuam.":"Planta visível.")});$("#mStopCol")&&($("#mStopCol").onclick=()=>{colando=null;renderMapbar();updHint()});
     $("#mPlace").onclick=()=>{placing=!placing;tracing=null;anchor=null;calib=null;renderMapbar();updHint();renderPins()};
     $("#mRede").onclick=()=>{if(tracing){tracing=null;anchor=null;renderMapbar();updHint();renderPins();return}
       if(!escala){toast("Calibre a escala da planta antes de traçar a rede.");return}
