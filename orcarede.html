@@ -1090,9 +1090,11 @@ async function editor(id){
   const ptById=i=>PTS.find(p=>p.id===i);
   const sobra=v=>v.sobra_pct??ORC.sobra_condutor_pct;
   const segVao=v=>{if(v.segmento_id)return v.segmento_id;const t=TRM[v.tipo_rede_id];if(!t)return null;const k=/^MT/i.test(t.nome)?"MT":/^BT/i.test(t.nome)?"BT":"";const s=SEGS.find(s=>s.nome===k);return s?s.id:null};
-  function linhasPonto(p){const L=IT.filter(i=>i.ponto_id===p.id).map(i=>{const e=i.ponto_estrutura_id&&PE.find(x=>x.id===i.ponto_estrutura_id);const k=i.auto==="cinta"?"Cintas":e?((ESTM[e.estrutura_id]||{}).categoria||"Grupos sem categoria"):"Avulsos";return{c:i.material_codigo,q:+i.quantidade,s:(e&&e.segmento_id)||p.segmento_id,k}});if(p.poste_id&&POM[p.poste_id])L.push({c:POM[p.poste_id].material_codigo,q:1,s:p.segmento_id,poste:1,k:"Postes"});return L}
+  let _IX=null;const ix=()=>{if(_IX)return _IX;const byP={},peM={};for(const i of IT)(byP[i.ponto_id]=byP[i.ponto_id]||[]).push(i);for(const e of PE)peM[e.id]=e;_IX={byP,peM};setTimeout(()=>{_IX=null},0);return _IX};
+  function linhasPonto(p){const X=ix();const L=(X.byP[p.id]||[]).map(i=>{const e=i.ponto_estrutura_id&&X.peM[i.ponto_estrutura_id];const k=i.auto==="cinta"?"Cintas":e?((ESTM[e.estrutura_id]||{}).categoria||"Grupos sem categoria"):"Avulsos";return{c:i.material_codigo,q:+i.quantidade,s:(e&&e.segmento_id)||p.segmento_id,k}});if(p.poste_id&&POM[p.poste_id])L.push({c:POM[p.poste_id].material_codigo,q:1,s:p.segmento_id,poste:1,k:"Postes"});return L}
   function linhasVao(v){const k=(1+sobra(v)/100)*(+v.comprimento_m);const t=TRM[v.tipo_rede_id];const s=segVao(v);if(t)return t.itens.map(i=>({c:i.material_codigo,q:k*i.multiplicador,s,k:"Condutores / Rede"}));return v.material_codigo?[{c:v.material_codigo,q:k,s,k:"Condutores / Rede"}]:[]}
-  const todas=()=>PTS.flatMap(linhasPonto).concat(VAOS.flatMap(linhasVao),EXT.map(x=>({c:x.material_codigo,q:+x.quantidade,s:x.segmento_id,extra:1,k:"Avulsos"})));
+  let _TD=null,_TK="";const todas=()=>{const k=IT.length+"|"+PE.length+"|"+PTS.length+"|"+VAOS.length+"|"+EXT.length;if(_TD&&_TK===k)return _TD;_TK=k;_IX=null;_TD=todas0();setTimeout(()=>{_TD=null},0);return _TD};
+  const todas0=()=>PTS.flatMap(linhasPonto).concat(VAOS.flatMap(linhasVao),EXT.map(x=>({c:x.material_codigo,q:+x.quantidade,s:x.segmento_id,extra:1,k:"Avulsos"})));
   function porCategoria(){const R={};todas().forEach(l=>{R[l.k]=(R[l.k]||0)+l.q*(preco(l.c)||0)});return R}
   const PAL_CAT=["#2f6f9f","#c2185b","#e0a100","#2e7d32","#6a1b9a","#00838f","#ef6c00","#5d4037","#546e7a","#ad1457","#1565c0"];
   const soma=L=>L.reduce((s,l)=>s+l.q*(preco(l.c)||0),0);
