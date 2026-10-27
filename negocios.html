@@ -197,6 +197,13 @@ img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:no
 .erro{max-width:420px;margin:12vh auto;text-align:center}
 .app{overflow:hidden}
 @media (max-width:640px){.areas a small{display:none}}
+.fxm .mbox{background:var(--panel);color:var(--ink);border-radius:12px;padding:18px;width:min(820px,100%);max-height:92vh;overflow:auto;display:grid;gap:10px}.fxm .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.fxm h2{margin:0;font-size:17px}.fxm .btn{text-decoration:none}
+.fxm svg .fn rect,.fxm svg .fn polygon{fill:var(--panel);stroke:var(--line);stroke-width:1.5}.fxm svg .fn .ft{font:600 12.5px Montserrat,sans-serif;fill:var(--muted);text-anchor:middle}.fxm svg .fn .fs{font:400 10.5px Montserrat,sans-serif;fill:var(--muted);text-anchor:middle}
+.fxm svg .fn.feito rect,.fxm svg .fn.feito polygon{fill:var(--ok-soft,#e2f4e9);stroke:var(--ok,#1f8a4c)}.fxm svg .fn.feito .ft{fill:var(--ok,#1f8a4c)}
+.fxm svg .fn.aqui rect,.fxm svg .fn.aqui polygon{fill:#2f6f9f;stroke:#62a8dc;stroke-width:3;animation:fxp 1.6s ease-in-out infinite}.fxm svg .fn.aqui .ft,.fxm svg .fn.aqui .fs{fill:#fff}
+.fxm svg .fn.aqui.perd rect{fill:#b3261e;stroke:#f2867d}.fxm svg .fh{font:700 11px Montserrat,sans-serif;fill:#2f6f9f;letter-spacing:.04em}
+.fxm svg .fa{fill:none;stroke:var(--line,#d6e1ea);stroke-width:1.8}.fxm svg .fa.on{stroke:var(--ok,#1f8a4c);stroke-width:2.4}.fxm svg .fl{font:600 10.5px Montserrat,sans-serif;fill:var(--muted)}.fxm svg .fl.on{fill:var(--ok,#1f8a4c)}
+@keyframes fxp{50%{stroke-width:6}}@media (prefers-reduced-motion:reduce){.fxm svg .fn.aqui rect,.fxm svg .fn.aqui polygon{animation:none}}
 </style>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
@@ -382,6 +389,72 @@ async function carregarExtras(id){
     sb.from("neg_historico").select("*").eq("negocio_id",id).order("criado_em",{ascending:false})]);
   extras={msgs:m.data||[],anx:a.data||[],hist:h.data||[],lemb:lr.data||[]};
 }
+/* ---------- Fluxograma do processo ---------- */
+const FX_NOS=[
+ {id:"comercial",t:"Comercial",s:"prospecção / contato",x:300,y:40},
+ {id:"d_orc",t:"Precisa orçamento?",d:1,x:300,y:135},
+ {id:"orcamento",t:"Engenharia orça",s:"OrçaRede",x:560,y:135},
+ {id:"proposta",t:"Comercial",s:"proposta / negociação",x:300,y:230},
+ {id:"d_venda",t:"Fechou a venda?",d:1,x:300,y:325},
+ {id:"perdido",t:"Perdido",s:"fim",x:60,y:325,fim:1},
+ {id:"adm",t:"ADM",s:"contrato / cadastro",x:300,y:420},
+ {id:"engenharia",t:"Engenharia",s:"levantamento / análise",x:300,y:515},
+ {id:"d_proj",t:"Precisa projeto?",d:1,x:300,y:610},
+ {id:"projeto",t:"Elaborar projeto",s:"engenharia",x:560,y:610},
+ {id:"d_aprov",t:"Projeto aprovado?",d:1,x:560,y:705},
+ {id:"compras",t:"Compras",s:"cotações / OC",x:300,y:800},
+ {id:"execucao",t:"Execução",s:"obra",x:300,y:895},
+ {id:"concluido",t:"Concluído",s:"energização / entrega",x:300,y:990,fim:1}];
+const FX_ARESTAS=[["comercial","d_orc"],["d_orc","orcamento","Sim"],["d_orc","proposta","Não"],["orcamento","proposta","volta ao comercial"],["proposta","d_venda"],["d_venda","perdido","Não"],["d_venda","adm","Sim"],
+ ["adm","engenharia"],["engenharia","d_proj"],["d_proj","projeto","Sim"],["d_proj","compras","Não"],["projeto","d_aprov"],["d_aprov","projeto","Não · revisar"],["d_aprov","compras","Sim"],["compras","execucao"],["execucao","concluido"]];
+function etapaDaColuna(nome){const n=String(nome||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+  if(/perdid/.test(n))return{at:"perdido"};
+  if(/conclu|finaliz|energiz|vistoria/.test(n))return{at:"concluido"};
+  if(/execu|obra/.test(n))return{at:"execucao"};
+  if(/compra/.test(n))return{at:"compras"};
+  if(/reprovad|pendenc/.test(n))return{at:"projeto",reprov:1};
+  if(/aprovad/.test(n))return{at:"compras",aprov:1};
+  if(/analise/.test(n))return{at:"d_aprov"};
+  if(/projeto/.test(n))return{at:"projeto"};
+  if(/levantamento/.test(n))return{at:"engenharia"};
+  if(/contrato|adm/.test(n))return{at:"adm"};
+  if(/negociado/.test(n))return{at:"adm"};
+  if(/orc|orcar|orcando|orcamento/.test(n))return{at:"orcamento"};
+  if(/proposta|negocia/.test(n))return{at:"proposta"};
+  return{at:"comercial"}}
+async function fluxograma(c){
+  const col=COLS.find(x=>x.id===c.coluna);const E=etapaDaColuna(col&&col.nome);
+  const info={};
+  try{const O2=sb.schema("orcarede");const [o,cp]=await Promise.all([O2.from("orcamentos").select("id,titulo,status,vigente,versao").eq("negocio_id",c.id),O2.from("compras").select("id").eq("negocio_id",c.id).limit(1)]);
+    const ov=(o.data||[]).find(x=>x.vigente)||(o.data||[])[0];if(ov)info.orcamento=`v${ov.versao||1} · ${ov.status==="finalizado"?"finalizado ✓":"em andamento"}`;
+    const cid=cp.data&&cp.data[0]&&cp.data[0].id;if(cid){const [ct,ped]=await Promise.all([O2.from("compra_cotacoes").select("id",{count:"exact",head:true}).eq("compra_id",cid),O2.from("compra_pedidos").select("id",{count:"exact",head:true}).eq("compra_id",cid)]);info.compras=`${ct.count||0} cotações · ${ped.count||0} OCs`;info.comprasId=cid}}catch(e){}
+  if(c.obra_id)info.execucao="no Gerenciador de obras";
+  // caminho percorrido até a etapa atual
+  const usouOrc=!!info.orcamento||["orcamento"].includes(E.at),usouProj=["projeto","d_aprov"].includes(E.at)||E.aprov||E.reprov;
+  const caminho=["comercial","d_orc",...(usouOrc?["orcamento"]:[]),"proposta","d_venda",...(E.at==="perdido"?["perdido"]:["adm","engenharia","d_proj",...(usouProj||["compras","execucao","concluido"].includes(E.at)&&usouProj?["projeto","d_aprov"]:[]),"compras","execucao","concluido"])];
+  const k=caminho.indexOf(E.at);const feito=new Set(k>=0?caminho.slice(0,k):[]);
+  const N=Object.fromEntries(FX_NOS.map(n=>[n.id,n]));const W=150,H=52;
+  const borda=(n,tx,ty)=>{if(n.d){const dx=tx-n.x,dy=ty-n.y;const k2=1/(Math.abs(dx)/(W*.62)+Math.abs(dy)/(H*.85)||1);return[n.x+dx*k2,n.y+dy*k2]}const dx=tx-n.x,dy=ty-n.y;const k2=Math.min(Math.abs((W/2)/(dx||1e-9)),Math.abs((H/2)/(dy||1e-9)));return[n.x+dx*k2,n.y+dy*k2]};
+  const ares=FX_ARESTAS.map(([a,b,l])=>{const A=N[a],B=N[b];const ia=caminho.indexOf(a),ib=caminho.indexOf(b);const on=ia>=0&&ib===ia+1&&ib<=k;let p;
+    if(a==="orcamento"&&b==="proposta")p=`M${A.x},${A.y+H/2} L${A.x},${B.y} L${B.x+W/2},${B.y}`;
+    else if(a==="d_aprov"&&b==="projeto")p=`M${A.x+W*.62},${A.y} L${A.x+W*.62+30},${A.y} L${A.x+W*.62+30},${B.y} L${B.x+W/2},${B.y}`;
+    else if(a==="d_aprov"&&b==="compras")p=`M${A.x},${A.y+H*.85} L${A.x},${B.y} L${B.x+W/2},${B.y}`;
+    else if(a==="d_proj"&&b==="compras")p=`M${A.x},${A.y+H*.85} L${B.x},${B.y-H/2}`;
+    else{const [x1,y1]=borda(A,B.x,B.y),[x2,y2]=borda(B,A.x,A.y);p=`M${x1},${y1} L${x2},${y2}`}
+    const m=p.match(/[\d.]+/g).map(Number);const lx=(m[0]+m[m.length-2])/2,ly=(m[1]+m[m.length-1])/2;
+    return `<path d="${p}" class="fa ${on?"on":""}" marker-end="url(#${on?"seta2":"seta"})"/>${l?`<text x="${a==="d_aprov"&&b==="projeto"?A.x+W*.62+36:lx+6}" y="${a==="d_aprov"&&b==="projeto"?(A.y+B.y)/2:ly-5}" class="fl ${on?"on":""}">${esc(l)}</text>`:""}`}).join("");
+  const nos=FX_NOS.map(n=>{const st=n.id===E.at?"aqui":feito.has(n.id)?"feito":"";const sub=info[n.id]||n.s||"";
+    const forma=n.d?`<polygon points="${n.x},${n.y-H*.85} ${n.x+W*.62},${n.y} ${n.x},${n.y+H*.85} ${n.x-W*.62},${n.y}"/>`:`<rect x="${n.x-W/2}" y="${n.y-H/2}" width="${W}" height="${H}" rx="${n.fim?26:10}"/>`;
+    return `<g class="fn ${st} ${n.d?"dec":""} ${n.id==="perdido"?"perd":""}" data-n="${n.id}">${forma}<text x="${n.x}" y="${n.y+(n.d||!sub?4:-3)}" class="ft">${st==="feito"?"✓ ":""}${esc(n.t)}</text>${!n.d&&sub?`<text x="${n.x}" y="${n.y+13}" class="fs">${esc(sub)}</text>`:""}${st==="aqui"?`<text x="${n.x}" y="${n.y-(n.d?H*.85:H/2)-7}" class="fh" text-anchor="middle">▼ VOCÊ ESTÁ AQUI</text>`:""}</g>`}).join("");
+  const m=document.createElement("div");m.className="modal fxm";
+  m.innerHTML=`<div class="mbox wide" style="max-width:820px"><div class="row"><h2>Fluxo do negócio · ${esc(c.titulo)}</h2><button class="btn" data-fx>Fechar</button></div>
+   <p class="note">Etapa atual pela coluna do card: <b>${esc(col?col.nome:"—")}</b>${E.reprov?" (projeto reprovado: volta para revisão)":""}. Etapas com ✓ já passaram.</p>
+   <div style="overflow:auto"><svg viewBox="-40 0 840 1035" style="width:100%;min-width:560px;height:auto" role="img" aria-label="Fluxograma do processo">
+    <defs><marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--muted)"/></marker><marker id="seta2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--ok)"/></marker></defs>
+    ${ares}${nos}</svg></div>
+   <div class="row"><span class="note">Para mudar a etapa, mova o card no quadro.</span><span style="display:flex;gap:8px">${info.comprasId?`<a class="btn" href="compras.html?id=${info.comprasId}">🛒 Compras</a>`:""}${ADM&&info.orcamento?`<a class="btn" href="orcarede.html?neg=${c.id}">Orçamento</a>`:""}</span></div></div>`;
+  document.body.appendChild(m);m.onclick=e=>{if(e.target===m||e.target.closest("[data-fx]"))m.remove()};
+  setTimeout(()=>{const a=m.querySelector(".fn.aqui");a&&a.scrollIntoView({block:"center",behavior:"smooth"})},60)}
 async function abrir(id,manter){
   aberto=id;const c=CARDS.find(x=>x.id===id);if(!c){fechar();return}
   if(!manter)await carregarExtras(id);
@@ -392,7 +465,7 @@ async function abrir(id,manter){
   const prox=cols[i+1],ant=cols[i-1];
   g.innerHTML=`<div class="gvf"></div><aside class="gvp win" role="dialog" aria-label="${esc(c.titulo)}">
    <div class="gvh"><div class="grab">⠿ arraste para mover · puxe o canto inferior direito para redimensionar</div><div class="row"><div><span class="tipo ${c.quadro}">${esc(QUADROS[c.quadro].nome)}</span>${c.obra_id?' <span class="tipo eletrica">⚡ No Gerenciador de obras</span>':c.no_mapa?' <span class="tipo solar">📍 No mapa</span>':""}<h2>${esc(c.titulo)}</h2><span class="note">${esc(c.cliente||"Sem cliente")}${c.cidade?" · "+esc(c.cidade):""} · ${brl(c.valor)}</span></div><span style="display:flex;gap:6px">${ADM?'<button class="btn" id="del" style="color:var(--bad)">Excluir</button>':""}<button class="btn" id="x">Fechar</button></span></div>
-    <div class="flow">${cols.map((x,j)=>`<span class="${j<i?"feito":j===i?"aqui":""}" title="${esc((areaDe(x.area)||{}).nome||"")}">${esc(x.nome)}</span>`).join("")}</div>
+    <div class="flow">${cols.map((x,j)=>`<span class="${j<i?"feito":j===i?"aqui":""}" title="${esc((areaDe(x.area)||{}).nome||"")}">${esc(x.nome)}</span>`).join("")}</div><button class="btn sm" id="bFluxo" style="margin:6px 0">🧭 Ver fluxograma do processo</button>
     ${fantasma(c)?`<div class="banner ro">🔒 Este negócio já saiu da sua área e está agora em <b>${esc((()=>{const col=COLS.find(x=>x.id===c.coluna);const a=col&&areaDe(col.area);return(a?a.nome+" · ":"")+(col?col.nome:"")})())}</b>. Você acompanha e pode conversar, mas não pode alterar.</div>`:ed?"":`<div class="banner ro">🔒 ${podeMover(c)?"Nesta etapa você pode mover o card e conversar, mas não editar os dados.":"Nesta etapa seu acesso é só leitura, mas pode conversar no chat."}</div>`}
     ${ADM&&c.quadro!=="solar"?'<div class="next go2"><span>Orçamento de materiais da rede (OrçaRede).</span><a class="btn" href="orcarede.html?neg='+c.id+'">Abrir orçamento →</a></div>':""}${COMPRAS&&c.quadro!=="solar"?'<div class="next go2"><span>Compras da obra: cotações, comparativo e previsto × realizado.</span><a class="btn" href="compras.html?neg='+c.id+'">🛒 Compras →</a></div>':""}${c.obra_id?'<div class="next go2"><span>Esta obra já está no Gerenciador de obras.</span><a class="btn pri" href="obra.html?id='+c.obra_id+'">Abrir no Gerenciador de obras →</a></div>':""}
     ${podeMover(c)&&(prox||ant)?`<div class="next"><span class="note">Mover para:</span>${prox?`<button class="btn pri" id="go">${esc(prox.nome)}${!veCol(prox.id)&&areaDe(prox.area)?" · "+esc(areaDe(prox.area).nome):""} →</button>`:""}${ant?`<button class="btn" id="back">← ${esc(ant.nome)}</button>`:""}<select id="mv" class="btn"><option value="">Outra etapa…</option>${cols.filter(x=>x.id!==c.coluna).map(x=>`<option value="${x.id}">${esc(x.nome)}${areaDe(x.area)?" ("+esc(areaDe(x.area).nome)+")":""}</option>`).join("")}</select></div>`:""}
@@ -437,6 +510,7 @@ async function abrir(id,manter){
      <div class="sec"><h4>Pessoas no card</h4><div class="pick">${U.map(u=>`<button data-m="${u.id}" class="${c.membros.includes(u.id)?"on":""}" ${dis}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")}</div></div>
      <div class="sec"><h4>Etiquetas</h4><div class="pick">${ADM?'<button class="nlb" id="nlb">+ Nova etiqueta</button>':""}${ETQ.filter(e=>e.quadro===c.quadro).map(e=>`<button class="lb ${c.etiquetas.includes(e.id)?"on":""}" style="background:${e.cor}" data-l="${e.id}" ${dis}>${esc(e.nome)}</button>`).join("")}</div></div>
      <div class="sec"><h4>Ao chegar em ${esc((cols.find(x=>x.gatilho)||{nome:"(coluna ⚡ não definida)"}).nome)}</h4><p class="note" style="margin:0">${c.quadro==="solar"?"O card vira um ponto no mapa de obras (sem acompanhamento de postes e rede).":"Com o negócio fechado, o card é enviado ao Gerenciador de obras (com confirmação), com planta, postes, rede, fotos, diário e link do cliente."}</p></div>`;
+    {const bf=g.querySelector("#bFluxo");if(bf)bf.onclick=()=>fluxograma(c)}
     gb.querySelectorAll("[data-f]").forEach(el=>el.onchange=async()=>{
       const f=el.dataset.f;let v=el.value;
       const novaLista={"__tipo":["tipo","Novo tipo de obra","Ex.: Iluminação pública"],"__conc":["conc","Nova concessionária","Ex.: Cooperluz"],"__origem":["origem","Nova origem","Ex.: Feira"],"__pagto":["pagto","Nova forma de pagamento","Ex.: Consórcio"]}[v];
