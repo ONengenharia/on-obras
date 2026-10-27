@@ -107,6 +107,7 @@ header.top img{height:44px;border-radius:4px;display:block}
 .resumo>summary::-webkit-details-marker{display:none}
 .resumo .segbars{padding:2px 10px 10px;gap:6px;max-height:150px;overflow:auto}.resumo .sb{grid-template-columns:110px minmax(0,1fr) 78px;font-size:11.5px}.resumo .sb .bar{height:7px}
 .pin .lp{position:absolute;top:-11px;right:-11px;width:17px;height:17px;border-radius:50%;background:#ffd54f;border:1.5px solid #fff;display:grid;place-items:center;font-size:10px;line-height:1;box-shadow:0 1px 2px rgba(0,0,0,.35)}
+.pin .tr{position:absolute;bottom:-12px;right:-10px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:13px solid #d32f2f;filter:drop-shadow(0 0 1px #fff) drop-shadow(0 1px 1px rgba(0,0,0,.4))}
 .pin .lp.no{background:#cfd8dc;filter:grayscale(1);opacity:.85}
 .ipbox{border:1px solid var(--line);border-radius:8px;padding:9px 10px;display:grid;gap:8px;background:var(--bg)}
 .ipbox .row b{font-size:13px}
@@ -185,6 +186,10 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .card h2{margin:0;font-size:15px}
 .wrap2{max-width:1400px;margin:0 auto;display:grid;gap:12px;padding-bottom:20px}
 .cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:12px;align-items:start}
+.wrap2.wide3{max-width:none;padding-left:12px;padding-right:12px}.cols3{display:grid;grid-template-columns:280px minmax(0,1fr) 340px;gap:12px;align-items:start}
+.stk{position:sticky;top:8px;max-height:calc(100vh - 16px);overflow:auto}
+@media (max-width:1280px){.cols3{grid-template-columns:minmax(0,1fr) 320px}.cols3>aside:first-child{grid-column:2;grid-row:1}.cols3>.card{grid-row:1/span 2;grid-column:1}}
+@media (max-width:900px){.cols3{grid-template-columns:1fr}.cols3>*{grid-column:auto!important;grid-row:auto!important}.stk{position:static;max-height:none}}
 .mt td input{width:96px;padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);font-family:var(--f-mono);font-size:12.5px;text-align:right}
 .mt tr.man td{background:var(--warn-soft)}
 .orig{font-size:12px;line-height:1.3}.orig small{display:block;color:var(--muted);font-size:11px}
@@ -1081,16 +1086,21 @@ async function editor(id){
   const SEGM=()=>Object.fromEntries(SEGS.map(s=>[s.id,s]));
   const ehIP=eid=>{const e=ESTM[eid];return !!e&&(e.categoria==="IP"||/^(CONJ_IP|FIX_IP)/i.test(e.codigo))};
   const temIP=p=>PE.some(e=>e.ponto_id===p.id&&ehIP(e.estrutura_id));
+  const catsPonto=p=>{const C=new Set();(ix().peP[p.id]||[]).forEach(e=>{const es=ESTM[e.estrutura_id]||{};let k=(es.categoria||"").toUpperCase();if(ehIP(e.estrutura_id))k="IP";if(/TRANSF/.test(k)||/^(TR|ETR|TRAFO)/i.test(es.codigo||""))k="TR";C.add(k)});
+    if(!C.has("TR")&&(ix().byP[p.id]||[]).some(i=>/TRANSFORMADOR/i.test((MAT[i.material_codigo]||{}).nome||"")))C.add("TR");return C};
+  const temTR=p=>catsPonto(p).has("TR");
+  function tipoPoste(p){if(!p.poste_id)return null;const C=catsPonto(p);if(C.has("TR"))return"Com transformador";const mt=C.has("MT"),bt=C.has("BT"),ip=C.has("IP");
+    if(mt&&(bt||ip))return"MT + BT/IP";if(mt)return"Só MT";if(bt&&ip)return"BT + IP";if(bt)return"Só BT";if(ip)return"Só IP";return"Outros"}
   const fixIP=p=>{const ps=POM[p.poste_id];if(!ps)return null;const c=`FIX_IP_${+ps.altura_m}(${+ps.esforco_kn})`.toUpperCase();return EST.find(e=>e.codigo.toUpperCase()===c)||null};
   let P=(PRC.data&&PRC.data[0])||{orcamento_id:id,metodo:"A",pct_materiais:50,valor_servico:null,lucro_pct:15,custos:[],materiais_ref:null};
   let etapa=["projeto","materiais","precificacao"].includes(Q.get("etapa"))?Q.get("etapa"):"projeto";
-  let selP=null,selV=null,placing=false,tracing=null,anchor=null,calib=null,fMat="",fPt="",soSemPreco=false,fCat="",cardModo=(()=>{try{return localStorage.getItem("orc_cardModo")||"cat"}catch(e){return"cat"}})(),SUBL=null,ordMat=(()=>{try{return localStorage.getItem("orc_ordMat")||"alfa"}catch(e){return"alfa"}})();const marcados=new Set();
+  let selP=null,selV=null,placing=false,tracing=null,anchor=null,calib=null,fMat="",fPt="",soSemPreco=false,fCat="",fSub="",cardModo=(()=>{try{return localStorage.getItem("orc_cardModo")||"cat"}catch(e){return"cat"}})(),SUBL=null,ordMat=(()=>{try{return localStorage.getItem("orc_ordMat")||"alfa"}catch(e){return"alfa"}})();const marcados=new Set();
 
   const preco=c=>{const o=OP[c];return (o&&(o.manual||ORC.modo_preco==="travado"))?(o?o.v:VIG[c]):(VIG[c]??(o&&o.v))};
   const ptById=i=>PTS.find(p=>p.id===i);
   const sobra=v=>v.sobra_pct??ORC.sobra_condutor_pct;
   const segVao=v=>{if(v.segmento_id)return v.segmento_id;const t=TRM[v.tipo_rede_id];if(!t)return null;const k=/^MT/i.test(t.nome)?"MT":/^BT/i.test(t.nome)?"BT":"";const s=SEGS.find(s=>s.nome===k);return s?s.id:null};
-  let _IX=null;const ix=()=>{if(_IX)return _IX;const byP={},peM={};for(const i of IT)(byP[i.ponto_id]=byP[i.ponto_id]||[]).push(i);for(const e of PE)peM[e.id]=e;_IX={byP,peM};setTimeout(()=>{_IX=null},0);return _IX};
+  let _IX=null;const ix=()=>{if(_IX)return _IX;const byP={},peM={};for(const i of IT)(byP[i.ponto_id]=byP[i.ponto_id]||[]).push(i);const peP={};for(const e of PE){peM[e.id]=e;(peP[e.ponto_id]=peP[e.ponto_id]||[]).push(e)}_IX={byP,peM,peP};setTimeout(()=>{_IX=null},0);return _IX};
   function linhasPonto(p){const X=ix();const L=(X.byP[p.id]||[]).map(i=>{const e=i.ponto_estrutura_id&&X.peM[i.ponto_estrutura_id];const k=i.auto==="cinta"?"Cintas":e?((ESTM[e.estrutura_id]||{}).categoria||"Grupos sem categoria"):"Avulsos";return{c:i.material_codigo,q:+i.quantidade,s:(e&&e.segmento_id)||p.segmento_id,k}});if(p.poste_id&&POM[p.poste_id])L.push({c:POM[p.poste_id].material_codigo,q:1,s:p.segmento_id,poste:1,k:"Postes"});return L}
   function linhasVao(v){const k=(1+sobra(v)/100)*(+v.comprimento_m);const t=TRM[v.tipo_rede_id];const s=segVao(v);if(t)return t.itens.map(i=>({c:i.material_codigo,q:k*i.multiplicador,s,k:"Condutores / Rede"}));return v.material_codigo?[{c:v.material_codigo,q:k,s,k:"Condutores / Rede"}]:[]}
   let _TD=null,_TK="";const todas=()=>{const k=IT.length+"|"+PE.length+"|"+PTS.length+"|"+VAOS.length+"|"+EXT.length;if(_TD&&_TK===k)return _TD;_TK=k;_IX=null;_TD=todas0();setTimeout(()=>{_TD=null},0);return _TD};
@@ -1155,12 +1165,13 @@ async function editor(id){
   function dadosDialog(){
     modal(`<h2>Dados do orçamento</h2><label class="fld">Projeto<input name="titulo" value="${esc(ORC.titulo)}" required></label>
      <div class="grid2"><label class="fld">Cliente<input name="cliente" value="${esc(ORC.cliente||"")}"></label><label class="fld">Cidade<input name="cidade" value="${esc(ORC.cidade||"")}"></label></div>
-     <label class="fld">Classe de tensão da rede<select name="kv"><option value="">— não definida —</option>${[15,25].map(k=>`<option value="${k}" ${+ORC.tensao_kv===k?"selected":""}>${k} kV</option>`).join("")}</select></label>
+     <div class="grid2"><label class="fld">Nº de lotes (loteamento)<input name="lotes" inputmode="numeric" value="${ORC.lotes||""}" placeholder="opcional"></label>
+     <label class="fld">Classe de tensão da rede<select name="kv"><option value="">— não definida —</option>${[15,25].map(k=>`<option value="${k}" ${+ORC.tensao_kv===k?"selected":""}>${k} kV</option>`).join("")}</select></label></div>
      <label class="fld">Segmentos da obra (um por linha)<textarea name="segs" rows="4">${esc(SEGS.map(s=>s.nome).join("\n"))}</textarea></label>
      <label class="fld">Observações<textarea name="obs" rows="3">${esc(ORC.obs||"")}</textarea></label>
      ${AUTO_CINTA?`<div class="row"><span class="note">Cintas automáticas: recalcula todos os pontos que não estão em modo manual.</span><button type="button" class="btn sm" id="dCint">↻ Recalcular cintas</button></div>`:""}
      <div><button type="button" class="btn del sm" id="dDel">Excluir esta versão</button></div>`,async f=>{
-      const upd={titulo:f.titulo.trim(),cliente:f.cliente.trim()||null,cidade:f.cidade.trim()||null,obs:f.obs,tensao_kv:f.kv?+f.kv:null};await chk(O.from("orcamentos").update(upd).eq("id",ORC.id));Object.assign(ORC,upd);
+      const upd={titulo:f.titulo.trim(),cliente:f.cliente.trim()||null,cidade:f.cidade.trim()||null,obs:f.obs,tensao_kv:f.kv?+f.kv:null,lotes:parseInt(f.lotes)||null};await chk(O.from("orcamentos").update(upd).eq("id",ORC.id));Object.assign(ORC,upd);
       const nomes=f.segs.split("\n").map(s=>s.trim()).filter(Boolean);
       for(const s of SEGS.filter(s=>!nomes.includes(s.nome))){await chk(O.from("orc_segmentos").delete().eq("id",s.id));SEGS.splice(SEGS.indexOf(s),1);PTS.forEach(p=>{if(p.segmento_id===s.id)p.segmento_id=null});PE.forEach(e=>{if(e.segmento_id===s.id)e.segmento_id=null});VAOS.forEach(v=>{if(v.segmento_id===s.id)v.segmento_id=null})}
       const cores=["#c2185b","#1565c0","#e0a800","#6a3fbf","#00897b","#ef6c00","#5d4037"];
@@ -1464,7 +1475,7 @@ async function editor(id){
     h.textContent=colando?`Colando “${nomePonto(ptById(colando)||{numero:0})}”: clique na planta (novo ponto) ou em pontos existentes · Esc termina`:placing?"Toque na planta onde fica o ponto":tracing?(anchor?"Toque no próximo poste · toque no vazio para começar outro trecho":"Toque no poste de início"):calib?(calib.length?"Agora toque no segundo ponto da medida conhecida":"Toque no primeiro ponto de uma medida conhecida (ex.: cota de 100 m)"):""}
   function renderPins(){
     const el=$("#pins");if(!el)return;const SG=SEGM();
-    el.innerHTML=PTS.map(p=>`<button class="pin ${p.poste_id?"":"vazio"} ${p.id===selP?"sel":""} ${p.id===anchor?"anchor":""}" data-id="${p.id}" style="left:${p.x}px;top:${p.y}px${SG[p.segmento_id]?";background:"+SG[p.segmento_id].cor:""}" title="${esc(nomePonto(p))}">${p.numero}${p.poste_id||temIP(p)?`<span class="lp ${temIP(p)?"":"no"}" title="${temIP(p)?"Luminária orçada":"Sem luminária"}">💡</span>`:""}</button>`).join("");
+    el.innerHTML=PTS.map(p=>`<button class="pin ${p.poste_id?"":"vazio"} ${p.id===selP?"sel":""} ${p.id===anchor?"anchor":""}" data-id="${p.id}" style="left:${p.x}px;top:${p.y}px${SG[p.segmento_id]?";background:"+SG[p.segmento_id].cor:""}" title="${esc(nomePonto(p))}">${p.numero}${p.poste_id||temIP(p)?`<span class="lp ${temIP(p)?"":"no"}" title="${temIP(p)?"Luminária orçada":"Sem luminária"}">💡</span>`:""}${temTR(p)?'<span class="tr" title="Transformador"></span>':""}</button>`).join("");
     $$(".pin",el).forEach(b=>{
       b.onpointerdown=e=>{e.stopPropagation();if(e.button!==0||tracing||placing||calib||b.dataset.id!==selP)return;
         const p=ptById(b.dataset.id),sx=e.clientX,sy=e.clientY,ox=p.x,oy=p.y;let dragged=false;b.setPointerCapture(e.pointerId);
@@ -1687,11 +1698,16 @@ async function editor(id){
     const f=fMat.toLowerCase();
     const CATC=new Set(fCat?todas().filter(l=>l.k===fCat).map(l=>l.c):[]);if(!SUBL){O.from("subgrupos").select("nome").order("ordem").then(r=>{SUBL=(r.data||[]).map(x=>x.nome);telaMateriais()});SUBL=[]}
     const ORDS={alfa:(a,b)=>a.m.nome.localeCompare(b.m.nome),sub:(a,b)=>(a.m.subgrupo||"").localeCompare(b.m.subgrupo||"")||a.m.nome.localeCompare(b.m.nome),subtot:(a,b)=>b.q*(preco(b.c)||0)-a.q*(preco(a.c)||0),preco:(a,b)=>(preco(b.c)||0)-(preco(a.c)||0),qtd:(a,b)=>b.q-a.q};
-    const F=A.filter(l=>(!f||l.m.nome.toLowerCase().includes(f)||l.c.includes(f)||(l.m.subgrupo||"").toLowerCase().includes(f))&&(!soSemPreco||!preco(l.c))&&(!fCat||CATC.has(l.c))).sort(ORDS[ordMat]||ORDS.alfa);
+    const F=A.filter(l=>(!f||l.m.nome.toLowerCase().includes(f)||l.c.includes(f)||(l.m.subgrupo||"").toLowerCase().includes(f))&&(!soSemPreco||!preco(l.c))&&(!fCat||CATC.has(l.c))&&(!fSub||((l.m.subgrupo||"Sem subgrupo")===fSub))).sort(ORDS[ordMat]||ORDS.alfa);
     const PS=porSegmento(),T0=totalMat(),SG=SEGM();
     const segRows=Object.entries(PS).sort((a,b)=>b[1]-a[1]);
     const nManual=Object.values(OP).filter(o=>o.manual).length,semPreco=A.filter(l=>preco(l.c)==null).length;
-    el.innerHTML=`<div class="wrap2"><div class="cols">
+    const PSUB={};todas().forEach(l=>{const k=(MAT[l.c]||{}).subgrupo||"Sem subgrupo";PSUB[k]=(PSUB[k]||0)+l.q*(preco(l.c)||0)});
+    const TP={};PTS.forEach(p=>{const t=tipoPoste(p);if(!t)return;const v=soma(linhasPonto(p));(TP[t]=TP[t]||{n:0,v:0}).n++;TP[t].v+=v});
+    const nL=+ORC.lotes||0;
+    el.innerHTML=`<div class="wrap2 wide3"><div class="cols3">
+      <aside class="card stk"><h2>Custo por subgrupo</h2><p class="note">Clique para filtrar a lista.</p>
+       <div class="segbars">${Object.entries(PSUB).sort((a,b)=>b[1]-a[1]).map(([k,v],i)=>`<div class="sb" data-fs="${esc(k)}" style="--c:${PAL_CAT[i%PAL_CAT.length]};cursor:pointer;${fSub&&fSub!==k?"opacity:.45":""}"><span>${fSub===k?"▸ ":""}${esc(k)}</span><div class="bar"><b style="width:${T0?v/T0*100:0}%"></b></div><span class="n">${T0?(v/T0*100).toFixed(v/T0<.01?1:0):0}%</span><span></span><span class="v">${brl(v)}</span></div>`).join("")}</div>${fSub?'<button class="lnk" data-fs="">mostrar todos</button>':""}</aside>
       <div class="card"><div class="row"><h2>Consolidação de materiais</h2>
         <div class="tools"><button class="btn sm" id="xComp">⬇ Exportar lista…</button><button class="btn sm" id="xForn" title="Excel com logo e cabeçalho da empresa, sem preço e sem nome da obra">⬇ Lista para fornecedores</button></div></div>
        <div class="row"><div class="tools"><button class="btn sm ${ORC.modo_preco==="base"?"on":""}" data-mp="base">Acompanhar base</button><button class="btn sm ${ORC.modo_preco==="travado"?"on":""}" data-mp="travado">Preços travados</button>
@@ -1707,15 +1723,23 @@ async function editor(id){
           <td class="hm orig">${man?`<b>Manual neste orçamento</b><small>base: ${vg?brl(vg.valor):"—"}</small>`:vg?`<b>${esc(vg.fornecedor||ORIG[vg.origem]||vg.origem)}</b><small>${fdata(vg.data)}${vg.documento&&vg.fornecedor?" · "+esc(vg.documento):""}</small>`:"—"}</td>
           <td class="n">${man?`<button class="xb" data-rp="${esc(l.c)}" title="Voltar ao preço da base">↺</button>`:""}<button class="xb" data-rm="${esc(l.c)}" title="Remover do orçamento">🗑</button></td></tr>`}).join("")}
        </tbody><tfoot><tr><td colspan="4"><b>Total (${A.length} materiais)</b></td><td class="n"><b>${brl(T0)}</b></td><td colspan="2"></td></tr></tfoot></table></div></div>
+      <aside class="stk" style="display:grid;gap:12px;align-content:start">
+      <div class="card"><h2>Indicadores</h2>
+       <div class="kv"><span>Total de material</span><b>${brl(T0)}</b></div>
+       ${nL?`<div class="kv"><span>Valor por lote (${nL} lotes)</span><b>${brl(T0/nL)}</b></div>`:`<p class="note">Loteamento? Informe o nº de lotes em “Dados” para ver o valor por lote.</p>`}
+       <div class="lbl" style="margin-top:8px">Postes por tipo</div>
+       <div style="display:grid;gap:6px;margin-top:4px">${Object.entries(TP).sort((a,b)=>b[1].v-a[1].v).map(([k,x])=>`<div class="kv" title="Total ${brl(x.v)}"><span>${k==="Com transformador"?'<span style="color:#d32f2f">▲</span> ':""}${esc(k)} <span class="note">· ${x.n} postes</span></span><b>${brl(x.v/x.n)}<span class="note" style="font-weight:400"> médio</span></b></div>`).join("")||'<p class="note">Nenhum poste.</p>'}</div>
+       <p class="note">Valor do ponto = poste + estruturas + avulsos + cintas (sem a rede dos vãos). Classificação pelas categorias dos grupos.</p></div>
       <div class="card"><div class="row"><h2>Custo por ${cardModo==="cat"?"categoria":"segmento"}</h2><span class="hmt" style="gap:4px;display:flex"><button class="btn sm ${cardModo==="cat"?"on":""}" data-cm="cat">Categoria</button><button class="btn sm ${cardModo==="seg"?"on":""}" data-cm="seg">Segmento</button></span></div>
        ${cardModo==="cat"?`<p class="note">Pelas categorias dos grupos de itens. Clique numa linha para filtrar a lista.</p><div class="segbars">${Object.entries(porCategoria()).sort((a,b)=>b[1]-a[1]).map(([k,v],i)=>`<div class="sb" data-fc="${esc(k)}" style="--c:${PAL_CAT[i%PAL_CAT.length]};cursor:pointer;${fCat&&fCat!==k?"opacity:.45":""}"><span>${fCat===k?"▸ ":""}${esc(k)}</span><div class="bar"><b style="width:${T0?v/T0*100:0}%"></b></div><span class="n">${T0?Math.round(v/T0*100):0}%</span><span></span><span class="v">${brl(v)}</span></div>`).join("")}</div>${fCat?'<button class="lnk" data-fc="">mostrar todas</button>':""}</div>`:`<p class="note">Quanto cada parte da obra pesa no material. Os segmentos se editam em “Dados”.</p>
        <div class="segbars">${segRows.map(([k,v])=>{const s=SG[k];return `<div class="sb" style="--c:${s?s.cor:"#8a96a3"}"><span>${esc(s?s.nome:"Sem segmento")}</span><div class="bar"><b style="width:${T0?v/T0*100:0}%"></b></div><span class="n">${T0?Math.round(v/T0*100):0}%</span><span></span><span class="v">${brl(v)}</span></div>`}).join("")}</div>
-       ${PS[""]?`<p class="note">Para distribuir o que está “sem segmento”, marque os pontos na lista do Projeto.</p>`:""}</div>`}
+       ${PS[""]?`<p class="note">Para distribuir o que está “sem segmento”, marque os pontos na lista do Projeto.</p>`:""}</div>`}</aside>
      </div></div>`;
     $("#mSP").onchange=e=>{soSemPreco=e.target.checked;telaMateriais()};$("#mSPw")&&($("#mSPw").onclick=()=>{soSemPreco=!soSemPreco;telaMateriais()});
     $("#mOrd").onchange=e=>{ordMat=e.target.value;try{localStorage.setItem("orc_ordMat",ordMat)}catch(x){}telaMateriais()};
     $$("[data-em]",el).forEach(b=>b.onclick=()=>editaMatBase(b.dataset.em));
     $$("[data-cm]",el).forEach(b=>b.onclick=()=>{cardModo=b.dataset.cm;try{localStorage.setItem("orc_cardModo",cardModo)}catch(e){}telaMateriais()});
+    $$("[data-fs]",el).forEach(b=>b.onclick=()=>{const k=b.dataset.fs;fSub=fSub===k?"":k;telaMateriais()});
     $$("[data-fc]",el).forEach(b=>b.onclick=()=>{const k=b.dataset.fc;fCat=fCat===k?"":k;telaMateriais()});
     const salvaSub=async(c,v)=>{await chk(O.from("materiais").update({subgrupo:v||null}).eq("codigo",c));const m=MAT[c];if(m)m.subgrupo=v||null;const mm=MATS.find(x=>x.codigo===c);if(mm)mm.subgrupo=v||null;_RS=null;toast("Subgrupo atualizado na base.");renderHead();telaMateriais()};
     $$("[data-sga]",el).forEach(b=>b.onclick=ev=>{ev.stopPropagation();salvaSub(b.dataset.sga,b.dataset.v)});
