@@ -336,6 +336,7 @@ const Q=new URLSearchParams(location.search);
 if(Q.get("cfg")!==null)return config(Q.get("cfg"));
 if(Q.get("id"))return editor(Q.get("id"));
 if(Q.get("neg"))return deNegocio(Q.get("neg"));
+if(Q.get("compras")){const r=await O.from("orcamentos").select("id").eq("id",Q.get("compras")).single();if(r.data){history.replaceState(null,"","orcarede.html?id="+r.data.id);window.__abrirCompras=1;return editor(r.data.id)}}
 return lista(Q.get("pasta"));
 
 /* ============ CONFIGURAÇÕES ============ */
@@ -719,8 +720,8 @@ async function config(aba){
   function lerCabecalho(txt){const L=String(txt||"").split("\n").map(l=>l.trim()).filter(Boolean);const o={};
     const iC=L.findIndex(l=>RE_CNPJ.test(l)&&!/ON ENGENHARIA|CLIENTE|DESTINAT/i.test(l));
     if(iC>=0){o.cnpj=L[iC].match(RE_CNPJ)[0].replace(/\D/g,"").replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,"$1.$2.$3/$4-$5");
-      const rz=L.slice(Math.max(0,iC-3),iC+1).find(l=>/(LTDA|S\/?A\b|S\.A\.|EIRELI|\bME\b|\bEPP\b|COM[EÉ]RCIO|DISTRIBUI|IND[UÚ]STRIA)/i.test(l))||L[Math.max(0,iC-1)];
-      o.razao_social=(rz||"").replace(RE_CNPJ,"").replace(/CNPJ[:\s]*/i,"").replace(/\s{2,}/g," ").trim()}
+      const W=L.slice(Math.max(0,iC-4),iC+1).filter(l=>!/^(RUA|AV\.?|AVENIDA|ROD\.?|RODOVIA|ESTRADA|TRAV|\d{5}-?\d{3}|FONE|TEL|E-?MAIL)/i.test(l));const rz=W.find(l=>/(LTDA|S\/?A\b|S\.A\.|EIRELI|\bME\b|\bEPP\b)/i.test(l))||W.find(l=>/(COM[EÉ]RCIO|DISTRIBUI|IND[UÚ]STRIA)/i.test(l))||W[0]||L[Math.max(0,iC-1)];
+      o.razao_social=(rz||"").replace(RE_CNPJ,"").replace(/CNPJ[:\s]*/i,"").replace(/\s+(OR[CÇ]AMENTO|PROPOSTA|COTA[CÇ][AÃ]O|PEDIDO)\b.*$/i,"").replace(/\s{2,}/g," ").trim()}
     else{const rz=L.slice(0,8).find(l=>/(LTDA|S\/?A\b|EIRELI|\bME\b|\bEPP\b)/i.test(l));if(rz)o.razao_social=rz}
     const tudo=L.slice(0,40).join(" ");
     const ie=tudo.match(/(?:I\.?E\.?|INSC(?:RI[CÇ][AÃ]O)?\.? ?EST(?:ADUAL)?)[:\s]*([\d./-]{6,})/i);if(ie)o.ie=ie[1];
@@ -1130,7 +1131,7 @@ async function editor(id){
        <h1><span id="hT"></span>${vers}${ORC.vigente&&IRMAS.length>1?"":""}<span class="chip" id="hSt"></span></h1><div class="sub" id="hS"></div></div>
       <div class="hmix" id="hMix"></div>
       <div class="tot"><div class="eye">Material</div><div class="v" id="hTot"></div></div>
-      <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><button class="btn" id="bVer">+ Nova versão</button>${ORC.vigente?"":'<button class="btn" id="bVig">Tornar vigente</button>'}<button class="btn" id="bFin"></button><button class="btn" id="bDados">Dados</button></div>
+      <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><button class="btn" id="bVer">+ Nova versão</button>${ORC.vigente?"":'<button class="btn" id="bVig">Tornar vigente</button>'}<button class="btn" id="bFin"></button><button class="btn" id="bDados">Dados</button><button class="btn" id="bCompras" title="Abrir o painel de compras desta obra com o previsto deste orçamento">🛒 Compras</button></div>
       <nav class="steps">${[["projeto","1","Projeto"],["materiais","2","Materiais"],["precificacao","3","Precificação"],["proposta","4","Proposta"]].map(([k,n,l])=>`<button data-e="${k}" class="${etapa===k?"on":""}" ${k==="proposta"?'disabled title="Em breve"':""}><b>${n}</b>${l}</button>`).join("")}</nav></header>
      ${etapa==="projeto"?`<div class="proj" id="proj"><aside id="side"></aside><div class="split" id="split" title="Arraste para ajustar a largura · duplo clique volta ao padrão"><button class="spbtn" id="sp1b" title="Recolher/expandir a lista">«</button></div>
       <div class="mapwrap" id="map"><div class="stage" id="stage"><img id="img" alt="" hidden><div class="blank" id="blank"></div><svg class="net" id="lbls"></svg><svg class="net" id="net"></svg><div id="pins"></div></div>
@@ -1142,7 +1143,7 @@ async function editor(id){
       const nid=await chk(O.rpc("duplicar_orcamento",{p_orc:ORC.id,p_vigente:!!f.vig}));location.href="orcarede.html?id="+nid},"Criar versão");
     $("#bVig")&&($("#bVig").onclick=async()=>{await chk(O.from("orcamentos").update({vigente:false}).eq("pasta_id",ORC.pasta_id));await chk(O.from("orcamentos").update({vigente:true}).eq("id",ORC.id));location.reload()});
     $("#bFin").onclick=async()=>{const s=ORC.status==="finalizado"?"andamento":"finalizado";await chk(O.from("orcamentos").update({status:s}).eq("id",ORC.id));ORC.status=s;renderHead()};
-    $("#bDados").onclick=dadosDialog;
+    $("#bDados").onclick=dadosDialog;$("#bCompras").onclick=abrirCompras;if(window.__abrirCompras){window.__abrirCompras=0;setTimeout(abrirCompras,300)}
     if(etapa==="projeto")montarProjeto();else if(etapa==="materiais")telaMateriais();else telaPreco();
     renderHead();
   }
@@ -1899,6 +1900,24 @@ async function editor(id){
     await chk(O.from("precificacao").upsert(row));Object.assign(P,extra);
     const d=difP(P0,P);await chk(O.from("precificacao_log").insert({orcamento_id:ORC.id,acao,resumo:acao==="salvar"?(d.join(" · ")||"sem alterações nos parâmetros"):null,total_antes:T0P,total_depois:totalAgora,dados:{metodo:P.metodo,pct_materiais:P.pct_materiais,lucro_pct:P.lucro_pct,custos:P.custos},quem:perfil.id,quem_nome:quemSou()}));
     P0=JSON.parse(JSON.stringify(P));T0P=totalAgora;sujoP=false;window.onbeforeunload=null}
+  function previstoAtual(){const M=totalMat();const SA=servicoA(M),SB=servicoPorLucro(M,+P.lucro_pct||0);const S=P.metodo==="B"?(isFinite(SB)?SB:0):SA;const R=calcula(M,S);
+    return{materiais:+M.toFixed(2),servico:+S.toFixed(2),total:+R.T.toFixed(2),lucro:+R.lucro.toFixed(2),custos:R.L.map(c=>({grupo:c.grupo||"",desc:c.desc||c.grupo||"",v:+c.v.toFixed(2)})),versao:ORC.versao||1,gerado_em:new Date().toISOString()}}
+  async function abrirCompras(){const b=$("#bCompras");if(b){b.disabled=true;b.textContent="Abrindo…"}
+    try{const prev=previstoAtual();const A=agregado().filter(l=>l.q>0);
+      let {data:ex}=await O.from("compras").select("id").eq("orcamento_id",ORC.id).maybeSingle();
+      if(!ex){const {data:ou}=await O.from("compras").select("id,orcamento_id").in("orcamento_id",IRMAS.map(v=>v.id)).limit(1);
+        if(ou&&ou[0]&&confirm("Já existe um painel de compras de outra versão deste orçamento. Atualizar aquele com esta versão?")){ex=ou[0];await chk(O.from("compras").update({orcamento_id:ORC.id}).eq("id",ex.id))}}
+      let id;
+      if(ex){id=ex.id;const its=await todos(()=>O.from("compra_itens").select("id,material_codigo").eq("compra_id",id));const J={};its.forEach(i=>J[i.material_codigo]=i);
+        for(const l of A){const m=MAT[l.c]||{};const row={qtd:+l.q.toFixed(3),preco_previsto:preco(l.c),descricao:m.nome||l.c,unidade:m.unidade||null,subgrupo:m.subgrupo||null};
+          if(J[l.c])await chk(O.from("compra_itens").update(row).eq("id",J[l.c].id));else await chk(O.from("compra_itens").insert({...row,compra_id:id,material_codigo:l.c}))}
+        const sai=its.filter(i=>!A.some(l=>l.c===i.material_codigo)).map(i=>i.id);if(sai.length)await chk(O.from("compra_itens").update({qtd:0}).in("id",sai));
+        await chk(O.from("compras").update({previsto:prev,titulo:ORC.titulo,cliente:ORC.cliente,cidade:ORC.cidade,negocio_id:ORC.negocio_id||null,atualizado_em:new Date().toISOString()}).eq("id",id))}
+      else{const c=await chk(O.from("compras").insert({orcamento_id:ORC.id,negocio_id:ORC.negocio_id||null,titulo:ORC.titulo,cliente:ORC.cliente,cidade:ORC.cidade,previsto:prev}).select("id").single());id=c.id;
+        const rows=A.sort((a,b)=>((MAT[a.c]||{}).subgrupo||"").localeCompare((MAT[b.c]||{}).subgrupo||"")||((MAT[a.c]||{}).nome||"").localeCompare((MAT[b.c]||{}).nome||"")).map((l,i)=>{const m=MAT[l.c]||{};return{compra_id:id,material_codigo:l.c,descricao:m.nome||l.c,unidade:m.unidade||null,subgrupo:m.subgrupo||null,qtd:+l.q.toFixed(3),preco_previsto:preco(l.c),ordem:i}});
+        for(let i=0;i<rows.length;i+=300)await chk(O.from("compra_itens").insert(rows.slice(i,i+300)))}
+      location.href="compras.html?id="+id}
+    catch(e){console.error(e);toast("Não foi possível abrir as compras: "+(e.message||e));if(b){b.disabled=false;b.textContent="🛒 Compras"}}}
   function telaPreco(){
     const el=$("#full");const M=totalMat();
     const SA=servicoA(M),SB=servicoPorLucro(M,+P.lucro_pct||0);
