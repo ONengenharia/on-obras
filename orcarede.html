@@ -270,6 +270,7 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .split[hidden]{display:none}.split{position:relative}.spbtn{position:absolute;top:50%;transform:translateY(-50%);width:18px;height:44px;border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:12px;line-height:1;padding:0;color:var(--muted);cursor:pointer;z-index:2}.spbtn:hover{color:var(--accent);border-color:var(--accent)}
 @container (max-width:390px){#ptpanel .grid2{grid-template-columns:1fr}#ptpanel .seq{flex-wrap:wrap}#ptpanel .seq input{flex-basis:100%}#ptpanel .pads .pad{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 .lockbar{background:var(--accent-soft);color:var(--accent);border-radius:8px;padding:9px 12px;font-size:13px}.plog summary{cursor:pointer;display:flex;gap:8px;align-items:center}.plog .tbl td{font-size:12.5px}
+.cotbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}.pcq{display:block;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:2px 6px;margin:2px 0;font-size:11.5px;font-family:var(--f-mono);white-space:nowrap;text-align:left}.pcq.cmin{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}.pcq.on{outline:2px solid var(--accent);font-weight:700}
 </style>
 </head>
 <body>
@@ -1018,7 +1019,7 @@ async function editor(id){
     todos(()=>O.from("tipos_rede_itens").select("*")),
     todos(()=>O.from("materiais").select("codigo,nome,unidade,subgrupo").eq("ativo",true).order("nome")),
     todos(()=>O.from("v_preco_vigente").select("material_codigo,valor,data,origem,fornecedor,documento")),
-    todos(()=>O.from("orc_precos").select("material_codigo,preco_unit,manual").eq("orcamento_id",id)),
+    todos(()=>O.from("orc_precos").select("material_codigo,preco_unit,manual,fonte,enviado_base").eq("orcamento_id",id)),
     todos(()=>O.from("orc_segmentos").select("*").eq("orcamento_id",id).order("ordem")),
     ORC.pasta_id?todos(()=>O.from("orcamentos").select("id,versao,vigente,status").eq("pasta_id",ORC.pasta_id).order("versao")):Promise.resolve([]),
     O.from("precificacao").select("*").eq("orcamento_id",id).limit(1),
@@ -1029,7 +1030,7 @@ async function editor(id){
   const PASTA=ORC.pasta_id?(await O.from("pastas").select("*").eq("id",ORC.pasta_id).single()).data:null;
   const MAT=Object.fromEntries(MATS.map(m=>[m.codigo,m]));
   const VIGR=Object.fromEntries(PV.map(p=>[p.material_codigo,p]));const VIG=Object.fromEntries(PV.map(p=>[p.material_codigo,+p.valor]));
-  let OP=Object.fromEntries(OPL.map(p=>[p.material_codigo,{v:+p.preco_unit,manual:p.manual}]));
+  let OP=Object.fromEntries(OPL.map(p=>[p.material_codigo,{v:+p.preco_unit,manual:p.manual,fonte:p.fonte,enviado:p.enviado_base}]));
   const ESTM=Object.fromEntries(EST.map(e=>[e.id,e])), POM=Object.fromEntries(POSTES.map(p=>[p.id,p]));
   let PADS=[];{const r=await O.from("padroes_ponto").select("*").eq("concessionaria_id",conc);PADS=(r.data||[]).sort((a,b)=>(b.usos-a.usos)||a.nome.localeCompare(b.nome))}
   const seqDoPonto=pt=>{const ps=POM[pt.poste_id];return [ps?ps.codigo:null,...PE.filter(e=>e.ponto_id===pt.id).sort((a,b)=>(a.ordem||0)-(b.ordem||0)).map(e=>(ESTM[e.estrutura_id]||{}).codigo).filter(Boolean)].filter(Boolean).join(";")};
@@ -1685,6 +1686,147 @@ async function editor(id){
   }
 
   /* ---------- 2. MATERIAIS ---------- */
+  const NAO_ITEM_C=/\b(ICMS|IPI|PIS|COFINS|SUBTOTAL|SUB-TOTAL|TOTAL|TOTAIS|INFORMA[CÇ][OÕ]ES|GARANTIA|CERTIFICAD|FRETE|DESCONTO|INCLUSO|INCLUSOS|CNPJ|INSCRI|VALIDADE|PRAZO|PAGAMENTO|CONDI[CÇ]|ENTREGA|VENDEDOR|TELEFONE|FONE|WHATS|E-?MAIL|CEP|ENDERE[CÇ]O|OBSERVA|BANCO|AG[EÊ]NCIA|CONTA|PIX|BOLETO|EMISS[AÃ]O|P[AÁ]GINA|IMPOSTO|TRIBUT|SEGURO|ASSINATURA)\b|%/i;
+  const ehItemC=d=>{const w=norm(d).split(" ").filter(t=>/^[A-Z]{3,}$/.test(t));return w.length>=1&&w.join("").length>=6&&!NAO_ITEM_C.test(d)};
+  const RE_CNPJ_C=/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/;
+  function lerCabC(txt){const L=String(txt||"").split("\n").map(l=>l.trim()).filter(Boolean);const o={};
+    const iC=L.findIndex(l=>RE_CNPJ_C.test(l)&&!/ON ENGENHARIA|CLIENTE|DESTINAT/i.test(l));
+    if(iC>=0){o.cnpj=L[iC].match(RE_CNPJ_C)[0].replace(/\D/g,"").replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,"$1.$2.$3/$4-$5");
+      const W=L.slice(Math.max(0,iC-4),iC+1).filter(l=>!/^(RUA|AV\.?|AVENIDA|ROD\.?|RODOVIA|ESTRADA|TRAV|\d{5}-?\d{3}|FONE|TEL|E-?MAIL)/i.test(l));const rz=W.find(l=>/(LTDA|S\/?A\b|S\.A\.|EIRELI|\bME\b|\bEPP\b)/i.test(l))||W.find(l=>/(COM[EÉ]RCIO|DISTRIBUI|IND[UÚ]STRIA)/i.test(l))||W[0]||L[Math.max(0,iC-1)];
+      o.razao_social=(rz||"").replace(RE_CNPJ_C,"").replace(/CNPJ[:\s]*/i,"").replace(/\s+(OR[CÇ]AMENTO|PROPOSTA|COTA[CÇ][AÃ]O|PEDIDO)\b.*$/i,"").replace(/\s{2,}/g," ").trim()}
+    else{const rz=L.slice(0,8).find(l=>/(LTDA|S\/?A\b|EIRELI|\bME\b|\bEPP\b)/i.test(l));if(rz)o.razao_social=rz}
+    const tudo=L.slice(0,40).join(" ");
+    const ie=tudo.match(/(?:I\.?E\.?|INSC(?:RI[CÇ][AÃ]O)?\.? ?EST(?:ADUAL)?)[:\s]*([\d./-]{6,})/i);if(ie)o.ie=ie[1];
+    const tel=tudo.match(/\(?\d{2}\)?\s?9?\d{4}[-\s]?\d{4}/);if(tel)o.telefone=tel[0];
+    const em=tudo.match(/[\w.+-]+@[\w-]+\.[\w.]+/);if(em)o.email=em[0].toLowerCase();
+    const cid=tudo.match(/([A-ZÀ-Ú][A-Za-zÀ-ú ]{2,30})\s*[-\/]\s*(RS|SC|PR|SP|RJ|MG|GO|MS|MT|BA|PE|CE|ES|DF)\b/);if(cid)o.cidade=cid[1].trim()+"/"+cid[2];
+    const end=L.slice(0,30).find(l=>/^(RUA|AV\.?|AVENIDA|ROD\.?|RODOVIA|ESTRADA|TRAV)/i.test(l));if(end)o.endereco=end;
+    const num=tudo.match(/(OR[CÇ]AMENTO|PROPOSTA|COTA[CÇ][AÃ]O|PEDIDO)\s*(?:N[º°o.]*)?\s*[:#]?\s*(\d[\d./-]{2,})/i);if(num)o.numero=num[2];
+    const dt=tudo.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/);if(dt)o.data=`${dt[3]}-${dt[2]}-${dt[1]}`;
+    const vd=tudo.match(/VENDEDOR(?:A)?[:\s]+([A-ZÀ-Úa-zà-ú]+(?:\s[A-ZÀ-Úa-zà-ú]+){0,2})/);if(vd)o.vendedor=vd[1];
+    return o}
+  async function lerPlanilhaC(file){
+    if(!window.XLSX)await loadScript("vendor/xlsx.full.min.js");
+    const wb=XLSX.read(await file.arrayBuffer());const A=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""});
+    let h=A.findIndex(r=>r.some(c=>/descri|produto|material/i.test(c))&&r.some(c=>/pre[cç]o|valor|unit/i.test(c)));
+    const H=h>=0?A[h].map(c=>norm(c)):[];const ix=re=>H.findIndex(c=>re.test(c));
+    let id=ix(/DESCRI|PRODUTO|MATERIAL/),iq=ix(/QUANT|QTD|QTDE/),ip=ix(/UNIT/),ic=ix(/^COD|CODIGO/);if(ip<0)ip=ix(/PRECO|VALOR/);
+    const out=[];let ign=0;A.slice(h+1).forEach(r=>{let d=id>=0?String(r[id]):"";if(id<0){d=r.filter(c=>typeof c==="string").sort((a,b)=>b.length-a.length)[0]||""}
+      const nums=r.filter(c=>typeof c==="number"||/^\s*R?\$?\s*[\d.]+,\d{2}\s*$/.test(c)).map(pnum);
+      let p=ip>=0?pnum(r[ip]):nums.length>=2?nums[nums.length-2]:nums[0];const q=iq>=0?pnum(r[iq]):null;d=d.replace(/\s+/g," ").trim();
+      if(!d)return;if(!ehItemC(d)||!(p>0)){ign++;return}out.push({txt:d,cod:ic>=0?String(r[ic]).trim():"",q,p})});
+    return{itens:out,cab:A.slice(0,Math.max(0,h)).map(r=>r.join(" ")).join("\n"),modo:id>=0?"colunas":"",ignoradas:ign};
+  }
+  async function lerPdfC(file){
+    if(!window.pdfjsLib){await loadScript("vendor/pdf.min.js")}
+    if(window.pdfjsLib&&pdfjsLib.GlobalWorkerOptions&&!pdfjsLib.GlobalWorkerOptions.workerSrc)pdfjsLib.GlobalWorkerOptions.workerSrc="vendor/pdf.worker.min.js";
+    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const out=[];let cab="",col=null,ign=0,modo="",fim=false,lastY=null,lh=12;
+    const NUM=/^(?:R\$\s*)?-?(\d{1,3}(?:\.\d{3})*,\d{1,4}|\d+,\d{1,4}|\d+)$/;
+    for(let n=1;n<=pdf.numPages;n++){const tc=await(await pdf.getPage(n)).getTextContent();const toks=tc.items.filter(it=>it.str.trim()).map(it=>({x:it.transform[4],y:it.transform[5],w:it.width||0,s:it.str.trim()}));
+      const linhas=[];toks.sort((a,b)=>b.y-a.y||a.x-b.x).forEach(t=>{const l=linhas.find(l=>Math.abs(l.y-t.y)<3);if(l)l.t.push(t);else linhas.push({y:t.y,t:[t]})});
+      linhas.forEach(l=>l.t.sort((a,b)=>a.x-b.x));
+      for(const l of linhas){const txt=l.t.map(t=>t.s).join(" ");
+        if(!col){const pr=l.t.find(t=>/unit|pre[cç]o|vl\.?\s*un|valor/i.test(t.s)),tq=l.t.find(t=>/^(qtd|qtde|quant)/i.test(t.s));
+          const hd=l.t.find(t=>/descri|produto|material/i.test(t.s))||(tq&&l.t.find(t=>/^(item|itens|especifica)/i.test(t.s.trim())));
+          if(hd&&pr){const xs=l.t.map(t=>t.x).sort((a,b)=>a-b);const nx=xs.find(x=>x>hd.x+5);
+            const fx=re=>{const t=l.t.find(t=>re.test(t.s));return t?t.x+t.w/2:null};
+            col={d0:hd.x-6,d1:(nx||hd.x+400)-4,p:fx(/unit|vl\.?\s*un|pre[cç]o\s*un/i)??fx(/pre[cç]o|valor/i),q:fx(/qtd|quant/i),tot:fx(/total/i),c:fx(/c[oó]d/i)};modo="colunas";continue}
+          if(n===1)cab+=txt+"\n";continue}
+        if(fim)continue;if(/^\s*(TOTA(L|IS)|VALORES|SUBTOTAL)\b/i.test(txt)){fim=true;continue}
+        let desc=l.t.filter(t=>t.x>=col.d0&&t.x<col.d1).map(t=>t.s).join(" ").replace(/\s+/g," ").trim();let codIn="";
+        {const cm=desc.match(/^([A-Z0-9][A-Z0-9.\-\/]{4,})\s+-\s+(.+)$/i);if(cm&&/\d/.test(cm[1])){codIn=cm[1];desc=cm[2].trim()}}
+        const gap=lastY==null?0:lastY-l.y;
+        const nums=l.t.filter(t=>NUM.test(t.s.replace(/\s/g,""))&&(t.x>=col.d1||t.x<col.d0)).map(t=>({c:t.x+t.w/2,v:pnum(t.s.replace(/R\$\s*/,""))}));
+        const perto=x=>x==null||!nums.length?null:nums.reduce((a,b)=>Math.abs(b.c-x)<Math.abs(a.c-x)?b:a);
+        const p=(perto(col.p)||{}).v,q=(perto(col.q)||{}).v??null;const codt=col.c!=null&&l.t.find(t=>Math.abs(t.x-col.c)<40&&/\d{4,}/.test(t.s));
+        if(desc&&!nums.length&&out.length&&!NAO_ITEM_C.test(desc)&&out[out.length-1]._pg===n&&gap<lh*1.8){out[out.length-1].txt+=" "+desc;lastY=l.y;continue}
+        if(!desc)continue;if(NAO_ITEM_C.test(desc)||!(p>0)||!/[A-Z]{2,}/i.test(desc)){ign++;continue}
+        if(lastY!=null&&gap>4&&gap<30)lh=gap;lastY=l.y;
+        out.push({txt:desc,cod:codIn||(codt?codt.s:""),q:q&&q!==p?q:null,p,_pg:n})}}
+    {const ok=out.filter(o=>ehItemC(o.txt));ign+=out.length-ok.length;out.length=0;out.push(...ok)}
+    if(!out.length&&!modo){ /* sem cabeçalho: heurística por linha */
+      for(let n=1;n<=pdf.numPages;n++){const tc=await(await pdf.getPage(n)).getTextContent();const R={};
+        tc.items.forEach(it=>{if(!it.str.trim())return;const y=Math.round(it.transform[5]/3);(R[y]=R[y]||[]).push({x:it.transform[4],s:it.str})});
+        Object.keys(R).sort((a,b)=>b-a).forEach(y=>{const ln=R[y].sort((a,b)=>a.x-b.x).map(t=>t.s).join(" ").replace(/\s+/g," ").trim();if(n===1&&cab.length<1500)cab+=ln+"\n";
+          const nums=[...ln.matchAll(/(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2,4}|\d+,\d{2,4})/g)].map(m=>({v:pnum(m[1]),i:m.index}));if(!nums.length)return;
+          let d=ln.slice(0,nums[0].i).replace(/R\$\s*$/,"").trim();const cm=d.match(/^(\d{1,4}\s+)?([A-Z0-9.\-]{4,})\s+/);let cod="";if(cm&&/\d/.test(cm[2])){cod=cm[2];d=d.slice(cm[0].length)}
+          d=d.replace(/^\d{1,3}\s+/,"").replace(/\s+(UN|UND|UNID|PC|PÇ|M|MT|KG|CJ|CX|RL|PCT)\.?(\s+\d+([.,]\d+)?)?$/i,"").trim();
+          if(!ehItemC(d)){ign++;return}const v=nums.map(x=>x.v);let p,q=null;
+          if(v.length>=3){const [a,b,c]=v.slice(-3);if(Math.abs(a*b-c)<=Math.max(.05,c*.01)){q=a;p=b}else{p=v[v.length-2];q=v[v.length-3]}}else p=v[0];
+          if(p>0)out.push({txt:d,cod,q,p})})}}
+    return{itens:out,cab,modo,ignoradas:ign};
+  }
+  const STOPWC=new Set(["DE","DA","DO","DAS","DOS","P","C","PARA","COM","E","EM","A","O","MM","MM2","UN","PC","PÇ","M","MT","TIPO","KG","CX","PCT"]);
+  const toksC=s=>norm(s).replace(/(\d)([A-Z])/g,"$1 $2").replace(/([A-Z])(\d)/g,"$1 $2").replace(/(\d)\s*X\s*(\d)/g,"$1 $2").split(" ").filter(t=>t&&!STOPWC.has(t)&&(t.length>1||/\d/.test(t)));
+  /* ---------- Cotações desta obra (aba Materiais) ---------- */
+  let COTS=[],CPR=[],FORNS_E=null,cotOk=false;
+  async function cotCarregar(){COTS=await todos(()=>O.from("orc_cotacoes").select("*").eq("orcamento_id",ORC.id).order("id"));
+    CPR=COTS.length?await todos(()=>O.from("orc_cot_precos").select("*").in("cotacao_id",COTS.map(c=>c.id))):[];cotOk=true}
+  const cotDoMat=c=>CPR.filter(p=>p.material_codigo===c).map(p=>({...p,cot:COTS.find(x=>x.id===p.cotacao_id)})).filter(p=>p.cot).sort((a,b)=>a.preco_unit-b.preco_unit);
+  const OSIN={TR:"TRANSFORMADOR",TRAFO:"TRANSFORMADOR",TRANSF:"TRANSFORMADOR",TRIF:"TRIFASICO",MONOF:"MONOFASICO",PREF:"PREFORMADA",ALC:"ALCA",ABRAC:"ABRACADEIRA",ISOL:"ISOLADOR",GALV:"GALVANIZADO",CONC:"CONCRETO",CIRC:"CIRCULAR"};
+  const otk=t=>{const o=[];toksC(String(t).replace(/\b3\s*F\b/gi," TRIFASICO ").replace(/\b1\s*F\b/gi," MONOFASICO ")).forEach(w=>o.push(OSIN[w]||w));return o};
+  const ochave=t=>norm(t).split(" ").filter(w=>!(/\d/.test(w)&&/[A-Z]/.test(w)&&w.length>=7)&&!/^\d{6,}$/.test(w)).join(" ");
+  function osugere(l,AP,forn,L){const F=norm(forn),k=ochave(l.txt),tem=c=>L.some(x=>x.c===c);const mine=AP.filter(x=>norm(x.fornecedor)===F);
+    let a=l.cod&&mine.find(x=>x.texto_norm==="COD "+norm(l.cod));if(a&&tem(a.material_codigo))return{c:a.material_codigo,s:1,mem:"código do fornecedor"};
+    a=mine.find(x=>x.texto_norm===k);if(a&&tem(a.material_codigo))return{c:a.material_codigo,s:1,mem:"memória do fornecedor"};
+    a=AP.find(x=>x.texto_norm===k||x.texto_norm===norm(l.txt));if(a&&tem(a.material_codigo))return{c:a.material_codigo,s:.95,mem:"aprendido"};
+    const T=new Set(otk(l.txt)),TA=[...T].filter(x=>!/\d/.test(x)),TN=[...T].filter(x=>/\d/.test(x));let best=null;
+    L.forEach(x=>{const U=new Set(otk((MAT[x.c]||{}).nome||""));const ca=TA.filter(w=>U.has(w)).length,cn=TN.filter(w=>U.has(w)).length;if(ca<Math.min(2,TA.length))return;
+      const s=(ca+cn*.7)/Math.sqrt(Math.max(1,TA.length+TN.length)*Math.max(1,U.size));if(!best||s>best.s)best={c:x.c,s}});return best}
+  async function cotImportar(file){toast("Lendo "+file.name+"…");let r;
+    try{r=/\.pdf$/i.test(file.name)?await lerPdfC(file):await lerPlanilhaC(file)}catch(e){console.error(e);toast("Não consegui ler este arquivo.");return}
+    if(!r.itens.length){toast("Não encontrei itens com preço neste arquivo.");return}
+    const cab=lerCabC(r.cab);if(!FORNS_E)FORNS_E=await todos(()=>O.from("fornecedores").select("*").order("apelido"));
+    const sug=FORNS_E.find(f=>cab.cnpj&&f.cnpj&&f.cnpj.replace(/\D/g,"")===cab.cnpj.replace(/\D/g,""))||FORNS_E.find(f=>cab.razao_social&&norm(f.razao_social||"")===norm(cab.razao_social));
+    const AP=await todos(()=>O.from("apelidos").select("fonte,fornecedor,texto_norm,material_codigo"));const LM=agregado();
+    const md=document.createElement("div");md.className="modal";const nomeSug=sug?(sug.apelido||sug.razao_social):(cab.razao_social||"").split(" ").slice(0,2).join(" ");
+    let forn=nomeSug;const LL=r.itens.map(x=>{const g=osugere(x,AP,forn,LM);const ok=!!(g&&(g.mem||g.s>.35));return{...x,c:ok?g.c:"",mem:g&&g.mem,conf:g?g.s:0,ok}});
+    md.innerHTML=`<div class="mbox wide"><h2>Cotação para esta obra</h2><p class="note">${esc(file.name)} · ${LL.length} linhas lidas${r.ignoradas?` · ${r.ignoradas} ignoradas`:""}. Os preços ficam só neste orçamento; para levar à base use “Enviar para a base”.</p>
+      <div class="grid3"><label class="fld">Fornecedor<select id="cfF"><option value="">— novo —</option>${FORNS_E.map(f=>`<option value="${f.id}" ${sug&&sug.id===f.id?"selected":""}>${esc(f.apelido||f.razao_social)}</option>`).join("")}</select></label>
+       <label class="fld">Apelido (se novo)<input id="cfN" value="${sug?"":esc(nomeSug)}"></label><label class="fld">Documento<input id="cfD" value="${esc(cab.numero||"")}"></label></div>
+      <div style="overflow:auto;max-height:52vh"><table class="tbl"><thead><tr><th></th><th>Linha do fornecedor</th><th class="n">Qtd</th><th class="n">Preço unit.</th><th>Material do orçamento</th></tr></thead><tbody>
+      ${LL.map((l,n)=>`<tr><td><input type="checkbox" data-ok="${n}" ${l.ok?"checked":""}></td><td>${esc(l.txt)}${l.cod?`<span class="sm mono">${esc(l.cod)}</span>`:""}</td><td class="n">${l.q!=null?num(l.q,3):""}</td><td class="n"><input class="inp n" data-pv="${n}" value="${num(l.p,4)}" style="width:100px"></td>
+        <td><div class="acw" style="max-width:440px"><input class="inp" data-q="${n}" autocomplete="off" placeholder="Digite para procurar…" value="${l.c?esc((MAT[l.c]||{}).nome||l.c):""}"><input type="hidden" data-it="${n}" value="${esc(l.c)}"><div class="acl" data-acl="${n}" hidden></div></div>${l.c?`<span class="sm" style="${l.mem?"color:var(--ok)":""}">${l.mem?"✓ "+l.mem:"confiança "+Math.round(Math.min(1,l.conf)*100)+"%"}</span>`:""}</td></tr>`).join("")}</tbody></table></div>
+      <label class="note"><input type="checkbox" id="cfAp" checked> aplicar estes preços no orçamento agora (você pode trocar item a item depois)</label>
+      <div class="row"><span class="note" id="cfC"></span><span style="display:flex;gap:8px"><button class="btn" id="cfX">Cancelar</button><button class="btn pri" id="cfOk">Gravar cotação</button></span></div></div>`;
+    document.body.appendChild(md);
+    const cnt=()=>{$("#cfC",md).textContent=LL.filter((l,n)=>md.querySelector(`[data-ok="${n}"]`).checked&&md.querySelector(`[data-it="${n}"]`).value).length+" linhas serão gravadas"};cnt();
+    const NI=LM.map(x=>[x.c,norm(x.c+" "+((MAT[x.c]||{}).nome||"")+" "+otk((MAT[x.c]||{}).nome||"").join(" "))]);
+    $$("[data-q]",md).forEach(inp=>{const n=+inp.dataset.q,hid=md.querySelector(`[data-it="${n}"]`),box=md.querySelector(`[data-acl="${n}"]`);let R2=[],h=0;
+      const show=()=>{box.innerHTML=R2.map((c,k)=>`<div class="aci${k===h?" on":""}" data-k="${k}"><b>${esc((MAT[c]||{}).nome||c)}</b> <span class="sm">${esc(c)}</span></div>`).join("")+`<div class="aci" data-k="-1"><span class="note">— não usar esta linha —</span></div>`;box.hidden=false};
+      const pick=k=>{if(k<0){hid.value="";inp.value=""}else{hid.value=R2[k];inp.value=(MAT[R2[k]]||{}).nome||R2[k]}box.hidden=true;md.querySelector(`[data-ok="${n}"]`).checked=!!hid.value;LL[n].mexeu=true;cnt()};
+      const filt=()=>{const t=norm(inp.value).split(" ").filter(Boolean).map(w=>OSIN[w]||w);h=0;R2=(t.length?NI.filter(([,x])=>t.every(w=>x.includes(w))).map(x=>x[0]):(()=>{const T2=new Set(otk(LL[n].txt));return NI.map(([c])=>[c,otk((MAT[c]||{}).nome||"").filter(w=>T2.has(w)).length]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(x=>x[0])})()).slice(0,40);show()};
+      inp.onfocus=()=>{inp.select();filt()};inp.oninput=filt;
+      inp.onkeydown=e=>{if(box.hidden)return;if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();h=(h+(e.key==="ArrowDown"?1:-1)+R2.length)%Math.max(1,R2.length);show()}else if(e.key==="Enter"){e.preventDefault();pick(h)}else if(e.key==="Escape"){e.stopPropagation();box.hidden=true}};
+      box.addEventListener("pointerdown",e=>{const d=e.target.closest("[data-k]");if(!d)return;e.preventDefault();pick(+d.dataset.k)});
+      inp.onblur=()=>setTimeout(()=>{box.hidden=true;inp.value=hid.value?((MAT[hid.value]||{}).nome||hid.value):""},150)});
+    $$("[data-ok]",md).forEach(c=>c.onchange=cnt);$("#cfF",md).onchange=e=>{$("#cfN",md).disabled=!!e.target.value};$("#cfN",md).disabled=!!sug;
+    $("#cfX",md).onclick=()=>md.remove();
+    $("#cfOk",md).onclick=async()=>{const b=$("#cfOk",md);b.disabled=true;b.textContent="Gravando…";
+      try{let fid=$("#cfF",md).value?+$("#cfF",md).value:null,fn;
+        if(fid){const f=FORNS_E.find(x=>x.id===fid);fn=f.apelido||f.razao_social}else{fn=$("#cfN",md).value.trim();if(!fn){toast("Informe o apelido do fornecedor.");b.disabled=false;b.textContent="Gravar cotação";return}
+          const nf=await chk(O.from("fornecedores").insert({apelido:fn,razao_social:cab.razao_social||null,cnpj:cab.cnpj||null,telefone:cab.telefone||null,email:cab.email||null}).select("*").single());FORNS_E.push(nf);fid=nf.id}
+        const sel=LL.map((l,n)=>({...l,c:md.querySelector(`[data-it="${n}"]`).value,p:pnum(md.querySelector(`[data-pv="${n}"]`).value),use:md.querySelector(`[data-ok="${n}"]`).checked})).filter(l=>l.use&&l.c&&l.p>0);
+        if(!sel.length){toast("Nenhuma linha ligada a material.");b.disabled=false;b.textContent="Gravar cotação";return}
+        const doc=$("#cfD",md).value.trim()||null;const ct=await chk(O.from("orc_cotacoes").insert({orcamento_id:ORC.id,fornecedor_id:fid,fornecedor_nome:fn,documento:doc,data:cab.data||null,arquivo:file.name}).select("*").single());
+        const U={};sel.forEach(l=>U[l.c]=l);
+        const rows=await chk(O.from("orc_cot_precos").insert(Object.values(U).map(l=>({cotacao_id:ct.id,material_codigo:l.c,preco_unit:l.p,qtd:l.q,texto:l.txt}))).select("*"));COTS.push(ct);CPR.push(...rows);
+        const ja=new Set(AP.filter(x=>norm(x.fornecedor)===norm(fn)).map(x=>x.texto_norm+"|"+x.material_codigo));const ap=[];
+        Object.values(U).forEach(l=>[ochave(l.txt),l.cod?"COD "+norm(l.cod):null].filter(Boolean).forEach(tn=>{if(!ja.has(tn+"|"+l.c)){ja.add(tn+"|"+l.c);ap.push({fonte:"cotacao",fornecedor:fn,texto_original:l.txt,texto_norm:tn,material_codigo:l.c,criado_por:perfil.id})}}));
+        if(ap.length)await O.from("apelidos").insert(ap);
+        if($("#cfAp",md).checked)for(const l of Object.values(U))await cotAplicar(l.c,l.p,`${fn}${doc?" · "+doc:""}`);
+        md.remove();toast(`Cotação de ${fn}: ${rows.length} preços gravados neste orçamento.`);renderHead();telaMateriais()}
+      catch(e){console.error(e);b.disabled=false;b.textContent="Gravar cotação"}}}
+  async function cotAplicar(c,v,fonte){await chk(O.from("orc_precos").upsert({orcamento_id:ORC.id,material_codigo:c,preco_unit:v,manual:true,fonte,enviado_base:null}));OP[c]={v,manual:true,fonte}}
+  function cotEnviarBase(){const L=Object.entries(OP).filter(([c,o])=>o.manual&&o.fonte&&!o.enviado).map(([c,o])=>({c,o}));
+    if(!L.length){toast("Nenhum preço de cotação desta obra pendente de envio.");return}
+    const md=modal(`<h2>Enviar preços desta obra para a base</h2><p class="note">Os preços marcados entram no histórico da base (origem “proposta”, com fornecedor e documento) e passam a valer para os outros orçamentos que acompanham a base.</p>
+      <div style="max-height:55vh;overflow:auto"><table class="tbl"><tbody>${L.map(({c,o},i)=>`<tr><td><input type="checkbox" data-eb="${i}" checked></td><td>${esc((MAT[c]||{}).nome||c)}<span class="sm">${esc(o.fonte)}</span></td><td class="n">${brl(o.v)}</td><td class="n sm">base: ${VIGR[c]?brl(VIGR[c].valor):"—"}</td></tr>`).join("")}</tbody></table></div>`,async()=>{
+      const sel=L.filter((x,i)=>md.querySelector(`[data-eb="${i}"]`).checked);if(!sel.length)return false;const hoje=new Date().toISOString().slice(0,10);
+      await chk(O.from("precos").insert(sel.map(({c,o})=>{const [f,...d]=o.fonte.split(" · ");return{material_codigo:c,valor:o.v,data:hoje,origem:"proposta",fornecedor:f,documento:d.join(" · ")||null,criado_por:perfil.id}})));
+      const agora=new Date().toISOString();for(const {c,o} of sel){await chk(O.from("orc_precos").update({enviado_base:agora}).eq("orcamento_id",ORC.id).eq("material_codigo",c));o.enviado=agora}
+      toast(`${sel.length} preço(s) enviados para a base.`);telaMateriais()},"Enviar para a base")}
+
   let _RS=null;function sugSubE(nome){if(!_RS){const k1={},k2={};MATS.forEach(m=>{if(!m.subgrupo||m.ativo===false)return;const w=norm(m.nome).split(" ").filter(t=>/^[A-Z]{2,}$/.test(t));if(!w.length)return;(k1[w[0]]=k1[w[0]]||{})[m.subgrupo]=(k1[w[0]][m.subgrupo]||0)+1;if(w[1]){const b=w[0]+" "+w[1];(k2[b]=k2[b]||{})[m.subgrupo]=(k2[b][m.subgrupo]||0)+1}});_RS={k1,k2}}
     const w=norm(nome).split(" ").filter(t=>/^[A-Z]{2,}$/.test(t));if(!w.length)return null;const best=o=>{if(!o)return null;const t=Object.values(o).reduce((a,b)=>a+b,0);const [s,n]=Object.entries(o).sort((a,b)=>b[1]-a[1])[0];return{s,n,sh:n/t}};
     const b=w[1]&&best(_RS.k2[w[0]+" "+w[1]]);if(b&&b.n>=2&&b.sh>=.7)return b.s;const a=best(_RS.k1[w[0]]);return a&&a.n>=3&&a.sh>=.8?a.s:null}
@@ -1697,7 +1839,7 @@ async function editor(id){
         await chk(O.from("materiais").update(up).eq("codigo",cod));Object.assign(m,up);const mm=MATS.find(x=>x.codigo===cod);mm&&Object.assign(mm,up);toast("Material atualizado na base.");renderHead();telaMateriais()},"Salvar")}
   const ORIG={orcamento:"Orçamento importado",manual:"Manual",compra:"Ordem de compra",proposta:"Proposta de fornecedor",importacao:"Importação"};
   function telaMateriais(){
-    const el=$("#full");
+    const el=$("#full");if(!cotOk){cotOk=true;cotCarregar().then(()=>telaMateriais()).catch(e=>console.error(e))}
     const A=agregado().map(l=>({...l,m:MAT[l.c]||{nome:l.c,subgrupo:""}}));
     const f=fMat.toLowerCase();
     const CATC=new Set(fCat?todas().filter(l=>l.k===fCat).map(l=>l.c):[]);if(!SUBL){O.from("subgrupos").select("nome").order("ordem").then(r=>{SUBL=(r.data||[]).map(x=>x.nome);telaMateriais()});SUBL=[]}
@@ -1716,17 +1858,19 @@ async function editor(id){
         <div class="tools"><button class="btn sm" id="xComp">⬇ Exportar lista…</button><button class="btn sm" id="xForn" title="Excel com logo e cabeçalho da empresa, sem preço e sem nome da obra">⬇ Lista para fornecedores</button></div></div>
        <div class="row"><div class="tools"><button class="btn sm ${ORC.modo_preco==="base"?"on":""}" data-mp="base">Acompanhar base</button><button class="btn sm ${ORC.modo_preco==="travado"?"on":""}" data-mp="travado">Preços travados</button>
          <span class="note">${ORC.modo_preco==="travado"?`congelados${ORC.travado_em?" em "+fdata(ORC.travado_em):""}`:"seguem o preço vigente da base"}${nManual?` · ${nManual} editado(s) só neste orçamento`:""}</span></div>
-        <div class="tools"><button class="btn sm pri" id="mAdd">+ Material avulso</button><label class="note" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" id="mSP" ${soSemPreco?"checked":""}> só sem preço</label><select class="inp sm" id="mOrd" aria-label="Ordenar">${[["alfa","A–Z"],["sub","Subgrupo"],["subtot","Maior subtotal"],["preco","Maior preço unit."],["qtd","Maior quantidade"]].map(([k,t])=>`<option value="${k}" ${ordMat===k?"selected":""}>Ordenar: ${t}</option>`).join("")}</select><input class="inp" id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="width:220px"></div></div>
+        <div class="tools"><label class="btn sm" style="position:relative;overflow:hidden" title="Importar a cotação de um fornecedor (PDF ou Excel) só para esta obra">⬆ Cotação da obra<input type="file" id="mCot" accept=".pdf,.xlsx,.xls,.csv" multiple style="position:absolute;inset:0;opacity:0"></label><button class="btn sm" id="mBase" title="Levar os preços das cotações desta obra para a base">⇪ Enviar para a base</button><button class="btn sm pri" id="mAdd">+ Material avulso</button><label class="note" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" id="mSP" ${soSemPreco?"checked":""}> só sem preço</label><select class="inp sm" id="mOrd" aria-label="Ordenar">${[["alfa","A–Z"],["sub","Subgrupo"],["subtot","Maior subtotal"],["preco","Maior preço unit."],["qtd","Maior quantidade"]].map(([k,t])=>`<option value="${k}" ${ordMat===k?"selected":""}>Ordenar: ${t}</option>`).join("")}</select><input class="inp" id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="width:220px"></div></div>
        ${(()=>{const cf=conflitos();return cf.length?`<div class="warnbar" style="background:var(--danger-soft);color:var(--danger)">⚠ ${cf.length} material(is) de outra classe de tensão nesta rede de ${ORC.tensao_kv} kV: ${cf.map(x=>esc((MAT[x.c]||{}).nome)).join(" · ")}</div>`:""})()}
        ${EXT.length?`<div class="extra"><div class="lbl">Avulsos do orçamento (fora dos pontos)</div><table class="its">${EXT.map(x=>{const m=MAT[x.material_codigo]||{nome:x.material_codigo};return `<tr><td class="m">${esc(m.nome)}<small>${esc(x.material_codigo)} · ${esc(m.unidade||"")}</small></td><td class="q"><input data-xq="${x.id}" value="${num(x.quantidade,3)}" inputmode="decimal" aria-label="Quantidade"></td><td class="v mono">${num((preco(x.material_codigo)||0)*x.quantidade)}</td><td class="x"><button class="xb" data-xd="${x.id}" title="Remover">×</button></td></tr>`}).join("")}</table></div>`:""}
+       ${COTS.length?`<div class="cotbar"><span class="note">Cotações desta obra:</span>${COTS.map(c=>`<span class="chip">${esc(c.fornecedor_nome)}${c.documento?" · "+esc(c.documento):""} <span class="sm">(${CPR.filter(p=>p.cotacao_id===c.id).length})</span> <button class="xb" data-dct="${c.id}" title="Excluir cotação">×</button></span>`).join("")}</div>`:""}
        ${semPreco?`<div class="warnbar" id="mSPw" style="cursor:pointer" title="Clique para ver só esses">${semPreco} material(is) sem preço na base. <u>${soSemPreco?"mostrar todos":"ver só esses"}</u></div>`:""}
-       <div style="overflow:auto"><table class="tbl mt"><thead><tr><th>Material</th><th class="hm">Subgrupo</th><th class="n">Qtd. total</th><th class="n">Preço unit. (R$)</th><th class="n">Subtotal</th><th class="hm">Origem do preço</th><th></th></tr></thead><tbody>
+       <div style="overflow:auto"><table class="tbl mt"><thead><tr><th>Material</th><th class="hm">Subgrupo</th><th class="n">Qtd. total</th><th class="n">Preço unit. (R$)</th><th class="n">Subtotal</th>${COTS.length?'<th class="hm">Cotações da obra</th>':""}<th class="hm">Origem do preço</th><th></th></tr></thead><tbody>
        ${F.map(l=>{const o=OP[l.c],pr=preco(l.c),vg=VIGR[l.c],man=o&&o.manual;
          const fc=foraClasse(l.c);return `<tr class="${man?"man":""} ${fc?"fc":""}"><td><b style="font-weight:600">${esc(l.m.nome)}</b> <button class="xb" data-em="${esc(l.c)}" title="Editar material na base" style="font-size:12px">✏️</button>${fc?` <span class="kvtag">fora de ${ORC.tensao_kv} kV</span>`:""}${EXT.some(x=>x.material_codigo===l.c)?' <span class="chip">avulso</span>':""}<span class="sm">${esc(l.c)}</span></td><td class="hm"><span class="gcat" data-sg="${esc(l.c)}" title="Trocar subgrupo na base">${l.m.subgrupo?esc(l.m.subgrupo):(()=>{const g=sugSubE(l.m.nome);return g?`<button class="pad" data-sga="${esc(l.c)}" data-v="${esc(g)}" title="Aceitar sugestão">→ ${esc(g)}?</button>`:'<span style="color:var(--warn)">— definir</span>'})()} <button class="xb" style="font-size:11px">✏️</button></span></td><td class="n">${num(l.q,2)} ${esc(l.m.unidade||"")}</td>
           <td class="n"><input data-pr="${esc(l.c)}" value="${pr==null?"":num(pr,4)}" inputmode="decimal" aria-label="Preço unitário" title="Editar vale só para este orçamento"></td><td class="n">${brl(l.q*(pr||0))}</td>
-          <td class="hm orig">${man?`<b>Manual neste orçamento</b><small>base: ${vg?brl(vg.valor):"—"}</small>`:vg?`<b>${esc(vg.fornecedor||ORIG[vg.origem]||vg.origem)}</b><small>${fdata(vg.data)}${vg.documento&&vg.fornecedor?" · "+esc(vg.documento):""}</small>`:"—"}</td>
+          ${COTS.length?`<td class="hm">${(()=>{const L2=cotDoMat(l.c);return L2.map((p,k)=>`<button class="pcq ${k===0&&L2.length>1?"cmin":""} ${man&&o&&o.v===+p.preco_unit&&o.fonte&&o.fonte.startsWith(p.cot.fornecedor_nome)?"on":""}" data-ap="${esc(l.c)}" data-v="${p.preco_unit}" data-f="${esc(p.cot.fornecedor_nome+(p.cot.documento?" · "+p.cot.documento:""))}" title="Usar este preço">${esc(p.cot.fornecedor_nome)} ${brl(p.preco_unit)}</button>`).join("")||'<span class="note">—</span>'})()}</td>`:""}
+          <td class="hm orig">${man&&o.fonte?`<b>Cotação: ${esc(o.fonte)}</b><small>${o.enviado?"✓ enviado à base":"só nesta obra"} · base: ${vg?brl(vg.valor):"—"}</small>`:man?`<b>Manual neste orçamento</b><small>base: ${vg?brl(vg.valor):"—"}</small>`:vg?`<b>${esc(vg.fornecedor||ORIG[vg.origem]||vg.origem)}</b><small>${fdata(vg.data)}${vg.documento&&vg.fornecedor?" · "+esc(vg.documento):""}</small>`:"—"}</td>
           <td class="n">${man?`<button class="xb" data-rp="${esc(l.c)}" title="Voltar ao preço da base">↺</button>`:""}<button class="xb" data-rm="${esc(l.c)}" title="Remover do orçamento">🗑</button></td></tr>`}).join("")}
-       </tbody><tfoot><tr><td colspan="4"><b>Total (${A.length} materiais)</b></td><td class="n"><b>${brl(T0)}</b></td><td colspan="2"></td></tr></tfoot></table></div></div>
+       </tbody><tfoot><tr><td colspan="4"><b>Total (${A.length} materiais)</b></td><td class="n"><b>${brl(T0)}</b></td><td colspan="${COTS.length?3:2}"></td></tr></tfoot></table></div></div>
       <aside class="stk" style="display:grid;gap:12px;align-content:start">
       <div class="card"><h2>Indicadores</h2>
        <div class="kv"><span>Total de material</span><b>${brl(T0)}</b></div>
@@ -1742,6 +1886,9 @@ async function editor(id){
     $("#mSP").onchange=e=>{soSemPreco=e.target.checked;telaMateriais()};$("#mSPw")&&($("#mSPw").onclick=()=>{soSemPreco=!soSemPreco;telaMateriais()});
     $("#mOrd").onchange=e=>{ordMat=e.target.value;try{localStorage.setItem("orc_ordMat",ordMat)}catch(x){}telaMateriais()};
     $$("[data-em]",el).forEach(b=>b.onclick=()=>editaMatBase(b.dataset.em));
+    $("#mCot").onchange=async e=>{const fs=[...e.target.files];e.target.value="";for(const f of fs)await cotImportar(f)};$("#mBase").onclick=cotEnviarBase;
+    $$("[data-ap]",el).forEach(b=>b.onclick=async()=>{await cotAplicar(b.dataset.ap,+b.dataset.v,b.dataset.f);renderHead();telaMateriais()});
+    $$("[data-dct]",el).forEach(b=>b.onclick=()=>{const c=COTS.find(x=>x.id==b.dataset.dct);modal(`<h2>Excluir a cotação de ${esc(c.fornecedor_nome)}?</h2><p class="note">Os preços já aplicados continuam no orçamento; só some a comparação.</p>`,async()=>{await chk(O.from("orc_cotacoes").delete().eq("id",c.id));COTS=COTS.filter(x=>x!==c);CPR=CPR.filter(p=>p.cotacao_id!==c.id);telaMateriais()},"Excluir")});
     $$("[data-cm]",el).forEach(b=>b.onclick=()=>{cardModo=b.dataset.cm;try{localStorage.setItem("orc_cardModo",cardModo)}catch(e){}telaMateriais()});
     $$("[data-fs]",el).forEach(b=>b.onclick=()=>{const k=b.dataset.fs;fSub=fSub===k?"":k;telaMateriais()});
     $$("[data-fc]",el).forEach(b=>b.onclick=()=>{const k=b.dataset.fc;fCat=fCat===k?"":k;telaMateriais()});
