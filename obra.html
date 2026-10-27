@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Obra · ON Engenharia</title>
-<link rel="icon" href="assets/on-logo.jpg">
+<link rel="icon" href="assets/on-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}
@@ -230,6 +230,7 @@ svg.net line.hit{stroke:transparent}
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
+<script src="js/atalhos.js"></script>
 <script src="js/global.js?v=10" defer></script>
 </head>
 <body>
@@ -238,7 +239,7 @@ svg.net line.hit{stroke:transparent}
 (async()=>{
 let S,role="cliente",TOKEN=null;
 try{const r=await DB.carregarObra();S=r.S;role=r.role;TOKEN=r.token}
-catch(e){if(e.message!=="login")document.getElementById("root").innerHTML=`<div class="erro"><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1>Não foi possível abrir a obra</h1><p>${String(e.message||e).replace(/</g,"&lt;")}</p><a href="index.html">Ir para o início</a></div>`;return}
+catch(e){if(e.message!=="login")document.getElementById("root").innerHTML=`<div class="erro"><img src="assets/on-logo.png" alt="ON Engenharia"><h1>Não foi possível abrir a obra</h1><p>${String(e.message||e).replace(/</g,"&lt;")}</p><a href="index.html">Ir para o início</a></div>`;return}
 document.title=S.obra.titulo+" · ON Engenharia";
 S.onLogo="assets/on-logo.jpg";
 /* migração de versões anteriores */

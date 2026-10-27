@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Obras · ON Engenharia</title>
-<link rel="icon" href="assets/on-logo.jpg">
+<link rel="icon" href="assets/on-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: faixa navy no topo; quadro kanban com 4 colunas que rolam na horizontal no celular */
@@ -167,6 +167,7 @@ button.kp:hover{border-color:var(--c)}
 <script src="vendor/Sortable.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
+<script src="js/atalhos.js"></script>
 <script src="js/global.js?v=10" defer></script>
 </head>
 <body>
@@ -185,7 +186,7 @@ async function inicio(){
   if(!s)return telaLogin();
   perfil=await DB.meuPerfil();
   if(!perfil){toast("Perfil não encontrado.");await sb.auth.signOut();return telaLogin()}
-  if(perfil.papel==="pendente"){$("#app").innerHTML=`<div class="login"><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1>Cadastro aguardando liberação</h1><p class="note">Sua conta (${esc(perfil.email||"")}) foi criada, mas ainda precisa ser liberada por um administrador da ON Engenharia. Avise o administrador e entre de novo depois.</p><button class="btn" id="bS">Sair</button></div>`;$("#bS").onclick=async()=>{await sb.auth.signOut();telaLogin()};return}
+  if(perfil.papel==="pendente"){$("#app").innerHTML=`<div class="login"><img src="assets/on-logo.png" alt="ON Engenharia"><h1>Cadastro aguardando liberação</h1><p class="note">Sua conta (${esc(perfil.email||"")}) foi criada, mas ainda precisa ser liberada por um administrador da ON Engenharia. Avise o administrador e entre de novo depois.</p><button class="btn" id="bS">Sair</button></div>`;$("#bS").onclick=async()=>{await sb.auth.signOut();telaLogin()};return}
   if(window.ON_LINK_TIPO==="invite"||window.ON_LINK_TIPO==="recovery"){const t=window.ON_LINK_TIPO;window.ON_LINK_TIPO="";history.replaceState(null,"",location.pathname);await carregar();novaSenha(t==="invite");return}
   const volta=new URLSearchParams(location.search).get("volta");
   if(volta&&/^\/[^/]/.test(volta)){location.href=volta;return}
@@ -195,7 +196,7 @@ async function inicio(){
 /* ---------- login ---------- */
 function telaLogin(modo){
   modo=modo||"entrar";
-  $("#app").innerHTML=`<form class="login" id="fl"><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1>${modo==="entrar"?"Entrar no gerenciador de obras":"Primeiro acesso"}</h1>
+  $("#app").innerHTML=`<form class="login" id="fl"><img src="assets/on-logo.png" alt="ON Engenharia"><h1>${modo==="entrar"?"Entrar no gerenciador de obras":"Primeiro acesso"}</h1>
    ${modo==="primeiro"?'<p class="note">Use apenas na primeira vez, para criar o administrador. Os executores são cadastrados depois, pelo administrador.</p><label class="fld">Seu nome<input id="lN" required autocomplete="name"></label>':""}
    <label class="fld">E-mail<input id="lE" type="email" required autocomplete="email"></label>
    <label class="fld">Senha<input id="lS" type="password" required minlength="6" autocomplete="${modo==="entrar"?"current-password":"new-password"}"></label>
@@ -269,7 +270,7 @@ async function contarAvisos(){try{const {count}=await sb.from("notificacoes").se
 /* ---------- estrutura ---------- */
 function render(){
   $("#app").innerHTML=`<div class="wrap">
-   <header><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1><small>${aba==="painel"?"ON Engenharia":"Gerenciador de obras"}</small>${aba==="painel"?"Painel geral":ADM()?"Todas as obras":"Minhas obras"}</h1>
+   <header><img src="assets/on-logo.png" alt="ON Engenharia"><h1><small>${aba==="painel"?"ON Engenharia":"Gerenciador de obras"}</small>${aba==="painel"?"Painel geral":ADM()?"Todas as obras":"Minhas obras"}</h1>
     <nav class="abas"><button data-aba="painel" class="${aba==="painel"?"on":""}">🏠 Início</button><button data-aba="kanban" class="${aba==="kanban"?"on":""}">Obras</button><button data-aba="inicio" class="${aba==="inicio"?"on":""}">Mapa</button><a class="abalink" href="negocios.html">💼 Negócios<b class="nbadge" id="nBadge" hidden></b></a>${perfil&&perfil.papel==="admin"?'<a class="abalink" href="orcarede.html">🧮 OrçaRede</a>':""}${perfil&&perfil.papel==="admin"?'<a class="abalink" href="compras.html">🛒 Compras</a>':""}${perfil&&perfil.papel==="admin"?'<a class="abalink" href="lixeira.html">🗑 Lixeira</a>':""}</nav>
     <div class="tools"><span class="who">${esc(perfil.nome||perfil.email)} · ${ADM()?"Administrador":"Executor"}</span>${ADM()?'<button class="btn" id="bU">Usuários</button>':""}<a class="btn" href="portfolio.html" target="_blank" rel="noopener">Portfólio</a><button class="btn" id="bS">Sair</button></div></header>
    <div id="corpo"></div></div>`;

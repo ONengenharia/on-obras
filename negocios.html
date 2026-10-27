@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Negócios · ON Engenharia</title>
-<link rel="icon" href="assets/on-logo.jpg">
+<link rel="icon" href="assets/on-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: faixa navy com seletor de quadro (Elétrica / Solar), quadro kanban horizontal, gaveta lateral do card com abas */
@@ -172,7 +172,7 @@ header .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}header .b
 @media (max-width:640px){.grid2{grid-template-columns:1fr}.col{flex-basis:82vw}}
 
 .areas a{text-decoration:none;color:var(--ink)}.areas a:hover{border-color:var(--accent)}
-img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:none}
+img.logo{width:auto;height:38px;border-radius:0;object-fit:contain;background:none}
 .gv.lado{justify-content:flex-end;align-items:stretch}
 .card{position:relative}
 .crow .alca{cursor:grab;color:var(--muted);font-size:16px;padding:0 2px;user-select:none}.crow.arr{opacity:.45;outline:2px dashed var(--accent)}
@@ -215,6 +215,7 @@ img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:no
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
+<script src="js/atalhos.js"></script>
 <script src="js/global.js?v=10" defer></script>
 </head>
 <body>
@@ -309,7 +310,7 @@ function render(){
   const nl=INBOX.filter(n=>!n.lido).length;
   const etqs=ETQ.filter(e=>e.quadro===quadro);
   $("#app").innerHTML=`${navHtml()}
-  <header><img class="logo" src="assets/on-logo.jpg" alt="ON Engenharia"><h1><small>Negócios</small>Fluxo comercial e administrativo</h1>
+  <header><img class="logo" src="assets/on-logo.png" alt="ON Engenharia"><h1><small>Negócios</small>Fluxo comercial e administrativo</h1>
    <div class="seg">${Object.values(QUADROS).sort((a,b)=>a.ordem-b.ordem).map(v=>`<button class="${quadro===v.id?"on":""}" data-q="${v.id}"><i style="background:${v.cor}"></i>${esc(v.nome)}</button>`).join("")}</div>
    <span class="who">${esc(perfil.nome||perfil.email)}${perfil.setor?" · "+esc(perfil.setor):""}</span>
    <button class="btn sino" id="bIn" title="Caixa de entrada">🔔 Caixa de entrada${nl?`<b class="badge ${INBOX.some(n=>!n.lido&&n.tipo==="mencao")?"pisca":""}">${nl}</b>`:""}</button>
@@ -465,7 +466,7 @@ async function fluxograma(c){
     const forma=n.d?`<polygon points="${n.x},${n.y-H*.85} ${n.x+W*.62},${n.y} ${n.x},${n.y+H*.85} ${n.x-W*.62},${n.y}"/>`:`<rect x="${n.x-W/2}" y="${n.y-H/2}" width="${W}" height="${H}" rx="${n.fim?26:10}"/>`;
     return `<g class="fn ${st} ${n.d?"dec":""} ${n.id==="perdido"?"perd":""}" data-n="${n.id}">${forma}<text x="${n.x}" y="${n.y+(n.d||!sub?4:-3)}" class="ft">${st==="feito"?"✓ ":""}${esc(n.t)}</text>${!n.d&&sub?`<text x="${n.x}" y="${n.y+13}" class="fs">${esc(sub)}</text>`:""}${st==="aqui"?`${n.x>=500?`<text x="${n.x}" y="${n.y-(n.d?H*.85:H/2)-7}" class="fh" text-anchor="middle">▼ VOCÊ ESTÁ AQUI</text>`:`<text x="${n.x-(n.d?W*.62:W/2)-10}" y="${n.y+4}" class="fh" text-anchor="end">VOCÊ ESTÁ AQUI ▸</text>`}`:""}</g>`}).join("");
   const m=document.createElement("div");m.className="modal fxm";
-  m.innerHTML=`<div class="mbox wide" ><div class="row fxh"><div style="display:flex;align-items:center;gap:14px"><img src="assets/on-logo.jpg" alt="ON Engenharia" style="height:46px;border-radius:6px"><div><div class="note" style="text-transform:uppercase;letter-spacing:.06em">Fluxo do processo</div><h2 style="font-size:20px">${esc(c.titulo)}</h2>${c.cliente||c.cidade?`<div class="note">${esc([c.cliente,c.cidade].filter(Boolean).join(" · "))}</div>`:""}</div></div><button class="btn" data-fx>Fechar</button></div>
+  m.innerHTML=`<div class="mbox wide" ><div class="row fxh"><div style="display:flex;align-items:center;gap:14px"><img src="assets/on-logo.png" alt="ON Engenharia" style="height:46px;border-radius:6px"><div><div class="note" style="text-transform:uppercase;letter-spacing:.06em">Fluxo do processo</div><h2 style="font-size:20px">${esc(c.titulo)}</h2>${c.cliente||c.cidade?`<div class="note">${esc([c.cliente,c.cidade].filter(Boolean).join(" · "))}</div>`:""}</div></div><button class="btn" data-fx>Fechar</button></div>
    <p class="note">Etapa atual pela coluna do card: <b>${esc(col?col.nome:"—")}</b>${E.reprov?" (projeto reprovado: volta para revisão)":""}. Etapas com ✓ já passaram.</p>
    <div class="fxg"><div style="overflow:auto"><svg viewBox="-40 0 840 1035" style="width:100%;min-width:560px;height:auto" role="img" aria-label="Fluxograma do processo">
     <defs><marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--muted)"/></marker><marker id="seta2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--ok)"/></marker></defs>

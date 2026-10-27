@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>OrçaRede · ON Engenharia</title>
-<link rel="icon" href="assets/on-logo.jpg">
+<link rel="icon" href="assets/on-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
@@ -288,6 +288,7 @@ html.sover #bVer,html.sover #bVig,html.sover #bFin,html.sover #bDados,html.sover
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
+<script src="js/atalhos.js"></script>
 <script>
 (async()=>{
 const sb=DB.sb, O=sb.schema("orcarede");
@@ -300,7 +301,7 @@ const pnum=s=>{if(typeof s==="number")return s;s=String(s||"").trim();if(s.inclu
 const fdata=d=>d?new Date(String(d).length===10?d+"T12:00":d).toLocaleDateString("pt-BR"):"";
 const root=$("#root");
 function toast(t){$$(".toast").forEach(x=>x.remove());const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3500)}
-function falha(msg){root.innerHTML=`<div class="erro"><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1>OrçaRede</h1><p>${esc(msg)}</p><a href="index.html">Ir para o início</a></div>`}
+function falha(msg){root.innerHTML=`<div class="erro"><img src="assets/on-logo.png" alt="ON Engenharia"><h1>OrçaRede</h1><p>${esc(msg)}</p><a href="index.html">Ir para o início</a></div>`}
 async function chk(p){const r=await p;if(r.error){console.error(r.error);toast("Erro ao gravar: "+(r.error.message||r.error.code));throw r.error}return r.data}
 async function todos(q){let out=[],i=0;for(;;){const {data,error}=await q().range(i,i+999);if(error)throw error;out=out.concat(data);if(data.length<1000)return out;i+=1000}}
 function modal(html,onOk,okTxt="OK"){const m=document.createElement("div");m.className="modal";m.innerHTML=`<form class="mbox">${html}<div class="row"><span></span><span style="display:flex;gap:8px"><button type="button" class="btn" data-x>Cancelar</button><button class="btn pri">${okTxt}</button></span></div></form>`;
@@ -387,7 +388,7 @@ async function config(aba){
   const origemTxt=o=>({compra:"Compra",proposta:"Cotação",orcamento:"Orçamento",manual:"Manual",importacao:"Importação"}[o]||o||"");
   function frame(html){
     root.innerHTML=`<div class="page">
-     <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">OrçaRede</div><h1>Configurações</h1><div class="sub">Base de materiais, grupos de itens e cadastros usados nos orçamentos</div></div>
+     <header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div class="ttl"><div class="eye">OrçaRede</div><h1>Configurações</h1><div class="sub">Base de materiais, grupos de itens e cadastros usados nos orçamentos</div></div>
       <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><a class="btn" href="orcarede.html">← Orçamentos</a></div>
       <nav class="steps">${ABAS.map(([k,t],i)=>`<button data-aba="${k}" class="${k===aba?"on":""}"><b>${i+1}</b>${t}</button>`).join("")}</nav></header>
      <div id="cfgBody">${html}</div></div>`;
@@ -941,7 +942,7 @@ async function lista(pastaId){
     const cont=p=>{const ids=descend(p.id);const n=ORCS.filter(o=>ids.includes(o.pasta_id)).length,s=filhos(p.id).length;return `${n} ${n===1?"versão":"versões"}${s?` · ${s} ${s===1?"pasta":"pastas"}`:""}`};
     const vig=p=>ORCS.filter(o=>o.pasta_id===p.id).sort((a,b)=>(b.vigente-a.vigente)||(b.versao-a.versao))[0];
     root.innerHTML=`<div class="page">
-     <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">ON Engenharia</div><h1>OrçaRede</h1><div class="sub">Projete a rede, consolide os materiais e siga para a precificação</div></div>
+     <header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div class="ttl"><div class="eye">ON Engenharia</div><h1>OrçaRede</h1><div class="sub">Projete a rede, consolide os materiais e siga para a precificação</div></div>
       <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><a class="btn" href="index.html">← Obras</a><a class="btn" href="negocios.html">Negócios</a>${ADMO?'<a class="btn" href="orcarede.html?cfg=materiais">⚙ Configurações</a>':""}${SOVER?"":'<button class="btn" id="bPasta">+ Pasta</button><button class="btn pri" id="bNovo">+ Novo orçamento</button>'}</div></header>
      ${pastaId||busca?"":dash()}
      <div class="row"><div class="bc"><button data-go="">Todos</button>${trilha.map(p=>`<span>›</span><button data-go="${p.id}">${esc(p.nome)}</button>`).join("")}</div>
@@ -1145,7 +1146,7 @@ async function editor(id){
   function shell(){
     const vers=IRMAS.length>1?`<select class="inp" id="hVer" aria-label="Versão" style="padding:3px 6px;font-size:12px;background:#2b4157;color:#e8f1f9;border-color:#3b5670">${IRMAS.map(v=>`<option value="${v.id}" ${v.id===ORC.id?"selected":""}>v${v.versao}${v.vigente?" · vigente":""}</option>`).join("")}</select>`:`<span class="chip vig">v${ORC.versao||1}</span>`;
     root.innerHTML=`<div class="app ${etapa==="projeto"?"":"full"}">
-     <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia">
+     <header class="top"><img src="assets/on-logo.png" alt="ON Engenharia">
       <div class="ttl"><div class="eye"><a href="orcarede.html">OrçaRede</a>${PASTA?` › <a href="orcarede.html?pasta=${PASTA.id}">${esc(PASTA.nome)}</a>`:""} · ${esc(concSig(conc))}</div>
        <h1><span id="hT"></span>${vers}${ORC.vigente&&IRMAS.length>1?"":""}<span class="chip" id="hSt"></span></h1><div class="sub" id="hS"></div></div>
       <div class="hmix" id="hMix"></div>
@@ -1991,7 +1992,7 @@ async function editor(id){
   const EMPRESA={nome:"ON Engenharia Elétrica",linha2:"Projetos e execução de redes de distribuição",contato:"luan@onengenhariaeletrica.com.br"};
   const NAVY="FF1E2F40",SOFT="FFE8F1F9",LINE="FFD6E1EA",MOEDA='"R$" #,##0.00',QTD='#,##0.###';
   async function xl(){if(!window.ExcelJS)await loadScript("vendor/exceljs.min.js");return window.ExcelJS}
-  async function logoB64(){try{const r=await fetch($("header.top img")?$("header.top img").src:"assets/on-logo.jpg");const b=new Uint8Array(await r.arrayBuffer());let s="";for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return btoa(s)}catch(e){return null}}
+  async function logoB64(){try{const r=await fetch("assets/on-logo.jpg");const b=new Uint8Array(await r.arrayBuffer());let s="";for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return btoa(s)}catch(e){return null}}
   async function baixar(wb,nome){const buf=await wb.xlsx.writeBuffer();const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));a.download=nome.replace(/[\\/:*?"<>|]/g,"_")+".xlsx";document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),500)}
   async function cabecalho(wb,ws,titulo,linhas,cols){
     const lg=await logoB64();if(lg){const id=wb.addImage({base64:lg,extension:"jpeg"});ws.addImage(id,{tl:{col:0,row:0},ext:{width:120,height:62}})}

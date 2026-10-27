@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Lixeira · ON Engenharia</title>
-<link rel="icon" href="assets/on-logo.jpg">
+<link rel="icon" href="assets/on-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
@@ -301,6 +301,7 @@ header.top .steps{width:100%}
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
+<script src="js/atalhos.js"></script>
 <script>
 (async()=>{
 const sb=DB.sb, O=sb.schema("orcarede");
@@ -313,7 +314,7 @@ const pnum=s=>{if(typeof s==="number")return s;s=String(s||"").trim();if(s.inclu
 const fdata=d=>d?new Date(String(d).length===10?d+"T12:00":d).toLocaleDateString("pt-BR"):"";
 const root=$("#root");
 function toast(t){$$(".toast").forEach(x=>x.remove());const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3500)}
-function falha(msg){root.innerHTML=`<div class="erro"><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1>Lixeira</h1><p>${esc(msg)}</p><a href="index.html">Ir para o início</a></div>`}
+function falha(msg){root.innerHTML=`<div class="erro"><img src="assets/on-logo.png" alt="ON Engenharia"><h1>Lixeira</h1><p>${esc(msg)}</p><a href="index.html">Ir para o início</a></div>`}
 async function chk(p){const r=await p;if(r.error){console.error(r.error);toast("Erro ao gravar: "+(r.error.message||r.error.code));throw r.error}return r.data}
 async function todos(q){let out=[],i=0;for(;;){const {data,error}=await q().range(i,i+999);if(error)throw error;out=out.concat(data);if(data.length<1000)return out;i+=1000}}
 function modal(html,onOk,okTxt="OK"){const m=document.createElement("div");m.className="modal";m.innerHTML=`<form class="mbox">${html}<div class="row"><span></span><span style="display:flex;gap:8px"><button type="button" class="btn" data-x>Cancelar</button><button class="btn pri">${okTxt}</button></span></div></form>`;
@@ -330,7 +331,7 @@ let todos_=false,q="";
 async function carregar(){const {data,error}=await sb.from("lixeira_lotes").select("*").order("quando",{ascending:false}).limit(500);if(error){falha(error.message);return}return data||[]}
 let L=await carregar();
 function draw(){const t=norm(q);const F=L.filter(l=>(todos_||NOMES[l.tabela])&&(!t||norm([l.descricao,NOMES[l.tabela]||l.tabela,l.quem_nome].join(" ")).includes(t)));
-  root.innerHTML=`<div class="app full"><header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye"><a href="index.html#painel">Início</a> › Lixeira</div><h1><span>🗑 Lixeira</span></h1><div class="sub">Tudo o que foi excluído nos últimos 30 dias pode ser restaurado aqui, junto com o que dependia dele.</div></div></header>
+  root.innerHTML=`<div class="app full"><header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div class="ttl"><div class="eye"><a href="index.html#painel">Início</a> › Lixeira</div><h1><span>🗑 Lixeira</span></h1><div class="sub">Tudo o que foi excluído nos últimos 30 dias pode ser restaurado aqui, junto com o que dependia dele.</div></div></header>
    <div id="full"><div class="wrap2"><div class="card"><div class="row"><input class="inp" id="q" placeholder="Buscar" value="${esc(q)}" style="width:260px"><label class="note"><input type="checkbox" id="td" ${todos_?"checked":""}> mostrar também exclusões pequenas (itens internos)</label></div>
    <table class="tbl"><thead><tr><th>Excluído</th><th>O quê</th><th class="hm">Por</th><th class="n">Registros</th><th></th></tr></thead><tbody>
    ${F.map(l=>`<tr><td>${new Date(l.quando).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})}</td><td><b>${esc(l.descricao||"")}</b><span class="sm">${esc(NOMES[l.tabela]||l.tabela)}${l.tabelas&&l.tabelas.length>1?` + ${l.tabelas.length-1} tipo(s) de dado ligado(s)`:""}</span></td><td class="hm">${esc(l.quem_nome||"—")}</td><td class="n">${l.linhas}</td><td class="n"><button class="btn sm pri" data-r="${l.lote}">↺ Restaurar</button></td></tr>`).join("")||'<tr><td colspan="5" class="note">Nada na lixeira.</td></tr>'}

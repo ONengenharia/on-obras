@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Compras · ON Engenharia</title>
-<link rel="icon" href="assets/on-logo.jpg">
+<link rel="icon" href="assets/on-logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root{
@@ -303,6 +303,7 @@ header.top .steps{width:100%}
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
+<script src="js/atalhos.js"></script>
 <script>
 (async()=>{
 const sb=DB.sb, O=sb.schema("orcarede");
@@ -315,7 +316,7 @@ const pnum=s=>{if(typeof s==="number")return s;s=String(s||"").trim();if(s.inclu
 const fdata=d=>d?new Date(String(d).length===10?d+"T12:00":d).toLocaleDateString("pt-BR"):"";
 const root=$("#root");
 function toast(t){$$(".toast").forEach(x=>x.remove());const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3500)}
-function falha(msg){root.innerHTML=`<div class="erro"><img src="assets/on-logo.jpg" alt="ON Engenharia"><h1>Compras</h1><p>${esc(msg)}</p><a href="index.html">Ir para o início</a></div>`}
+function falha(msg){root.innerHTML=`<div class="erro"><img src="assets/on-logo.png" alt="ON Engenharia"><h1>Compras</h1><p>${esc(msg)}</p><a href="index.html">Ir para o início</a></div>`}
 async function chk(p){const r=await p;if(r.error){console.error(r.error);toast("Erro ao gravar: "+(r.error.message||r.error.code));throw r.error}return r.data}
 async function todos(q){let out=[],i=0;for(;;){const {data,error}=await q().range(i,i+999);if(error)throw error;out=out.concat(data);if(data.length<1000)return out;i+=1000}}
 function modal(html,onOk,okTxt="OK"){const m=document.createElement("div");m.className="modal";m.innerHTML=`<form class="mbox">${html}<div class="row"><span></span><span style="display:flex;gap:8px"><button type="button" class="btn" data-x>Cancelar</button><button class="btn pri">${okTxt}</button></span></div></form>`;
@@ -404,7 +405,7 @@ const perfil=await DB.meuPerfil();const ADM=perfil&&perfil.papel==="admin";
 {const r=await O.rpc("pode_compras");if(r.error||!r.data){falha("O painel de compras está liberado só para administradores e usuários autorizados.");return}}
 const Q=new URLSearchParams(location.search);
 const quem=()=>perfil.nome||perfil.email||"usuário";
-const topo=(t,sub,extra="")=>`<header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye"><a href="index.html#painel">Início</a> › <a href="negocios.html">Negócios</a> › <a href="compras.html">Compras</a>${ADM?' · <a href="orcarede.html">OrçaRede</a>':""}</div><h1><span>${esc(t)}</span></h1><div class="sub">${sub}</div></div>${extra}</header>`;
+const topo=(t,sub,extra="")=>`<header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div class="ttl"><div class="eye"><a href="index.html#painel">Início</a> › <a href="negocios.html">Negócios</a> › <a href="compras.html">Compras</a>${ADM?' · <a href="orcarede.html">OrçaRede</a>':""}</div><h1><span>${esc(t)}</span></h1><div class="sub">${sub}</div></div>${extra}</header>`;
 
 if(Q.get("neg"))return deNegocio(Q.get("neg"));
 if(Q.get("id"))return painel(Q.get("id"));
@@ -415,7 +416,7 @@ async function deNegocio(nid){
   if(c&&c[0]){location.replace("compras.html?id="+c[0].id);return}
   if(ADM){const {data:o}=await O.from("orcamentos").select("id,vigente,atualizado_em").eq("negocio_id",nid).order("vigente",{ascending:false}).order("atualizado_em",{ascending:false}).limit(1);
     if(o&&o[0]){location.replace("orcarede.html?compras="+o[0].id);return}}
-  root.innerHTML=`<div class="erro"><img src="assets/on-logo.jpg" alt=""><h1>Compras</h1><p>Este negócio ainda não tem painel de compras.${ADM?" Vincule um orçamento no OrçaRede e use o botão 🛒 Compras.":" Peça a um administrador para abrir a partir do orçamento."}</p><a href="negocios.html">Voltar aos negócios</a></div>`}
+  root.innerHTML=`<div class="erro"><img src="assets/on-logo.png" alt=""><h1>Compras</h1><p>Este negócio ainda não tem painel de compras.${ADM?" Vincule um orçamento no OrçaRede e use o botão 🛒 Compras.":" Peça a um administrador para abrir a partir do orçamento."}</p><a href="negocios.html">Voltar aos negócios</a></div>`}
 
 /* ---------------- LISTA ---------------- */
 async function lista(){
