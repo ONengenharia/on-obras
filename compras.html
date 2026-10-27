@@ -294,6 +294,8 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .tbl.cmp tr.oc td{background:var(--ok-soft)}.tbl tr.oc td{background:var(--ok-soft)}.ocx{background:var(--ok-soft);color:var(--ok);padding:0 4px;border-radius:4px;font-weight:600}.ocb{color:var(--ok)}
 .inp.est{width:80px;padding:3px 6px;font-size:12px}
 header.top .steps{width:100%}
+.mbox.redim{resize:both;overflow:auto;min-width:640px;max-width:98vw;max-height:94vh}
+.tbl.cotrev{table-layout:fixed;width:100%}.tbl.cotrev th{resize:horizontal;overflow:hidden}.tbl.cotrev td{overflow-wrap:anywhere;vertical-align:top}.tbl.cotrev .acw input{width:100%}.matfull{font-size:12px;font-weight:600;margin-top:4px;line-height:1.3}
 </style>
 </head>
 <body>
@@ -612,32 +614,36 @@ async function painel(id){
     a=AP.find(x=>x.texto_norm===k||x.texto_norm===norm(l.txt));if(a&&porMat(a.material_codigo))return{it:porMat(a.material_codigo),s:.95,mem:"aprendido com outro fornecedor"};
     const T=new Set(toks2(l.txt));const TA=[...T].filter(x=>!/\d/.test(x)),TN=[...T].filter(x=>/\d/.test(x));
     let best=null;ativos().forEach(i=>{const U=new Set(toks2(i.descricao));const ca=TA.filter(x=>U.has(x)).length,cn=TN.filter(x=>U.has(x)).length;if(ca<Math.min(2,TA.length))return;
-      const s=(ca+cn*.7)/Math.sqrt(Math.max(1,TA.length+TN.length)*Math.max(1,U.size));if(!best||s>best.s)best={it:i,s}});return best}
+      let s=(ca+cn*1.2)/Math.sqrt(Math.max(1,TA.length+TN.length)*Math.max(1,U.size));if(TN.length)s*=Math.pow(.55,TN.length-cn);if(!best||s>best.s)best={it:i,s,full:cn>=TN.length}});return best}
   const SIN={TR:"TRANSFORMADOR",TRAFO:"TRANSFORMADOR",TRANSF:"TRANSFORMADOR",TRIF:"TRIFASICO",MONOF:"MONOFASICO",PREF:"PREFORMADA",ALC:"ALCA",ABRAC:"ABRACADEIRA",ISOL:"ISOLADOR",GALV:"GALVANIZADO",CONC:"CONCRETO",CIRC:"CIRCULAR"};
-  const toks2=t=>{const o=[];toks(String(t).replace(/\b3\s*F\b/gi," TRIFASICO ").replace(/\b1\s*F\b/gi," MONOFASICO ")).forEach(w=>{o.push(SIN[w]||w)});return o};
+  const preN=t=>String(t||"").toUpperCase().replace(/(\d+(?:[.,]\d+)?)\s*DAN\b/g,(m,v)=>{const k=pnum(v)/100;return " "+String(+k.toFixed(2)).replace(".",",")+" KN "}).replace(/(\d+(?:[.,]\d+)?)\s*KN\b/g," $1 KN ").replace(/(\d+(?:[.,]\d+)?)\s*(?:M|MT|MTS|METROS?)\b/g," $1 MT ");
+  const toks2=t=>{const o=[];toks(preN(t).replace(/\b3\s*F\b/gi," TRIFASICO ").replace(/\b1\s*F\b/gi," MONOFASICO ")).forEach(w=>{o.push(SIN[w]||w)});return o};
+  function cmpModal(md){const bx=md.querySelector(".mbox");if(!bx)return;bx.classList.add("redim");const h=bx.querySelector("h2");if(h){h.style.cursor="move";let st=null;h.onpointerdown=e=>{st={x:e.clientX,y:e.clientY,ox:+(bx.dataset.ox||0),oy:+(bx.dataset.oy||0)};h.setPointerCapture(e.pointerId)};
+    h.onpointermove=e=>{if(!st)return;const ox=st.ox+e.clientX-st.x,oy=st.oy+e.clientY-st.y;bx.dataset.ox=ox;bx.dataset.oy=oy;bx.style.transform=`translate(${ox}px,${oy}px)`};h.onpointerup=()=>{st=null}}}
+  function posAcl(inp,box){const r=inp.getBoundingClientRect();Object.assign(box.style,{position:"fixed",left:Math.max(8,Math.min(r.left,innerWidth-Math.max(r.width,620)-8))+"px",top:(r.bottom+4)+"px",width:Math.max(r.width,620)+"px",maxHeight:Math.max(160,innerHeight-r.bottom-20)+"px",zIndex:2000})}
   async function revisar(r,cab,fid,fornome,arq){
     const AP=await todos(()=>O.from("apelidos").select("fonte,fornecedor,texto_norm,material_codigo"));
-    const L=r.itens.map(x=>{const g=sugerirItem(x,AP,fornome);const ok=!!(g&&(g.mem||g.s>.35));return{...x,item:ok?g.it.id:"",conf:g?g.s:0,mem:g&&g.mem,ok}});const nMem=L.filter(l=>l.mem&&l.conf>=.99).length;
+    const L=r.itens.map(x=>{const g=sugerirItem(x,AP,fornome);const ok=!!(g&&(g.mem||(g.s>.35&&g.full)));return{...x,item:ok?g.it.id:"",conf:g?g.s:0,mem:g&&g.mem,ok}});const nMem=L.filter(l=>l.mem&&l.conf>=.99).length;
     const opts=ativos().map(i=>`<option value="${i.id}">${esc(i.descricao)}</option>`).join("");
     const md=document.createElement("div");md.className="modal";
     md.innerHTML=`<div class="mbox wide"><h2>Revisar cotação · ${esc(fornome)}</h2><p class="note">${esc(arq)} · ${L.length} linhas lidas${r.ignoradas?` · ${r.ignoradas} ignoradas (totais, impostos, cabeçalho)`:""}. Confira a qual material desta obra cada linha corresponde.${nMem?` <b style="color:var(--ok)">${nMem} linha(s) já reconhecidas pela memória de ${esc(fornome)}.</b>`:""}</p>
       <div class="grid3"><label class="fld">Documento<input id="rvDoc" value="${esc(cab.numero||"")}"></label><label class="fld">Data<input type="date" id="rvDt" value="${cab.data||new Date().toISOString().slice(0,10)}"></label><label class="fld">Prazo de entrega<input id="rvPz" placeholder="ex.: 30 dias"></label></div>
-      <div style="overflow:auto;max-height:55vh"><table class="tbl"><thead><tr><th></th><th>Linha do fornecedor</th><th class="n">Qtd</th><th class="n">Preço unit.</th><th>Material da obra</th></tr></thead><tbody>
+      <div style="overflow:auto;max-height:58vh"><table class="tbl cotrev"><colgroup><col style="width:34px"><col style="width:30%"><col style="width:70px"><col style="width:110px"><col></colgroup><thead><tr><th></th><th>Linha do fornecedor</th><th class="n">Qtd</th><th class="n">Preço unit.</th><th>Material da obra</th></tr></thead><tbody>
       ${L.map((l,n)=>`<tr><td><input type="checkbox" data-ok="${n}" ${l.ok?"checked":""}></td><td>${esc(l.txt)}${l.cod?`<span class="sm mono">${esc(l.cod)}</span>`:""}</td><td class="n">${l.q!=null?num(l.q,3):""}</td><td class="n"><input class="inp n" data-pv="${n}" value="${num(l.p,4)}" style="width:100px"></td>
-        <td><div class="acw" style="max-width:440px"><input class="inp" data-q="${n}" autocomplete="off" placeholder="Digite para procurar o material da obra…" value="${l.item?esc((IT.find(i=>i.id==l.item)||{}).descricao||""):""}"><input type="hidden" data-it="${n}"><div class="acl" data-acl="${n}" hidden></div></div>${l.item?`<span class="sm" style="${l.mem?"color:var(--ok)":""}">${l.mem?"✓ "+l.mem:"confiança "+Math.round(Math.min(1,l.conf)*100)+"%"}</span>`:""}</td></tr>`).join("")}</tbody></table></div>
+        <td><div class="acw"><input class="inp" data-q="${n}" autocomplete="off" placeholder="Digite para procurar o material da obra…" value=""><input type="hidden" data-it="${n}"><div class="acl" data-acl="${n}" hidden></div><div class="matfull" data-mf="${n}">${l.item?esc((IT.find(i=>i.id==l.item)||{}).descricao||""):'<span class="note">— nenhum material escolhido —</span>'}</div></div>${l.item?`<span class="sm" style="${l.mem?"color:var(--ok)":""}">${l.mem?"✓ "+l.mem:"confiança "+Math.round(Math.min(1,l.conf)*100)+"%"}</span>`:""}</td></tr>`).join("")}</tbody></table></div>
       <div class="row"><span class="note" id="rvN"></span><span style="display:flex;gap:8px"><button class="btn" id="rvX">Cancelar</button><button class="btn pri" id="rvOk">Gravar cotação</button></span></div></div>`;
-    document.body.appendChild(md);
+    document.body.appendChild(md);cmpModal(md);md.querySelector(".mbox").style.width="min(1300px,96vw)";
     L.forEach((l,n)=>{md.querySelector(`[data-it="${n}"]`).value=l.item||""});
     const cnt=()=>{$("#rvN",md).textContent=`${L.filter((l,n)=>md.querySelector(`[data-ok="${n}"]`).checked&&md.querySelector(`[data-it="${n}"]`).value).length} linhas serão gravadas`};cnt();
     const NI=ativos().map(i=>[i,norm(i.descricao+" "+(i.material_codigo||"")+" "+toks2(i.descricao).join(" "))]);
     $$("[data-q]",md).forEach(inp=>{const n=+inp.dataset.q,hid=md.querySelector(`[data-it="${n}"]`),box=md.querySelector(`[data-acl="${n}"]`);let R2=[],h=0;
-      const show=()=>{box.hidden=!R2.length;box.innerHTML=R2.map((i,k)=>`<div class="aci${k===h?" on":""}" data-k="${k}"><b>${esc(i.descricao)}</b> <span class="sm">${esc(i.material_codigo||"")} · ${num(i.qtd,2)} ${esc(i.unidade||"")}</span></div>`).join("")+`<div class="aci" data-k="-1"><span class="note">— não usar esta linha —</span></div>`;box.hidden=false};
-      const pick=k=>{if(k<0){hid.value="";inp.value=""}else{const i=R2[k];hid.value=i.id;inp.value=i.descricao}box.hidden=true;md.querySelector(`[data-ok="${n}"]`).checked=!!hid.value;L[n].mexeu=true;cnt()};
+      const mf=md.querySelector(`[data-mf="${n}"]`);const show=()=>{posAcl(inp,box);box.hidden=!R2.length;box.innerHTML=R2.map((i,k)=>`<div class="aci${k===h?" on":""}" data-k="${k}"><b>${esc(i.descricao)}</b> <span class="sm">${esc(i.material_codigo||"")} · ${num(i.qtd,2)} ${esc(i.unidade||"")}</span></div>`).join("")+`<div class="aci" data-k="-1"><span class="note">— não usar esta linha —</span></div>`;box.hidden=false};
+      const pick=k=>{if(k<0){hid.value=""}else{const i=R2[k];hid.value=i.id}inp.value="";const it0=IT.find(i=>i.id==hid.value);mf.innerHTML=it0?esc(it0.descricao):'<span class="note">— não usar esta linha —</span>';box.hidden=true;md.querySelector(`[data-ok="${n}"]`).checked=!!hid.value;L[n].mexeu=true;cnt()};
       const filt=()=>{const t=norm(inp.value).split(" ").filter(Boolean).map(w=>SIN[w]||w);h=0;R2=(t.length?NI.filter(([,x])=>t.every(w=>x.includes(w))):(()=>{const g=L[n];const T2=new Set(toks2(g.txt));return NI.map(([i])=>[i,toks2(i.descricao).filter(w=>T2.has(w)).length]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(x=>[x[0]])})()).slice(0,40).map(x=>x[0]);show()};
-      inp.onfocus=()=>{inp.select();filt()};inp.oninput=filt;
+      inp.onfocus=()=>{filt()};inp.oninput=filt;
       inp.onkeydown=e=>{if(box.hidden)return;if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();h=(h+(e.key==="ArrowDown"?1:-1)+R2.length)%Math.max(1,R2.length);show()}else if(e.key==="Enter"){e.preventDefault();pick(h)}else if(e.key==="Escape"){e.stopPropagation();box.hidden=true}};
       box.addEventListener("pointerdown",e=>{const d=e.target.closest("[data-k]");if(!d)return;e.preventDefault();pick(+d.dataset.k)});
-      inp.onblur=()=>setTimeout(()=>{box.hidden=true;const it=IT.find(i=>i.id==hid.value);inp.value=it?it.descricao:""},150)});$$("[data-ok]",md).forEach(c=>c.onchange=cnt);
+      inp.onblur=()=>setTimeout(()=>{box.hidden=true},150)});$$("[data-ok]",md).forEach(c=>c.onchange=cnt);
     return new Promise(res=>{$("#rvX",md).onclick=()=>{md.remove();res()};
       $("#rvOk",md).onclick=async()=>{const b=$("#rvOk",md);b.disabled=true;b.textContent="Gravando…";
         try{const sel=L.map((l,n)=>({...l,item:md.querySelector(`[data-it="${n}"]`).value,p:pnum(md.querySelector(`[data-pv="${n}"]`).value),use:md.querySelector(`[data-ok="${n}"]`).checked})).filter(l=>l.use&&l.item&&l.p>0);
