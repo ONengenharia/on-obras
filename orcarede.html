@@ -1175,17 +1175,19 @@ async function editor(id){
   function dadosDialog(){
     modal(`<h2>Dados do orçamento</h2><label class="fld">Projeto<input name="titulo" value="${esc(ORC.titulo)}" required></label>
      <div class="grid2"><label class="fld">Cliente<input name="cliente" value="${esc(ORC.cliente||"")}"></label><label class="fld">Cidade<input name="cidade" value="${esc(ORC.cidade||"")}"></label></div>
+     <label class="fld">Concessionária<select name="conc">${CONCS.map(c=>`<option value="${c.id}" ${ORC.concessionaria_id==c.id?"selected":""}>${esc(c.sigla)} · ${esc(c.nome||"")}</option>`).join("")}</select><span class="note">Ao trocar, os grupos de itens e padrões passam a ser os da nova concessionária. O que já está nos pontos continua até você trocar.</span></label>
      <div class="grid2"><label class="fld">Nº de lotes (loteamento)<input name="lotes" inputmode="numeric" value="${ORC.lotes||""}" placeholder="opcional"></label>
      <label class="fld">Classe de tensão da rede<select name="kv"><option value="">— não definida —</option>${[15,25].map(k=>`<option value="${k}" ${+ORC.tensao_kv===k?"selected":""}>${k} kV</option>`).join("")}</select></label></div>
      <label class="fld">Segmentos da obra (um por linha)<textarea name="segs" rows="4">${esc(SEGS.map(s=>s.nome).join("\n"))}</textarea></label>
      <label class="fld">Observações<textarea name="obs" rows="3">${esc(ORC.obs||"")}</textarea></label>
      ${AUTO_CINTA?`<div class="row"><span class="note">Cintas automáticas: recalcula todos os pontos que não estão em modo manual.</span><button type="button" class="btn sm" id="dCint">↻ Recalcular cintas</button></div>`:""}
      <div><button type="button" class="btn del sm" id="dDel">Excluir esta versão</button></div>`,async f=>{
-      const upd={titulo:f.titulo.trim(),cliente:f.cliente.trim()||null,cidade:f.cidade.trim()||null,obs:f.obs,tensao_kv:f.kv?+f.kv:null,lotes:parseInt(f.lotes)||null};await chk(O.from("orcamentos").update(upd).eq("id",ORC.id));Object.assign(ORC,upd);
+      const upd={titulo:f.titulo.trim(),cliente:f.cliente.trim()||null,cidade:f.cidade.trim()||null,obs:f.obs,tensao_kv:f.kv?+f.kv:null,lotes:parseInt(f.lotes)||null,concessionaria_id:+f.conc||ORC.concessionaria_id};const trocouConc=upd.concessionaria_id!==ORC.concessionaria_id;await chk(O.from("orcamentos").update(upd).eq("id",ORC.id));Object.assign(ORC,upd);
       const nomes=f.segs.split("\n").map(s=>s.trim()).filter(Boolean);
       for(const s of SEGS.filter(s=>!nomes.includes(s.nome))){await chk(O.from("orc_segmentos").delete().eq("id",s.id));SEGS.splice(SEGS.indexOf(s),1);PTS.forEach(p=>{if(p.segmento_id===s.id)p.segmento_id=null});PE.forEach(e=>{if(e.segmento_id===s.id)e.segmento_id=null});VAOS.forEach(v=>{if(v.segmento_id===s.id)v.segmento_id=null})}
       const cores=["#c2185b","#1565c0","#e0a800","#6a3fbf","#00897b","#ef6c00","#5d4037"];
       for(const [i,n] of nomes.entries()){if(!SEGS.some(s=>s.nome===n)){const r=await chk(O.from("orc_segmentos").insert({orcamento_id:ORC.id,nome:n,cor:cores[SEGS.length%cores.length],ordem:i}).select("*").single());SEGS.push(r)}}
+      if(trocouConc){toast("Concessionária alterada. Recarregando…");setTimeout(()=>location.reload(),400);return}
       shell()},"Salvar");
     setTimeout(()=>{const c=$("#dCint");c&&(c.onclick=async()=>{c.disabled=true;c.textContent="Recalculando…";for(const p of PTS)await recalcCintas(p);c.textContent="✓ Recalculado";renderHead();renderSide()});const b=$("#dDel");b&&(b.onclick=()=>{$$(".modal").forEach(m=>m.remove());modal(`<h2>Excluir a v${ORC.versao} de “${esc(ORC.titulo)}”?</h2><p class="note">Pontos, estruturas, vãos e precificação desta versão serão apagados. Não dá para desfazer.</p>`,async()=>{await chk(O.from("orcamentos").delete().eq("id",ORC.id));location.href="orcarede.html"+(ORC.pasta_id?"?pasta="+ORC.pasta_id:"")},"Excluir")})},30);
   }
