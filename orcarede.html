@@ -279,6 +279,8 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .tbl.cmp td{vertical-align:top}.tbl.cmp tr.caro td{background:var(--danger-soft)}.tbl.cmp th small{display:block;font-weight:400;text-transform:none}
 .pc{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:3px 7px;font-family:var(--f-mono);font-size:12.5px;white-space:nowrap}.pc.cmin{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}.pc.cmax{border-color:var(--danger);color:var(--danger)}.pc.on{outline:2px solid var(--accent);font-weight:700}
 .warn{display:block;color:var(--danger);font-size:11.5px;font-weight:600;margin-top:3px}.alerta{background:var(--danger-soft);color:var(--danger);border-radius:8px;padding:10px 12px;display:grid;gap:4px}
+.soverbar{position:sticky;top:0;z-index:40;background:#b7791f;color:#fff;font-weight:600;font-size:12.5px;text-align:center;padding:6px 12px}
+html.sover #bVer,html.sover #bVig,html.sover #bFin,html.sover #bDados,html.sover #bCompras,html.sover #mPlace,html.sover #bPlanta,html.sover #pDel,html.sover #pDup,html.sover #mAdd,html.sover #mCot,html.sover #mBase,html.sover #pSalvar,html.sover #pTravar,html.sover #pDestravar,html.sover #padSalvar,html.sover [data-addm],html.sover [data-rm],html.sover [data-rp],html.sover [data-em],html.sover [data-sg],html.sover .xb,html.sover #mScale,html.sover #mTrace{display:none!important}
 </style>
 </head>
 <body>
@@ -335,14 +337,21 @@ let SEG_PADRAO=[["MT","#c2185b"],["BT","#1565c0"],["IP","#e0a800"],["Transforma�
 const sess=await DB.sessao();
 if(!sess){location.href="index.html?volta="+encodeURIComponent(location.pathname+location.search);return}
 const perfil=await DB.meuPerfil();
-if(!perfil||perfil.papel!=="admin"){falha("O OrçaRede está disponível só para administradores.");return}
+const NIVEL=perfil?(await sb.schema("orcarede").rpc("meu_nivel")).data:null;
+if(!NIVEL){falha("Você ainda não tem acesso ao OrçaRede. Peça a um administrador para liberar (ver ou editar).");return}
+const ADMO=NIVEL==="admin",SOVER=NIVEL==="ver";
+if(SOVER&&!window.__soVerOk){window.__soVerOk=1;document.documentElement.classList.add("sover");
+  const so=()=>{document.querySelectorAll("#root input:not([type=file]):not(.busca),#root select:not(.nav-ok),#root textarea").forEach(el=>{if(/Buscar|Filtrar|procurar/i.test(el.placeholder||"")||["mF","mOrd","padBusca","gQ","lq"].includes(el.id))return;el.disabled=true});
+    if(!document.querySelector(".soverbar")){const b=document.createElement("div");b.className="soverbar";b.textContent="👁 Somente visualização: você pode consultar este orçamento, mas não alterar.";document.body.prepend(b)}};
+  new MutationObserver(so).observe(document.getElementById("root"),{childList:true,subtree:true});
+  document.addEventListener("contextmenu",e=>{if(e.target.closest("#map"))e.stopPropagation()},true)}
 const teste=await O.from("concessionarias").select("id,sigla,nome");
 if(teste.error){falha("Não foi possível ler o banco: "+teste.error.message);return}
 const CONCS=teste.data;
 {const sp=await O.from("segmentos_padrao").select("nome,cor").order("ordem");if(sp.data&&sp.data.length)SEG_PADRAO=sp.data.map(x=>[x.nome,x.cor])}
 const concSig=id=>(CONCS.find(c=>c.id===id)||{}).sigla||"";
 const Q=new URLSearchParams(location.search);
-if(Q.get("cfg")!==null)return config(Q.get("cfg"));
+if(Q.get("cfg")!==null){if(!ADMO){falha("As configurações da base são só para administradores.");return}return config(Q.get("cfg"))}
 if(Q.get("id"))return editor(Q.get("id"));
 if(Q.get("neg"))return deNegocio(Q.get("neg"));
 if(Q.get("compras")){const r=await O.from("orcamentos").select("id").eq("id",Q.get("compras")).single();if(r.data){history.replaceState(null,"","orcarede.html?id="+r.data.id);window.__abrirCompras=1;return editor(r.data.id)}}
@@ -933,7 +942,7 @@ async function lista(pastaId){
     const vig=p=>ORCS.filter(o=>o.pasta_id===p.id).sort((a,b)=>(b.vigente-a.vigente)||(b.versao-a.versao))[0];
     root.innerHTML=`<div class="page">
      <header class="top"><img src="assets/on-logo.jpg" alt="ON Engenharia"><div class="ttl"><div class="eye">ON Engenharia</div><h1>OrçaRede</h1><div class="sub">Projete a rede, consolide os materiais e siga para a precificação</div></div>
-      <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><a class="btn" href="index.html">← Obras</a><a class="btn" href="negocios.html">Negócios</a><a class="btn" href="orcarede.html?cfg=materiais">⚙ Configurações</a><button class="btn" id="bPasta">+ Pasta</button><button class="btn pri" id="bNovo">+ Novo orçamento</button></div></header>
+      <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><a class="btn" href="index.html">← Obras</a><a class="btn" href="negocios.html">Negócios</a>${ADMO?'<a class="btn" href="orcarede.html?cfg=materiais">⚙ Configurações</a>':""}${SOVER?"":'<button class="btn" id="bPasta">+ Pasta</button><button class="btn pri" id="bNovo">+ Novo orçamento</button>'}</div></header>
      ${pastaId||busca?"":dash()}
      <div class="row"><div class="bc"><button data-go="">Todos</button>${trilha.map(p=>`<span>›</span><button data-go="${p.id}">${esc(p.nome)}</button>`).join("")}</div>
       <input class="inp" id="q" placeholder="Buscar por projeto, cliente ou cidade" value="${esc(q)}" style="width:min(360px,100%)"></div>
@@ -960,8 +969,8 @@ async function lista(pastaId){
     $$("tr[data-p]").forEach(r=>r.onclick=()=>{pastaId=r.dataset.p;q="";history.pushState(null,"","?pasta="+pastaId);render()});
     $$("tr[data-o],[data-rec]").forEach(r=>r.onclick=()=>location.href="orcarede.html?id="+(r.dataset.o||r.dataset.rec));
     $("#q").oninput=e=>{q=e.target.value;const pos=e.target.selectionStart;render();const i=$("#q");i.focus();i.setSelectionRange(pos,pos)};
-    $("#bNovo").onclick=()=>novoOrc({pasta:pastaId});
-    $("#bPasta").onclick=()=>modal(`<h2>Nova pasta${cur?" em “"+esc(cur.nome)+"”":""}</h2><label class="fld">Nome<input name="nome" required></label>`,async f=>{
+    $("#bNovo")&&($("#bNovo").onclick=()=>novoOrc({pasta:pastaId}));
+    if($("#bPasta"))$("#bPasta").onclick=()=>modal(`<h2>Nova pasta${cur?" em “"+esc(cur.nome)+"”":""}</h2><label class="fld">Nome<input name="nome" required></label>`,async f=>{
       const r=await chk(O.from("pastas").insert({nome:f.nome.trim(),pai_id:pastaId||null}).select("*").single());PAS.push(r);render()},"Criar");
   }
   render();
@@ -982,6 +991,7 @@ function novoOrc(pre){
 async function deNegocio(nid){
   const ja=await O.from("pastas").select("id").eq("negocio_id",nid).limit(1);
   if(ja.data&&ja.data[0]){location.replace("orcarede.html?pasta="+ja.data[0].id);return}
+  if(SOVER){falha("Este negócio ainda não tem orçamento vinculado. Peça para a engenharia vincular ou criar.");return}
   const {data:n}=await sb.from("negocios").select("id,titulo,cliente,cidade,conc").eq("id",nid).single();
   await lista(null);
   if(!n){toast("Negócio não encontrado.");return}
@@ -1598,7 +1608,7 @@ async function editor(id){
       if(its.length)await chk(O.from("orc_ponto_itens").insert(its))}
     const av=IT.filter(i=>i.ponto_id===src.id&&!i.ponto_estrutura_id&&!i.auto).map(i=>({ponto_id:pt.id,ponto_estrutura_id:null,material_codigo:i.material_codigo,quantidade:i.quantidade,editado:true}));
     if(av.length)await chk(O.from("orc_ponto_itens").insert(av))}
-  async function novoPonto(x,y){
+  async function novoPonto(x,y){if(SOVER){toast("Somente visualização.");return}
     const n=PTS.reduce((m,p)=>Math.max(m,p.numero),0)+1;
     const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:n,x,y}).select("*").single());PTS.push(pt);selP=pt.id;selV=null;renderHead();renderPins();renderSide();setTimeout(()=>$("#pSeq")&&$("#pSeq").focus(),30)}
   function bindMapa(){
