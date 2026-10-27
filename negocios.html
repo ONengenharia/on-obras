@@ -258,8 +258,9 @@ const minhasAreas=()=>AREAS.filter(a=>ADM||veArea(eu,a.id));
 const etqDe=(q,id)=>ETQ.find(e=>e.id===id&&e.quadro===q);
 const nivelU=(uid,col)=>{const u=uById(uid);if(u.papel==="admin")return"editar";return(PERM[uid]||{})[col]||"ver"};
 const nivel=col=>ADM?"editar":!veCol(col)?"nenhum":(PERM[eu]||{})[col]||"ver";
-const podeEditar=c=>nivel(c.coluna)==="editar";
-const podeMover=c=>["editar","mover"].includes(nivel(c.coluna));
+const ehEditor=c=>!!(c&&(c.editores||[]).includes(eu));
+const podeEditar=c=>ehEditor(c)||nivel(c.coluna)==="editar";
+const podeMover=c=>ehEditor(c)||["editar","mover"].includes(nivel(c.coluna));
 const podeCriar=q=>ADM||!!(CRIA[eu]||{})[q];
 
 async function carregarTudo(){
@@ -524,6 +525,7 @@ async function abrir(id,manter){
       <label class="fld">Link da pasta do cliente (Google Drive, OneDrive…)<span style="display:flex;gap:6px"><input style="flex:1;min-width:0" value="${esc(c.pasta)}" ${dis} data-f="pasta" placeholder="https://drive.google.com/…">${c.pasta?`<a class="btn" href="${esc(c.pasta)}" target="_blank" rel="noopener">Abrir pasta ↗</a>`:""}</span></label>
       ${anexosLista()}${ed?botoesAnexo():""}
      </div>
+     ${ADM||(c.editores||[]).length?`<div class="sec"><h4>Consultores com edição <span class="note" style="font-weight:400">· editam este negócio em qualquer etapa${ADM?"":" (definido pelo admin)"}</span></h4><div class="pick">${U.filter(u=>u.papel!=="admin").map(u=>`<button data-ed="${u.id}" class="${(c.editores||[]).includes(u.id)?"on":""}" ${ADM?"":"disabled"}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")||'<span class="note">Nenhum usuário além dos admins.</span>'}</div></div>`:""}
      <div class="sec"><h4>Pessoas no card</h4><div class="pick">${U.map(u=>`<button data-m="${u.id}" class="${c.membros.includes(u.id)?"on":""}" ${dis}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")}</div></div>
      <div class="sec"><h4>Etiquetas</h4><div class="pick">${ADM?'<button class="nlb" id="nlb">+ Nova etiqueta</button>':""}${ETQ.filter(e=>e.quadro===c.quadro).map(e=>`<button class="lb ${c.etiquetas.includes(e.id)?"on":""}" style="background:${e.cor}" data-l="${e.id}" ${dis}>${esc(e.nome)}</button>`).join("")}</div></div>
      <div class="sec"><h4>Ao chegar em ${esc((cols.find(x=>x.gatilho)||{nome:"(coluna ⚡ não definida)"}).nome)}</h4><p class="note" style="margin:0">${c.quadro==="solar"?"O card vira um ponto no mapa de obras (sem acompanhamento de postes e rede).":"Com o negócio fechado, o card é enviado ao Gerenciador de obras (com confirmação), com planta, postes, rede, fotos, diário e link do cliente."}</p></div>`;
@@ -542,6 +544,8 @@ async function abrir(id,manter){
         await abrir(id,true);
         const box2=document.querySelector(".gv")||document;Object.entries(keep).forEach(([k,v])=>{const x=box2.querySelector(`[data-f="${k}"]`);if(x&&x.value!==v)x.value=v});
         if(af){const x=box2.querySelector(`[data-f="${af}"]`);if(x){x.focus();if(ss)try{x.setSelectionRange(ss[0],ss[1])}catch(e){}}}}}});
+    gb.querySelectorAll("[data-ed]").forEach(b=>b.onclick=async()=>{if(!ADM)return;const k=b.dataset.ed;const ed=(c.editores||[]).includes(k)?c.editores.filter(x=>x!==k):[...(c.editores||[]),k];const campos={editores:ed};if(ed.includes(k)&&!c.membros.includes(k))campos.membros=[...c.membros,k];
+      if(await salvarCampos(c,campos)){render();abrir(id,true);toast(ed.includes(k)?"Agora pode editar este negócio.":"Edição removida.")}});
     gb.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{const k=b.dataset.m;const mem=c.membros.includes(k)?c.membros.filter(x=>x!==k):[...c.membros,k];if(await salvarCampos(c,{membros:mem})){render();abrir(id,true)}});
     gb.querySelectorAll("[data-l]").forEach(b=>b.onclick=async()=>{const k=b.dataset.l;const et=c.etiquetas.includes(k)?c.etiquetas.filter(x=>x!==k):[...c.etiquetas,k];if(await salvarCampos(c,{etiquetas:et})){render();abrir(id,true)}});
     if($("#nlb",gb))$("#nlb",gb).onclick=()=>pedirNome("Nova etiqueta","Ex.: Aguardando ART",async n=>{const {data,error}=await sb.from("neg_etiquetas").insert({quadro:c.quadro,nome:n,cor:PAL[ETQ.length%PAL.length]}).select().single();if(error){toast(error.message);return}ETQ.push(data);await salvarCampos(c,{etiquetas:[...c.etiquetas,data.id]});render();abrir(id,true)},()=>abrir(id,true));
