@@ -198,6 +198,10 @@ img.logo{width:40px;height:40px;border-radius:8px;object-fit:cover;background:no
 .app{overflow:hidden}
 @media (max-width:640px){.areas a small{display:none}}
 .fxm .mbox{background:var(--panel);color:var(--ink);border-radius:12px;padding:18px;width:min(820px,100%);max-height:92vh;overflow:auto;display:grid;gap:10px}.fxm .row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.fxm h2{margin:0;font-size:17px}.fxm .btn{text-decoration:none}
+.fxm .mbox{width:min(1180px,100%)!important;max-width:none!important}.fxg{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}@media (max-width:900px){.fxg{grid-template-columns:1fr}}
+.tl{border-left:1px solid var(--line);padding-left:14px;max-height:78vh;overflow:auto;position:sticky;top:0}.tl h3{margin:0 0 4px;font-size:14px}.tl ol{list-style:none;margin:10px 0 0;padding:0 0 0 14px;border-left:2px solid var(--line)}
+.tl li{position:relative;padding:0 0 14px 6px;display:grid;gap:2px;font-size:12.5px}.tl li::before{content:"";position:absolute;left:-21px;top:3px;width:11px;height:11px;border-radius:50%;background:var(--ok);border:2px solid var(--panel)}
+.tl li.atual::before{background:#2f6f9f;box-shadow:0 0 0 4px rgba(47,111,159,.25)}.tl li.atual b{color:#2f6f9f}.tl-de{color:var(--muted);font-size:11.5px}.tl-dt{color:var(--muted);font-size:11.5px}.tl-dur{font-size:11.5px;font-weight:600}
 .fxm svg .fn rect,.fxm svg .fn polygon{fill:var(--panel);stroke:var(--line);stroke-width:1.5}.fxm svg .fn .ft{font:600 12.5px Montserrat,sans-serif;fill:var(--muted);text-anchor:middle}.fxm svg .fn .fs{font:400 10.5px Montserrat,sans-serif;fill:var(--muted);text-anchor:middle}
 .fxm svg .fn.feito rect,.fxm svg .fn.feito polygon{fill:var(--ok-soft,#e2f4e9);stroke:var(--ok,#1f8a4c)}.fxm svg .fn.feito .ft{fill:var(--ok,#1f8a4c)}
 .fxm svg .fn.aqui rect,.fxm svg .fn.aqui polygon{fill:#2f6f9f;stroke:#62a8dc;stroke-width:3;animation:fxp 1.6s ease-in-out infinite}.fxm svg .fn.aqui .ft,.fxm svg .fn.aqui .fs{fill:#fff}
@@ -429,6 +433,14 @@ async function fluxograma(c){
     const ov=(o.data||[]).find(x=>x.vigente)||(o.data||[])[0];if(ov)info.orcamento=`v${ov.versao||1} · ${ov.status==="finalizado"?"finalizado ✓":"em andamento"}`;
     const cid=cp.data&&cp.data[0]&&cp.data[0].id;if(cid){const [ct,ped]=await Promise.all([O2.from("compra_cotacoes").select("id",{count:"exact",head:true}).eq("compra_id",cid),O2.from("compra_pedidos").select("id",{count:"exact",head:true}).eq("compra_id",cid)]);info.compras=`${ct.count||0} cotações · ${ped.count||0} OCs`;info.comprasId=cid}}catch(e){}
   if(c.obra_id)info.execucao="no Gerenciador de obras";
+  let HIST=[];try{const r=await sb.from("neg_historico").select("texto,autor_nome,criado_em").eq("negocio_id",c.id).order("criado_em");HIST=r.data||[]}catch(e){}
+  const EV=HIST.map(h=>{const m=String(h.texto).match(/^(.*?)\s+moveu de\s+(.+?)\s+para\s+(.+)$/);if(m)return{t:new Date(h.criado_em),quem:m[1],de:m[2],para:m[3]};if(/criou o neg/i.test(h.texto))return{t:new Date(h.criado_em),quem:h.texto.replace(/\s*criou o neg.*$/i,""),cria:1};return null}).filter(Boolean);
+  if(!EV.some(e=>e.cria)&&c.criado_em)EV.unshift({t:new Date(c.criado_em),cria:1,quem:""});
+  const dias=ms=>{const d=ms/864e5;return d<1?Math.max(1,Math.round(ms/36e5))+" h":Math.round(d)+(Math.round(d)===1?" dia":" dias")};
+  const fdt=d=>d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit"})+" "+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+  const linha=EV.map((e,i)=>{const prox=EV[i+1];const dur=(prox?prox.t:new Date())-e.t;const etapa=e.cria?(EV[i+1]&&EV[i+1].de)||(col&&col.nome)||"":e.para;
+    return `<li class="${prox?"":"atual"}"><b>${e.cria?"Negócio criado":esc(e.para)}</b>${e.cria?"":`<span class="tl-de">de ${esc(e.de)}</span>`}<span class="tl-dt">${fdt(e.t)}${e.quem?" · "+esc(e.quem):""}</span><span class="tl-dur">${prox?"ficou "+dias(dur)+(etapa?" em "+esc(etapa):""):"está aqui há "+dias(dur)}</span></li>`}).join("");
+  const total=EV.length?dias(new Date()-EV[0].t):"";
   // caminho percorrido até a etapa atual
   const usouOrc=!!info.orcamento||["orcamento"].includes(E.at),usouProj=["projeto","d_aprov"].includes(E.at)||E.aprov||E.reprov;
   const caminho=["comercial","d_orc",...(usouOrc?["orcamento"]:[]),"proposta","d_venda",...(E.at==="perdido"?["perdido"]:["adm","engenharia","d_proj",...(usouProj||["compras","execucao","concluido"].includes(E.at)&&usouProj?["projeto","d_aprov"]:[]),"compras","execucao","concluido"])];
@@ -447,11 +459,12 @@ async function fluxograma(c){
     const forma=n.d?`<polygon points="${n.x},${n.y-H*.85} ${n.x+W*.62},${n.y} ${n.x},${n.y+H*.85} ${n.x-W*.62},${n.y}"/>`:`<rect x="${n.x-W/2}" y="${n.y-H/2}" width="${W}" height="${H}" rx="${n.fim?26:10}"/>`;
     return `<g class="fn ${st} ${n.d?"dec":""} ${n.id==="perdido"?"perd":""}" data-n="${n.id}">${forma}<text x="${n.x}" y="${n.y+(n.d||!sub?4:-3)}" class="ft">${st==="feito"?"✓ ":""}${esc(n.t)}</text>${!n.d&&sub?`<text x="${n.x}" y="${n.y+13}" class="fs">${esc(sub)}</text>`:""}${st==="aqui"?`${n.x>=500?`<text x="${n.x}" y="${n.y-(n.d?H*.85:H/2)-7}" class="fh" text-anchor="middle">▼ VOCÊ ESTÁ AQUI</text>`:`<text x="${n.x-(n.d?W*.62:W/2)-10}" y="${n.y+4}" class="fh" text-anchor="end">VOCÊ ESTÁ AQUI ▸</text>`}`:""}</g>`}).join("");
   const m=document.createElement("div");m.className="modal fxm";
-  m.innerHTML=`<div class="mbox wide" style="max-width:820px"><div class="row fxh"><div style="display:flex;align-items:center;gap:14px"><img src="assets/on-logo.jpg" alt="ON Engenharia" style="height:46px;border-radius:6px"><div><div class="note" style="text-transform:uppercase;letter-spacing:.06em">Fluxo do processo</div><h2 style="font-size:20px">${esc(c.titulo)}</h2>${c.cliente||c.cidade?`<div class="note">${esc([c.cliente,c.cidade].filter(Boolean).join(" · "))}</div>`:""}</div></div><button class="btn" data-fx>Fechar</button></div>
+  m.innerHTML=`<div class="mbox wide" ><div class="row fxh"><div style="display:flex;align-items:center;gap:14px"><img src="assets/on-logo.jpg" alt="ON Engenharia" style="height:46px;border-radius:6px"><div><div class="note" style="text-transform:uppercase;letter-spacing:.06em">Fluxo do processo</div><h2 style="font-size:20px">${esc(c.titulo)}</h2>${c.cliente||c.cidade?`<div class="note">${esc([c.cliente,c.cidade].filter(Boolean).join(" · "))}</div>`:""}</div></div><button class="btn" data-fx>Fechar</button></div>
    <p class="note">Etapa atual pela coluna do card: <b>${esc(col?col.nome:"—")}</b>${E.reprov?" (projeto reprovado: volta para revisão)":""}. Etapas com ✓ já passaram.</p>
-   <div style="overflow:auto"><svg viewBox="-40 0 840 1035" style="width:100%;min-width:560px;height:auto" role="img" aria-label="Fluxograma do processo">
+   <div class="fxg"><div style="overflow:auto"><svg viewBox="-40 0 840 1035" style="width:100%;min-width:560px;height:auto" role="img" aria-label="Fluxograma do processo">
     <defs><marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--muted)"/></marker><marker id="seta2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--ok)"/></marker></defs>
     ${ares}${nos}</svg></div>
+   <aside class="tl"><h3>Linha do tempo</h3>${total?`<p class="note">${total} desde a criação · ${EV.filter(e=>!e.cria).length} movimentações</p>`:""}<ol>${linha||'<li class="atual"><span class="tl-dt">Sem movimentações registradas.</span></li>'}</ol></aside></div>
    <div class="row"><span class="note">Para mudar a etapa, mova o card no quadro.</span><span style="display:flex;gap:8px">${info.comprasId?`<a class="btn" href="compras.html?id=${info.comprasId}">🛒 Compras</a>`:""}${ADM&&info.orcamento?`<a class="btn" href="orcarede.html?neg=${c.id}">Orçamento</a>`:""}</span></div></div>`;
   document.body.appendChild(m);m.onclick=e=>{if(e.target===m||e.target.closest("[data-fx]"))m.remove()};
   }
