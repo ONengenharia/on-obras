@@ -289,6 +289,10 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .pvb{position:relative;height:12px;background:var(--idle-soft);border-radius:6px;overflow:hidden}.pvb i{position:absolute;inset:0 auto 0 0;background:var(--accent-soft)}.pvb b{position:absolute;left:0;top:3px;height:6px;background:var(--accent);border-radius:3px}
 @media (max-width:760px){.pvr{grid-template-columns:1fr 1fr}.pvr .pvb{grid-column:1/-1}}
 .pick .chk{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:4px 10px;margin:3px;font-size:12.5px}
+.filtros{display:grid;grid-template-columns:minmax(180px,1.3fr) repeat(3,minmax(150px,1fr));gap:8px;margin:8px 0}@media (max-width:900px){.filtros{grid-template-columns:1fr 1fr}}
+.chipsel{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 8px}.chipsel .ch{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;color:var(--muted)}.chipsel .ch.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.tbl.cmp tr.oc td{background:var(--ok-soft)}.tbl tr.oc td{background:var(--ok-soft)}.ocx{background:var(--ok-soft);color:var(--ok);padding:0 4px;border-radius:4px;font-weight:600}.ocb{color:var(--ok)}
+.inp.est{width:80px;padding:3px 6px;font-size:12px}
 header.top .steps{width:100%}
 </style>
 </head>
@@ -445,22 +449,26 @@ async function painel(id){
   let PM=P();
   const CTM=()=>Object.fromEntries(CT.map(c=>[c.id,c]));
   const nomeC=cid=>{const c=CT.find(x=>x.id==cid);return c?c.fornecedor_nome:"—"};
-  function faixa(i){const ps=Object.entries(PM[i.id]||{}).map(([c,v])=>({c:+c,v})).filter(x=>x.v>0);if(!ps.length)return null;
+  const qc=i=>Math.max(0,(+i.qtd||0)-(+i.estoque||0));
+  let selC=(()=>{try{const v=JSON.parse(sessionStorage.getItem("cmp.sel."+id)||"null");return v?new Set(v):null}catch(e){return null}})();
+  const visC=()=>CT.filter(c=>!selC||selC.has(c.id));
+  function faixa(i,so){const ok=so?new Set(so.map(c=>c.id)):null;const ps=Object.entries(PM[i.id]||{}).map(([c,v])=>({c:+c,v})).filter(x=>x.v>0&&(!ok||ok.has(x.c)));if(!ps.length)return null;
     const min=ps.reduce((a,b)=>b.v<a.v?b:a),max=ps.reduce((a,b)=>b.v>a.v?b:a);return{ps,min,max}}
   const vEsc=i=>i.preco_escolhido!=null?+i.preco_escolhido:null;
-  function contas(){let prev=0,esc=0,prevEsc=0,proj=0,minT=0,maxT=0,semCot=0,maisCaro=0,ne=0;const porF={};
-    ativos().forEach(i=>{const q=+i.qtd,pv=+i.preco_previsto||0,f=faixa(i),e=vEsc(i);prev+=q*pv;
+  function contas(){let prev=0,esc=0,prevEsc=0,proj=0,minT=0,maxT=0,semCot=0,maisCaro=0,ne=0,estV=0,nOc=0;const porF={};
+    ativos().forEach(i=>{const q=qc(i),pv=+i.preco_previsto||0,f=faixa(i),e=vEsc(i);prev+=(+i.qtd)*pv;estV+=((+i.qtd)-q)*pv;if(i.oc)nOc++;
+      if(!q)return;
       if(e!=null){ne++;esc+=q*e;prevEsc+=q*pv;proj+=q*e;if(f&&e>f.min.v+1e-6)maisCaro++;if(i.cotacao_escolhida){const k=nomeC(i.cotacao_escolhida);porF[k]=(porF[k]||0)+q*e}}else proj+=q*(f?f.min.v:pv);
       if(!f)semCot++;minT+=q*(f?f.min.v:pv);maxT+=q*(f?f.max.v:pv)});
-    return{prev,esc,prevEsc,proj,minT,maxT,semCot,maisCaro,ne,n:ativos().length,porF}}
-  function porFornecedor(){return CT.map(c=>{let tot=0,n=0,comp=0;ativos().forEach(i=>{const v=(PM[i.id]||{})[c.id];if(v>0){n++;tot+=+i.qtd*v}comp+=+i.qtd*(v>0?v:(faixa(i)?faixa(i).min.v:+i.preco_previsto||0))});return{c,tot,n,comp:comp+(+c.frete||0)}})}
+    return{prev,esc,prevEsc,proj:proj+estV,compra:proj,estV,minT:minT+estV,maxT:maxT+estV,semCot,maisCaro,ne,nOc,n:ativos().filter(i=>qc(i)>0).length,porF}}
+  function porFornecedor(){const k0=contas();return CT.map(c=>{let tot=0,n=0,comp=0;ativos().forEach(i=>{const q=qc(i);if(!q)return;const v=(PM[i.id]||{})[c.id];if(v>0){n++;tot+=q*v}comp+=q*(v>0?v:(faixa(i)?faixa(i).min.v:+i.preco_previsto||0))});return{c,tot,n,comp:comp+k0.estV+(+c.frete||0)}})}
 
   function shell(){
     const k=contas();
     root.innerHTML=`<div class="app full">${topo(C.titulo,`${esc([C.cliente,C.cidade].filter(Boolean).join(" · "))} · previsto da v${(C.previsto&&C.previsto.versao)||1} do orçamento${C.previsto&&C.previsto.gerado_em?" em "+fdata(C.previsto.gerado_em):""}`,
       `<div class="tot"><div class="eye">${k.prevEsc-k.esc>=0?"Economia no material":"Material acima do previsto"}</div><div class="v" style="color:${k.prevEsc-k.esc>=0?"#7ee2a8":"#ffb4ab"}">${k.ne?brl(Math.abs(k.prevEsc-k.esc)):"—"}</div><div class="eye">${k.ne?pct(k.prevEsc?Math.abs(k.prevEsc-k.esc)/k.prevEsc*100:0)+" sobre o previsto dos itens escolhidos":"escolha os fornecedores"}</div></div>
        <div class="tools">${C.orcamento_id&&ADM?`<a class="btn" href="orcarede.html?id=${C.orcamento_id}">Orçamento</a>`:""}<button class="btn" id="bSt">${C.status==="concluida"?"Reabrir":"✓ Concluir compras"}</button></div>
-       <nav class="steps">${[["painel","Painel"],["comparativo","Comparativo"],["cotacoes",`Cotações (${CT.length})`],["pedidos",`Pedidos (${PD.length})`]].map(([a,l],i)=>`<button data-a="${a}" class="${aba===a?"on":""}"><b>${i+1}</b>${l}</button>`).join("")}</nav>`)}
+       <nav class="steps">${[["painel","Painel"],["comparativo","Comparativo"],["cotacoes",`Cotações (${CT.length})`],["pedidos",`Pedidos / OC (${PD.length})`]].map(([a,l],i)=>`<button data-a="${a}" class="${aba===a?"on":""}"><b>${i+1}</b>${l}</button>`).join("")}</nav>`)}
      <div id="full"></div></div>`;
     $$("[data-a]").forEach(b=>b.onclick=()=>{aba=b.dataset.a;try{sessionStorage.setItem("cmp.aba."+id,aba)}catch(e){}shell()});
     $("#bSt").onclick=async()=>{const s=C.status==="concluida"?"aberta":"concluida";await chk(O.from("compras").update({status:s}).eq("id",id));C.status=s;shell()};
@@ -473,20 +481,20 @@ async function painel(id){
     const custoPrev=custos.reduce((s,c)=>s+(+c.v||0),0),custoReal=custos.reduce((s,c)=>s+(c.real!=null?c.real:+c.v||0),0);
     const matPrev=pv.materiais!=null?+pv.materiais:k.prev,matProj=k.proj;
     const totPrev=matPrev+custoPrev,totReal=matProj+custoReal,eco=totPrev-totReal;
-    const SUB={};ativos().forEach(i=>{const s=i.subgrupo||"Sem subgrupo";const q=+i.qtd;const o=SUB[s]=SUB[s]||{p:0,e:0,pe:0};o.p+=q*(+i.preco_previsto||0);if(vEsc(i)!=null){o.e+=q*vEsc(i);o.pe+=q*(+i.preco_previsto||0)}});
+    const SUB={};ativos().forEach(i=>{const s=i.subgrupo||"Sem subgrupo";const q=qc(i);const o=SUB[s]=SUB[s]||{p:0,e:0,pe:0};o.p+=q*(+i.preco_previsto||0);if(vEsc(i)!=null){o.e+=q*vEsc(i);o.pe+=q*(+i.preco_previsto||0)}});
     const mx=Math.max(1,...Object.values(SUB).map(o=>Math.max(o.p,o.e)));
     $("#full").innerHTML=`<div class="wrap2 wide3">
      <div class="kpis k5">
       <div class="kpi"><span>Previsto total da obra</span><b>${brl(totPrev)}</b><small>material ${brl(matPrev)} + custos ${brl(custoPrev)}</small></div>
       <div class="kpi"><span>Realizado / projetado</span><b>${brl(totReal)}</b><small>escolhidos + mais barato cotado no resto</small></div>
       <div class="kpi ${eco>=0?"ok":"bad"}"><span>${eco>=0?"Redução":"Acima do previsto"}</span><b>${brl(Math.abs(eco))}</b><small>${pct(totPrev?Math.abs(eco)/totPrev*100:0)} do total previsto</small></div>
-      <div class="kpi"><span>Itens com fornecedor escolhido</span><b>${k.ne}/${k.n}</b><small>${k.semCot} sem nenhuma cotação</small></div>
+      <div class="kpi"><span>Itens com fornecedor escolhido</span><b>${k.ne}/${k.n}</b><small>${k.semCot} sem cotação · ${k.nOc} com OC</small></div>
       <div class="kpi ${k.maisCaro?"bad":""}"><span>Escolhas mais caras</span><b>${k.maisCaro}</b><small>itens com opção mais barata cotada</small></div>
      </div>
      <div class="cols">
       <div class="card"><h2>Previsto × realizado</h2><p class="note">Preencha o valor real de cada custo conforme for pagando (comissão, mão de obra, frete…). Em branco, vale o previsto.</p>
        <table class="tbl"><thead><tr><th>Item</th><th class="n">Previsto</th><th class="n">Realizado</th><th class="n">Diferença</th></tr></thead><tbody>
-        <tr><td><b>Materiais</b><span class="sm">escolhidos ${brl(k.esc)} · restante projetado pelo mais barato cotado ou previsto</span></td><td class="n">${brl(matPrev)}</td><td class="n">${brl(matProj)}</td><td class="n">${dif(matPrev-matProj,matPrev)}</td></tr>
+        <tr><td><b>Materiais</b><span class="sm">escolhidos ${brl(k.esc)} · resto pelo mais barato cotado ou previsto${k.estV?` · estoque ${brl(k.estV)} (pelo previsto)`:""}</span></td><td class="n">${brl(matPrev)}</td><td class="n">${brl(matProj)}</td><td class="n">${dif(matPrev-matProj,matPrev)}</td></tr>
         ${custos.map((c,i)=>`<tr><td>${esc(c.desc||c.grupo)}<span class="sm">${esc(c.grupo||"")}</span></td><td class="n">${brl(c.v)}</td><td class="n"><input class="inp n" data-cr="${i}" value="${c.real!=null?num(c.real,2):""}" placeholder="${num(c.v,2)}" style="width:120px" inputmode="decimal"></td><td class="n">${c.real!=null?dif(c.v-c.real,c.v):'<span class="note">—</span>'}</td></tr>`).join("")}
        </tbody><tfoot><tr><td><b>Total</b></td><td class="n"><b>${brl(totPrev)}</b></td><td class="n"><b>${brl(totReal)}</b></td><td class="n"><b>${dif(eco,totPrev)}</b></td></tr>
         ${pv.total?`<tr><td colspan="4" class="note">Valor vendido ao cliente: <b>${brl(pv.total)}</b> · lucro previsto ${brl(pv.lucro)} · lucro com o realizado <b>${brl((+pv.total||0)-totReal)}</b> (${pct(pv.total?((+pv.total)-totReal)/pv.total*100:0)})</td></tr>`:""}</tfoot></table></div>
@@ -506,39 +514,51 @@ async function painel(id){
   const dif=(d,base)=>`<span style="color:${d>=0?"var(--ok)":"var(--danger)"}">${d>=0?"−":"+"}${brl(Math.abs(d))}${base?` <small>${pct(Math.abs(d)/base*100)}</small>`:""}</span>`;
 
   /* ---- Comparativo ---- */
+  let fSub="",fWin="";
   function tComp(){
-    const t=norm(fq);const L=ativos().filter(i=>{if(t&&!norm(i.descricao+" "+(i.material_codigo||"")+" "+(i.subgrupo||"")).includes(t))return false;const f=faixa(i),e=vEsc(i);
-      if(ff==="sem")return!f;if(ff==="naoesc")return e==null;if(ff==="caro")return f&&e!=null&&e>f.min.v+1e-6;if(ff==="esc")return e!=null;return true});
-    const k=contas();
+    const VC=visC();const t=norm(fq);
+    const L=ativos().filter(i=>{if(t&&!norm(i.descricao+" "+(i.material_codigo||"")+" "+(i.oc||"")).includes(t))return false;if(fSub&&(i.subgrupo||"")!==fSub)return false;if(fWin&&String(i.cotacao_escolhida||"")!==fWin)return false;
+      const f=faixa(i),e=vEsc(i);
+      return ff==="sem"?!f:ff==="naoesc"?e==null&&qc(i)>0:ff==="esc"?e!=null:ff==="caro"?(f&&e!=null&&e>f.min.v+1e-6):ff==="barato"?(f&&e!=null&&e<=f.min.v+1e-6):ff==="oc"?!!i.oc:ff==="semoc"?!i.oc&&qc(i)>0:ff==="estoque"?(+i.estoque>0):true});
+    const k=contas();const subs=[...new Set(ativos().map(i=>i.subgrupo||""))].filter(Boolean).sort();
     $("#full").innerHTML=`<div class="wrap2 wide3"><div class="card">
       <div class="row"><h2>Comparativo por item</h2><div class="tools">
-        <select class="inp sm" id="cF">${[["","Todos os itens"],["naoesc","Sem escolha"],["esc","Já escolhidos"],["caro","Escolha mais cara ⚠"],["sem","Sem cotação"]].map(([v,l])=>`<option value="${v}" ${ff===v?"selected":""}>${l}</option>`).join("")}</select>
-        <input class="inp" id="cQ" placeholder="Buscar material" value="${esc(fq)}" style="width:200px">
-        <button class="btn sm pri" id="cMin" title="Para os itens sem escolha, escolhe o fornecedor mais barato">Escolher o mais barato</button><button class="btn sm" id="cLimpa">Limpar escolhas</button></div></div>
-      <p class="note">Clique no preço de um fornecedor para escolhê-lo. <span class="cmin">verde</span> = mais barato do item, <span class="cmax">vermelho</span> = mais caro. Célula vazia: clique em ＋ para digitar um preço recebido por telefone/WhatsApp.</p>
-      <div style="overflow:auto;max-height:calc(100vh - 290px)"><table class="tbl cmp"><thead><tr><th>Material</th><th class="n">Qtd</th><th class="n">Previsto</th>${CT.map(c=>`<th class="n fcol" title="${esc(c.documento||"")}">${esc(c.fornecedor_nome)}<small>${c.frete?"frete "+brl(c.frete):""}</small></th>`).join("")}<th class="n">Escolhido</th><th class="n">Total</th><th class="n">vs previsto</th></tr></thead><tbody>
-      ${L.map(i=>{const f=faixa(i),e=vEsc(i),q=+i.qtd,caro=f&&e!=null&&e>f.min.v+1e-6;
-        return `<tr class="${caro?"caro":""}"><td><b>${esc(i.descricao)}</b><span class="sm">${esc(i.material_codigo||"")}${i.subgrupo?" · "+esc(i.subgrupo):""}</span>${caro?`<span class="warn">⚠ ${brl((e-f.min.v)*q)} mais caro que ${esc(nomeC(f.min.c))}${i.motivo?" · motivo: "+esc(i.motivo):""}</span>`:""}</td>
-          <td class="n">${num(q,2)} ${esc(i.unidade||"")}</td><td class="n">${i.preco_previsto!=null?brl(i.preco_previsto):"—"}</td>
-          ${CT.map(c=>{const v=(PM[i.id]||{})[c.id];if(!(v>0))return `<td class="n"><button class="addp" data-ap="${i.id}" data-c="${c.id}" title="Digitar preço">＋</button></td>`;
+        <button class="btn sm pri" id="cMin" title="Para os itens sem escolha, escolhe o fornecedor mais barato entre os selecionados">Escolher o mais barato</button><button class="btn sm" id="cLimpa">Limpar escolhas</button></div></div>
+      <div class="filtros">
+        <input class="inp" id="cQ" placeholder="Material, código ou OC" value="${esc(fq)}">
+        <select class="inp" id="cF">${[["","Todos os itens"],["naoesc","Sem escolha"],["esc","Já escolhidos"],["barato","Escolhidos no mais barato"],["caro","Escolhidos mais caros ⚠"],["sem","Sem cotação"],["semoc","Pendentes (sem OC)"],["oc","Com OC (comprados)"],["estoque","Com estoque"]].map(([v,l])=>`<option value="${v}" ${ff===v?"selected":""}>${l}</option>`).join("")}</select>
+        <select class="inp" id="cW"><option value="">Empresa ganhadora: todas</option>${CT.map(c=>`<option value="${c.id}" ${fWin==String(c.id)?"selected":""}>Ganhadora: ${esc(c.fornecedor_nome)}</option>`).join("")}</select>
+        <select class="inp" id="cS"><option value="">Todos os subgrupos</option>${subs.map(x=>`<option ${fSub===x?"selected":""}>${esc(x)}</option>`).join("")}</select>
+      </div>
+      ${CT.length?`<div class="chipsel"><span class="note">Comparar:</span>${CT.map(c=>`<button class="ch ${!selC||selC.has(c.id)?"on":""}" data-sc="${c.id}">${!selC||selC.has(c.id)?"☑":"☐"} ${esc(c.fornecedor_nome)}</button>`).join("")}${selC?'<button class="lnk" data-sc="all">todas</button>':""}</div>`:""}
+      <p class="note">Clique no preço para escolher. <span class="cmin">verde</span> = mais barato entre as empresas comparadas, <span class="cmax">vermelho</span> = mais caro. Em <b>Estoque</b>, digite o que já tem: a compra é a diferença. Linhas <span class="ocx">verdes</span> já têm OC.</p>
+      <div style="overflow:auto;max-height:calc(100vh - 330px)"><table class="tbl cmp"><thead><tr><th>Material</th><th class="n">Orçado</th><th class="n">Estoque</th><th class="n">A comprar</th><th class="n">Previsto</th>${VC.map(c=>`<th class="n fcol" title="${esc(c.documento||"")}">${esc(c.fornecedor_nome)}<small>${c.frete?"frete "+brl(c.frete):""}</small></th>`).join("")}<th class="n">Escolhido</th><th class="n">Total</th><th class="n">vs previsto</th></tr></thead><tbody>
+      ${L.map(i=>{const f=faixa(i,VC),fa=faixa(i),e=vEsc(i),q=qc(i),caro=fa&&e!=null&&e>fa.min.v+1e-6;
+        return `<tr class="${i.oc?"oc":caro?"caro":""} ${q?"":"ina"}"><td><b>${esc(i.descricao)}</b><span class="sm">${esc(i.material_codigo||"")}${i.subgrupo?" · "+esc(i.subgrupo):""}${i.oc?` · <b class="ocb">OC ${esc(i.oc)}</b>`:""}</span>${caro?`<span class="warn">⚠ ${brl((e-fa.min.v)*q)} mais caro que ${esc(nomeC(fa.min.c))}${i.motivo?" · motivo: "+esc(i.motivo):""}</span>`:""}</td>
+          <td class="n">${num(i.qtd,2)} ${esc(i.unidade||"")}</td><td class="n"><input class="inp n est" data-est="${i.id}" value="${+i.estoque?num(i.estoque,3):""}" placeholder="0" inputmode="decimal" ${i.oc?"disabled":""}></td><td class="n"><b>${num(q,2)}</b></td>
+          <td class="n">${i.preco_previsto!=null?brl(i.preco_previsto):"—"}</td>
+          ${VC.map(c=>{const v=(PM[i.id]||{})[c.id];if(!(v>0))return `<td class="n"><button class="addp" data-ap="${i.id}" data-c="${c.id}" title="Digitar preço">＋</button></td>`;
             const cls=f&&f.ps.length>1?(v===f.min.v?"cmin":v===f.max.v?"cmax":""):"";const on=i.cotacao_escolhida==c.id;
             return `<td class="n"><button class="pc ${cls} ${on?"on":""}" data-es="${i.id}" data-c="${c.id}" title="${on?"Escolhido":"Escolher este fornecedor"}">${on?"✓ ":""}${brl(v)}</button><button class="edp" data-ap="${i.id}" data-c="${c.id}" title="Editar preço">✎</button></td>`}).join("")}
           <td class="n">${e!=null?`<b>${brl(e)}</b><span class="sm">${esc(i.cotacao_escolhida?nomeC(i.cotacao_escolhida):"manual")}</span>`:'<span class="note">—</span>'}</td>
-          <td class="n">${e!=null?brl(e*q):""}</td><td class="n">${e!=null&&i.preco_previsto!=null?dif((+i.preco_previsto-e)*q,+i.preco_previsto*q):""}${e!=null?` <button class="xb" data-cl="${i.id}" title="Desfazer escolha">↺</button>`:""}</td></tr>`}).join("")||'<tr><td colspan="9" class="note">Nada para mostrar.</td></tr>'}
-      </tbody><tfoot><tr><td colspan="${3+CT.length}"><b>${L.length} itens</b> · escolhido ${brl(k.esc)} de previsto ${brl(k.prevEsc)}</td><td></td><td class="n"><b>${brl(k.esc)}</b></td><td class="n"><b>${dif(k.prevEsc-k.esc,k.prevEsc)}</b></td></tr></tfoot></table></div>
+          <td class="n">${e!=null?brl(e*q):""}</td><td class="n">${e!=null&&i.preco_previsto!=null?dif((+i.preco_previsto-e)*q,+i.preco_previsto*q):""}${e!=null&&!i.oc?` <button class="xb" data-cl="${i.id}" title="Desfazer escolha">↺</button>`:""}</td></tr>`}).join("")||`<tr><td colspan="${8+VC.length}" class="note">Nada para mostrar com esses filtros.</td></tr>`}
+      </tbody><tfoot><tr><td colspan="${5+VC.length}"><b>${L.length} itens</b> · escolhido ${brl(k.esc)} de previsto ${brl(k.prevEsc)}</td><td></td><td class="n"><b>${brl(k.esc)}</b></td><td class="n"><b>${dif(k.prevEsc-k.esc,k.prevEsc)}</b></td></tr></tfoot></table></div>
       ${CT.length?"":'<p class="note" style="margin-top:10px">Nenhuma cotação ainda. Vá em <b>Cotações</b> e importe o PDF ou Excel dos fornecedores.</p>'}</div></div>`;
-    $("#cF").onchange=e=>{ff=e.target.value;tComp()};
+    $("#cF").onchange=e=>{ff=e.target.value;tComp()};$("#cW").onchange=e=>{fWin=e.target.value;tComp()};$("#cS").onchange=e=>{fSub=e.target.value;tComp()};
     $("#cQ").oninput=e=>{fq=e.target.value;const p=e.target.selectionStart;tComp();const i=$("#cQ");i.focus();i.setSelectionRange(p,p)};
+    $$("[data-sc]").forEach(b=>b.onclick=()=>{const v=b.dataset.sc;if(v==="all")selC=null;else{const cid=+v;if(!selC)selC=new Set(CT.map(c=>c.id));selC.has(cid)?selC.delete(cid):selC.add(cid);if(!selC.size||selC.size===CT.length)selC=null}
+      try{sessionStorage.setItem("cmp.sel."+id,JSON.stringify(selC?[...selC]:null))}catch(e){}tComp()});
+    $$("[data-est]").forEach(inp=>inp.onchange=async()=>{const it=IT.find(x=>x.id==inp.dataset.est);const v=Math.max(0,pnum(inp.value));await chk(O.from("compra_itens").update({estoque:v}).eq("id",it.id));it.estoque=v;tComp()});
     $$("[data-es]").forEach(b=>b.onclick=()=>escolher(IT.find(i=>i.id==b.dataset.es),+b.dataset.c));
     $$("[data-ap]").forEach(b=>b.onclick=()=>precoManual(IT.find(i=>i.id==b.dataset.ap),+b.dataset.c));
     $$("[data-cl]").forEach(b=>b.onclick=async()=>{const i=IT.find(x=>x.id==b.dataset.cl);await salvaEsc(i,null,null,null);shell()});
-    $("#cMin").onclick=async()=>{const alvo=ativos().filter(i=>vEsc(i)==null&&faixa(i));if(!alvo.length){toast("Nenhum item sem escolha com cotação.");return}
-      for(const i of alvo){const f=faixa(i);await salvaEsc(i,f.min.c,f.min.v,null)}toast(`${alvo.length} itens com o fornecedor mais barato.`);shell()};
-    $("#cLimpa").onclick=()=>modal(`<h2>Limpar todas as escolhas?</h2><p class="note">As cotações continuam; só as escolhas de fornecedor são desfeitas.</p>`,async()=>{await chk(O.from("compra_itens").update({cotacao_escolhida:null,preco_escolhido:null,motivo:null}).eq("compra_id",id).eq("comprado",false));IT.forEach(i=>{if(!i.comprado){i.cotacao_escolhida=null;i.preco_escolhido=null;i.motivo=null}});shell()},"Limpar")}
+    $("#cMin").onclick=async()=>{const alvo=ativos().filter(i=>vEsc(i)==null&&qc(i)>0&&faixa(i,VC));if(!alvo.length){toast("Nenhum item sem escolha com cotação.");return}
+      for(const i of alvo){const f=faixa(i,VC);await salvaEsc(i,f.min.c,f.min.v,null)}toast(`${alvo.length} itens com o fornecedor mais barato.`);shell()};
+    $("#cLimpa").onclick=()=>modal(`<h2>Limpar as escolhas?</h2><p class="note">As cotações continuam; só as escolhas de fornecedor dos itens sem OC são desfeitas.</p>`,async()=>{await chk(O.from("compra_itens").update({cotacao_escolhida:null,preco_escolhido:null,motivo:null}).eq("compra_id",id).is("oc",null));IT.forEach(i=>{if(!i.oc){i.cotacao_escolhida=null;i.preco_escolhido=null;i.motivo=null}});shell()},"Limpar")}
   async function salvaEsc(i,cid,v,motivo){const up={cotacao_escolhida:cid,preco_escolhido:v,motivo};await chk(O.from("compra_itens").update(up).eq("id",i.id));Object.assign(i,up)}
-  function escolher(i,cid){if(i.comprado){toast("Este item já está num pedido emitido.");return}
+  function escolher(i,cid){if(i.oc){toast("Este item já está na OC "+i.oc+".");return}
     if(i.cotacao_escolhida==cid){salvaEsc(i,null,null,null).then(shell);return}
-    const v=PM[i.id][cid],f=faixa(i),q=+i.qtd;
+    const v=PM[i.id][cid],f=faixa(i),q=qc(i)||+i.qtd;
     if(f&&v>f.min.v+1e-6){const d=v-f.min.v;
       modal(`<h2>⚠ Esta não é a opção mais barata</h2><p><b>${esc(i.descricao)}</b></p>
         <div class="alerta"><div class="kv"><span>${esc(nomeC(cid))}</span><b>${brl(v)} /un</b></div><div class="kv"><span>${esc(nomeC(f.min.c))} (mais barato)</span><b>${brl(f.min.v)} /un</b></div>
@@ -582,21 +602,27 @@ async function painel(id){
     if(!r.itens.length){toast("Não encontrei itens com preço neste arquivo.");return}
     const cab=lerCabecalho(r.cab);
     await new Promise(res=>fornDialog(cab,async(fid,nome)=>{await revisar(r,cab,fid,nome,file.name);res()}))}
-  function sugerirItem(txt,AP,fornome){const k=norm(txt);const a=AP.find(x=>x.texto_norm===k&&norm(x.fornecedor)===norm(fornome))||AP.find(x=>x.texto_norm===k);
-    if(a){const it=ativos().find(i=>i.material_codigo===a.material_codigo);if(it)return{it,s:1}}
-    const T=new Set(toks(txt));const TA=[...T].filter(x=>!/\d/.test(x)),TN=[...T].filter(x=>/\d/.test(x));
+  const chave=t=>norm(t).split(" ").filter(w=>!(/\d/.test(w)&&/[A-Z]/.test(w)&&w.length>=7)&&!/^\d{6,}$/.test(w)).join(" ");
+  const jac=(a,b)=>{const A=new Set(a.split(" ")),B=new Set(b.split(" "));let n=0;A.forEach(x=>{if(B.has(x))n++});return n/Math.max(1,new Set([...A,...B]).size)};
+  function sugerirItem(l,AP,fornome){const F=norm(fornome),k=chave(l.txt),porMat=c=>ativos().find(i=>i.material_codigo===c);
+    const mine=AP.filter(x=>norm(x.fornecedor)===F);
+    let a=l.cod&&mine.find(x=>x.texto_norm==="COD "+norm(l.cod));if(a&&porMat(a.material_codigo))return{it:porMat(a.material_codigo),s:1,mem:"código do fornecedor"};
+    a=mine.find(x=>x.texto_norm===k)||mine.find(x=>chave(x.texto_norm)===k);if(a&&porMat(a.material_codigo))return{it:porMat(a.material_codigo),s:1,mem:"memória do fornecedor"};
+    let bj=null;mine.forEach(x=>{const v=jac(k,chave(x.texto_norm));if(v>=.8&&(!bj||v>bj.v)&&porMat(x.material_codigo))bj={x,v}});if(bj)return{it:porMat(bj.x.material_codigo),s:.99,mem:"memória do fornecedor (parecido)"};
+    a=AP.find(x=>x.texto_norm===k||x.texto_norm===norm(l.txt));if(a&&porMat(a.material_codigo))return{it:porMat(a.material_codigo),s:.95,mem:"aprendido com outro fornecedor"};
+    const T=new Set(toks(l.txt));const TA=[...T].filter(x=>!/\d/.test(x)),TN=[...T].filter(x=>/\d/.test(x));
     let best=null;ativos().forEach(i=>{const U=new Set(toks(i.descricao));const ca=TA.filter(x=>U.has(x)).length,cn=TN.filter(x=>U.has(x)).length;if(!ca)return;
       const s=(ca+cn*.7)/Math.sqrt(Math.max(1,TA.length+TN.length)*Math.max(1,U.size));if(!best||s>best.s)best={it:i,s}});return best}
   async function revisar(r,cab,fid,fornome,arq){
     const AP=await todos(()=>O.from("apelidos").select("fonte,fornecedor,texto_norm,material_codigo"));
-    const L=r.itens.map(x=>{const g=sugerirItem(x.txt,AP,fornome);return{...x,item:g&&g.s>.25?g.it.id:"",conf:g?g.s:0,ok:!!(g&&g.s>.25)}});
+    const L=r.itens.map(x=>{const g=sugerirItem(x,AP,fornome);return{...x,item:g&&g.s>.25?g.it.id:"",conf:g?g.s:0,mem:g&&g.mem,ok:!!(g&&g.s>.25)}});const nMem=L.filter(l=>l.mem&&l.conf>=.99).length;
     const opts=ativos().map(i=>`<option value="${i.id}">${esc(i.descricao)}</option>`).join("");
     const md=document.createElement("div");md.className="modal";
-    md.innerHTML=`<div class="mbox wide"><h2>Revisar cotação · ${esc(fornome)}</h2><p class="note">${esc(arq)} · ${L.length} linhas lidas${r.ignoradas?` · ${r.ignoradas} ignoradas (totais, impostos, cabeçalho)`:""}. Confira a qual material desta obra cada linha corresponde.</p>
+    md.innerHTML=`<div class="mbox wide"><h2>Revisar cotação · ${esc(fornome)}</h2><p class="note">${esc(arq)} · ${L.length} linhas lidas${r.ignoradas?` · ${r.ignoradas} ignoradas (totais, impostos, cabeçalho)`:""}. Confira a qual material desta obra cada linha corresponde.${nMem?` <b style="color:var(--ok)">${nMem} linha(s) já reconhecidas pela memória de ${esc(fornome)}.</b>`:""}</p>
       <div class="grid3"><label class="fld">Documento<input id="rvDoc" value="${esc(cab.numero||"")}"></label><label class="fld">Data<input type="date" id="rvDt" value="${cab.data||new Date().toISOString().slice(0,10)}"></label><label class="fld">Prazo de entrega<input id="rvPz" placeholder="ex.: 30 dias"></label></div>
       <div style="overflow:auto;max-height:55vh"><table class="tbl"><thead><tr><th></th><th>Linha do fornecedor</th><th class="n">Qtd</th><th class="n">Preço unit.</th><th>Material da obra</th></tr></thead><tbody>
       ${L.map((l,n)=>`<tr><td><input type="checkbox" data-ok="${n}" ${l.ok?"checked":""}></td><td>${esc(l.txt)}${l.cod?`<span class="sm mono">${esc(l.cod)}</span>`:""}</td><td class="n">${l.q!=null?num(l.q,3):""}</td><td class="n"><input class="inp n" data-pv="${n}" value="${num(l.p,4)}" style="width:100px"></td>
-        <td><select class="inp" data-it="${n}" style="max-width:420px"><option value="">— não usar —</option>${opts}</select>${l.item?`<span class="sm">${l.conf>=1?"já conhecido":"confiança "+Math.round(Math.min(1,l.conf)*100)+"%"}</span>`:""}</td></tr>`).join("")}</tbody></table></div>
+        <td><select class="inp" data-it="${n}" style="max-width:420px"><option value="">— não usar —</option>${opts}</select>${l.item?`<span class="sm" style="${l.mem?"color:var(--ok)":""}">${l.mem?"✓ "+l.mem:"confiança "+Math.round(Math.min(1,l.conf)*100)+"%"}</span>`:""}</td></tr>`).join("")}</tbody></table></div>
       <div class="row"><span class="note" id="rvN"></span><span style="display:flex;gap:8px"><button class="btn" id="rvX">Cancelar</button><button class="btn pri" id="rvOk">Gravar cotação</button></span></div></div>`;
     document.body.appendChild(md);
     L.forEach((l,n)=>{md.querySelector(`[data-it="${n}"]`).value=l.item||""});
@@ -610,50 +636,76 @@ async function painel(id){
           const U={};sel.forEach(l=>U[l.item]=l);
           const rows=await chk(O.from("compra_precos").insert(Object.values(U).map(l=>({cotacao_id:c.id,item_id:+l.item,preco_unit:l.p,qtd:l.q,texto:l.txt}))).select("*"));
           CT.push(c);PR.push(...rows);PM=P();
-          const ap=Object.values(U).map(l=>({l,i:IT.find(x=>x.id==l.item)})).filter(x=>x.i&&x.i.material_codigo&&(x.l.mexeu||x.l.conf<1)).map(({l,i})=>({fonte:"cotacao",fornecedor:fornome,texto_original:l.txt,texto_norm:norm(l.txt),material_codigo:i.material_codigo,criado_por:perfil.id}));
+          const ja=new Set(AP.filter(x=>norm(x.fornecedor)===norm(fornome)).map(x=>x.texto_norm+"|"+x.material_codigo));const ap=[];
+          Object.values(U).forEach(l=>{const it=IT.find(x=>x.id==l.item);if(!it||!it.material_codigo)return;
+            [chave(l.txt),l.cod?"COD "+norm(l.cod):null].filter(Boolean).forEach(tn=>{if(!ja.has(tn+"|"+it.material_codigo)){ja.add(tn+"|"+it.material_codigo);ap.push({fonte:"cotacao",fornecedor:fornome,texto_original:l.txt,texto_norm:tn,material_codigo:it.material_codigo,criado_por:perfil.id})}})});
           if(ap.length)await O.from("apelidos").insert(ap);
           const hist=Object.values(U).map(l=>({l,i:IT.find(x=>x.id==l.item)})).filter(x=>x.i&&x.i.material_codigo).map(({l,i})=>({material_codigo:i.material_codigo,valor:l.p,data:c.data||new Date().toISOString().slice(0,10),origem:"proposta",fornecedor:fornome,documento:c.documento,criado_por:perfil.id}));
           if(hist.length)await O.from("precos").insert(hist);
           md.remove();toast(`Cotação de ${fornome}: ${rows.length} preços gravados.`);aba="comparativo";shell();res()}
         catch(e){console.error(e);b.disabled=false;b.textContent="Gravar cotação"}}})}
 
-  /* ---- Pedidos ---- */
+  /* ---- Pedidos / OC ---- */
   function tPed(){
-    const G={};ativos().filter(i=>i.cotacao_escolhida&&vEsc(i)!=null).forEach(i=>(G[i.cotacao_escolhida]=G[i.cotacao_escolhida]||[]).push(i));
-    const manual=ativos().filter(i=>!i.cotacao_escolhida&&vEsc(i)!=null);
-    $("#full").innerHTML=`<div class="wrap2"><div class="card"><h2>Pedidos por fornecedor</h2><p class="note">Os itens escolhidos no comparativo são agrupados por fornecedor. Gerar o pedido baixa um Excel com logo e marca os itens como comprados; o preço entra no histórico da base.</p>
-      ${Object.entries(G).map(([cid,its])=>{const c=CT.find(x=>x.id==cid)||{};const pend=its.filter(i=>!i.comprado);const tot=pend.reduce((s,i)=>s+i.qtd*vEsc(i),0);
-        return `<div class="pedc"><div class="row"><div><b>${esc(c.fornecedor_nome)}</b><span class="sm" style="display:block">${its.length} itens · ${pend.length} a pedir · ${brl(tot)}${c.frete?" + frete "+brl(c.frete):""}</span></div>${pend.length?`<button class="btn pri sm" data-gp="${cid}">Gerar pedido (${pend.length})</button>`:'<span class="chip finalizado">Tudo pedido</span>'}</div>
-          <table class="tbl"><tbody>${its.map(i=>`<tr class="${i.comprado?"ina":""}"><td>${esc(i.descricao)}</td><td class="n">${num(i.qtd,2)} ${esc(i.unidade||"")}</td><td class="n">${brl(vEsc(i))}</td><td class="n">${brl(i.qtd*vEsc(i))}</td><td class="n">${i.comprado?'<span class="chip finalizado">pedido</span>':""}</td></tr>`).join("")}</tbody></table></div>`}).join("")||'<p class="note">Nenhum item escolhido ainda. Escolha os fornecedores no Comparativo.</p>'}
-      ${manual.length?`<p class="note">${manual.length} itens com preço manual sem fornecedor ficam fora dos pedidos.</p>`:""}</div>
-      <div class="card"><h2>Pedidos emitidos</h2><table class="tbl"><thead><tr><th>Nº</th><th>Fornecedor</th><th class="n">Itens</th><th class="n">Total</th><th class="hm">Emitido</th><th></th></tr></thead><tbody>
-      ${PD.map(p=>`<tr><td class="mono">${p.numero}</td><td>${esc(p.fornecedor_nome)}</td><td class="n">${(p.itens||[]).length}</td><td class="n">${brl(p.total)}</td><td class="hm">${fdata(p.gerado_em)} · ${esc(p.gerado_nome||"")}</td><td class="n"><button class="btn sm" data-bx="${p.id}">⬇ Excel</button></td></tr>`).join("")||'<tr><td colspan="6" class="note">Nenhum pedido emitido.</td></tr>'}</tbody></table></div></div>`;
-    $$("[data-gp]").forEach(b=>b.onclick=()=>{const cid=+b.dataset.gp;const c=CT.find(x=>x.id==cid);const its=G[cid].filter(i=>!i.comprado);const caros=its.filter(i=>{const f=faixa(i);return f&&vEsc(i)>f.min.v+1e-6});
-      modal(`<h2>Gerar pedido para ${esc(c.fornecedor_nome)}?</h2><p class="note">${its.length} itens · ${brl(its.reduce((s,i)=>s+i.qtd*vEsc(i),0))}${c.frete?" + frete "+brl(c.frete):""}. Os itens ficam marcados como comprados.</p>${caros.length?`<div class="alerta">⚠ ${caros.length} item(ns) deste pedido têm opção mais barata em outro fornecedor.</div>`:""}`,async()=>{
-        const n=await chk(O.rpc("proximo_pedido"));const itens=its.map(i=>({codigo:i.material_codigo,descricao:i.descricao,unidade:i.unidade,qtd:+i.qtd,preco:vEsc(i)}));const total=itens.reduce((s,x)=>s+x.qtd*x.preco,0)+(+c.frete||0);
-        const p=await chk(O.from("compra_pedidos").insert({compra_id:id,cotacao_id:cid,fornecedor_nome:c.fornecedor_nome,numero:n,total,itens,gerado_nome:quem()}).select("*").single());PD.unshift(p);
-        await chk(O.from("compra_itens").update({comprado:true}).in("id",its.map(i=>i.id)));its.forEach(i=>i.comprado=true);
-        const hist=its.filter(i=>i.material_codigo).map(i=>({material_codigo:i.material_codigo,valor:vEsc(i),data:new Date().toISOString().slice(0,10),origem:"compra",fornecedor:c.fornecedor_nome,documento:"Pedido "+n,criado_por:perfil.id}));if(hist.length)await O.from("precos").insert(hist);
-        await baixarPedido(p,c);shell()},"Gerar e baixar")});
-    $$("[data-bx]").forEach(b=>b.onclick=()=>{const p=PD.find(x=>x.id==b.dataset.bx);baixarPedido(p,CT.find(c=>c.id==p.cotacao_id)||{fornecedor_nome:p.fornecedor_nome})})}
+    const G={};ativos().filter(i=>i.cotacao_escolhida&&vEsc(i)!=null&&qc(i)>0&&!i.oc).forEach(i=>(G[i.cotacao_escolhida]=G[i.cotacao_escolhida]||[]).push(i));
+    $("#full").innerHTML=`<div class="wrap2"><div class="card"><h2>Gerar OC por fornecedor</h2><p class="note">Itens escolhidos no comparativo e ainda sem OC, agrupados por fornecedor (quantidade = a comprar, já descontado o estoque). Desmarque o que não entra agora, informe o nº da OC e gere o PDF do pedido.</p>
+      ${Object.entries(G).map(([cid,its])=>{const c=CT.find(x=>x.id==cid)||{};const tot=its.reduce((s,i)=>s+qc(i)*vEsc(i),0);
+        return `<div class="pedc" data-g="${cid}"><div class="row"><div><b>${esc(c.fornecedor_nome)}</b><span class="sm" style="display:block">${its.length} itens · <span data-gt="${cid}">${brl(tot)}</span>${c.frete?" + frete "+brl(c.frete):""}${c.prazo?" · prazo "+esc(c.prazo):""}</span></div><button class="btn pri sm" data-gp="${cid}">Criar OC…</button></div>
+          <table class="tbl"><tbody>${its.map(i=>`<tr><td style="width:24px"><input type="checkbox" data-pi="${i.id}" checked></td><td>${esc(i.descricao)}<span class="sm">${esc(i.material_codigo||"")}</span></td><td class="n">${num(qc(i),2)} ${esc(i.unidade||"")}</td><td class="n">${brl(vEsc(i))}</td><td class="n">${brl(qc(i)*vEsc(i))}</td></tr>`).join("")}</tbody></table></div>`}).join("")||'<p class="note">Nada pendente. Escolha fornecedores no Comparativo (itens com OC não aparecem aqui).</p>'}</div>
+      <div class="card"><h2>OCs emitidas</h2><table class="tbl"><thead><tr><th>OC</th><th>Fornecedor</th><th class="n">Itens</th><th class="n">Total</th><th class="hm">Emitida</th><th></th></tr></thead><tbody>
+      ${PD.map(p=>`<tr class="oc"><td class="mono"><b>${esc(p.oc||p.numero)}</b></td><td>${esc(p.fornecedor_nome)}</td><td class="n">${(p.itens||[]).length}</td><td class="n">${brl(p.total)}</td><td class="hm">${fdata(p.gerado_em)} · ${esc(p.gerado_nome||"")}</td><td class="n" style="white-space:nowrap"><button class="btn sm" data-pdf="${p.id}">⬇ PDF</button> <button class="btn sm" data-bx="${p.id}">Excel</button> <button class="xb" data-undo="${p.id}" title="Cancelar OC">✕</button></td></tr>`).join("")||'<tr><td colspan="6" class="note">Nenhuma OC emitida.</td></tr>'}</tbody></table></div></div>`;
+    $$("[data-pi]").forEach(x=>x.onchange=()=>{const g=x.closest("[data-g]").dataset.g;const tot=G[g].filter(i=>$(`[data-pi="${i.id}"]`).checked).reduce((s,i)=>s+qc(i)*vEsc(i),0);$(`[data-gt="${g}"]`).textContent=brl(tot)});
+    $$("[data-gp]").forEach(b=>b.onclick=()=>{const cid=+b.dataset.gp;const c=CT.find(x=>x.id==cid);const its=G[cid].filter(i=>$(`[data-pi="${i.id}"]`).checked);if(!its.length){toast("Marque ao menos um item.");return}
+      const f=FORNS.find(x=>x.id===c.fornecedor_id)||{};const caros=its.filter(i=>{const fa=faixa(i);return fa&&vEsc(i)>fa.min.v+1e-6});const tot=its.reduce((s,i)=>s+qc(i)*vEsc(i),0)+(+c.frete||0);
+      modal(`<h2>OC para ${esc(c.fornecedor_nome)}</h2><p class="note">${its.length} itens · ${brl(tot)}${c.frete?" (com frete)":""}</p>${caros.length?`<div class="alerta">⚠ ${caros.length} item(ns) desta OC têm opção mais barata em outro fornecedor.</div>`:""}
+        <div class="grid2"><label class="fld">Nº da OC<input name="oc" required placeholder="ex.: 1650"></label><label class="fld">Contato comercial<input name="contato" value="${esc(f.contato||"")}"></label></div>
+        <div class="grid2"><label class="fld">Condições de pagamento<input name="cond" value="${esc(f.cond_pagto||"")}" placeholder="ex.: 30/60/90"></label><label class="fld">Sessão / obra<input name="sessao" value="${esc(C.sessao||[C.cliente,C.cidade?"("+C.cidade+")":""].filter(Boolean).join(" "))}"></label></div>
+        <label class="fld">Entrega<input name="entrega" value="Poderão ser entregues nas dependências da ON Engenharia"></label>`,async fm=>{
+        const oc=fm.oc.trim();if(!oc){toast("Informe o nº da OC.");return false}
+        const n=await chk(O.rpc("proximo_pedido"));const itens=its.map(i=>({id:i.id,codigo:i.material_codigo,descricao:i.descricao,unidade:i.unidade,qtd:qc(i),preco:vEsc(i)}));const total=itens.reduce((s,x)=>s+x.qtd*x.preco,0)+(+c.frete||0);
+        const p=await chk(O.from("compra_pedidos").insert({compra_id:id,cotacao_id:cid,fornecedor_nome:c.fornecedor_nome,numero:n,oc,total,itens,cond_pagto:fm.cond.trim()||null,entrega:fm.entrega.trim()||null,contato:fm.contato.trim()||null,gerado_nome:quem()}).select("*").single());PD.unshift(p);
+        await chk(O.from("compra_itens").update({oc,comprado:true}).in("id",its.map(i=>i.id)));its.forEach(i=>{i.oc=oc;i.comprado=true});
+        if(fm.sessao.trim()!==(C.sessao||"")){C.sessao=fm.sessao.trim()||null;O.from("compras").update({sessao:C.sessao}).eq("id",id).then(()=>{})}
+        if(f.id&&(fm.contato.trim()!==(f.contato||"")||fm.cond.trim()!==(f.cond_pagto||""))){f.contato=fm.contato.trim()||null;f.cond_pagto=fm.cond.trim()||null;O.from("fornecedores").update({contato:f.contato,cond_pagto:f.cond_pagto}).eq("id",f.id).then(()=>{})}
+        const hist=its.filter(i=>i.material_codigo).map(i=>({material_codigo:i.material_codigo,valor:vEsc(i),data:new Date().toISOString().slice(0,10),origem:"compra",fornecedor:c.fornecedor_nome,documento:"OC "+oc,criado_por:perfil.id}));if(hist.length)await O.from("precos").insert(hist);
+        toast(`OC ${oc} criada. Gerando o PDF…`);await pdfPedido(p,c);shell()},"Criar OC e baixar PDF")});
+    $$("[data-pdf]").forEach(b=>b.onclick=()=>{const p=PD.find(x=>x.id==b.dataset.pdf);pdfPedido(p,CT.find(c=>c.id==p.cotacao_id)||{fornecedor_nome:p.fornecedor_nome})});
+    $$("[data-bx]").forEach(b=>b.onclick=()=>{const p=PD.find(x=>x.id==b.dataset.bx);baixarPedido(p,CT.find(c=>c.id==p.cotacao_id)||{fornecedor_nome:p.fornecedor_nome})});
+    $$("[data-undo]").forEach(b=>b.onclick=()=>{const p=PD.find(x=>x.id==b.dataset.undo);modal(`<h2>Cancelar a OC ${esc(p.oc||p.numero)}?</h2><p class="note">Os itens voltam para pendentes (a escolha de fornecedor continua).</p>`,async()=>{
+      const ids=(p.itens||[]).map(x=>x.id).filter(Boolean);const alvo=ids.length?IT.filter(i=>ids.includes(i.id)):IT.filter(i=>i.oc===p.oc);
+      if(alvo.length)await chk(O.from("compra_itens").update({oc:null,comprado:false}).in("id",alvo.map(i=>i.id)));alvo.forEach(i=>{i.oc=null;i.comprado=false});
+      await chk(O.from("compra_pedidos").delete().eq("id",p.id));PD=PD.filter(x=>x!==p);shell()},"Cancelar OC")})}
+  async function img64(u){try{const r=await fetch(u);const b=await r.blob();return await new Promise(res=>{const f=new FileReader();f.onload=()=>res(f.result);f.readAsDataURL(b)})}catch(e){return null}}
+  async function pdfPedido(p,c){
+    if(!window.jspdf)await loadScript("vendor/jspdf.umd.min.js");if(!window.jspdf.jsPDF.API.autoTable)await loadScript("vendor/jspdf.plugin.autotable.min.js");
+    const {jsPDF}=window.jspdf;const d=new jsPDF({unit:"pt",format:"a4"});const W=595.28,H=841.89,M=40;
+    const [top,rod]=await Promise.all([img64("assets/pedido-topo.jpg"),img64("assets/pedido-rodape.jpg")]);const hT=W*169/1191,hR=W*200/1189;
+    const f=FORNS.find(x=>x.id===(c&&c.fornecedor_id))||{};const brl2=v=>"R$ "+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+    let y=hT+40;d.setFont("helvetica","bold");d.setFontSize(14);d.text(f.razao_social||p.fornecedor_nome,M,y);y+=16;d.setFont("helvetica","normal");d.setFontSize(9.5);
+    [["CNPJ",f.cnpj],["Telefone",f.telefone],["E-mail",f.email],["Endereço",[f.endereco,f.cidade].filter(Boolean).join(" ")],["Contato comercial",p.contato||f.contato],["Condições de pagamento",p.cond_pagto]].forEach(([k,v])=>{if(v){d.text(`${k}: ${v}`,M,y);y+=12}});
+    y+=4;d.setTextColor(120);[["Sessão",C.sessao||[C.cliente,C.cidade?"("+C.cidade+")":""].filter(Boolean).join(" ")],["Orçamento",C.cliente||C.titulo],["OC",p.oc||p.numero],["Exportado em",new Date(p.gerado_em||Date.now()).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})]].forEach(([k,v])=>{if(v){d.text(`${k}: ${v}`,M,y);y+=12}});d.setTextColor(0);
+    y+=10;d.setFont("helvetica","bold");d.setFontSize(12);d.text("Itens do pedido",M,y);y+=8;
+    const body=(p.itens||[]).map(x=>[x.codigo||"",x.descricao,brl2(x.preco),Number(x.qtd).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:3}),brl2(x.qtd*x.preco)]);
+    if(+(c&&c.frete))body.push(["","Frete","","",brl2(c.frete)]);
+    d.autoTable({startY:y,head:[["Código","Material","Preço Unitário","Quantidade","Preço Total"]],body,margin:{top:hT+30,bottom:hR+20,left:M,right:M},theme:"grid",
+      styles:{font:"helvetica",fontSize:8.5,cellPadding:5,lineColor:[214,225,234],lineWidth:.5,valign:"middle"},headStyles:{fillColor:[30,47,64],textColor:255,fontStyle:"bold"},alternateRowStyles:{fillColor:[245,248,251]},
+      columnStyles:{0:{cellWidth:62},1:{cellWidth:"auto"},2:{cellWidth:78,halign:"right"},3:{cellWidth:62,halign:"right"},4:{cellWidth:80,halign:"right"}}});
+    y=d.lastAutoTable.finalY+20;if(y>H-hR-130){d.addPage();y=hT+40}
+    d.setFont("helvetica","bold");d.setFontSize(10);d.text("Condições de pagamento:",M,y);d.setFont("helvetica","normal");d.text(String(p.cond_pagto||"—"),M,y+13);
+    if(p.entrega){d.text(d.splitTextToSize(p.entrega,230),M,y+30)}
+    d.setFillColor(30,47,64);d.rect(W-M-200,y-12,200,34,"F");d.setTextColor(255);d.setFont("helvetica","bold");d.setFontSize(9);d.text("TOTAL GERAL",W-M-190,y+8);d.setFontSize(12);d.text(brl2(p.total),W-M-10,y+9,{align:"right"});d.setTextColor(0);
+    y+=95;d.setDrawColor(60);d.line(W/2-120,y,W/2+120,y);d.setFont("helvetica","normal");d.setFontSize(10);d.text("Eng. Luan Stefanello Pianesso",W/2,y+14,{align:"center"});d.text("CREA RS: 278122",W/2,y+27,{align:"center"});
+    const np=d.getNumberOfPages();for(let k=1;k<=np;k++){d.setPage(k);if(top)d.addImage(top,"JPEG",0,0,W,hT);if(rod)d.addImage(rod,"JPEG",0,H-hR,W,hR);d.setFont("helvetica","normal");d.setFontSize(9);d.setTextColor(60);d.text(`Página ${k} de ${np}`,W-M,hT+18,{align:"right"});d.setTextColor(0)}
+    const nm=`pedido-OC${p.oc||p.numero}-${norm(p.fornecedor_nome).toLowerCase().replace(/[^a-z0-9]+/g,"-")}-${new Date(p.gerado_em||Date.now()).toISOString().slice(0,10)}.pdf`;d.save(nm)}
   async function baixarPedido(p,c){
     if(!window.ExcelJS)await loadScript("vendor/exceljs.min.js");
-    const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet("Pedido "+p.numero);ws.columns=[{width:16},{width:56},{width:8},{width:12},{width:15},{width:16}];
-    try{const r=await fetch("assets/on-logo.jpg");const b=new Uint8Array(await r.arrayBuffer());let s="";b.forEach(x=>s+=String.fromCharCode(x));const im=wb.addImage({base64:btoa(s),extension:"jpeg"});ws.addImage(im,{tl:{col:0,row:0},ext:{width:110,height:60}})}catch(e){}
-    ws.getCell("C1").value=`PEDIDO DE COMPRA Nº ${p.numero}`;ws.getCell("C1").font={bold:true,size:15};
-    ws.getCell("C2").value=`Emitido em ${fdata(p.gerado_em||new Date().toISOString())} por ${p.gerado_nome||""}`;
-    const f=FORNS.find(x=>x.id===c.fornecedor_id)||{};
-    ws.getCell("A5").value="Fornecedor:";ws.getCell("B5").value=[f.razao_social||c.fornecedor_nome,f.cnpj?"CNPJ "+f.cnpj:""].filter(Boolean).join(" · ");
-    ws.getCell("A6").value="Contato:";ws.getCell("B6").value=[f.telefone,f.email].filter(Boolean).join(" · ");
-    ws.getCell("A7").value="Ref. cotação:";ws.getCell("B7").value=[c.documento,c.data?fdata(c.data):""].filter(Boolean).join(" · ");
-    ws.getCell("A8").value="Entrega:";ws.getCell("B8").value=[C.cidade,c.prazo?"prazo "+c.prazo:""].filter(Boolean).join(" · ");
-    ["A5","A6","A7","A8"].forEach(k=>ws.getCell(k).font={bold:true});
-    const h=ws.getRow(10);["Código","Descrição","Un.","Qtd","Preço unit.","Total"].forEach((t,i)=>{const cl=h.getCell(i+1);cl.value=t;cl.font={bold:true,color:{argb:"FFFFFFFF"}};cl.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF1E2F40"}}});
-    let r=11;(p.itens||[]).forEach(x=>{const w=ws.getRow(r++);w.values=[x.codigo||"",x.descricao,x.unidade||"",x.qtd,x.preco,{formula:`D${r-1}*E${r-1}`,result:x.qtd*x.preco}];w.getCell(5).numFmt=w.getCell(6).numFmt='"R$" #,##0.00';w.getCell(4).numFmt="#,##0.###"});
-    if(c.frete){const w=ws.getRow(r++);w.getCell(5).value="Frete";w.getCell(6).value=+c.frete;w.getCell(6).numFmt='"R$" #,##0.00'}
-    const w=ws.getRow(r);w.getCell(5).value="TOTAL";w.getCell(5).font={bold:true};w.getCell(6).value={formula:`SUM(F11:F${r-1})`,result:p.total};w.getCell(6).numFmt='"R$" #,##0.00';w.getCell(6).font={bold:true};
-    ws.getCell(`A${r+2}`).value="ON Engenharia Elétrica";ws.getCell(`A${r+2}`).font={bold:true};
-    const buf=await wb.xlsx.writeBuffer();const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));a.download=`Pedido ${p.numero} - ${p.fornecedor_nome}.xlsx`;document.body.appendChild(a);a.click();a.remove()}
+    const wb=new ExcelJS.Workbook();const ws=wb.addWorksheet("OC "+(p.oc||p.numero));ws.columns=[{width:16},{width:56},{width:8},{width:12},{width:15},{width:16}];
+    ws.getCell("A1").value=`PEDIDO DE COMPRA · OC ${p.oc||p.numero}`;ws.getCell("A1").font={bold:true,size:14};ws.getCell("A2").value=`${p.fornecedor_nome} · ${fdata(p.gerado_em||new Date().toISOString())}`;
+    const h=ws.getRow(4);["Código","Descrição","Un.","Qtd","Preço unit.","Total"].forEach((t,i)=>{const cl=h.getCell(i+1);cl.value=t;cl.font={bold:true,color:{argb:"FFFFFFFF"}};cl.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF1E2F40"}}});
+    let r=5;(p.itens||[]).forEach(x=>{const w=ws.getRow(r++);w.values=[x.codigo||"",x.descricao,x.unidade||"",x.qtd,x.preco,{formula:`D${r-1}*E${r-1}`,result:x.qtd*x.preco}];w.getCell(5).numFmt=w.getCell(6).numFmt='"R$" #,##0.00'});
+    if(c&&+c.frete){const w=ws.getRow(r++);w.getCell(5).value="Frete";w.getCell(6).value=+c.frete;w.getCell(6).numFmt='"R$" #,##0.00'}
+    const w=ws.getRow(r);w.getCell(5).value="TOTAL";w.getCell(5).font={bold:true};w.getCell(6).value={formula:`SUM(F5:F${r-1})`,result:p.total};w.getCell(6).numFmt='"R$" #,##0.00';w.getCell(6).font={bold:true};
+    const buf=await wb.xlsx.writeBuffer();const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));a.download=`OC ${p.oc||p.numero} - ${p.fornecedor_nome}.xlsx`;document.body.appendChild(a);a.click();a.remove()}
 
   shell();
 }
