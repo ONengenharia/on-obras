@@ -337,7 +337,7 @@ return lista(Q.get("pasta"));
 async function config(aba){
   aba=aba||"materiais";
   const ABAS=[["materiais","Materiais"],["subgrupos","Subgrupos"],["segmentos","Segmentos"],["concessionarias","Concessionárias"],["postes","Postes"],["cabos","Cabos"],["iluminacao","Iluminação"],["grupos","Grupos de itens"],["cotacoes","Cotações"]];
-  let MATS=[],PV={},SUBS=[],SEGP=[],CON=[...CONCS];
+  let MATS=[],PV={},SUBS=[],SEGP=[],CON=[...CONCS],CATL=[],gCat="";
   async function carregaBase(){
     const [m,p,s,g,c]=await Promise.all([
       todos(()=>O.from("materiais").select("codigo,nome,unidade,subgrupo,ativo,atualizado_em").order("nome")),
@@ -604,6 +604,7 @@ async function config(aba){
   /* ---------- Grupos de itens ---------- */
   let gConc="",gq="",gpag=0;
   async function tGrupos(){
+    const CATS=await todos(()=>O.from("categorias_grupo").select("*").order("ordem").order("nome"));CATL=CATS;
     const [EST,EI,EC]=await Promise.all([
       todos(()=>O.from("estruturas").select("*").order("codigo")),todos(()=>O.from("estrutura_itens").select("*")),todos(()=>O.from("estrutura_conc").select("*"))]);
     const its=id=>EI.filter(i=>i.estrutura_id===id);
@@ -611,14 +612,27 @@ async function config(aba){
     const valor=e=>its(e.id).reduce((s,i)=>s+(+i.quantidade)*((PV[i.material_codigo]||{}).valor||0),0);
     const semP=e=>its(e.id).filter(i=>!PV[i.material_codigo]).length;
     const b=norm(gq);
-    const L=EST.filter(e=>(!gConc||concsDe(e).includes(+gConc))&&(!b||norm(e.codigo+" "+(e.descricao||"")).includes(b)));
+    const L=EST.filter(e=>(!gConc||concsDe(e).includes(+gConc))&&(!gCat||(gCat==="__"?!e.categoria:e.categoria===gCat))&&(!b||norm(e.codigo+" "+(e.descricao||"")).includes(b)));
     const PP=60,np=Math.max(1,Math.ceil(L.length/PP));gpag=Math.min(gpag,np-1);
     frame(`<div class="row"><div style="display:flex;gap:8px;flex-wrap:wrap"><select class="inp" id="gC"><option value="">Todas as concessionárias</option>${CON.map(c=>`<option value="${c.id}" ${gConc==c.id?"selected":""}>${esc(c.sigla)}</option>`).join("")}</select>
-       <input class="inp" id="gQ" placeholder="Buscar grupo" value="${esc(gq)}" style="width:min(280px,100%)"></div><button class="btn pri" id="gNovo">+ Grupo de itens</button></div>
+       <select class="inp" id="gK"><option value="">Todas as categorias</option>${CATS.map(c=>`<option ${gCat===c.nome?"selected":""}>${esc(c.nome)}</option>`).join("")}<option value="__" ${gCat==="__"?"selected":""}>(sem categoria)</option></select>
+       <input class="inp" id="gQ" placeholder="Buscar grupo" value="${esc(gq)}" style="width:min(280px,100%)"></div><span style="display:flex;gap:6px"><button class="btn" id="gCats">Categorias…</button><button class="btn pri" id="gNovo">+ Grupo de itens</button></span></div>
      <table class="tbl"><thead><tr><th>Grupo</th><th>Concessionárias</th><th class="hm">Categoria</th><th class="n">Itens</th><th class="n">Valor estimado</th></tr></thead><tbody>
-      ${L.slice(gpag*PP,gpag*PP+PP).map(e=>`<tr class="go" data-e="${e.id}"><td><b>${esc(e.codigo)}</b>${e.descricao?`<span class="sm">${esc(e.descricao)}</span>`:""}</td><td>${concsDe(e).map(c=>`<span class="chip ${e.compartilhada?"sh":""}">${esc(concSig(c))}</span>`).join(" ")}</td><td class="hm">${esc(e.categoria||"")}</td><td class="n">${its(e.id).length}</td><td class="n">${brl(valor(e))}${semP(e)?`<span class="sm" style="color:var(--warn)">${semP(e)} sem preço</span>`:""}</td></tr>`).join("")||'<tr><td colspan="5" class="note">Nenhum grupo.</td></tr>'}</tbody></table>
+      ${L.slice(gpag*PP,gpag*PP+PP).map(e=>`<tr class="go" data-e="${e.id}"><td><b>${esc(e.codigo)}</b>${e.descricao?`<span class="sm">${esc(e.descricao)}</span>`:""}</td><td>${concsDe(e).map(c=>`<span class="chip ${e.compartilhada?"sh":""}">${esc(concSig(c))}</span>`).join(" ")}</td><td class="hm"><span data-gcat="${e.id}" class="gcat" title="Trocar categoria">${e.categoria?esc(e.categoria):'<span class="note">— definir</span>'} <button class="xb" style="font-size:11px">✏️</button></span></td><td class="n">${its(e.id).length}</td><td class="n">${brl(valor(e))}${semP(e)?`<span class="sm" style="color:var(--warn)">${semP(e)} sem preço</span>`:""}</td></tr>`).join("")||'<tr><td colspan="5" class="note">Nenhum grupo.</td></tr>'}</tbody></table>
      <div class="row"><span class="note">${L.length} grupos · <span class="chip sh">azul</span> = compartilhado</span><span style="display:flex;gap:6px;align-items:center">${np>1?`<button class="btn" id="gPrev" ${gpag?"":"disabled"}>‹</button><span class="note">${gpag+1} / ${np}</span><button class="btn" id="gNext" ${gpag<np-1?"":"disabled"}>›</button>`:""}</span></div>`);
     $("#gC").onchange=e=>{gConc=e.target.value;gpag=0;tGrupos()};
+    $("#gK").onchange=e=>{gCat=e.target.value;gpag=0;tGrupos()};
+    $$("[data-gcat]").forEach(sp=>sp.onclick=ev=>{ev.stopPropagation();if(sp.querySelector("select"))return;const e=EST.find(x=>x.id==sp.dataset.gcat);
+      sp.innerHTML=`<select class="inp sm"><option value="">—</option>${CATS.map(c=>`<option ${e.categoria===c.nome?"selected":""}>${esc(c.nome)}</option>`).join("")}</select>`;const se=sp.querySelector("select");se.onclick=x=>x.stopPropagation();se.focus();
+      se.onchange=async()=>{await chk(O.from("estruturas").update({categoria:se.value||null}).eq("id",e.id));e.categoria=se.value||null;toast("Categoria atualizada.");tGrupos()};se.onblur=()=>setTimeout(()=>sp.isConnected&&sp.querySelector("select")&&tGrupos(),200)});
+    $("#gCats").onclick=()=>{const md=modal(`<h2>Categorias dos grupos</h2><p class="note">Renomear muda todos os grupos daquela categoria. “IP” é usada para luminárias e fica fixa.</p>
+      <div style="display:grid;gap:6px">${CATS.map(c=>`<div style="display:grid;grid-template-columns:1fr 70px auto;gap:6px;align-items:center"><input class="inp" data-cn="${c.id}" value="${esc(c.nome)}" ${c.fixa?"disabled":""}><input class="inp" data-co="${c.id}" value="${c.ordem}" inputmode="numeric" title="Ordem"><button type="button" class="btn sm del" data-cd="${c.id}" ${c.fixa?"disabled":""}>✕</button></div>`).join("")}</div>
+      <div class="row"><input class="inp" id="cNova" placeholder="Nova categoria"><button type="button" class="btn" id="cAdd">+ Adicionar</button></div>`,async()=>{tGrupos()},"Fechar");
+      $$("[data-cn]",md).forEach(i=>i.onchange=async()=>{const c=CATS.find(x=>x.id==i.dataset.cn);const n=i.value.trim();if(!n||n===c.nome)return;await chk(O.rpc("renomear_categoria",{p_de:c.nome,p_para:n}));c.nome=n;toast("Renomeada.")});
+      $$("[data-co]",md).forEach(i=>i.onchange=async()=>{await chk(O.from("categorias_grupo").update({ordem:+i.value||0}).eq("id",i.dataset.co))});
+      $$("[data-cd]",md).forEach(b=>b.onclick=async()=>{const c=CATS.find(x=>x.id==b.dataset.cd);const n=EST.filter(e=>e.categoria===c.nome).length;if(!confirm(n?`${n} grupos estão em “${c.nome}” e ficarão sem categoria. Excluir?`:`Excluir “${c.nome}”?`))return;
+        if(n)await chk(O.from("estruturas").update({categoria:null}).eq("categoria",c.nome));await chk(O.from("categorias_grupo").delete().eq("id",c.id));md.remove();tGrupos()});
+      $("#cAdd",md).onclick=async()=>{const n=$("#cNova",md).value.trim();if(!n)return;await chk(O.from("categorias_grupo").insert({nome:n,ordem:50}));md.remove();await tGrupos();$("#gCats").click()}};
     $("#gQ").oninput=e=>{clearTimeout(tGrupos._t);gq=e.target.value;gpag=0;tGrupos._t=setTimeout(async()=>{const pos=e.target.selectionStart;await tGrupos();const i=$("#gQ");i.focus();i.setSelectionRange(pos,pos)},250)};
     $("#gPrev")&&($("#gPrev").onclick=()=>{gpag--;tGrupos()});$("#gNext")&&($("#gNext").onclick=()=>{gpag++;tGrupos()});
     $$("tr[data-e]").forEach(r=>r.onclick=()=>{const e=EST.find(x=>x.id==r.dataset.e);editarGrupo(e,its(e.id),concsDe(e))});
@@ -629,7 +643,7 @@ async function config(aba){
     const linha=i=>`<div class="gl"><input class="inp" list="dlMat" name="m" value="${i.material_codigo?esc(i.material_codigo+" · "+((M[i.material_codigo]||{}).nome||"?")):""}" placeholder="Código ou nome do material"><input class="inp n" name="q" value="${i.quantidade!=null?num(i.quantidade,3):""}" placeholder="Qtd"><span class="n pv">${i.material_codigo&&PV[i.material_codigo]?brl(PV[i.material_codigo].valor*i.quantidade):""}</span><button type="button" class="btn sm" data-rm>✕</button></div>`;
     const md=modal(`${optsMat()}<h2>${e?"Grupo "+esc(e.codigo):"Novo grupo de itens"}</h2>
       <div class="grid3"><label class="fld">Código<input name="codigo" required value="${esc(e?e.codigo:"")}"></label><label class="fld">Concessionária principal<select name="dono">${CON.map(c=>`<option value="${c.id}" ${(e?e.concessionaria_id:concs[0])===c.id?"selected":""}>${esc(c.sigla)}</option>`).join("")}</select></label>
-       <label class="fld">Categoria<select name="cat"><option value="">—</option>${["MT","BT","IP","Transformação","Aterramento","Proteção","Outros"].map(k=>`<option ${e&&e.categoria===k?"selected":""}>${k}</option>`).join("")}</select></label></div>
+       <label class="fld">Categoria<select name="cat"><option value="">—</option>${(CATL.length?CATL.map(c=>c.nome):["MT","BT","IP","Transformação","Aterramento","Proteção","Outros"]).concat(e&&e.categoria&&!CATL.some(c=>c.nome===e.categoria)?[e.categoria]:[]).map(k=>`<option ${e&&e.categoria===k?"selected":""}>${esc(k)}</option>`).join("")}</select></label></div>
       <label class="fld">Descrição<input name="descricao" value="${esc(e&&e.descricao||"")}"></label>
       <label class="note"><input type="checkbox" name="comp" id="gComp" ${e&&e.compartilhada?"checked":""}> usar este grupo em mais de uma concessionária</label>
       <div id="gCs" class="chips" ${e&&e.compartilhada?"":"hidden"}>${CON.map(c=>`<label><input type="checkbox" name="c_${c.id}" ${concs.includes(c.id)?"checked":""}> ${esc(c.sigla)}</label>`).join("")}</div>
@@ -1070,15 +1084,17 @@ async function editor(id){
   const fixIP=p=>{const ps=POM[p.poste_id];if(!ps)return null;const c=`FIX_IP_${+ps.altura_m}(${+ps.esforco_kn})`.toUpperCase();return EST.find(e=>e.codigo.toUpperCase()===c)||null};
   let P=(PRC.data&&PRC.data[0])||{orcamento_id:id,metodo:"A",pct_materiais:50,valor_servico:null,lucro_pct:15,custos:[],materiais_ref:null};
   let etapa=["projeto","materiais","precificacao"].includes(Q.get("etapa"))?Q.get("etapa"):"projeto";
-  let selP=null,selV=null,placing=false,tracing=null,anchor=null,calib=null,fMat="",fPt="",soSemPreco=false,ordMat=(()=>{try{return localStorage.getItem("orc_ordMat")||"alfa"}catch(e){return"alfa"}})();const marcados=new Set();
+  let selP=null,selV=null,placing=false,tracing=null,anchor=null,calib=null,fMat="",fPt="",soSemPreco=false,fCat="",cardModo=(()=>{try{return localStorage.getItem("orc_cardModo")||"cat"}catch(e){return"cat"}})(),SUBL=null,ordMat=(()=>{try{return localStorage.getItem("orc_ordMat")||"alfa"}catch(e){return"alfa"}})();const marcados=new Set();
 
   const preco=c=>{const o=OP[c];return (o&&(o.manual||ORC.modo_preco==="travado"))?(o?o.v:VIG[c]):(VIG[c]??(o&&o.v))};
   const ptById=i=>PTS.find(p=>p.id===i);
   const sobra=v=>v.sobra_pct??ORC.sobra_condutor_pct;
   const segVao=v=>{if(v.segmento_id)return v.segmento_id;const t=TRM[v.tipo_rede_id];if(!t)return null;const k=/^MT/i.test(t.nome)?"MT":/^BT/i.test(t.nome)?"BT":"";const s=SEGS.find(s=>s.nome===k);return s?s.id:null};
-  function linhasPonto(p){const L=IT.filter(i=>i.ponto_id===p.id).map(i=>{const e=i.ponto_estrutura_id&&PE.find(x=>x.id===i.ponto_estrutura_id);return{c:i.material_codigo,q:+i.quantidade,s:(e&&e.segmento_id)||p.segmento_id}});if(p.poste_id&&POM[p.poste_id])L.push({c:POM[p.poste_id].material_codigo,q:1,s:p.segmento_id,poste:1});return L}
-  function linhasVao(v){const k=(1+sobra(v)/100)*(+v.comprimento_m);const t=TRM[v.tipo_rede_id];const s=segVao(v);if(t)return t.itens.map(i=>({c:i.material_codigo,q:k*i.multiplicador,s}));return v.material_codigo?[{c:v.material_codigo,q:k,s}]:[]}
-  const todas=()=>PTS.flatMap(linhasPonto).concat(VAOS.flatMap(linhasVao),EXT.map(x=>({c:x.material_codigo,q:+x.quantidade,s:x.segmento_id,extra:1})));
+  function linhasPonto(p){const L=IT.filter(i=>i.ponto_id===p.id).map(i=>{const e=i.ponto_estrutura_id&&PE.find(x=>x.id===i.ponto_estrutura_id);const k=i.auto==="cinta"?"Cintas":e?((ESTM[e.estrutura_id]||{}).categoria||"Grupos sem categoria"):"Avulsos";return{c:i.material_codigo,q:+i.quantidade,s:(e&&e.segmento_id)||p.segmento_id,k}});if(p.poste_id&&POM[p.poste_id])L.push({c:POM[p.poste_id].material_codigo,q:1,s:p.segmento_id,poste:1,k:"Postes"});return L}
+  function linhasVao(v){const k=(1+sobra(v)/100)*(+v.comprimento_m);const t=TRM[v.tipo_rede_id];const s=segVao(v);if(t)return t.itens.map(i=>({c:i.material_codigo,q:k*i.multiplicador,s,k:"Condutores / Rede"}));return v.material_codigo?[{c:v.material_codigo,q:k,s,k:"Condutores / Rede"}]:[]}
+  const todas=()=>PTS.flatMap(linhasPonto).concat(VAOS.flatMap(linhasVao),EXT.map(x=>({c:x.material_codigo,q:+x.quantidade,s:x.segmento_id,extra:1,k:"Avulsos"})));
+  function porCategoria(){const R={};todas().forEach(l=>{R[l.k]=(R[l.k]||0)+l.q*(preco(l.c)||0)});return R}
+  const PAL_CAT=["#2f6f9f","#c2185b","#e0a100","#2e7d32","#6a1b9a","#00838f","#ef6c00","#5d4037","#546e7a","#ad1457","#1565c0"];
   const soma=L=>L.reduce((s,l)=>s+l.q*(preco(l.c)||0),0);
   function agregado(){const A={};todas().forEach(l=>{(A[l.c]=A[l.c]||{c:l.c,q:0}).q+=l.q});return Object.values(A)}
   const totalMat=()=>soma(todas());
@@ -1652,6 +1668,9 @@ async function editor(id){
   }
 
   /* ---------- 2. MATERIAIS ---------- */
+  let _RS=null;function sugSubE(nome){if(!_RS){const k1={},k2={};MATS.forEach(m=>{if(!m.subgrupo||m.ativo===false)return;const w=norm(m.nome).split(" ").filter(t=>/^[A-Z]{2,}$/.test(t));if(!w.length)return;(k1[w[0]]=k1[w[0]]||{})[m.subgrupo]=(k1[w[0]][m.subgrupo]||0)+1;if(w[1]){const b=w[0]+" "+w[1];(k2[b]=k2[b]||{})[m.subgrupo]=(k2[b][m.subgrupo]||0)+1}});_RS={k1,k2}}
+    const w=norm(nome).split(" ").filter(t=>/^[A-Z]{2,}$/.test(t));if(!w.length)return null;const best=o=>{if(!o)return null;const t=Object.values(o).reduce((a,b)=>a+b,0);const [s,n]=Object.entries(o).sort((a,b)=>b[1]-a[1])[0];return{s,n,sh:n/t}};
+    const b=w[1]&&best(_RS.k2[w[0]+" "+w[1]]);if(b&&b.n>=2&&b.sh>=.7)return b.s;const a=best(_RS.k1[w[0]]);return a&&a.n>=3&&a.sh>=.8?a.s:null}
   async function editaMatBase(cod){const m=MAT[cod];if(!m)return;const SB=(await O.from("subgrupos").select("nome").order("ordem")).data||[];
     modal(`<h2>Editar material da base</h2><p class="note">Vale para a base geral e todos os orçamentos.</p>
       <label class="fld">Código<input name="cod" value="${esc(cod)}" readonly style="opacity:.7" title="Para trocar o código use Configurações → Materiais → Duplicados/Unificar"></label>
@@ -1664,8 +1683,9 @@ async function editor(id){
     const el=$("#full");
     const A=agregado().map(l=>({...l,m:MAT[l.c]||{nome:l.c,subgrupo:""}}));
     const f=fMat.toLowerCase();
+    const CATC=new Set(fCat?todas().filter(l=>l.k===fCat).map(l=>l.c):[]);if(!SUBL){O.from("subgrupos").select("nome").order("ordem").then(r=>{SUBL=(r.data||[]).map(x=>x.nome);telaMateriais()});SUBL=[]}
     const ORDS={alfa:(a,b)=>a.m.nome.localeCompare(b.m.nome),sub:(a,b)=>(a.m.subgrupo||"").localeCompare(b.m.subgrupo||"")||a.m.nome.localeCompare(b.m.nome),subtot:(a,b)=>b.q*(preco(b.c)||0)-a.q*(preco(a.c)||0),preco:(a,b)=>(preco(b.c)||0)-(preco(a.c)||0),qtd:(a,b)=>b.q-a.q};
-    const F=A.filter(l=>(!f||l.m.nome.toLowerCase().includes(f)||l.c.includes(f)||(l.m.subgrupo||"").toLowerCase().includes(f))&&(!soSemPreco||!preco(l.c))).sort(ORDS[ordMat]||ORDS.alfa);
+    const F=A.filter(l=>(!f||l.m.nome.toLowerCase().includes(f)||l.c.includes(f)||(l.m.subgrupo||"").toLowerCase().includes(f))&&(!soSemPreco||!preco(l.c))&&(!fCat||CATC.has(l.c))).sort(ORDS[ordMat]||ORDS.alfa);
     const PS=porSegmento(),T0=totalMat(),SG=SEGM();
     const segRows=Object.entries(PS).sort((a,b)=>b[1]-a[1]);
     const nManual=Object.values(OP).filter(o=>o.manual).length,semPreco=A.filter(l=>preco(l.c)==null).length;
@@ -1678,20 +1698,28 @@ async function editor(id){
        ${(()=>{const cf=conflitos();return cf.length?`<div class="warnbar" style="background:var(--danger-soft);color:var(--danger)">⚠ ${cf.length} material(is) de outra classe de tensão nesta rede de ${ORC.tensao_kv} kV: ${cf.map(x=>esc((MAT[x.c]||{}).nome)).join(" · ")}</div>`:""})()}
        ${EXT.length?`<div class="extra"><div class="lbl">Avulsos do orçamento (fora dos pontos)</div><table class="its">${EXT.map(x=>{const m=MAT[x.material_codigo]||{nome:x.material_codigo};return `<tr><td class="m">${esc(m.nome)}<small>${esc(x.material_codigo)} · ${esc(m.unidade||"")}</small></td><td class="q"><input data-xq="${x.id}" value="${num(x.quantidade,3)}" inputmode="decimal" aria-label="Quantidade"></td><td class="v mono">${num((preco(x.material_codigo)||0)*x.quantidade)}</td><td class="x"><button class="xb" data-xd="${x.id}" title="Remover">×</button></td></tr>`}).join("")}</table></div>`:""}
        ${semPreco?`<div class="warnbar" id="mSPw" style="cursor:pointer" title="Clique para ver só esses">${semPreco} material(is) sem preço na base. <u>${soSemPreco?"mostrar todos":"ver só esses"}</u></div>`:""}
-       <div style="overflow:auto"><table class="tbl mt"><thead><tr><th>Material</th><th class="n">Qtd. total</th><th class="n">Preço unit. (R$)</th><th class="n">Subtotal</th><th class="hm">Origem do preço</th><th></th></tr></thead><tbody>
+       <div style="overflow:auto"><table class="tbl mt"><thead><tr><th>Material</th><th class="hm">Subgrupo</th><th class="n">Qtd. total</th><th class="n">Preço unit. (R$)</th><th class="n">Subtotal</th><th class="hm">Origem do preço</th><th></th></tr></thead><tbody>
        ${F.map(l=>{const o=OP[l.c],pr=preco(l.c),vg=VIGR[l.c],man=o&&o.manual;
-         const fc=foraClasse(l.c);return `<tr class="${man?"man":""} ${fc?"fc":""}"><td><b style="font-weight:600">${esc(l.m.nome)}</b> <button class="xb" data-em="${esc(l.c)}" title="Editar material na base" style="font-size:12px">✏️</button>${fc?` <span class="kvtag">fora de ${ORC.tensao_kv} kV</span>`:""}${EXT.some(x=>x.material_codigo===l.c)?' <span class="chip">avulso</span>':""}<span class="sm">${esc(l.c)}${l.m.subgrupo?" · "+esc(l.m.subgrupo):""}</span></td><td class="n">${num(l.q,2)} ${esc(l.m.unidade||"")}</td>
+         const fc=foraClasse(l.c);return `<tr class="${man?"man":""} ${fc?"fc":""}"><td><b style="font-weight:600">${esc(l.m.nome)}</b> <button class="xb" data-em="${esc(l.c)}" title="Editar material na base" style="font-size:12px">✏️</button>${fc?` <span class="kvtag">fora de ${ORC.tensao_kv} kV</span>`:""}${EXT.some(x=>x.material_codigo===l.c)?' <span class="chip">avulso</span>':""}<span class="sm">${esc(l.c)}</span></td><td class="hm"><span class="gcat" data-sg="${esc(l.c)}" title="Trocar subgrupo na base">${l.m.subgrupo?esc(l.m.subgrupo):(()=>{const g=sugSubE(l.m.nome);return g?`<button class="pad" data-sga="${esc(l.c)}" data-v="${esc(g)}" title="Aceitar sugestão">→ ${esc(g)}?</button>`:'<span style="color:var(--warn)">— definir</span>'})()} <button class="xb" style="font-size:11px">✏️</button></span></td><td class="n">${num(l.q,2)} ${esc(l.m.unidade||"")}</td>
           <td class="n"><input data-pr="${esc(l.c)}" value="${pr==null?"":num(pr,4)}" inputmode="decimal" aria-label="Preço unitário" title="Editar vale só para este orçamento"></td><td class="n">${brl(l.q*(pr||0))}</td>
           <td class="hm orig">${man?`<b>Manual neste orçamento</b><small>base: ${vg?brl(vg.valor):"—"}</small>`:vg?`<b>${esc(vg.fornecedor||ORIG[vg.origem]||vg.origem)}</b><small>${fdata(vg.data)}${vg.documento&&vg.fornecedor?" · "+esc(vg.documento):""}</small>`:"—"}</td>
           <td class="n">${man?`<button class="xb" data-rp="${esc(l.c)}" title="Voltar ao preço da base">↺</button>`:""}<button class="xb" data-rm="${esc(l.c)}" title="Remover do orçamento">🗑</button></td></tr>`}).join("")}
-       </tbody><tfoot><tr><td colspan="3"><b>Total (${A.length} materiais)</b></td><td class="n"><b>${brl(T0)}</b></td><td colspan="2"></td></tr></tfoot></table></div></div>
-      <div class="card"><h2>Custo por segmento</h2><p class="note">Quanto cada parte da obra pesa no material. Os segmentos se editam em “Dados”.</p>
+       </tbody><tfoot><tr><td colspan="4"><b>Total (${A.length} materiais)</b></td><td class="n"><b>${brl(T0)}</b></td><td colspan="2"></td></tr></tfoot></table></div></div>
+      <div class="card"><div class="row"><h2>Custo por ${cardModo==="cat"?"categoria":"segmento"}</h2><span class="hmt" style="gap:4px;display:flex"><button class="btn sm ${cardModo==="cat"?"on":""}" data-cm="cat">Categoria</button><button class="btn sm ${cardModo==="seg"?"on":""}" data-cm="seg">Segmento</button></span></div>
+       ${cardModo==="cat"?`<p class="note">Pelas categorias dos grupos de itens. Clique numa linha para filtrar a lista.</p><div class="segbars">${Object.entries(porCategoria()).sort((a,b)=>b[1]-a[1]).map(([k,v],i)=>`<div class="sb" data-fc="${esc(k)}" style="--c:${PAL_CAT[i%PAL_CAT.length]};cursor:pointer;${fCat&&fCat!==k?"opacity:.45":""}"><span>${fCat===k?"▸ ":""}${esc(k)}</span><div class="bar"><b style="width:${T0?v/T0*100:0}%"></b></div><span class="n">${T0?Math.round(v/T0*100):0}%</span><span></span><span class="v">${brl(v)}</span></div>`).join("")}</div>${fCat?'<button class="lnk" data-fc="">mostrar todas</button>':""}</div>`:`<p class="note">Quanto cada parte da obra pesa no material. Os segmentos se editam em “Dados”.</p>
        <div class="segbars">${segRows.map(([k,v])=>{const s=SG[k];return `<div class="sb" style="--c:${s?s.cor:"#8a96a3"}"><span>${esc(s?s.nome:"Sem segmento")}</span><div class="bar"><b style="width:${T0?v/T0*100:0}%"></b></div><span class="n">${T0?Math.round(v/T0*100):0}%</span><span></span><span class="v">${brl(v)}</span></div>`}).join("")}</div>
-       ${PS[""]?`<p class="note">Para distribuir o que está “sem segmento”, marque os pontos na lista do Projeto.</p>`:""}</div>
+       ${PS[""]?`<p class="note">Para distribuir o que está “sem segmento”, marque os pontos na lista do Projeto.</p>`:""}</div>`}
      </div></div>`;
     $("#mSP").onchange=e=>{soSemPreco=e.target.checked;telaMateriais()};$("#mSPw")&&($("#mSPw").onclick=()=>{soSemPreco=!soSemPreco;telaMateriais()});
     $("#mOrd").onchange=e=>{ordMat=e.target.value;try{localStorage.setItem("orc_ordMat",ordMat)}catch(x){}telaMateriais()};
     $$("[data-em]",el).forEach(b=>b.onclick=()=>editaMatBase(b.dataset.em));
+    $$("[data-cm]",el).forEach(b=>b.onclick=()=>{cardModo=b.dataset.cm;try{localStorage.setItem("orc_cardModo",cardModo)}catch(e){}telaMateriais()});
+    $$("[data-fc]",el).forEach(b=>b.onclick=()=>{const k=b.dataset.fc;fCat=fCat===k?"":k;telaMateriais()});
+    const salvaSub=async(c,v)=>{await chk(O.from("materiais").update({subgrupo:v||null}).eq("codigo",c));const m=MAT[c];if(m)m.subgrupo=v||null;const mm=MATS.find(x=>x.codigo===c);if(mm)mm.subgrupo=v||null;_RS=null;toast("Subgrupo atualizado na base.");renderHead();telaMateriais()};
+    $$("[data-sga]",el).forEach(b=>b.onclick=ev=>{ev.stopPropagation();salvaSub(b.dataset.sga,b.dataset.v)});
+    $$("[data-sg]",el).forEach(sp=>sp.onclick=()=>{if(sp.querySelector("select"))return;const c=sp.dataset.sg,m=MAT[c]||{};
+      sp.innerHTML=`<select class="inp sm"><option value="">—</option>${SUBL.concat(m.subgrupo&&!SUBL.includes(m.subgrupo)?[m.subgrupo]:[]).map(n=>`<option ${m.subgrupo===n?"selected":""}>${esc(n)}</option>`).join("")}</select>`;const se=sp.querySelector("select");se.focus();
+      se.onchange=()=>salvaSub(c,se.value);se.onblur=()=>setTimeout(()=>sp.isConnected&&sp.querySelector("select")&&telaMateriais(),200)});
     $("#mF").oninput=e=>{fMat=e.target.value;const pos=e.target.selectionStart;telaMateriais();const i=$("#mF");i.focus();i.setSelectionRange(pos,pos)};
     $$("[data-mp]",el).forEach(b=>b.onclick=async()=>{if(b.dataset.mp===ORC.modo_preco)return;
       if(b.dataset.mp==="travado"){await chk(O.rpc("travar_precos",{p_orc:ORC.id}));ORC.modo_preco="travado";ORC.travado_em=new Date().toISOString()}
