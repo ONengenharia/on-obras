@@ -1834,13 +1834,13 @@ async function editor(id){
   async function exportarFornecedor(){
     const E=await xl(),wb=new E.Workbook();wb.creator=EMPRESA.nome;const ws=wb.addWorksheet("Cotação");
     const d=new Date(),num_=`COT-${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,"0")}-${ORC.id.replace(/-/g,"").slice(-4).toUpperCase()}`;
-    const r0=await cabecalho(wb,ws,"Solicitação de cotação",`${num_} · emitida em ${d.toLocaleDateString("pt-BR")} · ${EMPRESA.contato}`,9);
+    const r0=await cabecalho(wb,ws,"Solicitação de cotação",`${num_} · emitida em ${d.toLocaleDateString("pt-BR")} · ${EMPRESA.contato}`,10);
     ws.getCell(r0-1,1).value="Pedimos a gentileza de informar preço unitário, prazo de entrega e condições para os itens abaixo.";ws.getCell(r0-1,1).font={italic:true,size:10,color:{argb:"FF5A6F83"}};
     const A=agregado().sort((a,b)=>sg(a.c).localeCompare(sg(b.c))||nm(a.c).localeCompare(nm(b.c)));
-    const r=tabela(ws,r0,["Item","Código","Descrição","Un.","Quantidade","Preço unit. (R$)","Total (R$)","Prazo de entrega","Observação"],A.map((l,i)=>[i+1,l.c,nm(l.c),un(l.c),r2(l.q),null,null,"",""]),{4:QTD,5:MOEDA,6:MOEDA},[6,16,52,7,12,15,16,16,24]);
+    const r=tabela(ws,r0,["Item","Código","Descrição","Subgrupo","Un.","Quantidade","Preço unit. (R$)","Total (R$)","Prazo de entrega","Observação"],A.map((l,i)=>[i+1,l.c,nm(l.c),sg(l.c)||"",un(l.c),r2(l.q),null,null,"",""]),{5:QTD,6:MOEDA,7:MOEDA},[6,16,52,16,7,12,15,16,16,24]);
     ws.getColumn(1).alignment={horizontal:"center"};ws.getColumn(2).alignment={horizontal:"left",indent:1};
-    for(let i=r0+1;i<r;i++){ws.getCell(i,7).value={formula:`IF(F${i}="","",E${i}*F${i})`};[6,8,9].forEach(c=>ws.getCell(i,c).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFFDE7"}})}
-    ws.getCell(r,6).value="TOTAL";ws.getCell(r,6).font={bold:true};ws.getCell(r,7).value={formula:`SUM(G${r0+1}:G${r-1})`};ws.getCell(r,7).numFmt=MOEDA;ws.getCell(r,7).font={bold:true};
+    for(let i=r0+1;i<r;i++){ws.getCell(i,8).value={formula:`IF(G${i}="","",F${i}*G${i})`};[7,9,10].forEach(c=>ws.getCell(i,c).fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFFDE7"}})}
+    ws.getCell(r,7).value="TOTAL";ws.getCell(r,7).font={bold:true};ws.getCell(r,8).value={formula:`SUM(H${r0+1}:H${r-1})`};ws.getCell(r,8).numFmt=MOEDA;ws.getCell(r,8).font={bold:true};
     let k=r+2;[["Fornecedor / razão social",""],["CNPJ",""],["Contato (nome, telefone, e-mail)",""],["Condições de pagamento",""],["Frete (CIF/FOB)",""],["Validade da proposta",""]].forEach(([a])=>{ws.getCell(k,2).value=a;ws.getCell(k,2).font={bold:true};ws.mergeCells(k,3,k,7);ws.getCell(k,3).border={bottom:{style:"thin",color:{argb:LINE}}};k++});
     ws.pageSetup={orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0};
     await baixar(wb,`Cotacao ${num_}`);toast("Lista para fornecedores gerada (sem nome da obra).");
