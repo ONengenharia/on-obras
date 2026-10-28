@@ -296,6 +296,7 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 header.top .steps{width:100%}
 .mbox.redim{resize:both;overflow:auto;min-width:640px;max-width:98vw;max-height:94vh}
 .tbl.cotrev{table-layout:fixed;width:100%}.tbl.cotrev th{resize:horizontal;overflow:hidden}.tbl.cotrev td{overflow-wrap:anywhere;vertical-align:top}.tbl.cotrev .acw input{width:100%}.matfull{font-size:12px;font-weight:600;margin-top:4px;line-height:1.3}
+.cmpsc .tbl.cmp thead th{position:sticky;top:0;z-index:2;background:var(--panel);box-shadow:0 1px 0 var(--line)}.cmpsc .tbl.cmp tfoot td{position:sticky;bottom:0;background:var(--panel);box-shadow:0 -1px 0 var(--line)}
 </style>
 </head>
 <body>
@@ -470,7 +471,7 @@ async function painel(id){
     return{prev,esc,prevEsc,proj:proj+estV,compra:proj,estV,minT:minT+estV,maxT:maxT+estV,semCot,maisCaro,ne,nOc,n:ativos().filter(i=>qc(i)>0).length,porF}}
   function porFornecedor(){const k0=contas();return CT.map(c=>{let tot=0,n=0,comp=0;ativos().forEach(i=>{const q=qc(i);if(!q)return;const v=(PM[i.id]||{})[c.id];if(v>0){n++;tot+=q*v}comp+=q*(v>0?v:(faixa(i)?faixa(i).min.v:+i.preco_previsto||0))});return{c,tot,n,comp:comp+k0.estV+(+c.frete||0)}})}
 
-  function shell(){
+  function shell(){const sc0=document.querySelector(".cmpsc"),keep=sc0?[sc0.scrollTop,sc0.scrollLeft]:null,py=window.scrollY;
     const k=contas();
     root.innerHTML=`<div class="app full">${topo(C.titulo,`${esc([C.cliente,C.cidade].filter(Boolean).join(" · "))} · previsto da v${(C.previsto&&C.previsto.versao)||1} do orçamento${C.previsto&&C.previsto.gerado_em?" em "+fdata(C.previsto.gerado_em):""}`,
       `<div class="tot"><div class="eye">${k.prevEsc-k.esc>=0?"Economia no material":"Material acima do previsto"}</div><div class="v" style="color:${k.prevEsc-k.esc>=0?"#7ee2a8":"#ffb4ab"}">${k.ne?brl(Math.abs(k.prevEsc-k.esc)):"—"}</div><div class="eye">${k.ne?pct(k.prevEsc?Math.abs(k.prevEsc-k.esc)/k.prevEsc*100:0)+" sobre o previsto dos itens escolhidos":"escolha os fornecedores"}</div></div>
@@ -479,7 +480,7 @@ async function painel(id){
      <div id="full"></div></div>`;
     $$("[data-a]").forEach(b=>b.onclick=()=>{aba=b.dataset.a;try{sessionStorage.setItem("cmp.aba."+id,aba)}catch(e){}shell()});
     $("#bSt").onclick=async()=>{const s=C.status==="concluida"?"aberta":"concluida";await chk(O.from("compras").update({status:s}).eq("id",id));C.status=s;shell()};
-    ({painel:tPainel,comparativo:tComp,cotacoes:tCot,pedidos:tPed})[aba]()}
+    ({painel:tPainel,comparativo:tComp,cotacoes:tCot,pedidos:tPed})[aba]();const sc=document.querySelector(".cmpsc");if(sc&&keep){sc.scrollTop=keep[0];sc.scrollLeft=keep[1]}window.scrollTo(0,py)}
 
   /* ---- Painel: previsto x realizado ---- */
   function tPainel(){
@@ -522,7 +523,7 @@ async function painel(id){
 
   /* ---- Comparativo ---- */
   let fSub="",fWin="";
-  function tComp(){
+  function tComp(){const scA=document.querySelector(".cmpsc"),kA=scA?[scA.scrollTop,scA.scrollLeft]:null;
     const VC=visC();const t=norm(fq);
     const L=ativos().filter(i=>{if(t&&!norm(i.descricao+" "+(i.material_codigo||"")+" "+(i.oc||"")).includes(t))return false;if(fSub&&(i.subgrupo||"")!==fSub)return false;if(fWin&&String(i.cotacao_escolhida||"")!==fWin)return false;
       const f=faixa(i),e=vEsc(i);
@@ -539,7 +540,7 @@ async function painel(id){
       </div>
       ${CT.length?`<div class="chipsel"><span class="note">Comparar:</span>${CT.map(c=>`<button class="ch ${!selC||selC.has(c.id)?"on":""}" data-sc="${c.id}">${!selC||selC.has(c.id)?"☑":"☐"} ${esc(c.fornecedor_nome)}</button>`).join("")}${selC?'<button class="lnk" data-sc="all">todas</button>':""}</div>`:""}
       <p class="note">Clique no preço para escolher. <span class="cmin">verde</span> = mais barato entre as empresas comparadas, <span class="cmax">vermelho</span> = mais caro. Em <b>Estoque</b>, digite o que já tem: a compra é a diferença. Linhas <span class="ocx">verdes</span> já têm OC.</p>
-      <div style="overflow:auto;max-height:calc(100vh - 330px)"><table class="tbl cmp"><thead><tr><th>Material</th><th class="n">Orçado</th><th class="n">Estoque</th><th class="n">A comprar</th><th class="n">Previsto</th>${VC.map(c=>`<th class="n fcol" title="${esc(c.documento||"")}">${esc(c.fornecedor_nome)}<small>${c.frete?"frete "+brl(c.frete):""}</small></th>`).join("")}<th class="n">Escolhido</th><th class="n">Total</th><th class="n">vs previsto</th></tr></thead><tbody>
+      <div class="cmpsc" style="overflow:auto;max-height:calc(100vh - 330px)"><table class="tbl cmp"><thead><tr><th>Material</th><th class="n">Orçado</th><th class="n">Estoque</th><th class="n">A comprar</th><th class="n">Previsto</th>${VC.map(c=>`<th class="n fcol" title="${esc(c.documento||"")}">${esc(c.fornecedor_nome)}<small>${c.frete?"frete "+brl(c.frete):""}</small></th>`).join("")}<th class="n">Escolhido</th><th class="n">Total</th><th class="n">vs previsto</th></tr></thead><tbody>
       ${L.map(i=>{const f=faixa(i,VC),fa=faixa(i),e=vEsc(i),q=qc(i),caro=fa&&e!=null&&e>fa.min.v+1e-6;
         return `<tr class="${i.oc?"oc":caro?"caro":""} ${q?"":"ina"}"><td><b>${esc(i.descricao)}</b><span class="sm">${esc(i.material_codigo||"")}${i.subgrupo?" · "+esc(i.subgrupo):""}${i.oc?` · <b class="ocb">OC ${esc(i.oc)}</b>`:""}</span>${caro?`<span class="warn">⚠ ${brl((e-fa.min.v)*q)} mais caro que ${esc(nomeC(fa.min.c))}${i.motivo?" · motivo: "+esc(i.motivo):""}</span>`:""}</td>
           <td class="n">${num(i.qtd,2)} ${esc(i.unidade||"")}</td><td class="n"><input class="inp n est" data-est="${i.id}" value="${+i.estoque?num(i.estoque,3):""}" placeholder="0" inputmode="decimal" ${i.oc?"disabled":""}></td><td class="n"><b>${num(q,2)}</b></td>
@@ -551,6 +552,7 @@ async function painel(id){
           <td class="n">${e!=null?brl(e*q):""}</td><td class="n">${e!=null&&i.preco_previsto!=null?dif((+i.preco_previsto-e)*q,+i.preco_previsto*q):""}${e!=null&&!i.oc?` <button class="xb" data-cl="${i.id}" title="Desfazer escolha">↺</button>`:""}</td></tr>`}).join("")||`<tr><td colspan="${8+VC.length}" class="note">Nada para mostrar com esses filtros.</td></tr>`}
       </tbody><tfoot><tr><td><b>Subtotal (${L.length} itens)</b>${fSub?`<span class="sm">${esc(fSub)}</span>`:""}</td><td class="n"><b>${num(L.reduce((t,i)=>t+(+i.qtd||0),0),2)}</b></td><td></td><td class="n"><b>${num(L.reduce((t,i)=>t+qc(i),0),2)}</b></td><td class="n"><b>${brl(L.reduce((t,i)=>t+qc(i)*(+i.preco_previsto||0),0))}</b></td>${VC.map(c=>{let t=0,n=0;L.forEach(i=>{const v=(PM[i.id]||{})[c.id];if(v>0){t+=qc(i)*v;n++}});return `<td class="n"><b>${brl(t)}</b><span class="sm">${n} cotados</span></td>`}).join("")}<td></td><td class="n"><b>${brl(L.reduce((t,i)=>t+(vEsc(i)!=null?qc(i)*vEsc(i):0),0))}</b></td><td class="n"><b>${dif(k.prevEsc-k.esc,k.prevEsc)}</b></td></tr></tfoot></table></div>
       ${CT.length?"":'<p class="note" style="margin-top:10px">Nenhuma cotação ainda. Vá em <b>Cotações</b> e importe o PDF ou Excel dos fornecedores.</p>'}</div></div>`;
+    {const sc=document.querySelector(".cmpsc");if(sc&&kA){sc.scrollTop=kA[0];sc.scrollLeft=kA[1]}}
     $("#cF").onchange=e=>{ff=e.target.value;tComp()};$("#cW").onchange=e=>{fWin=e.target.value;tComp()};$("#cS").onchange=e=>{fSub=e.target.value;tComp()};
     $("#cQ").oninput=e=>{fq=e.target.value;const p=e.target.selectionStart;tComp();const i=$("#cQ");i.focus();i.setSelectionRange(p,p)};
     $$("[data-sc]").forEach(b=>b.onclick=()=>{const v=b.dataset.sc;if(v==="all")selC=null;else{const cid=+v;if(!selC)selC=new Set(CT.map(c=>c.id));selC.has(cid)?selC.delete(cid):selC.add(cid);if(!selC.size||selC.size===CT.length)selC=null}
