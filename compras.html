@@ -326,6 +326,33 @@ function modal(html,onOk,okTxt="OK"){const m=document.createElement("div");m.cla
   setTimeout(()=>{const i=m.querySelector("input,select");i&&i.focus()},20);return m}
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
 const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/[^A-Z0-9,./]+/g," ").replace(/\s+/g," ").trim();
+/* leitura genérica de linhas de cotação (texto de PDF sem cabeçalho, OCR ou texto colado) */
+function parseLinhasCot(linhas,modo){
+  const NAO=/\b(ICMS|IPI|PIS|COFINS|SUBTOTAL|SUB-TOTAL|TOTAL|TOTAIS|PEDIDO M[IÍ]NIMO|FATURAMENTO|FRETE|DESCONTO|CNPJ|INSCRI|VALIDADE|PRAZO|PAGAMENTO|CONDI[CÇ]|ENTREGA|VENDEDOR|TELEFONE|FONE|E-?MAIL|CEP|ENDERE[CÇ]O|OBSERVA|BANCO|PIX|BOLETO|EMISS[AÃ]O|P[AÁ]GINA|IMPOSTOS?|TRIBUT|SEGURO|ASSINATURA|PROPOSTA|OR[CÇ]AMENTO N)\b/i;
+  const item=d=>{const w=norm(d).split(" ").filter(t=>/^[A-Z]{3,}$/.test(t));return w.length>=1&&w.join("").length>=5&&!NAO.test(d)};
+  const ok=(a,b,c)=>a>0&&b>0&&Math.abs(a*b-c)<=Math.max(.06,c*.006);
+  const NUMT=/^-?(\d{1,3}(?:\.\d{3})+(?:,\d{1,4})?|\d+(?:,\d{1,4})?)$/;
+  const UN=/^(UN|UND|UNID|PC|PÇ|PCS|M|MT|MTS|KG|CJ|CX|RL|PCT|X|BR|LT|JG|KIT|P[CÇ]\.)\.?$/i;
+  const lin=linhas.map(l=>String(l||"").replace(/\s+/g," ").trim()).filter(Boolean);
+  const anal=ln=>{const T=ln.split(" ").map(t=>t.replace(/^[(\[|]+|[)\]|:;]+$/g,"")).filter(Boolean);const V=[];
+    while(T.length){const t=T[T.length-1];if(/^R[S$5]?\.?$/i.test(t)||/^\d+(,\d+)?%$/.test(t)||/^(INCLUSO|ISENTO|N\/?A|-)$/i.test(t)||(V.length&&UN.test(t))){T.pop();continue}
+      const nt=t.replace(/^R[S$]\.?/i,"").replace(/\.$/,"");if(NUMT.test(nt)){V.unshift(pnum(nt));T.pop();continue}break}
+    const L0=[];let un="";while(T.length&&(NUMT.test(T[0])||UN.test(T[0]))&&L0.length<3){const t=T.shift();if(UN.test(t))un=t;else L0.push(pnum(t))}
+    let cod="";if(T[0]&&/\d/.test(T[0])&&/^[\dA-Z][\dA-Z.\-\/]{3,}$/i.test(T[0])&&!/^\d{8}$/.test(T[0])){cod=T.shift()}
+    return{V,L0,d:T.join(" ").replace(/^[-–|]+\s*|\s*[-–|]+$/g,"").trim(),cod}};
+  const preco=(V,L0)=>{for(const q of L0.slice().reverse())for(const a of V)for(const c of V)if(a!==c&&c>a&&ok(q,a,c))return{p:a,q};
+    let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z)||(z===y&&x===1&&V.length>3))continue;if(!best||z>best[2])best=[x,y,z]}
+    if(best){const[x,y]=best;return Number.isInteger(x)&&!Number.isInteger(y)?{p:y,q:x}:Number.isInteger(y)&&!Number.isInteger(x)?{p:x,q:y}:x<=y?{p:y,q:x}:{p:x,q:y}}
+    if(V.length===1)return{p:V[0],q:L0.length?L0[L0.length-1]:null};if(V.length===2)return Number.isInteger(V[0])&&!Number.isInteger(V[1])?{p:V[1],q:V[0]}:{p:V[0],q:L0.length?L0[L0.length-1]:null};
+    return{p:V[V.length-2],q:V[V.length-3]}};
+  const out=[];let ign=0,pre=[];
+  for(let i=0;i<lin.length;i++){const a=anal(lin[i]);
+    if(!a.V.length||(a.V.length<2&&modo==="ocr"&&!a.L0.length)){if(a.d&&!NAO.test(a.d)&&a.d.length<120)pre.push(lin[i]);else pre=[];if(pre.length>3)pre.shift();continue}
+    let d=a.d;if(!d||!item(d)){const k=pre.length;const suf=[];let j=i+1;while(suf.length<Math.max(1,k)&&lin[j]){const nx=anal(lin[j]);if(nx.V.length||!nx.d||NAO.test(nx.d))break;suf.push(lin[j]);j++}
+      d=[...pre,d||"",...suf].join(" ").replace(/\s+/g," ").trim();i=j-1}
+    pre=[];const r=preco(a.V,a.L0);if(!d||!item(d)||!(r.p>0)){ign++;continue}out.push({txt:d,cod:a.cod,q:r.q||null,p:r.p})}
+  return{itens:out,ignoradas:ign}}
+
   const NAO_ITEM=/\b(ICMS|IPI|PIS|COFINS|SUBTOTAL|SUB-TOTAL|TOTAL|TOTAIS|PEDIDO M[IÍ]NIMO|FATURAMENTO|INFORMA[CÇ][OÕ]ES|GARANTIA|CERTIFICAD|FRETE|DESCONTO|INCLUSO|INCLUSOS|CNPJ|INSCRI|VALIDADE|PRAZO|PAGAMENTO|CONDI[CÇ]|ENTREGA|VENDEDOR|TELEFONE|FONE|WHATS|E-?MAIL|CEP|ENDERE[CÇ]O|OBSERVA|BANCO|AG[EÊ]NCIA|CONTA|PIX|BOLETO|EMISS[AÃ]O|P[AÁ]GINA|IMPOSTO|TRIBUT|SEGURO|ASSINATURA)\b|%/i;
   const ehItem=d=>{const w=norm(d).split(" ").filter(t=>/^[A-Z]{3,}$/.test(t));return w.length>=1&&w.join("").length>=6&&!NAO_ITEM.test(d)};
   const RE_CNPJ=/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/;
@@ -388,16 +415,11 @@ const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase(
         if(lastY!=null&&gap>4&&gap<30)lh=gap;lastY=l.y;
         out.push({txt:desc,cod:codIn||(codt?codt.s:""),q:q&&q!==p?q:null,p,_pg:n})}}
     {const ok=out.filter(o=>ehItem(o.txt));ign+=out.length-ok.length;out.length=0;out.push(...ok)}
-    if(!out.length&&!modo){ /* sem cabeçalho: heurística por linha */
-      for(let n=1;n<=pdf.numPages;n++){const tc=await(await pdf.getPage(n)).getTextContent();const R={};
-        tc.items.forEach(it=>{if(!it.str.trim())return;const y=Math.round(it.transform[5]/3);(R[y]=R[y]||[]).push({x:it.transform[4],s:it.str})});
-        Object.keys(R).sort((a,b)=>b-a).forEach(y=>{const ln=R[y].sort((a,b)=>a.x-b.x).map(t=>t.s).join(" ").replace(/\s+/g," ").trim();if(n===1&&cab.length<1500)cab+=ln+"\n";
-          const nums=[...ln.matchAll(/(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*,\d{2,4}|\d+,\d{2,4})/g)].map(m=>({v:pnum(m[1]),i:m.index}));if(!nums.length)return;
-          let d=ln.slice(0,nums[0].i).replace(/R\$\s*$/,"").trim();const cm=d.match(/^(\d{1,4}\s+)?([A-Z0-9.\-]{4,})\s+/);let cod="";if(cm&&/\d/.test(cm[2])){cod=cm[2];d=d.slice(cm[0].length)}
-          d=d.replace(/^\d{1,3}\s+/,"").replace(/\s+(UN|UND|UNID|PC|PÇ|M|MT|KG|CJ|CX|RL|PCT)\.?(\s+\d+([.,]\d+)?)?$/i,"").trim();
-          if(!ehItem(d)){ign++;return}const v=nums.map(x=>x.v);let p,q=null;
-          if(v.length>=3){const [a,b,c]=v.slice(-3);if(Math.abs(a*b-c)<=Math.max(.05,c*.01)){q=a;p=b}else{p=v[v.length-2];q=v[v.length-3]}}else p=v[0];
-          if(p>0)out.push({txt:d,cod,q,p})})}}
+    if(!out.length){ /* sem cabeçalho: leitura por linhas */
+      const LL=[];for(let n=1;n<=pdf.numPages;n++){const tc=await(await pdf.getPage(n)).getTextContent();const R=[];
+        tc.items.filter(it=>it.str.trim()).map(it=>({x:it.transform[4],y:it.transform[5],s:it.str})).sort((a,b)=>b.y-a.y||a.x-b.x).forEach(t=>{const l=R.find(l=>Math.abs(l.y-t.y)<3);if(l)l.t.push(t);else R.push({y:t.y,t:[t]})});
+        R.forEach(l=>{const ln=l.t.sort((a,b)=>a.x-b.x).map(t=>t.s).join(" ");if(n===1&&cab.length<1500)cab+=ln+"\n";LL.push(ln)})}
+      const rr=parseLinhasCot(LL,"pdf");out.push(...rr.itens);ign+=rr.ignoradas;modo=modo||"linhas"}
     return{itens:out,cab,modo,ignoradas:ign};
   }
   const STOPW=new Set(["DE","DA","DO","DAS","DOS","P","C","PARA","COM","E","EM","A","O","MM","MM2","UN","PC","PÇ","M","MT","TIPO","KG","CX","PCT"]);
