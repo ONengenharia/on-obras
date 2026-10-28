@@ -830,8 +830,8 @@ async function config(aba){
         const nums=l.t.filter(t=>NUM.test(t.s.replace(/\s/g,""))&&(t.x>=col.d1||t.x<col.d0)).map(t=>({c:t.x+t.w/2,v:pnum(t.s.replace(/R\$\s*/,""))}));
         const perto=x=>x==null||!nums.length?null:nums.reduce((a,b)=>Math.abs(b.c-x)<Math.abs(a.c-x)?b:a);
         const concil=(V,p,q)=>{const ok=(a,b,c)=>a>0&&b>0&&Math.abs(a*b-c)<=Math.max(.06,c*.006);
-          if(q>0){for(const a of V)for(const c of V)if(a!==c&&c>a&&ok(q,a,c))return[a,q]}
-          let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z))continue;if(!best||z>best[2]||(z===best[2]&&Number.isInteger(x)&&!Number.isInteger(best[0])))best=[x,y,z]}
+          if(q>0){for(const a of V)for(const c of V)if(a!==c&&c>a&&c!==q&&!(a===1&&c===q)&&ok(q,a,c))return[a,q];return[p,q]}
+          let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z)||(z===y&&x===1&&V.length>3))continue;if(!best||z>best[2]||(z===best[2]&&Number.isInteger(x)&&!Number.isInteger(best[0])))best=[x,y,z]}
           if(best){const[x,y]=best;return Number.isInteger(x)&&!Number.isInteger(y)?[y,x]:Number.isInteger(y)&&!Number.isInteger(x)?[x,y]:x<=y?[y,x]:[x,y]}
           return[p,q]};let p=(perto(col.p)||{}).v,q=(perto(col.q)||{}).v??null;[p,q]=concil(nums.map(x=>x.v),p,q);const codt=col.c!=null&&l.t.find(t=>Math.abs(t.x-col.c)<40&&/\d{4,}/.test(t.s));
         if(desc&&!nums.length&&out.length&&!NAO_ITEM.test(desc)&&out[out.length-1]._pg===n&&gap<lh*1.8){out[out.length-1].txt+=" "+desc;lastY=l.y;continue}
@@ -1767,8 +1767,8 @@ async function editor(id){
         const nums=l.t.filter(t=>NUM.test(t.s.replace(/\s/g,""))&&(t.x>=col.d1||t.x<col.d0)).map(t=>({c:t.x+t.w/2,v:pnum(t.s.replace(/R\$\s*/,""))}));
         const perto=x=>x==null||!nums.length?null:nums.reduce((a,b)=>Math.abs(b.c-x)<Math.abs(a.c-x)?b:a);
         const concil=(V,p,q)=>{const ok=(a,b,c)=>a>0&&b>0&&Math.abs(a*b-c)<=Math.max(.06,c*.006);
-          if(q>0){for(const a of V)for(const c of V)if(a!==c&&c>a&&ok(q,a,c))return[a,q]}
-          let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z))continue;if(!best||z>best[2]||(z===best[2]&&Number.isInteger(x)&&!Number.isInteger(best[0])))best=[x,y,z]}
+          if(q>0){for(const a of V)for(const c of V)if(a!==c&&c>a&&c!==q&&!(a===1&&c===q)&&ok(q,a,c))return[a,q];return[p,q]}
+          let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z)||(z===y&&x===1&&V.length>3))continue;if(!best||z>best[2]||(z===best[2]&&Number.isInteger(x)&&!Number.isInteger(best[0])))best=[x,y,z]}
           if(best){const[x,y]=best;return Number.isInteger(x)&&!Number.isInteger(y)?[y,x]:Number.isInteger(y)&&!Number.isInteger(x)?[x,y]:x<=y?[y,x]:[x,y]}
           return[p,q]};let p=(perto(col.p)||{}).v,q=(perto(col.q)||{}).v??null;[p,q]=concil(nums.map(x=>x.v),p,q);const codt=col.c!=null&&l.t.find(t=>Math.abs(t.x-col.c)<40&&/\d{4,}/.test(t.s));
         if(desc&&!nums.length&&out.length&&!NAO_ITEM_C.test(desc)&&out[out.length-1]._pg===n&&gap<lh*1.8){out[out.length-1].txt+=" "+desc;lastY=l.y;continue}
@@ -1808,7 +1808,7 @@ async function editor(id){
       let s=(ca+cn*1.2)/Math.sqrt(Math.max(1,TA.length+TN.length)*Math.max(1,U.size));if(TN.length)s*=Math.pow(.55,TN.length-cn);if(!best||s>best.s)best={c:x.c,s,full:cn>=TN.length}});return best}
   async function lerImagemC(file){toast("Lendo a imagem (OCR)… pode levar alguns segundos");const W=await ocrWorker();
     const {data}=await W.recognize(await preparaImg(file));const linhas=String(data.text||"").split(/\n+/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean);const out=[];let ign=0,cab="";
-    const concil=(V,p,q)=>{const ok=(a,b,c)=>a>0&&b>0&&Math.abs(a*b-c)<=Math.max(.06,c*.006);let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z))continue;if(!best||z>best[2])best=[x,y,z]}
+    const concil=(V,p,q)=>{const ok=(a,b,c)=>a>0&&b>0&&Math.abs(a*b-c)<=Math.max(.06,c*.006);let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z)||(z===y&&x===1&&V.length>3))continue;if(!best||z>best[2])best=[x,y,z]}
       if(best){const[x,y]=best;return Number.isInteger(x)&&!Number.isInteger(y)?[y,x]:Number.isInteger(y)&&!Number.isInteger(x)?[x,y]:x<=y?[y,x]:[x,y]}return[p,q]};
     linhas.forEach((ln,i)=>{if(i<12)cab+=ln+"\n";const T=ln.split(" ").map(t=>t.replace(/^[(\[|]+|[)\]|:;]+$/g,"")).filter(Boolean);const V=[];
       const ehRS=t=>/^R[S$5]?\.?$/i.test(t),num=t=>t.replace(/^R[S$]\.?/i,"").replace(/\.$/,"");
@@ -1877,7 +1877,7 @@ async function editor(id){
   function posAcl(inp,box){const r=inp.getBoundingClientRect();Object.assign(box.style,{position:"fixed",left:Math.max(8,Math.min(r.left,innerWidth-Math.max(r.width,620)-8))+"px",top:(r.bottom+4)+"px",width:Math.max(r.width,620)+"px",maxHeight:Math.max(160,innerHeight-r.bottom-20)+"px",zIndex:2000})}
   function cotComparar(){
     if(!COTS.length){toast("Importe ao menos uma cotação da obra.");return}
-    let selC=null,fq="",ff="";
+    let selC=null,fq="",ff="",fsg="";
     const md=document.createElement("div");md.className="modal";document.body.appendChild(md);
     const fonteDe=c=>c.fornecedor_nome+(c.documento?" · "+c.documento:"");
     const escolhida=c=>{const o=OP[c];if(!o||!o.manual||!o.fonte)return null;return COTS.find(x=>o.fonte===fonteDe(x))||null};
@@ -1888,7 +1888,7 @@ async function editor(id){
       const A=agregado();let prev=0,minT=0,maxT=0,atual=0;const porF=COTS.map(c=>({c,tot:0,n:0,comp:0}));
       A.forEach(l=>{const pv=VIG[l.c]??(preco(l.c)||0),f=fx(l.c);prev+=l.q*pv;minT+=l.q*(f?f.min.v:pv);maxT+=l.q*(f?f.max.v:pv);atual+=l.q*(preco(l.c)||0);
         porF.forEach(x=>{const v=(PM[l.c]||{})[x.c.id];if(v>0){x.n++;x.tot+=l.q*v}x.comp+=l.q*(v>0?v:(f?f.min.v:pv))})});
-      const L=A.filter(l=>{const m=MAT[l.c]||{};if(t&&!norm(m.nome+" "+l.c+" "+(m.subgrupo||"")).includes(t))return false;const f=fx(l.c),e=escolhida(l.c),v=preco(l.c);
+      const L=A.filter(l=>{const m=MAT[l.c]||{};if(fsg&&(m.subgrupo||"Sem subgrupo")!==fsg)return false;if(t&&!norm(m.nome+" "+l.c+" "+(m.subgrupo||"")).includes(t))return false;const f=fx(l.c),e=escolhida(l.c),v=preco(l.c);
         return ff==="cot"?!!f:ff==="sem"?!f:ff==="caro"?(f&&e&&v>f.min.v+1e-6):ff==="barato"?(f&&e&&v<=f.min.v+1e-6):ff==="naoesc"?(f&&!e):true}).sort((a,b)=>((MAT[a.c]||{}).subgrupo||"").localeCompare((MAT[b.c]||{}).subgrupo||"")||((MAT[a.c]||{}).nome||"").localeCompare((MAT[b.c]||{}).nome||""));
       const dif=(d,b)=>`<span style="color:${d>=0?"var(--ok)":"var(--danger)"}">${d>=0?"−":"+"}${brl(Math.abs(d))}${b?` <small>${num(Math.abs(d)/b*100,1)}%</small>`:""}</span>`;
       md.innerHTML=`<div class="mbox wide" style="width:min(1500px,97vw)"><div class="row"><h2>Comparativo de cotações · ${esc(ORC.titulo)}</h2><button class="btn" data-x2>Fechar</button></div>
@@ -1897,17 +1897,18 @@ async function editor(id){
         <div class="filtros" style="grid-template-columns:minmax(180px,1.4fr) minmax(160px,1fr) auto auto"><input class="inp" id="cq" placeholder="Buscar material" value="${esc(fq)}">
          <select class="inp" id="cf">${[["","Todos os materiais"],["cot","Com cotação"],["naoesc","Cotados sem escolha"],["barato","Escolhidos no mais barato"],["caro","Escolhidos mais caros ⚠"],["sem","Sem cotação"]].map(([v,l])=>`<option value="${v}" ${ff===v?"selected":""}>${l}</option>`).join("")}</select>
          <button class="btn pri sm" id="cmin">Aplicar o mais barato em todos</button><button class="btn sm" id="cbase">Voltar todos à base</button></div>
+        <div class="chipsel"><span class="note">Subgrupo:</span><button class="ch ${!fsg?"on":""}" data-fsg="">Todos</button>${[...new Set(A.map(l=>(MAT[l.c]||{}).subgrupo||"Sem subgrupo"))].sort().map(g=>`<button class="ch ${fsg===g?"on":""}" data-fsg="${esc(g)}">${esc(g)} <span class="sm">${A.filter(l=>((MAT[l.c]||{}).subgrupo||"Sem subgrupo")===g).length}</span></button>`).join("")}</div>
         <div class="chipsel"><span class="note">Comparar:</span>${COTS.map(c=>`<button class="ch ${!selC||selC.has(c.id)?"on":""}" data-sc="${c.id}">${!selC||selC.has(c.id)?"☑":"☐"} ${esc(fonteDe(c))}</button>`).join("")}${selC?'<button class="lnk" data-sc="all">todas</button>':""}</div>
         <div style="overflow:auto;max-height:60vh"><table class="tbl cmp"><thead><tr><th>Material</th><th class="n">Qtd</th><th class="n">Base</th>${VC.map(c=>`<th class="n">${esc(c.fornecedor_nome)}<small>${esc(c.documento||"")}</small></th>`).join("")}<th class="n">No orçamento</th><th class="n">Total</th><th class="n">vs base</th></tr></thead><tbody>
         ${L.map(l=>{const m=MAT[l.c]||{},f=fx(l.c,VC),fa=fx(l.c),e=escolhida(l.c),v=preco(l.c)||0,pv=VIG[l.c],caro=fa&&e&&v>fa.min.v+1e-6;
           return `<tr class="${caro?"caro":""}"><td><b>${esc(m.nome||l.c)}</b><span class="sm">${esc(l.c)}${m.subgrupo?" · "+esc(m.subgrupo):""}</span>${caro?`<span class="warn">⚠ ${brl((v-fa.min.v)*l.q)} mais caro que ${esc((COTS.find(x=>String(x.id)===String(fa.min.k))||{}).fornecedor_nome)}</span>`:""}</td><td class="n">${num(l.q,2)} ${esc(m.unidade||"")}</td><td class="n">${pv!=null?brl(pv):"—"}</td>
-            ${VC.map(c=>{const x=(PM[l.c]||{})[c.id];if(!(x>0))return '<td class="n note">—</td>';const cls=f&&f.n>1?(x===f.min.v?"cmin":x===f.max.v?"cmax":""):"";const on=e&&e.id===c.id;return `<td class="n"><button class="pc ${cls} ${on?"on":""}" data-es="${esc(l.c)}" data-c="${c.id}">${on?"✓ ":""}${brl(x)}</button></td>`}).join("")}
+            ${VC.map(c=>{const x=(PM[l.c]||{})[c.id];if(!(x>0))return '<td class="n note">—</td>';const cls=f&&f.n>1?(x===f.min.v?"cmin":x===f.max.v?"cmax":""):"";const on=e&&e.id===c.id;return `<td class="n"><button class="pc ${cls} ${on?"on":""}" data-es="${esc(l.c)}" data-c="${c.id}">${on?"✓ ":""}${brl(x)}</button><span class="sm">= ${brl(x*l.q)}</span></td>`}).join("")}
             <td class="n"><b>${brl(v)}</b><span class="sm">${e?esc(e.fornecedor_nome):OP[l.c]&&OP[l.c].manual?"manual":"base"}</span></td><td class="n">${brl(v*l.q)}</td><td class="n">${pv!=null?dif((pv-v)*l.q,pv*l.q):""}</td></tr>`}).join("")||'<tr><td colspan="9" class="note">Nada com esses filtros.</td></tr>'}
-        </tbody></table></div></div>`;
+        </tbody><tfoot><tr><td><b>Subtotal (${L.length} itens)</b>${fsg?`<span class="sm">${esc(fsg)}</span>`:""}</td><td class="n"><b>${num(L.reduce((t,l)=>t+l.q,0),2)}</b></td><td class="n"><b>${brl(L.reduce((t,l)=>t+l.q*(VIG[l.c]||0),0))}</b></td>${VC.map(c=>{let t=0,n=0;L.forEach(l=>{const x=(PM[l.c]||{})[c.id];if(x>0){t+=l.q*x;n++}});return `<td class="n"><b>${brl(t)}</b><span class="sm">${n} cotados</span></td>`}).join("")}<td></td><td class="n"><b>${brl(L.reduce((t,l)=>t+l.q*(preco(l.c)||0),0))}</b></td><td class="n">${(()=>{const b=L.reduce((t,l)=>t+l.q*(VIG[l.c]||0),0),o=L.reduce((t,l)=>t+l.q*(preco(l.c)||0),0);return dif(b-o,b)})()}</td></tr></tfoot></table></div></div>`;
       cmpModal(md);
       md.querySelector("[data-x2]").onclick=()=>{md.remove();renderHead();telaMateriais()};
       $("#cq",md).oninput=e=>{fq=e.target.value;const p=e.target.selectionStart;draw();const i=$("#cq",md);i.focus();i.setSelectionRange(p,p)};
-      $("#cf",md).onchange=e=>{ff=e.target.value;draw()};
+      $("#cf",md).onchange=e=>{ff=e.target.value;draw()};$$("[data-fsg]",md).forEach(b=>b.onclick=()=>{fsg=b.dataset.fsg;draw()});
       $$("[data-sc]",md).forEach(b=>b.onclick=()=>{const v=b.dataset.sc;if(v==="all")selC=null;else{const id=+v;if(!selC)selC=new Set(COTS.map(c=>c.id));selC.has(id)?selC.delete(id):selC.add(id);if(!selC.size||selC.size===COTS.length)selC=null}draw()});
       $$("[data-es]",md).forEach(b=>b.onclick=async()=>{const c=b.dataset.es,ct=COTS.find(x=>x.id==b.dataset.c),v=(PM[c]||{})[ct.id],fa=fx(c),q=(A.find(x=>x.c===c)||{}).q||0;
         const e=escolhida(c);if(e&&e.id===ct.id){await chk(O.from("orc_precos").delete().eq("orcamento_id",ORC.id).eq("material_codigo",c));delete OP[c];draw();return}
@@ -1969,7 +1970,7 @@ async function editor(id){
           ${COTS.length?`<td class="hm">${(()=>{const L2=cotDoMat(l.c);return L2.map((p,k)=>`<button class="pcq ${k===0&&L2.length>1?"cmin":""} ${man&&o&&o.v===+p.preco_unit&&o.fonte&&o.fonte.startsWith(p.cot.fornecedor_nome)?"on":""}" data-ap="${esc(l.c)}" data-v="${p.preco_unit}" data-f="${esc(p.cot.fornecedor_nome+(p.cot.documento?" · "+p.cot.documento:""))}" title="Usar este preço">${esc(p.cot.fornecedor_nome)} ${brl(p.preco_unit)}</button>`).join("")||'<span class="note">—</span>'})()}</td>`:""}
           <td class="hm orig">${man&&o.fonte?`<b>Cotação: ${esc(o.fonte)}</b><small>${o.enviado?"✓ enviado à base":"só nesta obra"} · base: ${vg?brl(vg.valor):"—"}</small>`:man?`<b>Manual neste orçamento</b><small>base: ${vg?brl(vg.valor):"—"}</small>`:vg?`<b>${esc(vg.fornecedor||ORIG[vg.origem]||vg.origem)}</b><small>${fdata(vg.data)}${vg.documento&&vg.fornecedor?" · "+esc(vg.documento):""}</small>`:"—"}</td>
           <td class="n">${man?`<button class="xb" data-rp="${esc(l.c)}" title="Voltar ao preço da base">↺</button>`:""}<button class="xb" data-rm="${esc(l.c)}" title="Remover do orçamento">🗑</button></td></tr>`}).join("")}
-       </tbody><tfoot><tr><td colspan="4"><b>Total (${A.length} materiais)</b></td><td class="n"><b>${brl(T0)}</b></td><td colspan="${COTS.length?3:2}"></td></tr></tfoot></table></div></div>
+       </tbody><tfoot>${F.length!==A.length?`<tr><td colspan="2"><b>Subtotal do filtro (${F.length} materiais)</b>${fSub?`<span class="sm">${esc(fSub)}</span>`:""}</td><td class="n"><b>${num(F.reduce((t,l)=>t+l.q,0),2)}</b></td><td></td><td class="n"><b>${brl(F.reduce((t,l)=>t+l.q*(preco(l.c)||0),0))}</b></td><td colspan="${COTS.length?3:2}"></td></tr>`:""}<tr><td colspan="2"><b>Total (${A.length} materiais)</b></td><td class="n"><b>${num(A.reduce((t,l)=>t+l.q,0),2)}</b></td><td></td><td class="n"><b>${brl(T0)}</b></td><td colspan="${COTS.length?3:2}"></td></tr></tfoot></table></div></div>
       <aside class="stk" style="display:grid;gap:12px;align-content:start">
       <div class="card"><h2>Indicadores</h2>
        <div class="kv"><span>Total de material</span><b>${brl(T0)}</b></div>

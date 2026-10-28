@@ -378,8 +378,8 @@ const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase(
         const nums=l.t.filter(t=>NUM.test(t.s.replace(/\s/g,""))&&(t.x>=col.d1||t.x<col.d0)).map(t=>({c:t.x+t.w/2,v:pnum(t.s.replace(/R\$\s*/,""))}));
         const perto=x=>x==null||!nums.length?null:nums.reduce((a,b)=>Math.abs(b.c-x)<Math.abs(a.c-x)?b:a);
         const concil=(V,p,q)=>{const ok=(a,b,c)=>a>0&&b>0&&Math.abs(a*b-c)<=Math.max(.06,c*.006);
-          if(q>0){for(const a of V)for(const c of V)if(a!==c&&c>a&&ok(q,a,c))return[a,q]}
-          let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z))continue;if(!best||z>best[2]||(z===best[2]&&Number.isInteger(x)&&!Number.isInteger(best[0])))best=[x,y,z]}
+          if(q>0){for(const a of V)for(const c of V)if(a!==c&&c>a&&c!==q&&!(a===1&&c===q)&&ok(q,a,c))return[a,q];return[p,q]}
+          let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z)||(z===y&&x===1&&V.length>3))continue;if(!best||z>best[2]||(z===best[2]&&Number.isInteger(x)&&!Number.isInteger(best[0])))best=[x,y,z]}
           if(best){const[x,y]=best;return Number.isInteger(x)&&!Number.isInteger(y)?[y,x]:Number.isInteger(y)&&!Number.isInteger(x)?[x,y]:x<=y?[y,x]:[x,y]}
           return[p,q]};let p=(perto(col.p)||{}).v,q=(perto(col.q)||{}).v??null;[p,q]=concil(nums.map(x=>x.v),p,q);const codt=col.c!=null&&l.t.find(t=>Math.abs(t.x-col.c)<40&&/\d{4,}/.test(t.s));
         if(desc&&!nums.length&&out.length&&!NAO_ITEM.test(desc)&&out[out.length-1]._pg===n&&gap<lh*1.8){out[out.length-1].txt+=" "+desc;lastY=l.y;continue}
@@ -546,10 +546,10 @@ async function painel(id){
           <td class="n">${i.preco_previsto!=null?brl(i.preco_previsto):"—"}</td>
           ${VC.map(c=>{const v=(PM[i.id]||{})[c.id];if(!(v>0))return `<td class="n"><button class="addp" data-ap="${i.id}" data-c="${c.id}" title="Digitar preço">＋</button></td>`;
             const cls=f&&f.ps.length>1?(v===f.min.v?"cmin":v===f.max.v?"cmax":""):"";const on=i.cotacao_escolhida==c.id;
-            return `<td class="n"><button class="pc ${cls} ${on?"on":""}" data-es="${i.id}" data-c="${c.id}" title="${on?"Escolhido":"Escolher este fornecedor"}">${on?"✓ ":""}${brl(v)}</button><button class="edp" data-ap="${i.id}" data-c="${c.id}" title="Editar preço">✎</button></td>`}).join("")}
+            return `<td class="n"><button class="pc ${cls} ${on?"on":""}" data-es="${i.id}" data-c="${c.id}" title="${on?"Escolhido":"Escolher este fornecedor"}">${on?"✓ ":""}${brl(v)}</button><button class="edp" data-ap="${i.id}" data-c="${c.id}" title="Editar preço">✎</button><span class="sm">= ${brl(v*q)}</span></td>`}).join("")}
           <td class="n">${e!=null?`<b>${brl(e)}</b><span class="sm">${esc(i.cotacao_escolhida?nomeC(i.cotacao_escolhida):"manual")}</span>`:'<span class="note">—</span>'}</td>
           <td class="n">${e!=null?brl(e*q):""}</td><td class="n">${e!=null&&i.preco_previsto!=null?dif((+i.preco_previsto-e)*q,+i.preco_previsto*q):""}${e!=null&&!i.oc?` <button class="xb" data-cl="${i.id}" title="Desfazer escolha">↺</button>`:""}</td></tr>`}).join("")||`<tr><td colspan="${8+VC.length}" class="note">Nada para mostrar com esses filtros.</td></tr>`}
-      </tbody><tfoot><tr><td colspan="${5+VC.length}"><b>${L.length} itens</b> · escolhido ${brl(k.esc)} de previsto ${brl(k.prevEsc)}</td><td></td><td class="n"><b>${brl(k.esc)}</b></td><td class="n"><b>${dif(k.prevEsc-k.esc,k.prevEsc)}</b></td></tr></tfoot></table></div>
+      </tbody><tfoot><tr><td><b>Subtotal (${L.length} itens)</b>${fSub?`<span class="sm">${esc(fSub)}</span>`:""}</td><td class="n"><b>${num(L.reduce((t,i)=>t+(+i.qtd||0),0),2)}</b></td><td></td><td class="n"><b>${num(L.reduce((t,i)=>t+qc(i),0),2)}</b></td><td class="n"><b>${brl(L.reduce((t,i)=>t+qc(i)*(+i.preco_previsto||0),0))}</b></td>${VC.map(c=>{let t=0,n=0;L.forEach(i=>{const v=(PM[i.id]||{})[c.id];if(v>0){t+=qc(i)*v;n++}});return `<td class="n"><b>${brl(t)}</b><span class="sm">${n} cotados</span></td>`}).join("")}<td></td><td class="n"><b>${brl(L.reduce((t,i)=>t+(vEsc(i)!=null?qc(i)*vEsc(i):0),0))}</b></td><td class="n"><b>${dif(k.prevEsc-k.esc,k.prevEsc)}</b></td></tr></tfoot></table></div>
       ${CT.length?"":'<p class="note" style="margin-top:10px">Nenhuma cotação ainda. Vá em <b>Cotações</b> e importe o PDF ou Excel dos fornecedores.</p>'}</div></div>`;
     $("#cF").onchange=e=>{ff=e.target.value;tComp()};$("#cW").onchange=e=>{fWin=e.target.value;tComp()};$("#cS").onchange=e=>{fSub=e.target.value;tComp()};
     $("#cQ").oninput=e=>{fq=e.target.value;const p=e.target.selectionStart;tComp();const i=$("#cQ");i.focus();i.setSelectionRange(p,p)};
