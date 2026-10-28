@@ -325,7 +325,7 @@ function modal(html,onOk,okTxt="OK"){const m=document.createElement("div");m.cla
   setTimeout(()=>{const i=m.querySelector("input,select");i&&i.focus()},20);return m}
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
 const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/[^A-Z0-9,./]+/g," ").replace(/\s+/g," ").trim();
-  const NAO_ITEM=/\b(ICMS|IPI|PIS|COFINS|SUBTOTAL|SUB-TOTAL|TOTAL|TOTAIS|INFORMA[CÇ][OÕ]ES|GARANTIA|CERTIFICAD|FRETE|DESCONTO|INCLUSO|INCLUSOS|CNPJ|INSCRI|VALIDADE|PRAZO|PAGAMENTO|CONDI[CÇ]|ENTREGA|VENDEDOR|TELEFONE|FONE|WHATS|E-?MAIL|CEP|ENDERE[CÇ]O|OBSERVA|BANCO|AG[EÊ]NCIA|CONTA|PIX|BOLETO|EMISS[AÃ]O|P[AÁ]GINA|IMPOSTO|TRIBUT|SEGURO|ASSINATURA)\b|%/i;
+  const NAO_ITEM=/\b(ICMS|IPI|PIS|COFINS|SUBTOTAL|SUB-TOTAL|TOTAL|TOTAIS|PEDIDO M[IÍ]NIMO|FATURAMENTO|INFORMA[CÇ][OÕ]ES|GARANTIA|CERTIFICAD|FRETE|DESCONTO|INCLUSO|INCLUSOS|CNPJ|INSCRI|VALIDADE|PRAZO|PAGAMENTO|CONDI[CÇ]|ENTREGA|VENDEDOR|TELEFONE|FONE|WHATS|E-?MAIL|CEP|ENDERE[CÇ]O|OBSERVA|BANCO|AG[EÊ]NCIA|CONTA|PIX|BOLETO|EMISS[AÃ]O|P[AÁ]GINA|IMPOSTO|TRIBUT|SEGURO|ASSINATURA)\b|%/i;
   const ehItem=d=>{const w=norm(d).split(" ").filter(t=>/^[A-Z]{3,}$/.test(t));return w.length>=1&&w.join("").length>=6&&!NAO_ITEM.test(d)};
   const RE_CNPJ=/\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/;
   function lerCabecalho(txt){const L=String(txt||"").split("\n").map(l=>l.trim()).filter(Boolean);const o={};
@@ -366,10 +366,10 @@ const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase(
       linhas.forEach(l=>l.t.sort((a,b)=>a.x-b.x));
       for(const l of linhas){const txt=l.t.map(t=>t.s).join(" ");
         if(!col){const pr=l.t.find(t=>/unit|pre[cç]o|vl\.?\s*un|valor/i.test(t.s)),tq=l.t.find(t=>/^(qtd|qtde|quant)/i.test(t.s));
-          const hd=l.t.find(t=>/descri|produto|material/i.test(t.s))||(tq&&l.t.find(t=>/^(item|itens|especifica)/i.test(t.s.trim())));
+          const hd=l.t.find(t=>/descri/i.test(t.s))||l.t.find(t=>/produto|material/i.test(t.s)&&!/^c[oó]d/i.test(t.s.trim()))||(tq&&l.t.find(t=>/^(item|itens|especifica)/i.test(t.s.trim())));
           if(hd&&pr){const xs=l.t.map(t=>t.x).sort((a,b)=>a-b);const nx=xs.find(x=>x>hd.x+5);
             const fx=re=>{const t=l.t.find(t=>re.test(t.s));return t?t.x+t.w/2:null};
-            col={d0:hd.x-6,d1:(nx||hd.x+400)-4,p:fx(/unit|vl\.?\s*un|pre[cç]o\s*un/i)??fx(/pre[cç]o|valor/i),q:fx(/qtd|quant/i),tot:fx(/total/i),c:fx(/c[oó]d/i)};modo="colunas";continue}
+            const pv0=l.t.filter(t=>t.x<hd.x-2).sort((a,b)=>b.x-a.x)[0];col={d0:pv0?Math.min(hd.x-6,pv0.x+pv0.w+3):hd.x-6,d1:(nx||hd.x+400)-4,p:fx(/unit|vl\.?\s*un|pre[cç]o\s*un/i)??fx(/pre[cç]o|valor/i),q:fx(/qtd|quant/i),tot:fx(/total/i),c:fx(/c[oó]d/i)};modo="colunas";continue}
           if(n===1)cab+=txt+"\n";continue}
         if(fim)continue;if(/^\s*(TOTA(L|IS)|VALORES|SUBTOTAL)\b/i.test(txt)){fim=true;continue}
         let desc=l.t.filter(t=>t.x>=col.d0&&t.x<col.d1).map(t=>t.s).join(" ").replace(/\s+/g," ").trim();let codIn="";
@@ -381,7 +381,7 @@ const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase(
           if(q>0){for(const a of V)for(const c of V)if(a!==c&&c>a&&c!==q&&!(a===1&&c===q)&&ok(q,a,c))return[a,q];return[p,q]}
           let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z)||(z===y&&x===1&&V.length>3))continue;if(!best||z>best[2]||(z===best[2]&&Number.isInteger(x)&&!Number.isInteger(best[0])))best=[x,y,z]}
           if(best){const[x,y]=best;return Number.isInteger(x)&&!Number.isInteger(y)?[y,x]:Number.isInteger(y)&&!Number.isInteger(x)?[x,y]:x<=y?[y,x]:[x,y]}
-          return[p,q]};let p=(perto(col.p)||{}).v,q=(perto(col.q)||{}).v??null;[p,q]=concil(nums.map(x=>x.v),p,q);const codt=col.c!=null&&l.t.find(t=>Math.abs(t.x-col.c)<40&&/\d{4,}/.test(t.s));
+          return[p,q]};let p=(perto(col.p)||{}).v,q=(perto(col.q)||{}).v??null;[p,q]=concil(nums.map(x=>x.v),p,q);const codt=col.c!=null&&l.t.find(t=>Math.abs(t.x-col.c)<40&&/\d{4,}/.test(t.s)&&!/^\d{8}$/.test(t.s.trim()));
         if(desc&&!nums.length&&out.length&&!NAO_ITEM.test(desc)&&out[out.length-1]._pg===n&&gap<lh*1.8){out[out.length-1].txt+=" "+desc;lastY=l.y;continue}
         if(!desc)continue;if(NAO_ITEM.test(desc)||!(p>0)||!/[A-Z]{2,}/i.test(desc)){ign++;continue}
         if(lastY!=null&&gap>4&&gap<30)lh=gap;lastY=l.y;
