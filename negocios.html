@@ -211,6 +211,9 @@ img.logo{width:auto;height:38px;border-radius:0;object-fit:contain;background:no
 .card.mencao{animation:cardPisca 1.2s ease-in-out infinite;border-color:#d32f2f!important}
 @keyframes cardPisca{0%,100%{box-shadow:0 0 0 0 rgba(211,47,47,.0);background-color:var(--bg)}50%{box-shadow:0 0 0 3px rgba(211,47,47,.85),0 0 18px rgba(211,47,47,.55);background-color:rgba(211,47,47,.28)}}
 @media (prefers-reduced-motion:reduce){.card.mencao{animation:none;box-shadow:0 0 0 3px rgba(211,47,47,.85)}}
+.etqw{position:relative;display:inline-block}.etqdd{position:absolute;z-index:50;top:100%;left:0;margin-top:4px;width:260px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:8px;display:grid;gap:6px}.etqdd input#etqQ{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)}
+#etqL{display:grid;gap:2px;max-height:240px;overflow:auto}.etqi{display:flex;gap:8px;align-items:center;font-size:13px;padding:4px;border-radius:6px;cursor:pointer}.etqi:hover{background:var(--bg)}.etqi i{width:11px;height:11px;border-radius:50%}
+.motl{display:grid;gap:6px;margin:6px 0}.motl label{display:flex;gap:8px;align-items:center;font-size:13.5px}#ordS{padding:4px 8px}
 </style>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
@@ -247,6 +250,13 @@ let quadro=(()=>{try{return localStorage.getItem("neg.quadro")||"eletrica"}catch
 {const qq=new URLSearchParams(location.search).get("q");if(qq==="eletrica"||qq==="solar")quadro=qq;}
 let busca="",fEtq="",soMeus=false,aberto=null,abaCard="resumo",win=null,gravando=null;
 const uById=id=>U.find(u=>u.id===id)||{id,nome:"(removido)",sig:"?",cor:"#999",setor:""};
+const fmtFone=v=>{const d=String(v||"").replace(/\D/g,"").slice(0,11);if(d.length<=2)return d?"("+d:"";if(d.length<=6)return `(${d.slice(0,2)}) ${d.slice(2)}`;if(d.length<=10)return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`};
+const brlTxt=n=>n==null||n===""?"":"R$ "+Number(n).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const lerBrl=t=>{const d=String(t||"").replace(/[^\d,]/g,"").replace(",",".");return d?+d:0};
+const MOTIVOS={perdido:["Concorrência","Preço acima","Parceria comercial existente","Cliente desistiu","Outro"],cancelado:["Incapacidade técnica","Inviabilidade do negócio","Decisão interna","Outro"]};
+const tipoFim=nome=>/cancel/i.test(nome||"")?"cancelado":/perdid/i.test(nome||"")?"perdido":null;
+let ordemModo=(()=>{try{return localStorage.getItem("neg.ordem")||"manual"}catch(e){return"manual"}})(),inboxTudo=(()=>{try{return localStorage.getItem("neg.inboxTudo")==="1"}catch(e){return false}})();
+const ehMeu=c=>!!c&&(c.resp===eu||c.criado_por===eu||(c.membros||[]).includes(eu)||(c.editores||[]).includes(eu));
 const colsDe=q=>COLS.filter(c=>c.quadro===q).sort((a,b)=>a.ordem-b.ordem);
 const areaDe=id=>AREAS.find(a=>a.id===id);
 const veArea=(uid,area)=>{const u=uById(uid);return u.papel==="admin"||!area||!!(ACESSO[uid]&&ACESSO[uid].has(area))};
@@ -289,15 +299,16 @@ async function carregarTudo(){
   CRIA={};(rcr.data||[]).forEach(p=>{(CRIA[p.user_id]||(CRIA[p.user_id]={}))[p.quadro]=true});
   if(!QUADROS[quadro])quadro=Object.keys(QUADROS)[0];
 }
-async function carregarAvisos(){const {data}=await sb.from("notificacoes").select("*").order("criado_em",{ascending:false}).limit(100);INBOX=data||[]}
-async function recarregar(){await Promise.all([carregarTudo(),carregarAvisos()]);render();if(aberto&&CARDS.find(c=>c.id===aberto))abrir(aberto,true)}
+async function carregarAvisos(){const {data}=await sb.from("notificacoes").select("*").order("criado_em",{ascending:false}).limit(150);const T=data||[];
+  INBOX=inboxTudo||ADM&&false?T:T.filter(n=>n.tipo==="mencao"||n.tipo==="msg"||n.tipo==="adicionado"||!n.negocio_id||ehMeu(CARDS.find(c=>c.id===n.negocio_id)))}
+async function recarregar(){await carregarTudo();await carregarAvisos();render();if(aberto&&CARDS.find(c=>c.id===aberto))abrir(aberto,true)}
 
 /* ---------- gravação ---------- */
 async function salvarCampos(c,campos){
   Object.assign(c,campos);
   const {data,error}=await sb.from("negocios").update(campos).eq("id",c.id).select().single();
   if(error){toast("Não foi possível salvar: "+error.message);await recarregar();return false}
-  Object.assign(c,data);return true;
+  Object.assign(c,data);const cur=CARDS.find(x=>x.id===c.id);if(cur&&cur!==c)Object.assign(cur,data);else if(!cur)CARDS.unshift(c);return true;
 }
 
 /* ---------- tela ---------- */
@@ -306,7 +317,8 @@ function render(){
   const Q=QUADROS[quadro]||{nome:"",cor:"#999"},todas=colsDe(quadro),cols=todas.filter(c=>veCol(c.id)&&(!fArea||c.area===fArea));
   const mAreas=minhasAreas().filter(a=>todas.some(c=>c.area===a.id));
   const f=busca.toLowerCase();
-  const vis=CARDS.filter(c=>c.quadro===quadro&&(!f||(c.titulo+" "+c.cliente+" "+c.cidade+" "+c.tipo).toLowerCase().includes(f))&&(!fEtq||c.etiquetas.includes(fEtq))&&(!soMeus||c.membros.includes(eu)||c.resp===eu));
+  const ORD={manual:(a,b)=>(+b.ordem||0)-(+a.ordem||0),prazo:(a,b)=>(a.prazo?new Date(a.prazo):8e15)-(b.prazo?new Date(b.prazo):8e15),valor:(a,b)=>(+b.valor||0)-(+a.valor||0),recente:(a,b)=>new Date(b.criado_em)-new Date(a.criado_em),parado:(a,b)=>new Date(a.atualizado_em)-new Date(b.atualizado_em)};
+  const vis=CARDS.slice().sort(ORD[ordemModo]||ORD.manual).filter(c=>c.quadro===quadro&&(!f||(c.titulo+" "+c.cliente+" "+c.cidade+" "+c.tipo).toLowerCase().includes(f))&&(!fEtq||c.etiquetas.includes(fEtq))&&(!soMeus||c.membros.includes(eu)||c.resp===eu));
   const nl=INBOX.filter(n=>!n.lido).length;
   const etqs=ETQ.filter(e=>e.quadro===quadro);
   $("#app").innerHTML=`${navHtml()}
@@ -320,6 +332,7 @@ function render(){
   <div class="filtros ${verFiltros?"abre":""}">
   ${mAreas.length>1?`<div class="bar"><span class="note">Área:</span><button class="chip ${!fArea?"on":""}" data-ar="">${ADM?"Todas":"Todas as minhas"}</button>${mAreas.map(a=>`<button class="chip ${fArea===a.id?"on":""}" data-ar="${a.id}"><i style="width:9px;height:9px;border-radius:50%;background:${a.cor};display:inline-block"></i>${esc(a.nome)}</button>`).join("")}</div>`:""}
   <div class="bar"><input id="q" placeholder="Buscar negócio, cliente, cidade ou tipo" value="${esc(busca)}">
+   <select id="ordS" class="chip" title="Ordem dos cards nas colunas">${[["manual","Ordem: manual (arrastar)"],["prazo","Ordem: prazo da etapa"],["valor","Ordem: maior valor"],["recente","Ordem: mais recentes"],["parado","Ordem: parados há mais tempo"]].map(([k,t])=>`<option value="${k}" ${ordemModo===k?"selected":""}>${t}</option>`).join("")}</select>
    <button class="chip ${soMeus?"on":""}" id="meus">Só os meus</button>${ADM&&!fArea?"":`<button class="chip ${verSaidos?"on":""}" id="saidos" title="Negócios que já passaram pela sua área e estão em outra">🔒 Mostrar os que já saíram</button>`}
    ${etqs.map(e=>`<button class="chip ${fEtq===e.id?"on":""}" data-e="${e.id}"><i style="width:9px;height:9px;border-radius:50%;background:${e.cor};display:inline-block"></i>${esc(e.nome)}</button>`).join("")}
    ${(()=>{const nv=vis.filter(c=>!fantasma(c));return `<span class="note" style="margin-left:auto">${nv.length} negócio${nv.length===1?"":"s"} · ${brl(nv.reduce((a,c)=>a+(+c.valor||0),0))} em carteira</span>`})()}</div></div>
@@ -332,6 +345,7 @@ function render(){
   $("#q").oninput=e=>{busca=e.target.value;const p=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
   $("#bFil").onclick=()=>{verFiltros=!verFiltros;render()};
   $("#meus").onclick=()=>{soMeus=!soMeus;render()};
+  $("#ordS").onchange=e=>{ordemModo=e.target.value;try{localStorage.setItem("neg.ordem",ordemModo)}catch(x){}render();if(ordemModo!=="manual")toast("Para arrastar e reordenar na vertical, use “Ordem: manual”.")};
   if($("#saidos"))$("#saidos").onclick=()=>{verSaidos=!verSaidos;try{localStorage.setItem("neg.saidos",verSaidos?"1":"0")}catch(e){}render()};
   document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{fEtq=fEtq===b.dataset.e?"":b.dataset.e;render()});
   document.querySelectorAll("[data-ar]").forEach(b=>b.onclick=()=>{fArea=b.dataset.ar;render()});
@@ -345,7 +359,14 @@ function render(){
   });
   document.querySelectorAll(".list").forEach(l=>{
     l.ondragover=e=>{e.preventDefault();l.classList.add("over")};l.ondragleave=()=>l.classList.remove("over");
-    l.ondrop=e=>{e.preventDefault();l.classList.remove("over");mover(e.dataTransfer.getData("text/plain"),l.dataset.col)};
+    l.ondrop=async e=>{e.preventDefault();l.classList.remove("over");const id=e.dataTransfer.getData("text/plain");const c=CARDS.find(x=>x.id===id);if(!c)return;
+      const alvo=e.target.closest(".card");const mesma=c.coluna===l.dataset.col;
+      if(ordemModo==="manual"&&alvo&&alvo.dataset.id!==id&&(mesma||true)){
+        const irm=[...l.querySelectorAll(".card")].map(x=>CARDS.find(k=>k.id===x.dataset.id)).filter(k=>k&&k.id!==id);const i=irm.findIndex(k=>k.id===alvo.dataset.id);
+        const acima=irm[i-1],abaixo=irm[i];const oA=acima?+acima.ordem||0:(+abaixo.ordem||0)+2,oB=+abaixo.ordem||0;const nova=(oA+oB)/2;
+        if(!mesma)await mover(id,l.dataset.col);if(CARDS.find(k=>k.id===id).coluna!==l.dataset.col)return;
+        c.ordem=nova;render();const {error}=await sb.from("negocios").update({ordem:nova}).eq("id",id);if(error)toast("Não foi possível reordenar: "+error.message);return}
+      mover(id,l.dataset.col)};
   });
 }
 function cardHtml(c){
@@ -361,8 +382,17 @@ function cardHtml(c){
 }
 
 /* ---------- mover e enviar ao Gerenciador ---------- */
-async function mover(id,col,ok){
+async function mover(id,col,ok,mot){
   const c=CARDS.find(x=>x.id===id);if(!c||c.coluna===col)return;
+  {const alvo0=COLS.find(x=>x.id===col);const tf=alvo0&&tipoFim(alvo0.nome);
+   if(tf&&!mot){const m=document.createElement("div");m.className="modal";
+    m.innerHTML=`<div class="box" style="width:min(480px,100%)"><h2>${tf==="cancelado"?"Motivo do cancelamento":"Motivo da perda"}</h2><p class="note" style="margin:0">Obrigatório: <b>${esc(c.titulo)}</b> vai para <b>${esc(alvo0.nome)}</b>. Isso alimenta as métricas comerciais.</p>
+      <div class="motl">${MOTIVOS[tf].map((t,i)=>`<label><input type="radio" name="mot" value="${esc(t)}" ${i===0?"":""}> ${esc(t)}</label>`).join("")}</div>
+      <label class="note">Detalhe (livre)<textarea id="motTx" rows="3" style="width:100%" placeholder="Ex.: concorrente fechou por R$ 20 mil a menos"></textarea></label>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="m0">Cancelar</button><button class="btn pri" id="m1">Confirmar</button></div></div>`;
+    document.body.appendChild(m);$("#m0",m).onclick=()=>{m.remove();render()};
+    $("#m1",m).onclick=()=>{const r=m.querySelector("[name=mot]:checked");const tx=$("#motTx",m).value.trim();if(!r&&!tx){toast("Escolha um motivo ou escreva o detalhe.");return}if(r&&r.value==="Outro"&&!tx){toast("Descreva o motivo em “Detalhe”.");return}
+      m.remove();mover(id,col,ok,{tipo:tf+(r?": "+r.value:""),texto:tx})};return}}
   if(!podeMover(c)){toast("Você só visualiza esta etapa. Peça a quem é responsável por ela para mover.");return}
   const alvo=COLS.find(x=>x.id===col);
   const jaFoi=c.quadro==="solar"?c.no_mapa:!!c.obra_id;
@@ -378,7 +408,9 @@ async function mover(id,col,ok){
     $("#n1",m).onclick=()=>{m.remove();mover(id,col,"envia")};return;
   }
   const antes=c.coluna;c.coluna=col;render();
-  const {error}=await sb.from("negocios").update({coluna:col}).eq("id",id);
+  const upd={coluna:col};if(mot){upd.motivo_tipo=mot.tipo;upd.motivo=mot.texto||null;upd.motivo_em=new Date().toISOString();Object.assign(c,upd)}
+  const {error}=await sb.from("negocios").update(upd).eq("id",id);
+  if(!error&&mot)sb.from("neg_historico").insert({negocio_id:id,texto:`Motivo (${mot.tipo})${mot.texto?": "+mot.texto:""}`,autor_nome:(uById(eu)||{}).nome||""}).then(()=>{});
   if(error){c.coluna=antes;render();toast("Não foi possível mover: "+error.message);return}
   if(ok==="envia"){
     const d=DB.DADOS_PADRAO();d.obra.mapsLink=c.maps||"";d.obra.concessionaria=c.conc||"";d.obra.negocio=c.id;
@@ -486,6 +518,7 @@ async function abrir(id,manter){
   g.innerHTML=`<div class="gvf"></div><aside class="gvp win" role="dialog" aria-label="${esc(c.titulo)}">
    <div class="gvh"><div class="grab">⠿ arraste para mover · puxe o canto inferior direito para redimensionar</div><div class="row"><div><span class="tipo ${c.quadro}">${esc(QUADROS[c.quadro].nome)}</span>${c.obra_id?' <span class="tipo eletrica">⚡ No Gerenciador de obras</span>':c.no_mapa?' <span class="tipo solar">📍 No mapa</span>':""}<h2>${esc(c.titulo)}</h2><span class="note">${esc(c.cliente||"Sem cliente")}${c.cidade?" · "+esc(c.cidade):""} · ${brl(c.valor)}</span></div><span style="display:flex;gap:6px">${ADM?'<button class="btn" id="del" style="color:var(--bad)">Excluir</button>':""}<button class="btn" id="x">Fechar</button></span></div>
     <div class="flow">${cols.map((x,j)=>`<span class="${j<i?"feito":j===i?"aqui":""}" title="${esc((areaDe(x.area)||{}).nome||"")}">${esc(x.nome)}</span>`).join("")}</div><button class="btn sm" id="bFluxo" style="margin:6px 0">🧭 Ver fluxograma do processo</button>
+    ${c.motivo_tipo?`<div class="banner" style="background:var(--warn-soft,#fbf0dc)">📝 <b>${esc(c.motivo_tipo)}</b>${c.motivo?" · "+esc(c.motivo):""}</div>`:""}
     ${fantasma(c)?`<div class="banner ro">🔒 Este negócio já saiu da sua área e está agora em <b>${esc((()=>{const col=COLS.find(x=>x.id===c.coluna);const a=col&&areaDe(col.area);return(a?a.nome+" · ":"")+(col?col.nome:"")})())}</b>. Você acompanha e pode conversar, mas não pode alterar. <button class="btn sm" id="bPuxar" style="margin-left:6px" title="Esqueceu algum ajuste? Traz o card de volta para a última etapa dele na sua área">↩ Trazer de volta para minha área</button></div>`:ed?"":`<div class="banner ro">🔒 ${podeMover(c)?"Nesta etapa você pode mover o card e conversar, mas não editar os dados.":"Nesta etapa seu acesso é só leitura, mas pode conversar no chat."}</div>`}
     ${ORCN&&c.quadro!=="solar"?'<div class="next go2"><span>Orçamento de materiais da rede (OrçaRede)'+(ORCN==="ver"?' · só visualização':'')+'.</span><a class="btn" href="orcarede.html?neg='+c.id+'">Abrir orçamento →</a></div>':""}${COMPRAS&&c.quadro!=="solar"?'<div class="next go2"><span>Compras da obra: cotações, comparativo e previsto × realizado.</span><a class="btn" href="compras.html?neg='+c.id+'">🛒 Compras →</a></div>':""}${c.obra_id?'<div class="next go2"><span>Esta obra já está no Gerenciador de obras.</span><a class="btn pri" href="obra.html?id='+c.obra_id+'">Abrir no Gerenciador de obras →</a></div>':""}
     ${podeMover(c)&&(prox||ant)?`<div class="next"><span class="note">Mover para:</span>${prox?`<button class="btn pri" id="go">${esc(prox.nome)}${!veCol(prox.id)&&areaDe(prox.area)?" · "+esc(areaDe(prox.area).nome):""} →</button>`:""}${ant?`<button class="btn" id="back">← ${esc(ant.nome)}</button>`:""}<select id="mv" class="btn"><option value="">Outra etapa…</option>${cols.filter(x=>x.id!==c.coluna).map(x=>`<option value="${x.id}">${esc(x.nome)}${areaDe(x.area)?" ("+esc(areaDe(x.area).nome)+")":""}</option>`).join("")}</select></div>`:""}
@@ -510,15 +543,15 @@ async function abrir(id,manter){
      ${lembretesHtml(c)}
      <div class="grid2">
       <label class="fld">Título do negócio<input value="${esc(c.titulo)}" ${dis} data-f="titulo"></label>
-      <label class="fld">Tipo de obra<select ${dis} data-f="tipo"><option value="">—</option>${opts(LISTAS.tipo,c.tipo)}${ADM?'<option value="__tipo">+ Novo tipo…</option>':""}</select></label>
+      <label class="fld">Tipo de obra<select ${dis} data-f="tipo"><option value="">—</option>${opts(LISTAS.tipo,c.tipo)}<option value="__tipo">+ Adicionar outro…</option></select></label>
       <label class="fld">Cliente<input value="${esc(c.cliente)}" ${dis} data-f="cliente"></label>
-      <label class="fld">Telefone / WhatsApp<input value="${esc(c.fone)}" ${dis} data-f="fone" placeholder="(54) 9…"></label>
+      <label class="fld">Telefone / WhatsApp<input value="${esc(fmtFone(c.fone))}" ${dis} data-f="fone" inputmode="tel" placeholder="(54) 00000-0000"></label>
       <label class="fld">Cidade<input value="${esc(c.cidade)}" ${dis} data-f="cidade"></label>
       <label class="fld">Concessionária<select ${dis} data-f="conc"><option value="">—</option>${opts(LISTAS.conc,c.conc)}<option value="__conc">+ Adicionar outra…</option></select></label>
       <label class="fld">Origem do contato<select ${dis} data-f="origem"><option value="">—</option>${opts(LISTAS.origem,c.origem)}${ADM?'<option value="__origem">+ Nova origem…</option>':""}</select></label>
       <label class="fld">Potência<span style="display:flex;gap:6px"><input type="number" step="any" style="flex:1;min-width:0" value="${esc(c.pot)}" ${dis} data-f="pot"><select ${dis} data-f="un">${opts(c.quadro==="solar"?["kWp","kW"]:["kVA","kW","kWp"],c.un||(c.quadro==="solar"?"kWp":"kVA"))}</select></span></label>
       <label class="fld">Forma de pagamento<select ${dis} data-f="pagto"><option value="">—</option>${opts(LISTAS.pagto,c.pagto)}${ADM?'<option value="__pagto">+ Nova forma…</option>':""}</select></label>
-      <label class="fld">Valor estimado (R$)<input type="number" step="any" value="${+c.valor||""}" ${dis} data-f="valor"></label>
+      <label class="fld">Valor estimado (R$)<input value="${+c.valor?brlTxt(c.valor):""}" ${dis} data-f="valor" inputmode="decimal" placeholder="R$ 0,00"></label>
       <label class="fld">Prazo desta etapa<input type="date" value="${c.prazo||""}" ${dis} data-f="prazo"></label>
       <label class="fld">Responsável<select ${dis} data-f="resp"><option value="">—</option>${U.map(u=>`<option value="${u.id}" ${u.id===c.resp?"selected":""}>${esc(u.nome)}</option>`).join("")}</select></label>
       <label class="fld" style="grid-column:1/-1">Localização (link do Google Maps)<span style="display:flex;gap:6px"><input style="flex:1;min-width:0" value="${esc(c.maps)}" ${dis} data-f="maps" placeholder="https://maps.app.goo.gl/…">${c.maps?`<a class="btn" href="${esc(c.maps)}" target="_blank" rel="noopener">Abrir ↗</a>`:""}</span><span class="note">${c.lat!=null?`Ponto: ${(+c.lat).toFixed(5)}, ${(+c.lng).toFixed(5)}`:c.maps?"Ponto ainda não identificado no link.":""}</span></label></div>
@@ -529,7 +562,8 @@ async function abrir(id,manter){
      </div>
      ${ADM||(c.editores||[]).length?`<div class="sec"><h4>Consultores com edição <span class="note" style="font-weight:400">· editam este negócio em qualquer etapa${ADM?"":" (definido pelo admin)"}</span></h4><div class="pick">${U.filter(u=>u.papel!=="admin").map(u=>`<button data-ed="${u.id}" class="${(c.editores||[]).includes(u.id)?"on":""}" ${ADM?"":"disabled"}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")||'<span class="note">Nenhum usuário além dos admins.</span>'}</div></div>`:""}
      <div class="sec"><h4>Pessoas no card</h4><div class="pick">${U.map(u=>`<button data-m="${u.id}" class="${c.membros.includes(u.id)?"on":""}" ${dis}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")}</div></div>
-     <div class="sec"><h4>Etiquetas</h4><div class="pick">${ADM?'<button class="nlb" id="nlb">+ Nova etiqueta</button>':""}${ETQ.filter(e=>e.quadro===c.quadro).map(e=>`<button class="lb ${c.etiquetas.includes(e.id)?"on":""}" style="background:${e.cor}" data-l="${e.id}" ${dis}>${esc(e.nome)}</button>`).join("")}</div></div>
+     <div class="sec"><h4>Etiquetas</h4><div class="pick etqsel">${ETQ.filter(e=>e.quadro===c.quadro&&c.etiquetas.includes(e.id)).map(e=>`<button class="lb on" style="background:${e.cor}" data-l="${e.id}" ${dis} title="Clique para tirar">${esc(e.nome)} ✕</button>`).join("")||'<span class="note">Nenhuma etiqueta.</span>'}
+      ${dis?"":`<span class="etqw"><button class="nlb" id="etqAbre">＋ Etiqueta</button><div class="etqdd" id="etqDd" hidden><input id="etqQ" placeholder="Buscar ou criar etiqueta…" autocomplete="off"><div id="etqL"></div></div></span>`}</div></div>
      <div class="sec"><h4>Ao chegar em ${esc((cols.find(x=>x.gatilho)||{nome:"(coluna ⚡ não definida)"}).nome)}</h4><p class="note" style="margin:0">${c.quadro==="solar"?"O card vira um ponto no mapa de obras (sem acompanhamento de postes e rede).":"Com o negócio fechado, o card é enviado ao Gerenciador de obras (com confirmação), com planta, postes, rede, fotos, diário e link do cliente."}</p></div>`;
     {const bf=g.querySelector("#bFluxo");if(bf)bf.onclick=()=>fluxograma(c)}
     {const bp=g.querySelector("#bPuxar");if(bp)bp.onclick=()=>{const m=document.createElement("div");m.className="modal fxm";
@@ -541,10 +575,12 @@ async function abrir(id,manter){
       const novaLista={"__tipo":["tipo","Novo tipo de obra","Ex.: Iluminação pública"],"__conc":["conc","Nova concessionária","Ex.: Cooperluz"],"__origem":["origem","Nova origem","Ex.: Feira"],"__pagto":["pagto","Nova forma de pagamento","Ex.: Consórcio"]}[v];
       if(novaLista){pedirNome(novaLista[1],novaLista[2],async n=>{const {error}=await sb.from("neg_listas").insert({lista:novaLista[0],valor:n});if(error&&!/duplicate/.test(error.message)){toast(error.message);abrir(id,true);return}if(!LISTAS[novaLista[0]].includes(n))LISTAS[novaLista[0]].push(n);await salvarCampos(c,{[f]:n});render();abrir(id,true);toast("Adicionado para todos.")},()=>abrir(id,true));return}
       const campos={};
-      if(f==="valor")v=+v||0;if(f==="prazo"||f==="resp")v=v||null;
+      if(f==="valor"){v=lerBrl(v);el.value=v?brlTxt(v):""}if(f==="fone"){v=fmtFone(v);el.value=v}if(f==="prazo"||f==="resp")v=v||null;
       campos[f]=v;
       if(f==="maps"){campos.lat=null;campos.lng=null;const p=coordsDe(v)||(/^https:/i.test(v)?await resolverLink(v):null);if(p){campos.lat=p.lat;campos.lng=p.lng}}
-      if(await salvarCampos(c,campos)){render();if(["titulo","cliente","cidade","valor","maps"].includes(f)){
+      if(await salvarCampos(c,campos)){render();
+        if(f==="titulo"){const h=document.querySelector(".gv .gvh h2");if(h)h.textContent=c.titulo}
+        if(["maps"].includes(f)){
         const box=el.closest(".gv")||document;const keep={};box.querySelectorAll("[data-f]").forEach(x=>{if(x!==el&&x.dataset.f!==f)keep[x.dataset.f]=x.value});
         const ae=document.activeElement,af=ae&&ae.dataset&&ae.dataset.f,ss=af&&ae.selectionStart!=null?[ae.selectionStart,ae.selectionEnd]:null;
         await abrir(id,true);
@@ -554,6 +590,12 @@ async function abrir(id,manter){
       if(await salvarCampos(c,campos)){render();abrir(id,true);toast(ed.includes(k)?"Agora pode editar este negócio.":"Edição removida.")}});
     gb.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{const k=b.dataset.m;const mem=c.membros.includes(k)?c.membros.filter(x=>x!==k):[...c.membros,k];if(await salvarCampos(c,{membros:mem})){render();abrir(id,true)}});
     gb.querySelectorAll("[data-l]").forEach(b=>b.onclick=async()=>{const k=b.dataset.l;const et=c.etiquetas.includes(k)?c.etiquetas.filter(x=>x!==k):[...c.etiquetas,k];if(await salvarCampos(c,{etiquetas:et})){render();abrir(id,true)}});
+    if($("#etqAbre",gb)){const dd=$("#etqDd",gb),q=$("#etqQ",gb),L=$("#etqL",gb);
+      const lista=()=>{const t=q.value.trim().toLowerCase();const E=ETQ.filter(e=>e.quadro===c.quadro&&(!t||e.nome.toLowerCase().includes(t)));
+        L.innerHTML=E.map(e=>`<label class="etqi"><input type="checkbox" data-le="${e.id}" ${c.etiquetas.includes(e.id)?"checked":""}><i style="background:${e.cor}"></i>${esc(e.nome)}</label>`).join("")+(t&&!E.some(e=>e.nome.toLowerCase()===t)?`<button class="nlb" id="etqNova">+ Criar “${esc(q.value.trim())}”</button>`:"");
+        L.querySelectorAll("[data-le]").forEach(x=>x.onchange=async()=>{const k=x.dataset.le;const et=x.checked?[...c.etiquetas,k]:c.etiquetas.filter(y=>y!==k);if(await salvarCampos(c,{etiquetas:et})){render();abrir(id,true)}});
+        const nb=$("#etqNova",L);if(nb)nb.onclick=async()=>{const {data,error}=await sb.from("neg_etiquetas").insert({quadro:c.quadro,nome:q.value.trim(),cor:PAL[ETQ.length%PAL.length]}).select().single();if(error){toast(error.message);return}ETQ.push(data);await salvarCampos(c,{etiquetas:[...c.etiquetas,data.id]});render();abrir(id,true)}};
+      $("#etqAbre",gb).onclick=()=>{dd.hidden=!dd.hidden;if(!dd.hidden){lista();q.focus()}};q.oninput=lista}
     if($("#nlb",gb))$("#nlb",gb).onclick=()=>pedirNome("Nova etiqueta","Ex.: Aguardando ART",async n=>{const {data,error}=await sb.from("neg_etiquetas").insert({quadro:c.quadro,nome:n,cor:PAL[ETQ.length%PAL.length]}).select().single();if(error){toast(error.message);return}ETQ.push(data);await salvarCampos(c,{etiquetas:[...c.etiquetas,data.id]});render();abrir(id,true)},()=>abrir(id,true));
     bindAnexos(c,gb);
     bindLembretes(c,gb);
@@ -631,14 +673,16 @@ async function novo(){
   if(!podeCriar(quadro))return;
   const primeira=colsDe(quadro)[0];if(!primeira){toast("Crie as colunas deste quadro primeiro.");return}
   const cand=U.filter(u=>u.papel!=="pendente");let dono=eu;
-  if(cand.length>1){dono=await new Promise(res=>{const m=document.createElement("div");m.className="modal";
+  const cols0=colsDe(quadro);const meuCom=ADM||veArea(eu,cols0[0]&&cols0[0].area);const padrao=meuCom?cols0[0]:(cols0.find(x=>/em andamento/i.test(x.nome))||cols0[0]);let etapa0=padrao.id;
+  {dono=await new Promise(res=>{const m=document.createElement("div");m.className="modal";
     m.innerHTML=`<div class="mbox" style="background:var(--panel);border-radius:12px;padding:18px;width:min(420px,100%);display:grid;gap:12px"><h2 style="margin:0">Novo negócio</h2><label class="note">De quem é este card? (responsável / consultor)</label>
       <select id="ndono" class="btn" style="text-align:left">${cand.map(u=>`<option value="${u.id}" ${u.id===eu?"selected":""}>${esc(u.nome)}${u.id===eu?" (eu)":""}</option>`).join("")}</select>
+      <label class="note">Etapa inicial</label><select id="netapa" class="btn" style="text-align:left">${cols0.map(x=>`<option value="${x.id}" ${x.id===padrao.id?"selected":""}>${esc(x.nome)}</option>`).join("")}</select>
       <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" id="nx">Cancelar</button><button class="btn pri" id="nok">Criar</button></div></div>`;
-    document.body.appendChild(m);m.querySelector("#nx").onclick=()=>{m.remove();res(null)};m.querySelector("#nok").onclick=()=>{const v=m.querySelector("#ndono").value;m.remove();res(v)}});
+    document.body.appendChild(m);m.querySelector("#nx").onclick=()=>{m.remove();res(null)};m.querySelector("#nok").onclick=()=>{const v=m.querySelector("#ndono").value;etapa0=m.querySelector("#netapa").value;m.remove();res(v)}});
     if(!dono)return}
   const mem=[...new Set([dono,...(ADM||dono===eu?[]:[eu])])];
-  const {data,error}=await sb.from("negocios").insert({quadro,coluna:primeira.id,titulo:"Novo negócio "+(quadro==="solar"?"solar":"elétrico"),un:quadro==="solar"?"kWp":"kVA",membros:mem,resp:dono}).select().single();
+  const {data,error}=await sb.from("negocios").insert({quadro,coluna:etapa0||primeira.id,titulo:"Novo negócio "+(quadro==="solar"?"solar":"elétrico"),un:quadro==="solar"?"kWp":"kVA",membros:mem,resp:dono}).select().single();
   if(error){toast("Não foi possível criar: "+error.message);return}
   CARDS.unshift(data);abaCard="resumo";render();abrir(data.id);
 }
@@ -807,9 +851,10 @@ function caixa(){
   fechar();
   const g=document.createElement("div");g.className="gv lado";
   const draw=()=>{const nl=INBOX.filter(n=>!n.lido).length;
-    g.innerHTML=`<div class="gvf"></div><aside class="gvp" style="width:min(460px,100%)"><div class="gvh" style="cursor:default"><div class="row"><div><h2>Caixa de entrada</h2><span class="note">${nl} não lida${nl===1?"":"s"}</span></div><button class="btn" id="x">Fechar</button></div>${nl?'<button class="btn" id="todas" style="justify-self:start">Marcar todas como lidas</button>':""}</div>
+    g.innerHTML=`<div class="gvf"></div><aside class="gvp" style="width:min(460px,100%)"><div class="gvh" style="cursor:default"><div class="row"><div><h2>Caixa de entrada</h2><span class="note">${nl} não lida${nl===1?"":"s"}</span></div><button class="btn" id="x">Fechar</button></div><label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="ibT" ${inboxTudo?"checked":""}> mostrar também avisos de negócios que não são meus</label>${nl?'<button class="btn" id="todas" style="justify-self:start">Marcar todas como lidas</button>':""}</div>
      <div class="gvb">${INBOX.length?INBOX.map(n=>`<button class="ib ${n.lido?"":"nl"}" data-n="${n.id}"><span class="ii">${ic[n.tipo]||"•"}</span><span><span class="it">${esc(n.texto)}</span><small>${fdt(n.criado_em)}</small></span></button>`).join(""):'<p class="note">Nada por aqui. Quando um negócio chegar numa etapa sua, alguém te mencionar com @ ou te adicionar num card, aparece aqui.</p>'}</div></aside>`;
     $(".gvf",g).onclick=$("#x",g).onclick=()=>{g.remove();render()};
+    $("#ibT",g).onchange=async e=>{inboxTudo=e.target.checked;try{localStorage.setItem("neg.inboxTudo",inboxTudo?"1":"0")}catch(x){}await carregarAvisos();draw()};
     if($("#todas",g))$("#todas",g).onclick=async()=>{await sb.from("notificacoes").update({lido:true}).eq("lido",false);INBOX.forEach(n=>n.lido=true);draw()};
     g.querySelectorAll("[data-n]").forEach(b=>b.onclick=async()=>{const n=INBOX.find(x=>x.id===b.dataset.n);if(!n.lido){n.lido=true;sb.from("notificacoes").update({lido:true}).eq("id",n.id)}
       const c=CARDS.find(k=>k.id===n.negocio_id);g.remove();if(c){quadro=c.quadro;abaCard=n.tipo==="mencao"||n.tipo==="msg"?"chat":"resumo";render();abrir(c.id)}else{render();toast("Este negócio não existe mais.")}});

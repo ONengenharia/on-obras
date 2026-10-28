@@ -1,6 +1,9 @@
 // Barra fixa de atalhos (aparece em todas as telas do sistema)
 (function () {
   if (window.__atalhos) return; window.__atalhos = 1;
+  // corretor ortográfico em português nos campos de texto
+  document.documentElement.lang = document.documentElement.lang || "pt-BR";
+  document.addEventListener("focusin", e => { const el = e.target; if (el && (el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && (!el.type || el.type === "text") && !/busca|buscar|filtr|código|codigo|cnpj|tel|fone|valor|r\$/i.test((el.placeholder || "") + (el.dataset.f || "") + (el.inputMode || ""))))) { el.spellcheck = true; el.lang = "pt-BR" } }, true);
   // área do cliente (link público da obra): nunca mostra os atalhos internos
   if (new URLSearchParams(location.search).has("t") || /portfolio\.html$/.test(location.pathname)) return;
   const css = `.atl{position:fixed;left:50%;transform:translateX(-50%);bottom:10px;z-index:900;display:flex;gap:4px;align-items:center;background:rgba(30,47,64,.94);border:1px solid #3b5670;border-radius:999px;padding:4px;box-shadow:0 6px 20px rgba(0,0,0,.28);font:600 12px Montserrat,system-ui,sans-serif;backdrop-filter:blur(6px)}
