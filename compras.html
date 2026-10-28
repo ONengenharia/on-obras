@@ -432,7 +432,7 @@ const perfil=await DB.meuPerfil();const ADM=perfil&&perfil.papel==="admin";
 {const r=await O.rpc("pode_compras");if(r.error||!r.data){falha("O painel de compras está liberado só para administradores e usuários autorizados.");return}}
 const Q=new URLSearchParams(location.search);
 const quem=()=>perfil.nome||perfil.email||"usuário";
-const topo=(t,sub,extra="")=>`<header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div class="ttl"><div class="eye"><a href="index.html#painel">Início</a> › <a href="negocios.html">Negócios</a> › <a href="compras.html">Compras</a>${ADM?' · <a href="orcarede.html">OrçaRede</a>':""}</div><h1><span>${esc(t)}</span></h1><div class="sub">${sub}</div></div>${extra}</header>`;
+let NEGID=null;const topo=(t,sub,extra="")=>`<header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div class="ttl"><div class="eye"><a href="index.html#painel">Início</a> › <a href="negocios.html">Negócios</a> › <a href="compras.html">Compras</a>${NEGID?` · <a href="negocios.html?n=${NEGID}" style="font-weight:700">🎫 Voltar ao ticket</a>`:""}${ADM?' · <a href="orcarede.html">OrçaRede</a>':""}</div><h1><span>${esc(t)}</span></h1><div class="sub">${sub}</div></div>${extra}</header>`;
 
 if(Q.get("neg"))return deNegocio(Q.get("neg"));
 if(Q.get("id"))return painel(Q.get("id"));
@@ -465,7 +465,7 @@ async function lista(){
 
 /* ---------------- PAINEL DA OBRA ---------------- */
 async function painel(id){
-  let C;{const r=await O.from("compras").select("*").eq("id",id).single();if(r.error||!r.data){falha("Compra não encontrada.");return}C=r.data}
+  let C;{const r=await O.from("compras").select("*").eq("id",id).single();if(r.error||!r.data){falha("Compra não encontrada.");return}C=r.data;NEGID=C.negocio_id||null}
   let [IT,CT,PR,PD,FORNS]=await Promise.all([
     todos(()=>O.from("compra_itens").select("*").eq("compra_id",id).order("ordem").order("id")),
     todos(()=>O.from("compra_cotacoes").select("*").eq("compra_id",id).order("id")),

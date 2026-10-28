@@ -238,7 +238,7 @@ svg.net line.hit{stroke:transparent}
 <script>
 (async()=>{
 let S,role="cliente",TOKEN=null;
-try{const r=await DB.carregarObra();S=r.S;role=r.role;TOKEN=r.token}
+try{const r=await DB.carregarObra();S=r.S;role=r.role;TOKEN=r.token;if(role!=="cliente"){try{const oid=new URLSearchParams(location.search).get("id");const n=await DB.sb.from("negocios").select("id").eq("obra_id",oid).limit(1);if(n.data&&n.data[0])window.__NEG=n.data[0].id}catch(_){}}}
 catch(e){if(e.message!=="login")document.getElementById("root").innerHTML=`<div class="erro"><img src="assets/on-logo.png" alt="ON Engenharia"><h1>Não foi possível abrir a obra</h1><p>${String(e.message||e).replace(/</g,"&lt;")}</p><a href="index.html">Ir para o início</a></div>`;return}
 document.title=S.obra.titulo+" · ON Engenharia";
 S.onLogo="assets/on-logo.jpg";
@@ -327,7 +327,7 @@ function renderHeader(){
   $("#sub").innerHTML=esc(S.obra.cliente)+` · <a href="${mapsUrl()}" target="_blank" rel="noopener" style="color:#9fb8cc">${esc(S.obra.local)} ↗</a>`;
   const t=$("#tools");
   const vs=`<span class="viewsw"><button class="${view==="desk"?"on":""}" data-v="desk">Desktop</button><button class="${view==="mob"?"on":""}" data-v="mob">Celular</button></span>`;
-  const voltar=role!=="cliente"?`<a class="btn" href="index.html">← Obras</a>`:"";
+  const voltar=role!=="cliente"?`<a class="btn" href="index.html">← Obras</a>`+(window.__NEG?`<a class="btn" href="negocios.html?n=${window.__NEG}">🎫 Ticket</a>`:""):"";
   if(!canEdit){t.innerHTML=vs;bindView();return}
   t.innerHTML=voltar+vs+(role==="admin"?`<button class="btn" id="bLink">Link do cliente</button>`:"")+(edit?`${role==="admin"?'<button class="btn" id="bObra">Dados da obra</button><button class="btn" id="bPlanta">Trocar planta</button>':""}${dirty?'<span class="dirty">Alterações não salvas</span>':""}<button class="btn pri" id="bSave" ${dirty?"":"disabled"}>Salvar</button><button class="btn" id="bView">Ver como cliente</button>`:`<button class="btn pri" id="bEdit">Editar</button>`);
   bindView();

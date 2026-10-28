@@ -1179,7 +1179,7 @@ async function editor(id){
     const vers=IRMAS.length>1?`<select class="inp" id="hVer" aria-label="Versão" style="padding:3px 6px;font-size:12px;background:#2b4157;color:#e8f1f9;border-color:#3b5670">${IRMAS.map(v=>`<option value="${v.id}" ${v.id===ORC.id?"selected":""}>v${v.versao}${v.vigente?" · vigente":""}</option>`).join("")}</select>`:`<span class="chip vig">v${ORC.versao||1}</span>`;
     root.innerHTML=`<div class="app ${etapa==="projeto"?"":"full"}">
      <header class="top"><img src="assets/on-logo.png" alt="ON Engenharia">
-      <div class="ttl"><div class="eye"><a href="orcarede.html">OrçaRede</a>${PASTA?` › <a href="orcarede.html?pasta=${PASTA.id}">${esc(PASTA.nome)}</a>`:""} · ${esc(concSig(conc))}</div>
+      <div class="ttl"><div class="eye"><a href="orcarede.html">OrçaRede</a>${PASTA?` › <a href="orcarede.html?pasta=${PASTA.id}">${esc(PASTA.nome)}</a>`:""}${(ORC.negocio_id||(PASTA&&PASTA.negocio_id))?` · <a href="negocios.html?n=${ORC.negocio_id||PASTA.negocio_id}" style="font-weight:700">🎫 Voltar ao ticket</a>`:""} · ${esc(concSig(conc))}</div>
        <h1><span id="hT"></span>${vers}${ORC.vigente&&IRMAS.length>1?"":""}<span class="chip" id="hSt"></span></h1><div class="sub" id="hS"></div></div>
       <div class="hmix" id="hMix"></div>
       <div class="tot"><div class="eye">Material</div><div class="v" id="hTot"></div></div>
