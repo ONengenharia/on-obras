@@ -286,6 +286,7 @@ html.sover #bVer,html.sover #bVig,html.sover #bFin,html.sover #bDados,html.sover
 @media (max-width:1000px){.cotsplit{grid-template-columns:1fr}.cotorig{max-height:40vh}}
 .tabs2{display:flex;gap:6px;margin:6px 0 10px}
 .cmpsc .tbl.cmp thead th{position:sticky;top:0;z-index:2;background:var(--panel);box-shadow:0 1px 0 var(--line)}.cmpsc .tbl.cmp tfoot td{position:sticky;bottom:0;background:var(--panel);box-shadow:0 -1px 0 var(--line)}
+.cmadd{display:grid;grid-template-columns:1fr 140px auto;gap:8px;align-items:center;margin-top:6px}@media (max-width:640px){.cmadd{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1877,30 +1878,37 @@ async function editor(id){
   function cmpModal(md){const bx=md.querySelector(".mbox");if(!bx)return;bx.classList.add("redim");const h=bx.querySelector("h2");if(h){h.style.cursor="move";let st=null;h.onpointerdown=e=>{st={x:e.clientX,y:e.clientY,ox:+(bx.dataset.ox||0),oy:+(bx.dataset.oy||0)};h.setPointerCapture(e.pointerId)};
   h.onpointermove=e=>{if(!st)return;const ox=st.ox+e.clientX-st.x,oy=st.oy+e.clientY-st.y;bx.dataset.ox=ox;bx.dataset.oy=oy;bx.style.transform=`translate(${ox}px,${oy}px)`};h.onpointerup=()=>{st=null}}}
   function posAcl(inp,box){const r=inp.getBoundingClientRect();Object.assign(box.style,{position:"fixed",left:Math.max(8,Math.min(r.left,innerWidth-Math.max(r.width,620)-8))+"px",top:(r.bottom+4)+"px",width:Math.max(r.width,620)+"px",maxHeight:Math.max(160,innerHeight-r.bottom-20)+"px",zIndex:2000})}
-  function cotManual(){const m=document.createElement("div");m.className="modal";
-    m.innerHTML=`<div class="mbox wide" style="width:min(1100px,96vw)"><div class="row"><h2>Cotação manual</h2><button class="btn" data-xm>Fechar</button></div>
-      <div class="tabs2"><button class="btn sm on" data-mm="colar">📋 Colar texto (WhatsApp, e-mail)</button><button class="btn sm" data-mm="digitar">⌨ Digitar preço por item</button></div>
-      <div data-pane="colar"><p class="note">Cole a mensagem do fornecedor. Cada linha com descrição e valores (quantidade, unitário, total) vira um item; depois você confere na revisão.</p><textarea id="cmTx" rows="12" style="width:100%" placeholder="Ex.:&#10;Poste concreto circular 9/400 daN  142  1.056,00  149.952,00&#10;Cabo protegido 35mm  7224 m  15,55"></textarea>
-        <div class="row" style="justify-content:flex-end"><button class="btn pri" id="cmLer">Ler texto e revisar</button></div></div>
-      <div data-pane="digitar" hidden><div class="grid3"><label class="fld">Fornecedor (apelido)<input id="cmF" list="dlForn" placeholder="Ex.: Santa Clara"><datalist id="dlForn"></datalist></label><label class="fld">Documento / referência<input id="cmD" placeholder="ex.: WhatsApp 28/10"></label><label class="fld">Buscar material<input id="cmQ" placeholder="Filtrar…"></label></div>
-        <div style="overflow:auto;max-height:52vh"><table class="tbl"><thead><tr><th>Material</th><th class="hm">Subgrupo</th><th class="n">Qtd orçada</th><th class="n">Preço atual</th><th class="n">Preço cotado (R$)</th></tr></thead><tbody id="cmL"></tbody></table></div>
-        <label class="note"><input type="checkbox" id="cmAp" checked> aplicar estes preços no orçamento agora</label>
-        <div class="row"><span class="note" id="cmN">0 preços digitados</span><button class="btn pri" id="cmOk">Gravar cotação</button></div></div></div>`;
+  function cotManual(){const m=document.createElement("div");m.className="modal";const A=agregado(),FILA=[];
+    m.innerHTML=`<div class="mbox wide" style="width:min(900px,96vw)"><div class="row"><h2>Cotação manual</h2><button class="btn" data-xm>Fechar</button></div>
+      <div class="grid2"><label class="fld">Fornecedor<input id="cmF" list="dlForn" placeholder="Digite o nome (novo ou existente)"><datalist id="dlForn"></datalist></label><label class="fld">Referência (opcional)<input id="cmD" placeholder="ex.: WhatsApp 28/10"></label></div>
+      <div class="cmadd"><div class="acw"><input class="inp" id="cmQ" placeholder="Digite para procurar o item do orçamento…" autocomplete="off"><div class="acl" id="cmAc" hidden></div></div><input class="inp n" id="cmV" placeholder="Valor unit. R$" inputmode="decimal"><button class="btn pri" id="cmAdd" type="button">+ Incluir</button></div>
+      <div id="cmSel" class="note" style="min-height:18px"></div>
+      <div style="overflow:auto;max-height:45vh"><table class="tbl"><thead><tr><th>Item</th><th class="n">Qtd orçada</th><th class="n">Valor unit.</th><th class="n">Total</th><th></th></tr></thead><tbody id="cmL"></tbody></table></div>
+      <label class="note"><input type="checkbox" id="cmAp" checked> aplicar estes preços no orçamento agora</label>
+      <div class="row"><span class="note" id="cmN"></span><button class="btn pri" id="cmOk">Gravar cotação</button></div></div>`;
     document.body.appendChild(m);cmpModal(m);m.querySelector("[data-xm]").onclick=()=>m.remove();
-    $$("[data-mm]",m).forEach(b=>b.onclick=()=>{$$("[data-mm]",m).forEach(x=>x.classList.toggle("on",x===b));$$("[data-pane]",m).forEach(x=>x.hidden=x.dataset.pane!==b.dataset.mm)});
-    $("#cmLer",m).onclick=async()=>{const t=$("#cmTx",m).value.trim();if(!t){toast("Cole o texto da cotação.");return}m.remove();const f=new File([t],"cotacao-manual.txt",{type:"text/plain"});
-      try{await cotImportar(f)}catch(e){console.error(e);toast("Não consegui ler o texto: "+(e.message||e))}};
-    const A=agregado(),VAL={};
     (async()=>{if(!FORNS_E)FORNS_E=await todos(()=>O.from("fornecedores").select("*").order("apelido"));$("#dlForn",m).innerHTML=FORNS_E.map(f=>`<option value="${esc(f.apelido||f.razao_social)}">`).join("")})();
-    const draw=()=>{const t=norm($("#cmQ",m).value);$("#cmL",m).innerHTML=A.filter(l=>!t||norm(((MAT[l.c]||{}).nome||"")+" "+l.c+" "+((MAT[l.c]||{}).subgrupo||"")).includes(t)).sort((a,b)=>((MAT[a.c]||{}).nome||"").localeCompare((MAT[b.c]||{}).nome||"")).map(l=>{const mt=MAT[l.c]||{};return `<tr><td>${esc(mt.nome||l.c)}<span class="sm">${esc(l.c)}</span></td><td class="hm">${esc(mt.subgrupo||"")}</td><td class="n">${num(l.q,2)} ${esc(mt.unidade||"")}</td><td class="n">${brl(preco(l.c)||0)}</td><td class="n"><input class="inp n" data-cmv="${esc(l.c)}" value="${VAL[l.c]!=null?num(VAL[l.c],4):""}" inputmode="decimal" style="width:110px"></td></tr>`}).join("");
-      $$("[data-cmv]",m).forEach(i=>i.oninput=()=>{const v=pnum(i.value);if(v>0)VAL[i.dataset.cmv]=v;else delete VAL[i.dataset.cmv];$("#cmN",m).textContent=Object.keys(VAL).length+" preços digitados"})};
-    $("#cmQ",m).oninput=draw;draw();
-    $("#cmOk",m).onclick=async()=>{const fn=$("#cmF",m).value.trim();if(!fn){toast("Informe o fornecedor.");return}const ks=Object.keys(VAL);if(!ks.length){toast("Digite ao menos um preço.");return}
+    let esc0=null,R2=[],h=0;const q=$("#cmQ",m),box=$("#cmAc",m),vv=$("#cmV",m);
+    const NI=A.map(l=>[l,norm(((MAT[l.c]||{}).nome||"")+" "+l.c+" "+((MAT[l.c]||{}).subgrupo||""))]);
+    const show=()=>{posAcl(q,box);box.innerHTML=R2.map((l,k)=>`<div class="aci${k===h?" on":""}" data-k="${k}"><b>${esc((MAT[l.c]||{}).nome||l.c)}</b> <span class="sm">${esc(l.c)} · ${num(l.q,2)} ${esc((MAT[l.c]||{}).unidade||"")} · atual ${brl(preco(l.c)||0)}</span></div>`).join("")||'<div class="aci"><span class="note">Nada encontrado no orçamento.</span></div>';box.hidden=false};
+    const filt=()=>{const t=norm(q.value).split(" ").filter(Boolean);h=0;const sc=x=>t.reduce((a,w)=>a+((" "+x+" ").includes(" "+w+" ")?2:0),0);
+      R2=NI.filter(([,x])=>t.every(w=>x.includes(w))).sort((a,b)=>sc(b[1])-sc(a[1])||a[1].length-b[1].length).slice(0,40).map(x=>x[0]);show()};
+    const pick=k=>{const l=R2[k];if(!l)return;esc0=l;q.value=(MAT[l.c]||{}).nome||l.c;box.hidden=true;$("#cmSel",m).innerHTML=`Selecionado: <b>${esc(q.value)}</b> · ${num(l.q,2)} ${esc((MAT[l.c]||{}).unidade||"")} · preço atual ${brl(preco(l.c)||0)}`;vv.focus()};
+    q.oninput=()=>{esc0=null;$("#cmSel",m).textContent="";filt()};q.onfocus=()=>{if(q.value&&!esc0)filt()};q.onblur=()=>setTimeout(()=>box.hidden=true,150);
+    q.onkeydown=e=>{if(box.hidden)return;if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();h=(h+(e.key==="ArrowDown"?1:-1)+R2.length)%Math.max(1,R2.length);show()}else if(e.key==="Enter"){e.preventDefault();pick(h)}else if(e.key==="Escape"){e.stopPropagation();box.hidden=true}};
+    box.addEventListener("pointerdown",e=>{const d=e.target.closest("[data-k]");if(!d)return;e.preventDefault();pick(+d.dataset.k)});
+    const draw=()=>{$("#cmL",m).innerHTML=FILA.map((x,i)=>`<tr><td>${esc((MAT[x.c]||{}).nome||x.c)}<span class="sm">${esc(x.c)}</span></td><td class="n">${num(x.q,2)}</td><td class="n">${brl(x.v)}</td><td class="n">${brl(x.v*x.q)}</td><td class="n"><button class="xb" data-rm2="${i}" title="Tirar">×</button></td></tr>`).join("")||'<tr><td colspan="5" class="note">Procure o item, digite o valor e clique em Incluir (ou Enter).</td></tr>';
+      $("#cmN",m).textContent=FILA.length?`${FILA.length} item(ns) · ${brl(FILA.reduce((t,x)=>t+x.v*x.q,0))}`:"";$$("[data-rm2]",m).forEach(b=>b.onclick=()=>{FILA.splice(+b.dataset.rm2,1);draw()})};draw();
+    const add=()=>{if(!esc0){toast("Escolha o item na lista.");q.focus();return}const v=pnum(vv.value);if(!(v>0)){toast("Digite o valor.");vv.focus();return}
+      const ja=FILA.find(x=>x.c===esc0.c);if(ja)ja.v=v;else FILA.push({c:esc0.c,q:esc0.q,v});esc0=null;q.value="";vv.value="";$("#cmSel",m).textContent="";draw();q.focus()};
+    $("#cmAdd",m).onclick=add;vv.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();add()}};
+    $("#cmOk",m).onclick=async()=>{const fn=$("#cmF",m).value.trim();if(!fn){toast("Informe o fornecedor.");$("#cmF",m).focus();return}if(!FILA.length){toast("Inclua ao menos um item.");return}
       let f=FORNS_E.find(x=>norm(x.apelido||x.razao_social)===norm(fn));if(!f){f=await chk(O.from("fornecedores").insert({apelido:fn}).select("*").single());FORNS_E.push(f)}
       const doc=$("#cmD",m).value.trim()||"manual";const ct=await chk(O.from("orc_cotacoes").insert({orcamento_id:ORC.id,fornecedor_id:f.id,fornecedor_nome:f.apelido||fn,documento:doc,arquivo:"digitada"}).select("*").single());
-      const rows=await chk(O.from("orc_cot_precos").insert(ks.map(c=>({cotacao_id:ct.id,material_codigo:c,preco_unit:VAL[c],texto:"digitado"}))).select("*"));COTS.push(ct);CPR.push(...rows);
-      if($("#cmAp",m).checked)for(const c of ks)await cotAplicar(c,VAL[c],`${ct.fornecedor_nome} · ${doc}`);
-      m.remove();toast(`Cotação manual de ${ct.fornecedor_nome}: ${rows.length} preços.`);renderHead();telaMateriais()}}
+      const rows=await chk(O.from("orc_cot_precos").insert(FILA.map(x=>({cotacao_id:ct.id,material_codigo:x.c,preco_unit:x.v,texto:"digitado"}))).select("*"));COTS.push(ct);CPR.push(...rows);
+      if($("#cmAp",m).checked)for(const x of FILA)await cotAplicar(x.c,x.v,`${ct.fornecedor_nome} · ${doc}`);
+      m.remove();toast(`Cotação manual de ${ct.fornecedor_nome}: ${rows.length} preços.`);renderHead();telaMateriais()};
+    setTimeout(()=>$("#cmF",m).focus(),50)}
   function cotComparar(){
     if(!COTS.length){toast("Importe ao menos uma cotação da obra.");return}
     let selC=null,fq="",ff="",fsg="";
