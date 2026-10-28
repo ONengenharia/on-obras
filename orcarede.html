@@ -281,6 +281,9 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 .warn{display:block;color:var(--danger);font-size:11.5px;font-weight:600;margin-top:3px}.alerta{background:var(--danger-soft);color:var(--danger);border-radius:8px;padding:10px 12px;display:grid;gap:4px}
 .soverbar{position:sticky;top:0;z-index:40;background:#b7791f;color:#fff;font-weight:600;font-size:12.5px;text-align:center;padding:6px 12px}
 html.sover #bVer,html.sover #bVig,html.sover #bFin,html.sover #bDados,html.sover #bCompras,html.sover #mPlace,html.sover #bPlanta,html.sover #pDel,html.sover #pDup,html.sover #mAdd,html.sover #mCot,html.sover #mBase,html.sover #pSalvar,html.sover #pTravar,html.sover #pDestravar,html.sover #padSalvar,html.sover [data-addm],html.sover [data-rm],html.sover [data-rp],html.sover [data-em],html.sover [data-sg],html.sover .xb,html.sover #mScale,html.sover #mTrace{display:none!important}
+.cotsplit{display:grid;grid-template-columns:minmax(0,42%) minmax(0,1fr);gap:12px;align-items:stretch}.cotsplit.sem{grid-template-columns:1fr}.cotsplit.sem .cotorig{display:none}
+.cotorig{border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:64vh;background:#fff}.cotorig iframe{width:100%;height:64vh;border:0}.cotorig img{width:100%;display:block}
+@media (max-width:1000px){.cotsplit{grid-template-columns:1fr}.cotorig{max-height:40vh}}
 </style>
 </head>
 <body>
@@ -809,7 +812,7 @@ async function config(aba){
     if(!window.pdfjsLib){await loadScript("vendor/pdf.min.js")}
     if(window.pdfjsLib&&pdfjsLib.GlobalWorkerOptions&&!pdfjsLib.GlobalWorkerOptions.workerSrc)pdfjsLib.GlobalWorkerOptions.workerSrc="vendor/pdf.worker.min.js";
     const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const out=[];let cab="",col=null,ign=0,modo="",fim=false,lastY=null,lh=12;
-    const NUM=/^(?:R\$\s*)?-?(\d{1,3}(?:\.\d{3})*,\d{1,4}|\d+,\d{1,4}|\d+)$/;
+    const NUM=/^(?:R\$\s*)?-?(\d{1,3}(?:\.\d{3})*,\d{1,4}|\d+,\d{1,4}|\d{1,3}(?:\.\d{3})+|\d+)$/;
     for(let n=1;n<=pdf.numPages;n++){const tc=await(await pdf.getPage(n)).getTextContent();const toks=tc.items.filter(it=>it.str.trim()).map(it=>({x:it.transform[4],y:it.transform[5],w:it.width||0,s:it.str.trim()}));
       const linhas=[];toks.sort((a,b)=>b.y-a.y||a.x-b.x).forEach(t=>{const l=linhas.find(l=>Math.abs(l.y-t.y)<3);if(l)l.t.push(t);else linhas.push({y:t.y,t:[t]})});
       linhas.forEach(l=>l.t.sort((a,b)=>a.x-b.x));
@@ -826,7 +829,11 @@ async function config(aba){
         const gap=lastY==null?0:lastY-l.y;
         const nums=l.t.filter(t=>NUM.test(t.s.replace(/\s/g,""))&&(t.x>=col.d1||t.x<col.d0)).map(t=>({c:t.x+t.w/2,v:pnum(t.s.replace(/R\$\s*/,""))}));
         const perto=x=>x==null||!nums.length?null:nums.reduce((a,b)=>Math.abs(b.c-x)<Math.abs(a.c-x)?b:a);
-        const p=(perto(col.p)||{}).v,q=(perto(col.q)||{}).v??null;const codt=col.c!=null&&l.t.find(t=>Math.abs(t.x-col.c)<40&&/\d{4,}/.test(t.s));
+        const concil=(V,p,q)=>{const ok=(a,b,c)=>a>0&&b>0&&Math.abs(a*b-c)<=Math.max(.06,c*.006);
+          if(q>0){for(const a of V)for(const c of V)if(a!==c&&c>a&&ok(q,a,c))return[a,q]}
+          let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z))continue;if(!best||z>best[2]||(z===best[2]&&Number.isInteger(x)&&!Number.isInteger(best[0])))best=[x,y,z]}
+          if(best){const[x,y]=best;return Number.isInteger(x)&&!Number.isInteger(y)?[y,x]:Number.isInteger(y)&&!Number.isInteger(x)?[x,y]:x<=y?[y,x]:[x,y]}
+          return[p,q]};let p=(perto(col.p)||{}).v,q=(perto(col.q)||{}).v??null;[p,q]=concil(nums.map(x=>x.v),p,q);const codt=col.c!=null&&l.t.find(t=>Math.abs(t.x-col.c)<40&&/\d{4,}/.test(t.s));
         if(desc&&!nums.length&&out.length&&!NAO_ITEM.test(desc)&&out[out.length-1]._pg===n&&gap<lh*1.8){out[out.length-1].txt+=" "+desc;lastY=l.y;continue}
         if(!desc)continue;if(NAO_ITEM.test(desc)||!(p>0)||!/[A-Z]{2,}/i.test(desc)){ign++;continue}
         if(lastY!=null&&gap>4&&gap<30)lh=gap;lastY=l.y;
@@ -1742,7 +1749,7 @@ async function editor(id){
     if(!window.pdfjsLib){await loadScript("vendor/pdf.min.js")}
     if(window.pdfjsLib&&pdfjsLib.GlobalWorkerOptions&&!pdfjsLib.GlobalWorkerOptions.workerSrc)pdfjsLib.GlobalWorkerOptions.workerSrc="vendor/pdf.worker.min.js";
     const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const out=[];let cab="",col=null,ign=0,modo="",fim=false,lastY=null,lh=12;
-    const NUM=/^(?:R\$\s*)?-?(\d{1,3}(?:\.\d{3})*,\d{1,4}|\d+,\d{1,4}|\d+)$/;
+    const NUM=/^(?:R\$\s*)?-?(\d{1,3}(?:\.\d{3})*,\d{1,4}|\d+,\d{1,4}|\d{1,3}(?:\.\d{3})+|\d+)$/;
     for(let n=1;n<=pdf.numPages;n++){const tc=await(await pdf.getPage(n)).getTextContent();const toks=tc.items.filter(it=>it.str.trim()).map(it=>({x:it.transform[4],y:it.transform[5],w:it.width||0,s:it.str.trim()}));
       const linhas=[];toks.sort((a,b)=>b.y-a.y||a.x-b.x).forEach(t=>{const l=linhas.find(l=>Math.abs(l.y-t.y)<3);if(l)l.t.push(t);else linhas.push({y:t.y,t:[t]})});
       linhas.forEach(l=>l.t.sort((a,b)=>a.x-b.x));
@@ -1759,7 +1766,11 @@ async function editor(id){
         const gap=lastY==null?0:lastY-l.y;
         const nums=l.t.filter(t=>NUM.test(t.s.replace(/\s/g,""))&&(t.x>=col.d1||t.x<col.d0)).map(t=>({c:t.x+t.w/2,v:pnum(t.s.replace(/R\$\s*/,""))}));
         const perto=x=>x==null||!nums.length?null:nums.reduce((a,b)=>Math.abs(b.c-x)<Math.abs(a.c-x)?b:a);
-        const p=(perto(col.p)||{}).v,q=(perto(col.q)||{}).v??null;const codt=col.c!=null&&l.t.find(t=>Math.abs(t.x-col.c)<40&&/\d{4,}/.test(t.s));
+        const concil=(V,p,q)=>{const ok=(a,b,c)=>a>0&&b>0&&Math.abs(a*b-c)<=Math.max(.06,c*.006);
+          if(q>0){for(const a of V)for(const c of V)if(a!==c&&c>a&&ok(q,a,c))return[a,q]}
+          let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z))continue;if(!best||z>best[2]||(z===best[2]&&Number.isInteger(x)&&!Number.isInteger(best[0])))best=[x,y,z]}
+          if(best){const[x,y]=best;return Number.isInteger(x)&&!Number.isInteger(y)?[y,x]:Number.isInteger(y)&&!Number.isInteger(x)?[x,y]:x<=y?[y,x]:[x,y]}
+          return[p,q]};let p=(perto(col.p)||{}).v,q=(perto(col.q)||{}).v??null;[p,q]=concil(nums.map(x=>x.v),p,q);const codt=col.c!=null&&l.t.find(t=>Math.abs(t.x-col.c)<40&&/\d{4,}/.test(t.s));
         if(desc&&!nums.length&&out.length&&!NAO_ITEM_C.test(desc)&&out[out.length-1]._pg===n&&gap<lh*1.8){out[out.length-1].txt+=" "+desc;lastY=l.y;continue}
         if(!desc)continue;if(NAO_ITEM_C.test(desc)||!(p>0)||!/[A-Z]{2,}/i.test(desc)){ign++;continue}
         if(lastY!=null&&gap>4&&gap<30)lh=gap;lastY=l.y;
@@ -1795,29 +1806,43 @@ async function editor(id){
     const T=new Set(otk(l.txt)),TA=[...T].filter(x=>!/\d/.test(x)),TN=[...T].filter(x=>/\d/.test(x));let best=null;
     L.forEach(x=>{const U=new Set(otk((MAT[x.c]||{}).nome||""));const ca=TA.filter(w=>U.has(w)).length,cn=TN.filter(w=>U.has(w)).length;if(ca<Math.min(2,TA.length))return;
       let s=(ca+cn*1.2)/Math.sqrt(Math.max(1,TA.length+TN.length)*Math.max(1,U.size));if(TN.length)s*=Math.pow(.55,TN.length-cn);if(!best||s>best.s)best={c:x.c,s,full:cn>=TN.length}});return best}
+  async function lerImagemC(file){toast("Lendo a imagem (OCR)… pode levar alguns segundos");const W=await ocrWorker();
+    const {data}=await W.recognize(await preparaImg(file));const linhas=String(data.text||"").split(/\n+/).map(l=>l.replace(/\s+/g," ").trim()).filter(Boolean);const out=[];let ign=0,cab="";
+    const concil=(V,p,q)=>{const ok=(a,b,c)=>a>0&&b>0&&Math.abs(a*b-c)<=Math.max(.06,c*.006);let best=null;for(const x of V)for(const y of V)for(const z of V){if(x===y&&V.filter(v=>v===x).length<2)continue;if(z<x||z<y||!ok(x,y,z))continue;if(!best||z>best[2])best=[x,y,z]}
+      if(best){const[x,y]=best;return Number.isInteger(x)&&!Number.isInteger(y)?[y,x]:Number.isInteger(y)&&!Number.isInteger(x)?[x,y]:x<=y?[y,x]:[x,y]}return[p,q]};
+    linhas.forEach((ln,i)=>{if(i<12)cab+=ln+"\n";const T=ln.split(" ");const V=[];
+      while(T.length&&/^(?:R\$)?-?(\d{1,3}(?:\.\d{3})+(?:,\d{1,4})?|\d+(?:,\d{1,4})?)$/.test(T[T.length-1].replace(/^R\$/,"")))V.unshift(pnum(T.pop().replace(/^R\$/,"")));
+      if(V.length<2)return;let cod="";if(/^[\dA-Z][\dA-Z.\-\/]{3,}$/i.test(T[0]||"")&&/\d/.test(T[0])){cod=T.shift()}
+      while(T.length&&/^(UN|UND|UNID|PC|PÇ|PCS|M|MT|MTS|KG|CJ|CX|RL|PCT|R\$)$/i.test(T[T.length-1]))T.pop();
+      const d=T.join(" ").replace(/[-–|]+\s*$/,"").trim();let [p,q]=concil(V,V.length>=3?V[V.length-2]:V[0],V.length>=3?V[V.length-3]:null);
+      if(!d||!ehItemC(d)||!(p>0)){ign++;return}out.push({txt:d,cod,q,p})});
+    return{itens:out,cab,modo:"ocr",ignoradas:ign}}
   async function cotImportar(file){toast("Lendo "+file.name+"…");let r;
-    try{r=/\.pdf$/i.test(file.name)?await lerPdfC(file):await lerPlanilhaC(file)}catch(e){console.error(e);toast("Não consegui ler este arquivo.");return}
+    try{r=/\.pdf$/i.test(file.name)?await lerPdfC(file):/^image\//.test(file.type)||/\.(png|jpe?g|webp)$/i.test(file.name)?await lerImagemC(file):await lerPlanilhaC(file)}catch(e){console.error(e);toast("Não consegui ler este arquivo.");return}
+    const urlOrig=URL.createObjectURL(file),ehImg=/^image\//.test(file.type),ehPdf=/\.pdf$/i.test(file.name);
     if(!r.itens.length){toast("Não encontrei itens com preço neste arquivo.");return}
     const cab=lerCabC(r.cab);if(!FORNS_E)FORNS_E=await todos(()=>O.from("fornecedores").select("*").order("apelido"));
     const sug=FORNS_E.find(f=>cab.cnpj&&f.cnpj&&f.cnpj.replace(/\D/g,"")===cab.cnpj.replace(/\D/g,""))||FORNS_E.find(f=>cab.razao_social&&norm(f.razao_social||"")===norm(cab.razao_social));
     const AP=await todos(()=>O.from("apelidos").select("fonte,fornecedor,texto_norm,material_codigo"));const LM=agregado();
     const md=document.createElement("div");md.className="modal";const nomeSug=sug?(sug.apelido||sug.razao_social):(cab.razao_social||"").split(" ").slice(0,2).join(" ");
     let forn=nomeSug;const LL=r.itens.map(x=>{const g=osugere(x,AP,forn,LM);const ok=!!(g&&(g.mem||(g.s>.35&&g.full)));return{...x,c:ok?g.c:"",mem:g&&g.mem,conf:g?g.s:0,ok,dica:!ok&&g?g.c:""}});
-    md.innerHTML=`<div class="mbox wide"><h2>Cotação para esta obra</h2><p class="note">${esc(file.name)} · ${LL.length} linhas lidas${r.ignoradas?` · ${r.ignoradas} ignoradas`:""}. Os preços ficam só neste orçamento; para levar à base use “Enviar para a base”.</p>
+    md.innerHTML=`<div class="mbox wide"><div class="row"><h2>Cotação para esta obra</h2><span style="display:flex;gap:6px"><button class="btn sm" id="cfEsp" type="button">📄 Mostrar/ocultar original</button><a class="btn sm" href="${urlOrig}" target="_blank" rel="noopener">Abrir em nova aba ↗</a></span></div>
+      <div class="cotsplit"><div class="cotorig" id="cfOrig">${ehImg?`<img src="${urlOrig}" alt="Cotação original">`:ehPdf?`<iframe src="${urlOrig}#view=FitH" title="Cotação original"></iframe>`:'<p class="note" style="padding:12px">Planilha: use “Abrir em nova aba”.</p>'}</div><div class="cotrevw"><p class="note">${esc(file.name)} · ${LL.length} linhas lidas${r.ignoradas?` · ${r.ignoradas} ignoradas`:""}. Os preços ficam só neste orçamento; para levar à base use “Enviar para a base”.</p>
       <div class="grid3"><label class="fld">Fornecedor<select id="cfF"><option value="">— novo —</option>${FORNS_E.map(f=>`<option value="${f.id}" ${sug&&sug.id===f.id?"selected":""}>${esc(f.apelido||f.razao_social)}</option>`).join("")}</select></label>
        <label class="fld">Apelido (se novo)<input id="cfN" value="${sug?"":esc(nomeSug)}"></label><label class="fld">Documento<input id="cfD" value="${esc(cab.numero||"")}"></label></div>
-      <div style="overflow:auto;max-height:58vh"><table class="tbl cotrev"><colgroup><col style="width:34px"><col style="width:30%"><col style="width:70px"><col style="width:110px"><col></colgroup><thead><tr><th></th><th>Linha do fornecedor</th><th class="n">Qtd</th><th class="n">Preço unit.</th><th>Material do orçamento</th></tr></thead><tbody>
-      ${LL.map((l,n)=>`<tr><td><input type="checkbox" data-ok="${n}" ${l.ok?"checked":""}></td><td>${esc(l.txt)}${l.cod?`<span class="sm mono">${esc(l.cod)}</span>`:""}</td><td class="n">${l.q!=null?num(l.q,3):""}</td><td class="n"><input class="inp n" data-pv="${n}" value="${num(l.p,4)}" style="width:100px"></td>
+      <div style="overflow:auto;max-height:58vh"><table class="tbl cotrev"><colgroup><col style="width:34px"><col style="width:30%"><col style="width:105px"><col style="width:110px"><col></colgroup><thead><tr><th></th><th>Linha do fornecedor</th><th class="n">Qtd orçada</th><th class="n">Preço unit.</th><th>Material do orçamento</th></tr></thead><tbody>
+      ${LL.map((l,n)=>`<tr><td><input type="checkbox" data-ok="${n}" ${l.ok?"checked":""}></td><td>${esc(l.txt)}${l.cod?`<span class="sm mono">${esc(l.cod)}</span>`:""}</td><td class="n"><b data-qo="${n}">${l.c?num((LM.find(x=>x.c===l.c)||{}).q||0,2):"—"}</b><span class="sm">cotação: ${l.q!=null?num(l.q,3):"—"}</span></td><td class="n"><input class="inp n" data-pv="${n}" value="${num(l.p,4)}" style="width:100px"></td>
         <td><div class="acw"><input class="inp" data-q="${n}" autocomplete="off" placeholder="Digite para procurar o material…" value=""><input type="hidden" data-it="${n}" value="${esc(l.c)}"><div class="acl" data-acl="${n}" hidden></div><div class="matfull" data-mf="${n}">${l.c?esc((MAT[l.c]||{}).nome||l.c)+` <span class="sm mono">${esc(l.c)}</span>`:`<span class="note">— nenhum material escolhido —${l.dica?` parecido: ${esc((MAT[l.dica]||{}).nome||l.dica)} (medida diferente)`:""}</span>`}</div></div>${l.c?`<span class="sm" style="${l.mem?"color:var(--ok)":""}">${l.mem?"✓ "+l.mem:"confiança "+Math.round(Math.min(1,l.conf)*100)+"%"}</span>`:""}</td></tr>`).join("")}</tbody></table></div>
-      <label class="note"><input type="checkbox" id="cfAp" checked> aplicar estes preços no orçamento agora (você pode trocar item a item depois)</label>
+      </div></div><label class="note"><input type="checkbox" id="cfAp" checked> aplicar estes preços no orçamento agora (você pode trocar item a item depois)</label>
       <div class="row"><span class="note" id="cfC"></span><span style="display:flex;gap:8px"><button class="btn" id="cfX">Cancelar</button><button class="btn pri" id="cfOk">Gravar cotação</button></span></div></div>`;
-    document.body.appendChild(md);cmpModal(md);md.querySelector(".mbox").style.width="min(1300px,96vw)";
+    document.body.appendChild(md);cmpModal(md);md.querySelector(".mbox").style.width="min(1600px,98vw)";
+    {let esp=(()=>{try{return localStorage.getItem("orc.cotEsp")!=="0"}catch(e){return true}})();const ap=()=>{md.querySelector(".cotsplit").classList.toggle("sem",!esp)};ap();$("#cfEsp",md).onclick=()=>{esp=!esp;try{localStorage.setItem("orc.cotEsp",esp?"1":"0")}catch(e){}ap()}}
     const cnt=()=>{$("#cfC",md).textContent=LL.filter((l,n)=>md.querySelector(`[data-ok="${n}"]`).checked&&md.querySelector(`[data-it="${n}"]`).value).length+" linhas serão gravadas"};cnt();
     const NI=LM.map(x=>[x.c,norm(x.c+" "+((MAT[x.c]||{}).nome||"")+" "+otk((MAT[x.c]||{}).nome||"").join(" "))]);
     $$("[data-q]",md).forEach(inp=>{const n=+inp.dataset.q,hid=md.querySelector(`[data-it="${n}"]`),box=md.querySelector(`[data-acl="${n}"]`);let R2=[],h=0;
       const mf=md.querySelector(`[data-mf="${n}"]`);
       const show=()=>{box.innerHTML=R2.map((c,k)=>`<div class="aci${k===h?" on":""}" data-k="${k}"><b>${esc((MAT[c]||{}).nome||c)}</b> <span class="sm">${esc(c)}</span></div>`).join("")+`<div class="aci" data-k="-1"><span class="note">— não usar esta linha —</span></div>`;posAcl(inp,box);box.hidden=false};
-      const pick=k=>{if(k<0){hid.value=""}else{hid.value=R2[k]}inp.value="";mf.innerHTML=hid.value?esc((MAT[hid.value]||{}).nome||hid.value)+` <span class="sm mono">${esc(hid.value)}</span>`:'<span class="note">— não usar esta linha —</span>';box.hidden=true;md.querySelector(`[data-ok="${n}"]`).checked=!!hid.value;LL[n].mexeu=true;cnt()};
+      const pick=k=>{if(k<0){hid.value=""}else{hid.value=R2[k]}inp.value="";mf.innerHTML=hid.value?esc((MAT[hid.value]||{}).nome||hid.value)+` <span class="sm mono">${esc(hid.value)}</span>`:'<span class="note">— não usar esta linha —</span>';const qo=md.querySelector(`[data-qo="${n}"]`);if(qo)qo.textContent=hid.value?num((LM.find(x=>x.c===hid.value)||{}).q||0,2):"—";box.hidden=true;md.querySelector(`[data-ok="${n}"]`).checked=!!hid.value;LL[n].mexeu=true;cnt()};
       const filt=()=>{const t=norm(inp.value).split(" ").filter(Boolean).map(w=>OSIN[w]||w);h=0;R2=(t.length?NI.filter(([,x])=>t.every(w=>x.includes(w))).map(x=>x[0]):(()=>{const T2=new Set(otk(LL[n].txt));return NI.map(([c])=>[c,otk((MAT[c]||{}).nome||"").filter(w=>T2.has(w)).length]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(x=>x[0])})()).slice(0,40);show()};
       inp.onfocus=()=>{filt()};inp.oninput=filt;
       inp.onkeydown=e=>{if(box.hidden)return;if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();h=(h+(e.key==="ArrowDown"?1:-1)+R2.length)%Math.max(1,R2.length);show()}else if(e.key==="Enter"){e.preventDefault();pick(h)}else if(e.key==="Escape"){e.stopPropagation();box.hidden=true}};
@@ -1831,7 +1856,9 @@ async function editor(id){
           const nf=await chk(O.from("fornecedores").insert({apelido:fn,razao_social:cab.razao_social||null,cnpj:cab.cnpj||null,telefone:cab.telefone||null,email:cab.email||null}).select("*").single());FORNS_E.push(nf);fid=nf.id}
         const sel=LL.map((l,n)=>({...l,c:md.querySelector(`[data-it="${n}"]`).value,p:pnum(md.querySelector(`[data-pv="${n}"]`).value),use:md.querySelector(`[data-ok="${n}"]`).checked})).filter(l=>l.use&&l.c&&l.p>0);
         if(!sel.length){toast("Nenhuma linha ligada a material.");b.disabled=false;b.textContent="Gravar cotação";return}
-        const doc=$("#cfD",md).value.trim()||null;const ct=await chk(O.from("orc_cotacoes").insert({orcamento_id:ORC.id,fornecedor_id:fid,fornecedor_nome:fn,documento:doc,data:cab.data||null,arquivo:file.name}).select("*").single());
+        const doc=$("#cfD",md).value.trim()||null;let arq=file.name;
+        try{const path=`orcarede/${ORC.id}/cotacoes/${Date.now()}-${file.name.normalize("NFD").replace(/[^\w.\-]+/g,"_")}`;const up=await sb.storage.from("negocios").upload(path,file,{contentType:file.type||undefined});if(!up.error)arq="storage:"+path}catch(e){}
+        const ct=await chk(O.from("orc_cotacoes").insert({orcamento_id:ORC.id,fornecedor_id:fid,fornecedor_nome:fn,documento:doc,data:cab.data||null,arquivo:arq}).select("*").single());
         const U={};sel.forEach(l=>U[l.c]=l);
         const rows=await chk(O.from("orc_cot_precos").insert(Object.values(U).map(l=>({cotacao_id:ct.id,material_codigo:l.c,preco_unit:l.p,qtd:l.q,texto:l.txt}))).select("*"));COTS.push(ct);CPR.push(...rows);
         const ja=new Set(AP.filter(x=>norm(x.fornecedor)===norm(fn)).map(x=>x.texto_norm+"|"+x.material_codigo));const ap=[];
@@ -1925,10 +1952,10 @@ async function editor(id){
         <div class="tools"><button class="btn sm" id="xComp">⬇ Exportar lista…</button><button class="btn sm" id="xForn" title="Excel com logo e cabeçalho da empresa, sem preço e sem nome da obra">⬇ Lista para fornecedores</button></div></div>
        <div class="row"><div class="tools"><button class="btn sm ${ORC.modo_preco==="base"?"on":""}" data-mp="base">Acompanhar base</button><button class="btn sm ${ORC.modo_preco==="travado"?"on":""}" data-mp="travado">Preços travados</button>
          <span class="note">${ORC.modo_preco==="travado"?`congelados${ORC.travado_em?" em "+fdata(ORC.travado_em):""}`:"seguem o preço vigente da base"}${nManual?` · ${nManual} editado(s) só neste orçamento`:""}</span></div>
-        <div class="tools"><label class="btn sm" style="position:relative;overflow:hidden" title="Importar a cotação de um fornecedor (PDF ou Excel) só para esta obra">⬆ Cotação da obra<input type="file" id="mCot" accept=".pdf,.xlsx,.xls,.csv" multiple style="position:absolute;inset:0;opacity:0"></label><button class="btn sm" id="mCmp" title="Comparar as cotações desta obra lado a lado">📊 Comparar cotações</button><button class="btn sm" id="mBase" title="Levar os preços das cotações desta obra para a base">⇪ Enviar para a base</button><button class="btn sm pri" id="mAdd">+ Material avulso</button><label class="note" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" id="mSP" ${soSemPreco?"checked":""}> só sem preço</label><select class="inp sm" id="mOrd" aria-label="Ordenar">${[["alfa","A–Z"],["sub","Subgrupo"],["subtot","Maior subtotal"],["preco","Maior preço unit."],["qtd","Maior quantidade"]].map(([k,t])=>`<option value="${k}" ${ordMat===k?"selected":""}>Ordenar: ${t}</option>`).join("")}</select><input class="inp" id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="width:220px"></div></div>
+        <div class="tools"><label class="btn sm" style="position:relative;overflow:hidden" title="Importar a cotação de um fornecedor (PDF ou Excel) só para esta obra">⬆ Cotação da obra<input type="file" id="mCot" accept=".pdf,.xlsx,.xls,.csv,image/*" multiple style="position:absolute;inset:0;opacity:0"></label><button class="btn sm" id="mCmp" title="Comparar as cotações desta obra lado a lado">📊 Comparar cotações</button><button class="btn sm" id="mBase" title="Levar os preços das cotações desta obra para a base">⇪ Enviar para a base</button><button class="btn sm pri" id="mAdd">+ Material avulso</button><label class="note" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" id="mSP" ${soSemPreco?"checked":""}> só sem preço</label><select class="inp sm" id="mOrd" aria-label="Ordenar">${[["alfa","A–Z"],["sub","Subgrupo"],["subtot","Maior subtotal"],["preco","Maior preço unit."],["qtd","Maior quantidade"]].map(([k,t])=>`<option value="${k}" ${ordMat===k?"selected":""}>Ordenar: ${t}</option>`).join("")}</select><input class="inp" id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="width:220px"></div></div>
        ${(()=>{const cf=conflitos();return cf.length?`<div class="warnbar" style="background:var(--danger-soft);color:var(--danger)">⚠ ${cf.length} material(is) de outra classe de tensão nesta rede de ${ORC.tensao_kv} kV: ${cf.map(x=>esc((MAT[x.c]||{}).nome)).join(" · ")}</div>`:""})()}
        ${EXT.length?`<div class="extra"><div class="lbl">Avulsos do orçamento (fora dos pontos)</div><table class="its">${EXT.map(x=>{const m=MAT[x.material_codigo]||{nome:x.material_codigo};return `<tr><td class="m">${esc(m.nome)}<small>${esc(x.material_codigo)} · ${esc(m.unidade||"")}</small></td><td class="q"><input data-xq="${x.id}" value="${num(x.quantidade,3)}" inputmode="decimal" aria-label="Quantidade"></td><td class="v mono">${num((preco(x.material_codigo)||0)*x.quantidade)}</td><td class="x"><button class="xb" data-xd="${x.id}" title="Remover">×</button></td></tr>`}).join("")}</table></div>`:""}
-       ${COTS.length?`<div class="cotbar"><span class="note">Cotações desta obra:</span>${COTS.map(c=>`<span class="chip">${esc(c.fornecedor_nome)}${c.documento?" · "+esc(c.documento):""} <span class="sm">(${CPR.filter(p=>p.cotacao_id===c.id).length})</span> <button class="xb" data-dct="${c.id}" title="Excluir cotação">×</button></span>`).join("")}</div>`:""}
+       ${COTS.length?`<div class="cotbar"><span class="note">Cotações desta obra:</span>${COTS.map(c=>`<span class="chip">${esc(c.fornecedor_nome)}${c.documento?" · "+esc(c.documento):""} <span class="sm">(${CPR.filter(p=>p.cotacao_id===c.id).length})</span>${/^storage:/.test(c.arquivo||"")?` <button class="xb" data-vorig="${c.id}" title="Ver a cotação original">📄</button>`:""} <button class="xb" data-dct="${c.id}" title="Excluir cotação">×</button></span>`).join("")}</div>`:""}
        ${semPreco?`<div class="warnbar" id="mSPw" style="cursor:pointer" title="Clique para ver só esses">${semPreco} material(is) sem preço na base. <u>${soSemPreco?"mostrar todos":"ver só esses"}</u></div>`:""}
        <div style="overflow:auto"><table class="tbl mt"><thead><tr><th>Material</th><th class="hm">Subgrupo</th><th class="n">Qtd. total</th><th class="n">Preço unit. (R$)</th><th class="n">Subtotal</th>${COTS.length?'<th class="hm">Cotações da obra</th>':""}<th class="hm">Origem do preço</th><th></th></tr></thead><tbody>
        ${F.map(l=>{const o=OP[l.c],pr=preco(l.c),vg=VIGR[l.c],man=o&&o.manual;
@@ -1955,6 +1982,7 @@ async function editor(id){
     $$("[data-em]",el).forEach(b=>b.onclick=()=>editaMatBase(b.dataset.em));
     $("#mCot").onchange=async e=>{const fs=[...e.target.files];e.target.value="";for(const f of fs)await cotImportar(f)};$("#mBase").onclick=cotEnviarBase;$("#mCmp").onclick=cotComparar;
     $$("[data-ap]",el).forEach(b=>b.onclick=async()=>{await cotAplicar(b.dataset.ap,+b.dataset.v,b.dataset.f);renderHead();telaMateriais()});
+    $$("[data-vorig]",el).forEach(b=>b.onclick=async()=>{const c=COTS.find(x=>x.id==b.dataset.vorig);const w=window.open("","_blank");const u=await urlPlanta(c.arquivo);if(u){if(w)w.location=u;else location.href=u}else if(w)w.close()});
     $$("[data-dct]",el).forEach(b=>b.onclick=()=>{const c=COTS.find(x=>x.id==b.dataset.dct);modal(`<h2>Excluir a cotação de ${esc(c.fornecedor_nome)}?</h2><p class="note">Os preços já aplicados continuam no orçamento; só some a comparação.</p>`,async()=>{await chk(O.from("orc_cotacoes").delete().eq("id",c.id));COTS=COTS.filter(x=>x!==c);CPR=CPR.filter(p=>p.cotacao_id!==c.id);telaMateriais()},"Excluir")});
     $$("[data-cm]",el).forEach(b=>b.onclick=()=>{cardModo=b.dataset.cm;try{localStorage.setItem("orc_cardModo",cardModo)}catch(e){}telaMateriais()});
     $$("[data-fs]",el).forEach(b=>b.onclick=()=>{const k=b.dataset.fs;fSub=fSub===k?"":k;telaMateriais()});
