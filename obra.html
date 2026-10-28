@@ -276,13 +276,14 @@ const exP=p=>p.status==="executado";
 const isPoste=p=>p.tipo==="Poste";
 const hasLum=p=>p.lum||p.tipo==="Luminária";
 const hasTr=p=>p.trafo||p.tipo==="Transformador";
+// executado conta 100%, em andamento conta 50%
+const peso=x=>x.status==="executado"?1:x.status==="andamento"?.5:0;
 function mapCount(key,all){
-  const P=all?S.pontos:S.pontos.filter(exP);
-  if(key==="postes")return P.filter(isPoste).length;
-  if(key==="lum")return P.filter(hasLum).length;
-  if(key==="trafo")return P.filter(hasTr).length;
-  const R=S.redes.filter(g=>netKey(g)===key&&(all||g.status==="executado"));
-  return R.reduce((s,g)=>s+segLen(g),0);
+  const w=x=>all?1:peso(x),soma=L=>L.reduce((t,x)=>t+w(x),0);
+  if(key==="postes")return soma(S.pontos.filter(isPoste));
+  if(key==="lum")return soma(S.pontos.filter(hasLum));
+  if(key==="trafo")return soma(S.pontos.filter(hasTr));
+  return S.redes.filter(g=>netKey(g)===key).reduce((t,g)=>t+segLen(g)*w(g),0);
 }
 const qExec=q=>q.auto?mapCount(q.auto):(+q.exec||0);
 const qPct=q=>q.prev>0?Math.min(100,qExec(q)/q.prev*100):0;
