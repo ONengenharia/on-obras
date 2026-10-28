@@ -1817,15 +1817,19 @@ async function editor(id){
       const d=T.join(" ").replace(/[-–|]+\s*$/,"").trim();let [p,q]=concil(V,V.length>=3?V[V.length-2]:V[0],V.length>=3?V[V.length-3]:null);
       if(!d||!ehItemC(d)||!(p>0)){ign++;return}out.push({txt:d,cod,q,p})});
     return{itens:out,cab,modo:"ocr",ignoradas:ign}}
-  async function cotImportar(file){toast("Lendo "+file.name+"…");let r;
+  async function cotImportar(file,pronto){let r;
     try{r=/\.pdf$/i.test(file.name)?await lerPdfC(file):/^image\//.test(file.type)||/\.(png|jpe?g|webp)$/i.test(file.name)?await lerImagemC(file):await lerPlanilhaC(file)}catch(e){console.error(e);toast("Não consegui ler este arquivo.");return}
     const urlOrig=URL.createObjectURL(file),ehImg=/^image\//.test(file.type),ehPdf=/\.pdf$/i.test(file.name);
-    if(!r.itens.length){toast("Não encontrei itens com preço neste arquivo.");return}
+    if(!r.itens.length&&/\.pdf$/i.test(file.name)){try{if(!window.pdfjsLib)await loadScript("vendor/pdf.min.js");const doc=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const R2={itens:[],cab:"",modo:"ocr",ignoradas:0};
+      for(let k=1;k<=Math.min(4,doc.numPages);k++){const pg=await doc.getPage(k);const vp=pg.getViewport({scale:2.2});const cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);await pg.render({canvasContext:g,viewport:vp}).promise;
+        const bl=await new Promise(res=>cv.toBlob(res,"image/png"));const r3=await lerImagemC(bl);R2.itens.push(...r3.itens);if(k===1)R2.cab=r3.cab;R2.ignoradas+=r3.ignoradas}r=R2}catch(e){console.error(e)}}
+    if(!r.itens.length){toast(r.modo==="ocr"?"Não consegui ler itens com preço nesta imagem. Tente um print mais nítido ou o PDF.":"Não encontrei itens com preço neste arquivo. Se for um PDF escaneado (imagem), tire um print e importe como imagem.");return}
     const cab=lerCabC(r.cab);if(!FORNS_E)FORNS_E=await todos(()=>O.from("fornecedores").select("*").order("apelido"));
     const sug=FORNS_E.find(f=>cab.cnpj&&f.cnpj&&f.cnpj.replace(/\D/g,"")===cab.cnpj.replace(/\D/g,""))||FORNS_E.find(f=>cab.razao_social&&norm(f.razao_social||"")===norm(cab.razao_social));
     const AP=await todos(()=>O.from("apelidos").select("fonte,fornecedor,texto_norm,material_codigo"));const LM=agregado();
     const md=document.createElement("div");md.className="modal";const nomeSug=sug?(sug.apelido||sug.razao_social):(cab.razao_social||"").split(" ").slice(0,2).join(" ");
     let forn=nomeSug;const LL=r.itens.map(x=>{const g=osugere(x,AP,forn,LM);const ok=!!(g&&(g.mem||(g.s>.35&&g.full)));return{...x,c:ok?g.c:"",mem:g&&g.mem,conf:g?g.s:0,ok,dica:!ok&&g?g.c:""}});
+    if(pronto)pronto();
     md.innerHTML=`<div class="mbox wide"><div class="row"><h2>Cotação para esta obra</h2><span style="display:flex;gap:6px"><button class="btn sm" id="cfEsp" type="button">📄 Mostrar/ocultar original</button><a class="btn sm" href="${urlOrig}" target="_blank" rel="noopener">Abrir em nova aba ↗</a></span></div>
       <div class="cotsplit"><div class="cotorig" id="cfOrig">${ehImg?`<img src="${urlOrig}" alt="Cotação original">`:ehPdf?`<iframe src="${urlOrig}#view=FitH" title="Cotação original"></iframe>`:'<p class="note" style="padding:12px">Planilha: use “Abrir em nova aba”.</p>'}</div><div class="cotrevw"><p class="note">${esc(file.name)} · ${LL.length} linhas lidas${r.ignoradas?` · ${r.ignoradas} ignoradas`:""}. Os preços ficam só neste orçamento; para levar à base use “Enviar para a base”.</p>
       <div class="grid3"><label class="fld">Fornecedor<select id="cfF"><option value="">— novo —</option>${FORNS_E.map(f=>`<option value="${f.id}" ${sug&&sug.id===f.id?"selected":""}>${esc(f.apelido||f.razao_social)}</option>`).join("")}</select></label>
@@ -1980,7 +1984,8 @@ async function editor(id){
     $("#mSP").onchange=e=>{soSemPreco=e.target.checked;telaMateriais()};$("#mSPw")&&($("#mSPw").onclick=()=>{soSemPreco=!soSemPreco;telaMateriais()});
     $("#mOrd").onchange=e=>{ordMat=e.target.value;try{localStorage.setItem("orc_ordMat",ordMat)}catch(x){}telaMateriais()};
     $$("[data-em]",el).forEach(b=>b.onclick=()=>editaMatBase(b.dataset.em));
-    $("#mCot").onchange=async e=>{const fs=[...e.target.files];e.target.value="";for(const f of fs)await cotImportar(f)};$("#mBase").onclick=cotEnviarBase;$("#mCmp").onclick=cotComparar;
+    $("#mCot").onchange=async e=>{const fs=[...e.target.files];e.target.value="";for(const f of fs){const ov=document.createElement("div");ov.className="modal";ov.innerHTML=`<div class="mbox" style="width:min(380px,100%);text-align:center"><h2>Lendo a cotação…</h2><p class="note">${esc(f.name)}<br>${/^image\//.test(f.type)?"Lendo o texto da imagem, pode levar até 30 segundos.":"Só um instante."}</p></div>`;document.body.appendChild(ov);
+      try{await cotImportar(f,()=>ov.remove())}catch(err){console.error(err);toast("Não consegui abrir a cotação: "+(err&&err.message||err))}finally{ov.remove()}}};$("#mBase").onclick=cotEnviarBase;$("#mCmp").onclick=cotComparar;
     $$("[data-ap]",el).forEach(b=>b.onclick=async()=>{await cotAplicar(b.dataset.ap,+b.dataset.v,b.dataset.f);renderHead();telaMateriais()});
     $$("[data-vorig]",el).forEach(b=>b.onclick=async()=>{const c=COTS.find(x=>x.id==b.dataset.vorig);const w=window.open("","_blank");const u=await urlPlanta(c.arquivo);if(u){if(w)w.location=u;else location.href=u}else if(w)w.close()});
     $$("[data-dct]",el).forEach(b=>b.onclick=()=>{const c=COTS.find(x=>x.id==b.dataset.dct);modal(`<h2>Excluir a cotação de ${esc(c.fornecedor_nome)}?</h2><p class="note">Os preços já aplicados continuam no orçamento; só some a comparação.</p>`,async()=>{await chk(O.from("orc_cotacoes").delete().eq("id",c.id));COTS=COTS.filter(x=>x!==c);CPR=CPR.filter(p=>p.cotacao_id!==c.id);telaMateriais()},"Excluir")});
