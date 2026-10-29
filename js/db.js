@@ -103,7 +103,7 @@
     if (S.redes.length) chk(await sb.from("redes").upsert(S.redes.map(g => linhaDeRede(o, g, uid))));
     if (S.log.length) chk(await sb.from("diario").upsert(S.log.map(l => linhaDeLog(o, l, uid))));
     for (const [tab, col] of [["redes", "redes"], ["pontos", "pontos"], ["diario", "log"]]) {
-      const rem = [...ctx.snap[col]].filter(x => !ids[col].has(x));
+      const rem = [...ctx.snap[col]].filter(x => !ids[col].has(x) && (col !== "log" || (window.__logDel && window.__logDel.has(x))));
       if (rem.length) chk(await sb.from(tab).delete().eq("obra_id", o).in("id", rem));
     }
     if (ctx.role === "admin") {

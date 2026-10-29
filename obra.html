@@ -398,7 +398,7 @@ function renderSide(){
       pane.querySelectorAll("[data-qedit]").forEach(b=>b.onclick=()=>editQuant(b.dataset.qedit));
       pane.querySelectorAll("[data-qdel]").forEach(b=>b.onclick=()=>confirmBox("Remover este item?",()=>{S.quant=S.quant.filter(q=>q.id!==b.dataset.qdel);touch();renderStats()}));
       $("#qAdd").onclick=()=>editQuant(null)}
-  }else if(tab==="mat"){renderMat(pane)
+  }else if(tab==="mat"){renderMat(pane);pane.insertAdjacentHTML("beforeend",anexosHtml("matAnexos","Anexos de materiais",admEd()?"Anexe orçamentos, notas fiscais, romaneios, fotos de entrega e outros documentos de materiais.":"Nenhum anexo de materiais."));bindAnexos(pane,"matAnexos")
   }else if(tab==="diario"){
     const logs=[...S.log].sort((a,b)=>((b.data||"")+(b.ts||"")).localeCompare((a.data||"")+(a.ts||"")));
     pane.innerHTML=(edit?`<div class="composer"><textarea id="cTxt" placeholder="Escreva o que foi feito hoje, recados para o cliente…">${esc(draft.txt)}</textarea>
@@ -412,9 +412,9 @@ function renderSide(){
       [$("#cGal"),$("#cCam")].forEach(inp=>inp.onchange=async()=>{const fs=[...inp.files];inp.value="";if(!fs.length)return;toast("Anexando…");for(const f of fs){const u=await upImage(f,1600);if(u)draft.fotos.push(u)}renderSide();const tt=$("#cTxt");if(tt)tt.focus()});
       $("#cSend").onclick=()=>{const txt=draft.txt.trim();if(!txt&&!draft.fotos.length){toast("Escreva uma mensagem ou anexe uma foto.");return}
         S.log.push({id:uid(),data:draft.data||today(),ts:new Date().toTimeString().slice(0,8),texto:txt,fotos:draft.fotos.slice()});draft={txt:"",fotos:[],data:""};touch();renderSide();toast("Registro adicionado. Clique em Salvar para o cliente ver.")};
-      pane.querySelectorAll("[data-ldel]").forEach(b=>b.onclick=()=>confirmBox("Excluir este registro e suas fotos?",()=>{S.log=S.log.filter(l=>l.id!==b.dataset.ldel);touch();renderSide()}))}
+      pane.querySelectorAll("[data-ldel]").forEach(b=>b.onclick=()=>confirmBox("Excluir este registro e suas fotos?",()=>{(window.__logDel||(window.__logDel=new Set())).add(b.dataset.ldel);S.log=S.log.filter(l=>l.id!==b.dataset.ldel);touch();renderSide()}))}
   }else if(tab==="proj"){
-    pane.innerHTML=anexosHtml();bindAnexos(pane);
+    pane.innerHTML=anexosHtml();bindAnexos(pane,"anexos");
   }else if(tab==="fotos"){
     const A=allPhotos();
     pane.innerHTML=A.length?`<div class="gal">${A.map((f,i)=>`<button data-gi="${i}"><img src="${esc(f.u)}" alt="${esc(f.cap)}" onerror="this.style.opacity=.25"></button>`).join("")}</div>`:`<p class="empty">Nenhuma foto ainda.${edit?" Use Galeria ou Câmera acima, ou anexe no cartão de cada ponto do mapa.":""}</p>`;
@@ -497,23 +497,23 @@ function importMat(){
 const fsize=b=>b>1048576?(b/1048576).toFixed(1).replace(".",",")+" MB":Math.max(1,Math.round(b/1024))+" KB";
 const ficon=n=>/\.pdf$/i.test(n)?"PDF":/\.(png|jpe?g|webp|gif)$/i.test(n)?"IMG":/\.(csv|txt|md|json)$/i.test(n)?"TXT":"ARQ";
 const urlBaixar=a=>/supabase\.co\/storage\//.test(a.url)?a.url+(a.url.includes("?")?"&":"?")+"download="+encodeURIComponent(a.nome||"arquivo"):a.url;
-function anexosHtml(){
+function anexosHtml(key="anexos",tit="Arquivos do projeto",vazio){
   const edit=admEd();
-  const A=S.anexos||[];
-  return `<div class="mh" style="margin-top:6px"><span class="lbl">Arquivos do projeto</span>${edit?`<label class="btn" style="position:relative;overflow:hidden">+ Anexar arquivo<input type="file" multiple id="axUp" style="position:absolute;inset:0;opacity:0"></label>`:""}</div>`
+  const A=S[key]||[];
+  return `<div class="mh" style="margin-top:${key==="anexos"?6:18}px"><span class="lbl">${tit}</span>${edit?`<label class="btn" style="position:relative;overflow:hidden">+ Anexar arquivo<input type="file" multiple id="axUp_${key}" style="position:absolute;inset:0;opacity:0"></label>`:""}</div>`
    +(A.length?`<div class="axl">${A.map(a=>`<div class="ax"><span class="axi">${ficon(a.nome)}</span><button class="axn" data-axo="${a.id}">${esc(a.nome)}<small>${a.tam?fsize(a.tam):""}${a.data?" · "+fdate(a.data):""}</small></button><a class="btn" href="${esc(urlBaixar(a))}" download="${esc(a.nome)}" target="_blank" rel="noopener" title="Baixar">⬇ Baixar</a>${edit?`<button class="lnk del" data-axd="${a.id}">Excluir</button>`:""}</div>`).join("")}</div>`
-   :`<p class="empty">${edit?"Anexe PDFs, fotos, plantas, memorial, ART e outros documentos. Eles ficam disponíveis para visualizar e baixar, inclusive pelo cliente.":"Nenhum arquivo do projeto ainda."}</p>`);
+   :`<p class="empty">${vazio?vazio:edit?"Anexe PDFs, fotos, plantas, memorial, ART e outros documentos. Eles ficam disponíveis para visualizar e baixar, inclusive pelo cliente.":"Nenhum arquivo do projeto ainda."}</p>`);
 }
-function bindAnexos(pane){
+function bindAnexos(pane,key="anexos"){
   const edit=admEd();
-  pane.querySelectorAll("[data-axo]").forEach(b=>b.onclick=()=>openAnexo((S.anexos||[]).find(a=>a.id===b.dataset.axo)));
+  pane.querySelectorAll("[data-axo]").forEach(b=>b.onclick=()=>openAnexo((S[key]||[]).find(a=>a.id===b.dataset.axo)));
   if(!edit)return;
-  pane.querySelectorAll("[data-axd]").forEach(b=>b.onclick=()=>confirmBox("Excluir este arquivo?",()=>{S.anexos=(S.anexos||[]).filter(a=>a.id!==b.dataset.axd);touch();renderSide()}));
-  const up=$("#axUp",pane);if(up)up.onchange=async()=>{const fs=[...up.files];up.value="";if(!fs.length)return;
+  pane.querySelectorAll("[data-axd]").forEach(b=>b.onclick=()=>confirmBox("Excluir este arquivo?",()=>{S[key]=(S[key]||[]).filter(a=>a.id!==b.dataset.axd);touch();renderSide()}));
+  const up=$("#axUp_"+key,pane);if(up)up.onchange=async()=>{const fs=[...up.files];up.value="";if(!fs.length)return;
     if(!assetsNs){toast("Envio de arquivos indisponível nesta visualização.");return}
     let ok=0;for(const f of fs){toast("Enviando "+f.name+"…");
       try{let blob=f;
-        const r=await assetsNs.upload(blob,f.name);(S.anexos||(S.anexos=[])).push({id:uid(),nome:f.name,tam:blob.size,tipo:f.type||"",url:r.url||("/_blob/"+r.id),data:today()});ok++}
+        const r=await assetsNs.upload(blob,f.name);(S[key]||(S[key]=[])).push({id:uid(),nome:f.name,tam:blob.size,tipo:f.type||"",url:r.url||("/_blob/"+r.id),data:today()});ok++}
       catch(e){const c=e&&e.code;toast(f.name+": "+(c==="too_large"?"arquivo grande demais (limite 20 MB).":c==="invalid_request"||c==="unsupported_type"?"tipo de arquivo não aceito. Use PDF, imagem ou CSV; para Word/Excel, salve como PDF.":"não foi possível enviar."))}}
     if(ok){touch();renderSide();toast(ok+(ok>1?" arquivos anexados":" arquivo anexado")+". Clique em Salvar.")}};
 }
@@ -597,6 +597,7 @@ let rTimer=null;
 function gravarRascunho(){try{localStorage.setItem(RKEY,JSON.stringify({em:Date.now(),role,S}))}catch(e){}}
 function limparRascunho(){try{localStorage.removeItem(RKEY)}catch(e){}}
 function touch(){dirty=true;renderHeader();clearTimeout(rTimer);rTimer=setTimeout(gravarRascunho,400)}
+const uniao=(srv,loc)=>{srv=srv||[];if(!loc)return srv;const m=new Map(srv.map(x=>[x.id,x]));loc.forEach(x=>m.set(x.id,x));return[...m.values()]};
 function ofertarRascunho(){
   let r=null;try{r=JSON.parse(localStorage.getItem(RKEY)||"null")}catch(e){}
   if(!r||!r.S||!canEdit)return;
@@ -607,8 +608,10 @@ function ofertarRascunho(){
   $("#rgD",m).onclick=()=>{limparRascunho();m.remove();toast("Rascunho descartado.")};
   $("#rgR",m).onclick=()=>{
     const R=r.S;
-    if(role==="admin")Object.assign(S,R);
-    else{S.pontos=R.pontos||S.pontos;S.redes=R.redes||S.redes;S.log=R.log||S.log}
+    const logSrv=S.log,ptSrv=S.pontos,rdSrv=S.redes;
+    if(role==="admin"){Object.assign(S,R);S.pontos=uniao(ptSrv,R.pontos);S.redes=uniao(rdSrv,R.redes);S.log=logSrv}
+    else{S.pontos=uniao(S.pontos,R.pontos);S.redes=uniao(S.redes,R.redes)}
+    S.log=uniao(S.log,R.log);
     m.remove();edit=true;dirty=true;renderAll();toast("Alterações recuperadas. Toque em Salvar para enviar.")};
 }
 window.addEventListener("online",()=>{if(dirty)toast("Internet de volta. Toque em Salvar para enviar as alterações.")});
