@@ -297,6 +297,7 @@ header.top .steps{width:100%}
 .mbox.redim{resize:both;overflow:auto;min-width:640px;max-width:98vw;max-height:94vh}
 .tbl.cotrev{table-layout:fixed;width:100%}.tbl.cotrev th{resize:horizontal;overflow:hidden}.tbl.cotrev td{overflow-wrap:anywhere;vertical-align:top}.tbl.cotrev .acw input{width:100%}.matfull{font-size:12px;font-weight:600;margin-top:4px;line-height:1.3}
 .cmpsc .tbl.cmp thead th{position:sticky;top:0;z-index:2;background:var(--panel);box-shadow:0 1px 0 var(--line)}.cmpsc .tbl.cmp tfoot td{position:sticky;bottom:0;background:var(--panel);box-shadow:0 -1px 0 var(--line)}
+.tbl.cmp th:first-child,.tbl.cmp td:first-child{position:sticky;left:0;z-index:1;background:var(--panel);min-width:280px;max-width:420px;white-space:normal}.cmpsc .tbl.cmp thead th:first-child,.cmpsc .tbl.cmp tfoot td:first-child{z-index:3}
 </style>
 </head>
 <body>
@@ -489,7 +490,7 @@ async function painel(id){
   const CTM=()=>Object.fromEntries(CT.map(c=>[c.id,c]));
   const nomeC=cid=>{const c=CT.find(x=>x.id==cid);return c?c.fornecedor_nome:"—"};
   const qc=i=>Math.max(0,(+i.qtd||0)-(+i.estoque||0));
-  let selC=(()=>{try{const v=JSON.parse(sessionStorage.getItem("cmp.sel."+id)||"null");return v?new Set(v):null}catch(e){return null}})();
+  let fmodo="alguma";let selC=(()=>{try{const v=JSON.parse(sessionStorage.getItem("cmp.sel."+id)||"null");return v?new Set(v):null}catch(e){return null}})();
   const visC=()=>CT.filter(c=>!selC||selC.has(c.id));
   function faixa(i,so){const ok=so?new Set(so.map(c=>c.id)):null;const ps=Object.entries(PM[i.id]||{}).map(([c,v])=>({c:+c,v})).filter(x=>x.v>0&&(!ok||ok.has(x.c)));if(!ps.length)return null;
     const min=ps.reduce((a,b)=>b.v<a.v?b:a),max=ps.reduce((a,b)=>b.v>a.v?b:a);return{ps,min,max}}
@@ -558,6 +559,7 @@ async function painel(id){
     const VC=visC();const t=norm(fq);
     const L=ativos().filter(i=>{if(t&&!norm(i.descricao+" "+(i.material_codigo||"")+" "+(i.oc||"")).includes(t))return false;if(fSub&&(i.subgrupo||"")!==fSub)return false;if(fWin&&String(i.cotacao_escolhida||"")!==fWin)return false;
       const f=faixa(i),e=vEsc(i);
+      if(selC&&fmodo!=="todos"){const tem=VC.map(c=>(PM[i.id]||{})[c.id]>0);if(fmodo==="alguma"&&!tem.some(Boolean))return false;if(fmodo==="todas"&&!tem.every(Boolean))return false}
       return ff==="sem"?!f:ff==="naoesc"?e==null&&qc(i)>0:ff==="esc"?e!=null:ff==="caro"?(f&&e!=null&&e>f.min.v+1e-6):ff==="barato"?(f&&e!=null&&e<=f.min.v+1e-6):ff==="oc"?!!i.oc:ff==="semoc"?!i.oc&&qc(i)>0:ff==="estoque"?(+i.estoque>0):true});
     const k=contas();const subs=[...new Set(ativos().map(i=>i.subgrupo||""))].filter(Boolean).sort();
     $("#full").innerHTML=`<div class="wrap2 wide3"><div class="card">
@@ -569,7 +571,7 @@ async function painel(id){
         <select class="inp" id="cW"><option value="">Empresa ganhadora: todas</option>${CT.map(c=>`<option value="${c.id}" ${fWin==String(c.id)?"selected":""}>Ganhadora: ${esc(c.fornecedor_nome)}</option>`).join("")}</select>
         <select class="inp" id="cS"><option value="">Todos os subgrupos</option>${subs.map(x=>`<option ${fSub===x?"selected":""}>${esc(x)}</option>`).join("")}</select>
       </div>
-      ${CT.length?`<div class="chipsel"><span class="note">Comparar:</span>${CT.map(c=>`<button class="ch ${!selC||selC.has(c.id)?"on":""}" data-sc="${c.id}">${!selC||selC.has(c.id)?"☑":"☐"} ${esc(c.fornecedor_nome)}</button>`).join("")}${selC?'<button class="lnk" data-sc="all">todas</button>':""}</div>`:""}
+      ${CT.length?`<div class="chipsel"><span class="note">Comparar:</span>${CT.map(c=>`<button class="ch ${!selC||selC.has(c.id)?"on":""}" data-sc="${c.id}">${!selC||selC.has(c.id)?"☑":"☐"} ${esc(c.fornecedor_nome)}</button>`).join("")}${selC?`<button class="lnk" data-sc="all">todas</button><select class="inp sm" id="cfm" style="width:auto">${[["alguma","Cotados por alguma das marcadas"],["todas","Cotados por todas as marcadas"],["todos","Todos os itens"]].map(([v,t])=>`<option value="${v}" ${fmodo===v?"selected":""}>${t}</option>`).join("")}</select>`:""}</div>`:""}
       <p class="note">Clique no preço para escolher. <span class="cmin">verde</span> = mais barato entre as empresas comparadas, <span class="cmax">vermelho</span> = mais caro. Em <b>Estoque</b>, digite o que já tem: a compra é a diferença. Linhas <span class="ocx">verdes</span> já têm OC.</p>
       <div class="cmpsc" style="overflow:auto;max-height:calc(100vh - 330px)"><table class="tbl cmp"><thead><tr><th>Material</th><th class="n">Orçado</th><th class="n">Estoque</th><th class="n">A comprar</th><th class="n">Previsto</th>${VC.map(c=>`<th class="n fcol" title="${esc(c.documento||"")}">${esc(c.fornecedor_nome)}<small>${c.frete?"frete "+brl(c.frete):""}</small></th>`).join("")}<th class="n">Escolhido</th><th class="n">Total</th><th class="n">vs previsto</th></tr></thead><tbody>
       ${L.map(i=>{const f=faixa(i,VC),fa=faixa(i),e=vEsc(i),q=qc(i),caro=fa&&e!=null&&e>fa.min.v+1e-6;
@@ -586,6 +588,7 @@ async function painel(id){
     {const sc=document.querySelector(".cmpsc");if(sc&&kA){sc.scrollTop=kA[0];sc.scrollLeft=kA[1]}}
     $("#cF").onchange=e=>{ff=e.target.value;tComp()};$("#cW").onchange=e=>{fWin=e.target.value;tComp()};$("#cS").onchange=e=>{fSub=e.target.value;tComp()};
     $("#cQ").oninput=e=>{fq=e.target.value;const p=e.target.selectionStart;tComp();const i=$("#cQ");i.focus();i.setSelectionRange(p,p)};
+    if($("#cfm"))$("#cfm").onchange=e=>{fmodo=e.target.value;tComp()};
     $$("[data-sc]").forEach(b=>b.onclick=()=>{const v=b.dataset.sc;if(v==="all")selC=null;else{const cid=+v;if(!selC)selC=new Set(CT.map(c=>c.id));selC.has(cid)?selC.delete(cid):selC.add(cid);if(!selC.size||selC.size===CT.length)selC=null}
       try{sessionStorage.setItem("cmp.sel."+id,JSON.stringify(selC?[...selC]:null))}catch(e){}tComp()});
     $$("[data-est]").forEach(inp=>inp.onchange=async()=>{const it=IT.find(x=>x.id==inp.dataset.est);const v=Math.max(0,pnum(inp.value));await chk(O.from("compra_itens").update({estoque:v}).eq("id",it.id));it.estoque=v;tComp()});
