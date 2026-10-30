@@ -171,6 +171,14 @@ button.kp:hover{border-color:var(--c)}
 .msel{border:1px solid var(--accent);border-radius:10px;padding:10px;display:grid;gap:6px;background:var(--panel)}.msel .r{display:flex;gap:8px;align-items:center}.msel .mbar{flex:1}
 .semi2{display:flex;gap:6px;align-items:center}.semi2 .semi{flex:1}
 @media (max-width:900px){.mlay{grid-template-columns:1fr;height:auto}.mlay .mapabox{height:60vh}.mdiv{display:none}.mpan{max-height:none}}
+.lemod{position:fixed;inset:0;z-index:800;background:rgba(10,18,28,.55);display:flex;align-items:center;justify-content:center;padding:16px}.lebox{background:var(--panel);color:var(--ink);border-radius:14px;width:min(1100px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;gap:10px;padding:16px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.lebox .row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.dot{display:inline-block;width:10px;height:10px;border-radius:50%}.lel{overflow:auto;display:grid;gap:4px}
+.ler{display:grid;grid-template-columns:20px minmax(0,1fr) 140px 80px 120px 60px;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel)}.ler.ov{border-color:var(--accent);box-shadow:0 -3px 0 var(--accent)}
+.ler .alca{cursor:grab;color:var(--muted)}.ler .lt{text-decoration:none;color:inherit;display:grid}.ler .lt small,.ler .lr,.ler .lp{color:var(--muted);font-size:12px}.ler .lv{text-align:right;font-family:var(--f-mono,monospace);font-size:12.5px}.ler .lm{display:flex;gap:2px}.ler .lm button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;cursor:pointer;padding:2px 6px}.ler .lm button:disabled{opacity:.3}
+@media (max-width:700px){.ler{grid-template-columns:20px 1fr 90px 50px}.ler .lr,.ler .lp{display:none}}
+.dsh .dk{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.dsh .dk div{background:var(--bg);border-radius:10px;padding:8px 10px;display:grid}.dsh .dk b{font-size:18px}.dsh .dk span{font-size:11.5px;color:var(--muted)}
+.dsh h4{margin:8px 0 2px}.dr{display:grid;grid-template-columns:minmax(110px,1fr) 2fr 130px;gap:8px;align-items:center;font-size:12.5px}.dr small{color:var(--muted)}.db{height:9px;background:var(--line);border-radius:5px;overflow:hidden}.db b{display:block;height:100%}.dv{text-align:right;font-size:12px;font-family:var(--f-mono,monospace)}
+@media (max-width:700px){.dsh .dk{grid-template-columns:1fr 1fr}}
 </style>
 <script src="vendor/supabase.js"></script>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
@@ -300,13 +308,14 @@ async function renderPainel(){
   const eu=perfil.id,fimHoje=new Date();fimHoje.setHours(23,59,59,999);const em3=new Date(fimHoje.getTime()+3*864e5);
   const q=async x=>{try{const r=await x;return r.data||[]}catch(e){return[]}};
   const [N,C,A,AV,LB,H]=await (Promise.all([
-    q(sb.from("negocios").select("id,quadro,coluna,valor,titulo,cliente,cidade,membros,resp,atualizado_em,obra_id")),
+    q(sb.from("negocios").select("id,quadro,coluna,valor,titulo,cliente,cidade,membros,resp,atualizado_em,obra_id,ordem,prazo,tipo")),
     q(sb.from("neg_colunas").select("id,quadro,nome,cor,ordem,area").order("ordem")),
     q(sb.from("neg_areas").select("id,nome,cor,ordem").order("ordem")),
     q(sb.from("notificacoes").select("id,tipo,texto,negocio_id,criado_em,lido").eq("lido",false).order("criado_em",{ascending:false}).limit(6)),
     q(sb.from("neg_lembretes").select("id,negocio_id,quando,texto,negocios(titulo)").eq("para",eu).eq("feito",false).lte("quando",em3.toISOString()).order("quando").limit(8)),
     q(sb.from("neg_historico").select("negocio_id,texto,criado_em").order("criado_em",{ascending:false}).limit(8)),
     ADM()?Promise.resolve([]):q(sb.from("neg_area_acesso").select("area_id").eq("user_id",eu))]).then(r=>{if(!ADM()){const mi=new Set(r[6].map(x=>x.area_id));r[1]=r[1].filter(c=>!c.area||mi.has(c.area))}return r}));
+  const PERF=await q(sb.from("perfis").select("id,nome"));const nomeU=id=>((PERF.find(u=>u.id===id)||{}).nome||"").split(" ").slice(0,2).join(" ");
   const CRIA=ADM()?[]:(await q(sb.from("neg_criadores").select("quadro").eq("user_id",eu))).map(x=>x.quadro);
   if(aba!=="painel")return;
   const brl=v=>"R$ "+(+v||0).toLocaleString("pt-BR",{maximumFractionDigits:0});
@@ -318,7 +327,7 @@ async function renderPainel(){
   const media=obras.length?Math.round(obras.reduce((a,o)=>a+(+o.avanco||0),0)/obras.length):0;
   const funil=q=>{const cs=C.filter(c=>c.quadro===q);const mx=Math.max(1,...cs.map(c=>N.filter(n=>n.coluna===c.id).length));
     return cs.length?cs.map(c=>{const L=N.filter(n=>n.coluna===c.id),v=L.reduce((a,n)=>a+(+n.valor||0),0);const ar=A.find(a=>a.id===c.area);
-      return `<a class="fl" href="negocios.html?q=${q}" title="${esc(c.nome)}"><span class="fn">${esc(c.nome)}${ar?`<i style="--a:${ar.cor}">${esc(ar.nome)}</i>`:""}</span><span class="fb"><b style="width:${L.length/mx*100}%;background:${c.cor}"></b></span><span class="fq">${L.length}</span><span class="fv">${v?brl(v):""}</span></a>`}).join(""):'<p class="note">Sem colunas.</p>'};
+      return `<a class="fl" href="negocios.html?q=${q}" data-fcol="${c.id}" title="Ver a lista de ${esc(c.nome)}"><span class="fn">${esc(c.nome)}${ar?`<i style="--a:${ar.cor}">${esc(ar.nome)}</i>`:""}</span><span class="fb"><b style="width:${L.length/mx*100}%;background:${c.cor}"></b></span><span class="fq">${L.length}</span><span class="fv">${v?brl(v):""}</span></a>`}).join(""):'<p class="note">Sem colunas.</p>'};
   const card=(href,ic,t,sub,big,extra,cor)=>`<a class="mod" href="${href}" style="--m:${cor}"><span class="mi">${ic}</span><span class="mt">${t}</span><span class="mb">${big}</span><span class="ms">${sub}</span>${extra||""}</a>`;
   const el=ativos("eletrica"),so=ativos("solar");const temQ=q=>C.some(c=>c.quadro===q);
   const andamento=obras.filter(o=>(+o.avanco||0)<100).sort((a,b)=>(b.atualizado_em||"").localeCompare(a.atualizado_em||"")).slice(0,6);
@@ -339,8 +348,31 @@ async function renderPainel(){
     </section>
     ${temQ("eletrica")||temQ("solar")?`<section class="pcx">${temQ("eletrica")?`<h3>🔀 Funil · Elétrica</h3>${funil("eletrica")}`:""}${temQ("solar")?`<h3 style="margin-top:14px">🔀 Funil · Solar</h3>${funil("solar")}`:""}</section>`:""}
     <section class="pcx"><h3>🏗️ Obras em andamento</h3>${andamento.length?andamento.map(o=>{const p=Math.round(+o.avanco||0);return `<a class="li" href="obra.html?id=${o.id}"><span class="ob"><b>${esc(o.titulo)}</b><small>${esc(o.cliente||"")} · ${esc(nomeCol(o.coluna))}</small><span class="mbar"><b style="width:${p}%"></b></span></span><span class="lq">${p}%</span></a>`}).join(""):'<p class="note">Nenhuma obra em andamento.</p>'}</section>
+    ${(()=>{const at=[...ativos("eletrica"),...ativos("solar")];const tot=at.reduce((a,n)=>a+(+n.valor||0),0);
+      const porA={};at.forEach(n=>{const c=colN(n.coluna),ar=A.find(a=>a.id===c.area);const k=ar?ar.nome:"Sem área";(porA[k]=porA[k]||{n:0,v:0,cor:ar?ar.cor:"#8a96a3"});porA[k].n++;porA[k].v+=+n.valor||0});
+      const porR={};at.forEach(n=>{const k=nomeU(n.resp)||"Sem responsável";(porR[k]=porR[k]||{n:0,v:0});porR[k].n++;porR[k].v+=+n.valor||0});
+      const par=at.filter(n=>Date.now()-new Date(n.atualizado_em)>15*864e5).sort((a,b)=>new Date(a.atualizado_em)-new Date(b.atualizado_em));
+      const mxA=Math.max(1,...Object.values(porA).map(x=>x.v)),mxR=Math.max(1,...Object.values(porR).map(x=>x.n));
+      const dias=d=>Math.floor((Date.now()-new Date(d))/864e5);
+      return `<section class="pcx dsh"><h3>📊 Visão geral dos negócios</h3>
+       <div class="dk"><div><b>${at.length}</b><span>negócios ativos</span></div><div><b>${brl(tot)}</b><span>em carteira</span></div><div><b>${par.length}</b><span>parados há +15 dias</span></div><div><b>${obras.filter(o=>(+o.avanco||0)<100).length}</b><span>obras em andamento</span></div></div>
+       <h4>Por área</h4>${Object.entries(porA).sort((a,b)=>b[1].v-a[1].v).map(([k,x])=>`<div class="dr"><span>${esc(k)} <small>(${x.n})</small></span><span class="db"><b style="width:${x.v/mxA*100}%;background:${x.cor}"></b></span><span class="dv">${brl(x.v)}</span></div>`).join("")}
+       <h4>Por responsável</h4>${Object.entries(porR).sort((a,b)=>b[1].n-a[1].n).slice(0,8).map(([k,x])=>`<div class="dr"><span>${esc(k)}</span><span class="db"><b style="width:${x.n/mxR*100}%;background:var(--accent)"></b></span><span class="dv">${x.n} · ${brl(x.v)}</span></div>`).join("")}
+       ${par.length?`<h4>⏳ Parados há mais tempo</h4>${par.slice(0,6).map(n=>`<a class="li" href="negocios.html?n=${n.id}"><span>${esc(n.titulo)}<small>${esc(colN(n.coluna).nome||"")} · ${esc(nomeU(n.resp)||"")}</small></span><span class="lq">${dias(n.atualizado_em)} d</span></a>`).join("")}`:""}</section>`})()}
     <section class="pcx"><h3>🕘 Movimentações recentes</h3>${H.length?H.map(x=>`<a class="li" href="negocios.html?n=${x.negocio_id}"><span>${esc(x.texto)}<small>${esc(tit(x.negocio_id))} · ${fdate(x.criado_em)}</small></span></a>`).join(""):'<p class="note">Nada ainda.</p>'}</section>
    </div></div>`;
+  corpo.querySelectorAll("[data-fcol]").forEach(a=>a.onclick=e=>{e.preventDefault();listaEtapa(a.dataset.fcol)});
+  function listaEtapa(cid){const c=colN(cid);const fmtD=d=>d?new Date(d+"T12:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"}):"";
+    let L=N.filter(n=>n.coluna===cid).sort((a,b)=>(+b.ordem||0)-(+a.ordem||0));
+    const m=document.createElement("div");m.className="lemod";document.body.appendChild(m);
+    const draw=()=>{const v=L.reduce((a,n)=>a+(+n.valor||0),0);
+      m.innerHTML=`<div class="lebox"><div class="row"><div><span class="note">Etapa</span><h2 style="margin:0;font-size:18px"><i class="dot" style="background:${c.cor}"></i> ${esc(c.nome||"")}</h2><span class="note">${L.length} negócio(s) · ${brl(v)} · arraste ⠿ ou use ▲▼ para reordenar</span></div><span style="display:flex;gap:6px"><a class="btn" href="negocios.html?q=${c.quadro}">Abrir o quadro</a><button class="btn" id="leX">Fechar</button></span></div>
+        <div class="lel">${L.map((n,i)=>`<div class="ler" draggable="true" data-li="${i}"><span class="alca" title="Arraste">⠿</span><a href="negocios.html?n=${n.id}" class="lt"><b>${esc(n.titulo)}</b><small>${esc([n.cliente,n.cidade,n.tipo].filter(Boolean).join(" · "))}</small></a><span class="lr">${esc(nomeU(n.resp)||"")}</span><span class="lp">${n.prazo?"📅 "+fmtD(n.prazo):""}</span><span class="lv">${+n.valor?brl(n.valor):"—"}</span><span class="lm"><button data-up="${i}" title="Subir" ${i?"":"disabled"}>▲</button><button data-dn="${i}" title="Descer" ${i<L.length-1?"":"disabled"}>▼</button></span></div>`).join("")||'<p class="note">Nenhum negócio nesta etapa.</p>'}</div></div>`;
+      $("#leX",m).onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()};
+      const mover=async(i,j)=>{if(j<0||j>=L.length)return;const [x]=L.splice(i,1);L.splice(j,0,x);draw();const n=L.length;for(let k=0;k<n;k++){const o=n-k;if(+L[k].ordem!==o){L[k].ordem=o;const {error}=await sb.from("negocios").update({ordem:o}).eq("id",L[k].id);if(error){toast("Não foi possível reordenar: "+error.message);return}}}};
+      m.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>mover(+b.dataset.up,+b.dataset.up-1));m.querySelectorAll("[data-dn]").forEach(b=>b.onclick=()=>mover(+b.dataset.dn,+b.dataset.dn+1));
+      let ori=null;m.querySelectorAll(".ler").forEach(r=>{r.ondragstart=e=>{ori=+r.dataset.li;e.dataTransfer.effectAllowed="move"};r.ondragover=e=>{e.preventDefault();r.classList.add("ov")};r.ondragleave=()=>r.classList.remove("ov");r.ondrop=e=>{e.preventDefault();r.classList.remove("ov");if(ori!=null)mover(ori,+r.dataset.li);ori=null}})};
+    draw()}
 }
 
 /* ---------- início: mapa ---------- */
