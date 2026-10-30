@@ -124,7 +124,7 @@ tr.fc td{background:var(--danger-soft)}
 .leg div{display:flex;align-items:center;gap:6px}.leg b{font-family:var(--f-mono);font-weight:500;margin-left:auto;padding-left:12px}
 .trl{display:grid;gap:6px}.trl label{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:13px;font-weight:600}
 .trl label small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}.trl label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
-.painel{grid-template-columns:auto minmax(0,1fr) minmax(220px,.8fr);gap:18px;align-items:center}
+.painel{grid-template-columns:auto minmax(0,1fr) auto minmax(220px,.7fr);gap:18px;align-items:center}.ppS{border-left:1px solid var(--line);padding-left:16px}.ppS .lg{max-height:190px;overflow:auto}@media (max-width:1400px){.painel{grid-template-columns:auto minmax(0,1fr)}.pp3{border-left:0;padding-left:0}}
 .pp1{display:flex;gap:14px;align-items:center}.pp1 svg{color:var(--ink);flex:none}
 .pp1 .lg{display:grid;gap:4px;font-size:12px;min-width:150px}.pp1 .lg div{display:grid;grid-template-columns:10px 1fr auto;gap:6px;align-items:center}.pp1 .lg i{width:10px;height:10px;border-radius:3px}.pp1 .lg b{font-family:var(--f-mono);font-weight:500}
 .pp2{display:grid;gap:7px}.gb{display:grid;grid-template-columns:96px minmax(0,1fr) 110px;gap:8px;align-items:center;font-size:12px}.gb .bar{height:9px}.gb .mono{text-align:right}
@@ -2196,6 +2196,10 @@ async function editor(id){
     const nP=PTS.filter(p=>p.poste_id).length,m=VAOS.reduce((s,v)=>s+(+v.comprimento_m),0),maxG=Math.max(1,...gs.map(g=>g[1]));
     return `<div class="card painel"><div class="pp1">${donut(parts,R.T)}<div class="lg">${parts.map(p=>`<div><i style="background:${p.cor}"></i><span>${esc(p.n)}</span><b>${R.T?num(p.v/R.T*100,1):0}%</b></div>`).join("")}</div></div>
       <div class="pp2"><div class="lbl">Custos do serviço por grupo</div>${gs.map(([g,v])=>`<div class="gb"><span>${esc(g)}</span><div class="bar"><b style="width:${v/maxG*100}%;background:${CORG[g]||"#999"}"></b></div><span class="mono">${brl(v)}</span></div>`).join("")||'<p class="note">Sem custos lançados.</p>'}</div>
+      ${(()=>{const PS={};todas().forEach(l=>{const k=(MAT[l.c]||{}).subgrupo||"Sem subgrupo";PS[k]=(PS[k]||0)+l.q*(preco(l.c)||0)});const tot=Object.values(PS).reduce((a,b)=>a+b,0);if(!tot)return"";
+        let E=Object.entries(PS).sort((a,b)=>b[1]-a[1]);const pq=E.filter(([,v])=>v/tot<.01);E=E.filter(([,v])=>v/tot>=.01);if(pq.length)E.push(["Outros ("+pq.length+")",pq.reduce((a,x)=>a+x[1],0)]);
+        const pts=E.map(([n,v],i)=>({n,v,cor:PAL_CAT[i%PAL_CAT.length]}));
+        return `<div class="ppS"><div class="pp1">${donut(pts,tot).replace("Total ao cliente","Materiais")}<div class="lg">${pts.map(p=>`<div ${/^Outros \(/.test(p.n)?"":`data-psub="${esc(p.n)}"`} style="cursor:pointer" title="${brl(p.v)} · ver na aba Materiais"><i style="background:${p.cor}"></i><span>${esc(p.n)}</span><b>${num(p.v/tot*100,1)}%</b></div>`).join("")}</div></div></div>`})()}
       <div class="pp3">${[["Margem líquida",R.T?pct(R.lucro/R.T*100):"—"],["Serviço sobre materiais",R.M?pct(R.S/R.M*100):"—"],["Preço por poste",nP?brl(R.T/nP):"—"],["Preço por metro de rede",m?brl(R.T/m):"—"],["Lucro por poste",nP?brl(R.lucro/nP):"—"],["Valor por lote"+(+ORC.lotes?" ("+ORC.lotes+" lotes)":""),+ORC.lotes?brl(R.T/ORC.lotes):"informe lotes em Dados"]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join("")}</div></div>`}
   async function excelProposta(R){
     const E=await xl(),wb=new E.Workbook();wb.creator=EMPRESA.nome;const SG=SEGM();
@@ -2308,6 +2312,7 @@ async function editor(id){
       $("#pLogL").innerHTML=L.length?`<table class="tbl"><thead><tr><th>Quando</th><th>Quem</th><th>Ação</th><th>O que mudou</th><th class="n">Total antes</th><th class="n">Total depois</th></tr></thead><tbody>${L.map(l=>`<tr><td>${new Date(l.quando).toLocaleString("pt-BR")}</td><td>${esc(l.quem_nome||"")}</td><td><span class="chip ${l.acao==="travar"?"finalizado":l.acao==="destravar"?"andamento":""}">${({salvar:"Salvou",travar:"Travou",destravar:"Destravou"})[l.acao]||esc(l.acao)}</span></td><td>${esc(l.resumo||"")}</td><td class="n">${l.total_antes!=null?brl(l.total_antes):"—"}</td><td class="n">${l.total_depois!=null?brl(l.total_depois):"—"}</td></tr>`).join("")}</tbody></table>`:"Nenhum ajuste registrado ainda."};
     const re=()=>{if(P.travado){toast("Precificação travada. Destrave para alterar.");telaPreco();return}salvarP();telaPreco()};
     $("#pDup").onclick=()=>$("#bVer").click();
+    $$("[data-psub]").forEach(d=>d.onclick=()=>{fSub=d.dataset.psub;const b=document.querySelector('[data-e="materiais"]');if(b)b.click()});
     $("#pSalvar").onclick=async()=>{await gravarP("salvar",R.T);toast("Precificação salva.");telaPreco()};
     $("#pTravar")&&($("#pTravar").onclick=()=>modal(`<h2>Travar a precificação da v${ORC.versao||1}?</h2><p class="note">Os valores ficam congelados (total ${brl(R.T)}). Só um administrador destrava, e fica registrado.</p>${sujoP?'<p class="note" style="color:var(--warn)">As alterações não salvas serão salvas antes de travar.</p>':""}`,async()=>{
       if(sujoP)await gravarP("salvar",R.T);P.travado=true;await gravarP("travar",R.T,{travado:true,travado_por:perfil.id,travado_nome:quemSou(),travado_em:new Date().toISOString()});toast("Precificação travada.");telaPreco()},"Travar"));
