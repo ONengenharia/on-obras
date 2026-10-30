@@ -201,6 +201,7 @@ button.kp:hover{border-color:var(--c)}
 .tlm{display:flex;gap:2px;flex-wrap:wrap;margin:6px 0}.tlm span{width:22px;height:22px;border-radius:5px;font-size:10px;display:grid;place-items:center;background:var(--bg);color:var(--muted)}.tlm span.fds{background:rgba(98,168,220,.1)}.tlm span.on{background:#2f6f9f;color:#fff;font-weight:700}
 .saf{display:grid;grid-template-columns:1fr 1fr;gap:8px}.saf label{display:grid;gap:3px;font-size:12px;color:var(--muted)}.saf label.w{grid-column:1/-1}.saf input,.saf textarea{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;width:100%;min-width:0;max-width:none}
 .vista{align-items:center;gap:8px}
+.moed{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:6px 0}.moed label{display:grid;gap:3px;font-size:12px;color:var(--muted)}.moed input{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;width:150px;min-width:0;flex:none}
 </style>
 <script src="vendor/supabase.js"></script>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
@@ -474,15 +475,20 @@ async function renderEquipe(){
     let mo=null,diasPrev=null;try{const nid=ng.data&&ng.data[0]&&ng.data[0].id;if(nid){const O2=sb.schema("orcarede");const ro=await O2.from("orcamentos").select("id").eq("negocio_id",nid).eq("vigente",true).limit(1);const orc=ro.data&&ro.data[0];
       if(orc){const pr=await O2.from("precificacao").select("custos").eq("orcamento_id",orc.id).limit(1);const cs=((pr.data&&pr.data[0]&&pr.data[0].custos)||[]).filter(c=>/m[aã]o de obra/i.test(c.grupo||""));
         if(cs.length){mo=cs.reduce((s,c)=>s+(+c.v||((+c.q||0)*(+c.valor||0))||0),0);const m=cs.map(c=>String(c.desc||"")).join(" ").match(/(\d+)\s*DIAS?/i);diasPrev=m?+m[1]:null;if(!diasPrev){const q=cs.find(c=>/qtd|×|x/i.test(c.tipo||"")&&+c.q>1);if(q)diasPrev=+q.q}}}}}catch(e){}
+    let manual=false;{const r=await sb.from("obras").select("dados").eq("id",oid).single();const dd=(r.data&&r.data.dados)||{};if(dd.mo_prev!=null){mo=+dd.mo_prev;manual=true}if(dd.dias_prev!=null)diasPrev=+dd.dias_prev}
     const pd=prod(oid),cdia=mo&&diasPrev?mo/diasPrev:null;const custoR=obraDias?custoMes*ndM/obraDias:0;
     el.innerHTML=`<h3>${esc(o.titulo)}</h3><p class="note">${esc(o.cliente||"")} · ${esc(o.tipo||"")} · avanço ${Math.round(+o.avanco||0)}%</p>
       <div class="eqk sm"><div><b>${ndM}</b><span>dias no mês</span></div><div><b>${TD.length}</b><span>dias desde o início</span></div><div><b>${diasPrev??"—"}</b><span>dias previstos</span></div><div><b>${diasPrev?Math.round(TD.length/diasPrev*100)+"%":"—"}</b><span>do prazo consumido</span></div></div>
       <div class="tlm">${dias.map(d=>`<span class="${od[d.k]?"on":""} ${d.w===0||d.w===6?"fds":""}" title="${d.n}/${M}${od[d.k]?": "+esc(od[d.k].join(" · ")):""}">${d.n}</span>`).join("")}</div>
+      <div class="moed"><label>Mão de obra prevista (R$)<input id="moV" inputmode="decimal" value="${mo!=null?(+mo).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}):""}" placeholder="0,00"></label><label>Dias previstos<input id="moD" inputmode="numeric" value="${diasPrev??""}" placeholder="ex.: 20"></label><button class="btn pri" id="moS">Salvar</button><span class="note">${manual?"valor definido aqui":"vem do orçamento (pode ajustar)"}</span></div>
       <table class="tbl2"><tr><td>Mão de obra prevista</td><td class="n">${mo!=null?brl(mo):"—"}</td></tr><tr><td>Custo previsto por dia</td><td class="n">${cdia?brl(cdia):"—"}</td></tr><tr><td><b>Custo por dia trabalhado</b> <small>(prevista ÷ ${TD.length} dia(s) na obra)</small></td><td class="n"><b>${mo!=null&&TD.length?brl(mo/TD.length):"—"}</b></td></tr><tr><td>Previsto para os ${ndM} dia(s) do mês</td><td class="n">${cdia?brl(cdia*ndM):"—"}</td></tr>
        ${EQC_OK?`<tr><td>Custo real rateado no mês</td><td class="n">${brl(custoR)}</td></tr><tr><td><b>Previsto × realizado</b></td><td class="n"><b style="color:${cdia&&cdia*ndM-custoR<0?"var(--bad,#c53030)":"var(--ok,#1f8a4c)"}">${cdia?brl(cdia*ndM-custoR):"—"}</b></td></tr>`:""}
        <tr><td>Produção no mês</td><td class="n">${pd.postes} poste(s) · ${pd.lum} lum. · ${pd.tr} TR</td></tr><tr><td>Postes por dia</td><td class="n">${ndM?(pd.postes/ndM).toFixed(1).replace(".",","):"—"}</td></tr></table>
       <h4>Diários do mês</h4>${Object.keys(od).sort().map(k=>`<div class="eqd"><b>${k.slice(8)}/${k.slice(5,7)}</b> ${esc(od[k].join(" · "))}</div>`).join("")||'<p class="note">—</p>'}
-      <p style="display:flex;gap:6px"><a class="btn" href="obra.html?id=${oid}">Abrir obra →</a>${ng.data&&ng.data[0]?`<a class="btn" href="negocios.html?n=${ng.data[0].id}">🎫 Ticket</a>`:""}</p>`}
+      <p style="display:flex;gap:6px"><a class="btn" href="obra.html?id=${oid}">Abrir obra →</a>${ng.data&&ng.data[0]?`<a class="btn" href="negocios.html?n=${ng.data[0].id}">🎫 Ticket</a>`:""}</p>`;
+    $("#moS").onclick=async()=>{const pv=x=>{x=String(x).trim();if(!x)return null;return parseFloat(x.replace(/[^\d,.-]/g,"").replace(/\./g,"").replace(",","."))};const v=pv($("#moV").value),d=pv($("#moD").value);
+      const r=await sb.from("obras").select("dados").eq("id",oid).single();const dd=(r.data&&r.data.dados)||{};if(v==null||isNaN(v))delete dd.mo_prev;else dd.mo_prev=v;if(d==null||isNaN(d))delete dd.dias_prev;else dd.dias_prev=Math.round(d);
+      const {error}=await sb.from("obras").update({dados:dd}).eq("id",oid);if(error){toast("Não foi possível salvar: "+error.message);return}toast("Valores da obra salvos.");relObra(oid)}}
 }
 /* ---------- início: mapa ---------- */
 let mapaQ="",soArea=false,mapSel=null,marcando=null;
