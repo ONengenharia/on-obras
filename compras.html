@@ -298,6 +298,7 @@ header.top .steps{width:100%}
 .tbl.cotrev{table-layout:fixed;width:100%}.tbl.cotrev th{resize:horizontal;overflow:hidden}.tbl.cotrev td{overflow-wrap:anywhere;vertical-align:top}.tbl.cotrev .acw input{width:100%}.matfull{font-size:12px;font-weight:600;margin-top:4px;line-height:1.3}
 .cmpsc .tbl.cmp thead th{position:sticky;top:0;z-index:2;background:var(--panel);box-shadow:0 1px 0 var(--line)}.cmpsc .tbl.cmp tfoot td{position:sticky;bottom:0;background:var(--panel);box-shadow:0 -1px 0 var(--line)}
 .tbl.cmp th:first-child,.tbl.cmp td:first-child{position:sticky;left:0;z-index:1;background:var(--panel);min-width:280px;max-width:420px;white-space:normal}.cmpsc .tbl.cmp thead th:first-child,.cmpsc .tbl.cmp tfoot td:first-child{z-index:3}
+.tbl.dre .pvb{height:6px;margin-top:4px}.dredet td{background:var(--bg)}.drl{display:grid;grid-template-columns:110px 1fr 120px 60px;gap:8px;padding:4px 0;border-bottom:1px dashed var(--line);font-size:12.5px;align-items:center}.drl:last-child{border:0}
 </style>
 </head>
 <body>
@@ -483,6 +484,7 @@ async function painel(id){
     todos(()=>O.from("compra_pedidos").select("*").eq("compra_id",id).order("gerado_em",{ascending:false})),
     todos(()=>O.from("fornecedores").select("*").order("apelido"))]);
   PR.forEach(p=>delete p.compra_cotacoes);
+  let GA=[],DRE_OK=false;{const r=await O.from("compra_gastos").select("*").eq("compra_id",id).order("data");if(!r.error){DRE_OK=true;GA=r.data||[]}}
   let aba=(()=>{try{return sessionStorage.getItem("cmp.aba."+id)||"painel"}catch(e){return"painel"}})(),fq="",ff="",cen=null;
   const ativos=()=>IT.filter(i=>+i.qtd>0);
   const P=()=>{const o={};PR.forEach(p=>{(o[p.item_id]=o[p.item_id]||{})[p.cotacao_id]=+p.preco_unit});return o};
@@ -508,12 +510,54 @@ async function painel(id){
     root.innerHTML=`<div class="app full">${topo(C.titulo,`${esc([C.cliente,C.cidade].filter(Boolean).join(" · "))} · previsto da v${(C.previsto&&C.previsto.versao)||1} do orçamento${C.previsto&&C.previsto.gerado_em?" em "+fdata(C.previsto.gerado_em):""}`,
       `<div class="tot"><div class="eye">${k.prevEsc-k.esc>=0?"Economia no material":"Material acima do previsto"}</div><div class="v" style="color:${k.prevEsc-k.esc>=0?"#7ee2a8":"#ffb4ab"}">${k.ne?brl(Math.abs(k.prevEsc-k.esc)):"—"}</div><div class="eye">${k.ne?pct(k.prevEsc?Math.abs(k.prevEsc-k.esc)/k.prevEsc*100:0)+" sobre o previsto dos itens escolhidos":"escolha os fornecedores"}</div></div>
        <div class="tools">${C.orcamento_id&&ADM?`<a class="btn" href="orcarede.html?id=${C.orcamento_id}">Orçamento</a>`:""}<button class="btn" id="bSt">${C.status==="concluida"?"Reabrir":"✓ Concluir compras"}</button></div>
-       <nav class="steps">${[["painel","Painel"],["comparativo","Comparativo"],["cotacoes",`Cotações (${CT.length})`],["pedidos",`Pedidos / OC (${PD.length})`]].map(([a,l],i)=>`<button data-a="${a}" class="${aba===a?"on":""}"><b>${i+1}</b>${l}</button>`).join("")}</nav>`)}
+       <nav class="steps">${[["painel","Painel"],["comparativo","Comparativo"],["cotacoes",`Cotações (${CT.length})`],["pedidos",`Pedidos / OC (${PD.length})`],["dre","Gastos / DRE"]].map(([a,l],i)=>`<button data-a="${a}" class="${aba===a?"on":""}"><b>${i+1}</b>${l}</button>`).join("")}</nav>`)}
      <div id="full"></div></div>`;
     $$("[data-a]").forEach(b=>b.onclick=()=>{aba=b.dataset.a;try{sessionStorage.setItem("cmp.aba."+id,aba)}catch(e){}shell()});
     $("#bSt").onclick=async()=>{const s=C.status==="concluida"?"aberta":"concluida";await chk(O.from("compras").update({status:s}).eq("id",id));C.status=s;shell()};
-    ({painel:tPainel,comparativo:tComp,cotacoes:tCot,pedidos:tPed})[aba]();const sc=document.querySelector(".cmpsc");if(sc&&keep){sc.scrollTop=keep[0];sc.scrollLeft=keep[1]}window.scrollTo(0,py)}
+    ({painel:tPainel,comparativo:tComp,cotacoes:tCot,pedidos:tPed,dre:tDre}[aba]||tPainel)();const sc=document.querySelector(".cmpsc");if(sc&&keep){sc.scrollTop=keep[0];sc.scrollLeft=keep[1]}window.scrollTo(0,py)}
 
+  /* ---- Gastos / DRE da obra ---- */
+  const CATS_G=["Material","Mão de obra","Civil","Frete","Hospedagem","Alimentação","Diárias","Combustível","Material avulso","Equipamento","Comissão","Imposto","Deslocamento","Outros"];
+  const catOC=p=>p.categoria||"Material";
+  function tDre(){
+    if(!DRE_OK){$("#full").innerHTML=`<div class="wrap2"><div class="card"><h2>Gastos / DRE da obra</h2><p class="note">Este recurso está sendo ativado no banco de dados. Assim que estiver pronto, esta aba passa a funcionar.</p></div></div>`;return}
+    const pv=C.previsto||{},k=contas();const PREV={};PREV["Material"]=pv.materiais!=null?+pv.materiais:k.prev;(pv.custos||[]).forEach(c=>{const g=c.grupo||c.desc||"Outros";PREV[g]=(PREV[g]||0)+(+c.v||0)});
+    const REAL={},DET={};const addR=(cat,v,o)=>{REAL[cat]=(REAL[cat]||0)+v;(DET[cat]=DET[cat]||[]).push(o)};
+    PD.forEach(p=>addR(catOC(p),+p.total||0,{t:"OC",d:p.gerado_em,desc:"OC "+(p.oc||p.numero)+(p.descricao?" · "+p.descricao:""),f:p.fornecedor_nome,v:+p.total||0}));
+    GA.forEach(g=>addR(g.categoria||"Outros",+g.valor||0,{t:"manual",id:g.id,d:g.data,desc:g.descricao||"",f:g.fornecedor||"",nf:g.nf,v:+g.valor||0,arq:g.arquivo}));
+    const cats=[...new Set([...Object.keys(PREV),...Object.keys(REAL)])].sort((a,b)=>(a==="Material"?-1:b==="Material"?1:0)||((PREV[b]||0)+(REAL[b]||0))-((PREV[a]||0)+(REAL[a]||0)));
+    const tP=cats.reduce((s,c)=>s+(PREV[c]||0),0),tR=cats.reduce((s,c)=>s+(REAL[c]||0),0),venda=+pv.total||0;
+    const mx=Math.max(1,...cats.map(c=>Math.max(PREV[c]||0,REAL[c]||0)));
+    $("#full").innerHTML=`<div class="wrap2 wide3">
+     <div class="kpis k5"><div class="kpi"><span>Previsto (orçamento)</span><b>${brl(tP)}</b></div><div class="kpi"><span>Realizado</span><b>${brl(tR)}</b><small>${PD.length} OC(s) · ${GA.length} lançamento(s)</small></div>
+      <div class="kpi ${tP-tR>=0?"ok":"bad"}"><span>${tP-tR>=0?"Abaixo do previsto":"Acima do previsto"}</span><b>${brl(Math.abs(tP-tR))}</b></div>
+      <div class="kpi"><span>Valor vendido</span><b>${venda?brl(venda):"—"}</b></div><div class="kpi ${venda-tR>=0?"ok":"bad"}"><span>Resultado real</span><b>${venda?brl(venda-tR):"—"}</b><small>${venda?pct((venda-tR)/venda*100)+" · previsto "+brl(+pv.lucro||venda-tP):""}</small></div></div>
+     <div class="cols"><div class="card"><div class="row"><h2>DRE da obra</h2><div class="tools"><button class="btn sm" id="gXl">⬇ Excel</button><button class="btn sm" id="gOc">+ OC avulsa</button><button class="btn sm pri" id="gNovo">+ Lançar gasto</button></div></div>
+      <p class="note">Realizado = OCs (cada uma na sua categoria) + lançamentos manuais (frete, diárias…). Clique numa linha para ver o que compõe o valor.</p>
+      <table class="tbl dre"><thead><tr><th>Categoria</th><th class="n">Previsto</th><th class="n">Realizado</th><th class="n">Diferença</th></tr></thead><tbody>
+      ${cats.map(c=>`<tr class="go" data-dc="${esc(c)}"><td><b>${esc(c)}</b><span class="sm">${(DET[c]||[]).length} lançamento(s)</span><div class="pvb"><i style="width:${(PREV[c]||0)/mx*100}%"></i><b style="width:${(REAL[c]||0)/mx*100}%"></b></div></td><td class="n">${brl(PREV[c]||0)}</td><td class="n">${brl(REAL[c]||0)}</td><td class="n">${dif((PREV[c]||0)-(REAL[c]||0),PREV[c]||0)}</td></tr>
+        <tr class="dredet" data-dd="${esc(c)}" hidden><td colspan="4">${(DET[c]||[]).sort((a,b)=>String(b.d).localeCompare(String(a.d))).map(x=>`<div class="drl"><span>${x.t==="OC"?'<b class="ocb">OC</b>':"✍"} ${fdata(String(x.d||"").slice(0,10))}</span><span>${esc(x.desc)}${x.f?` · ${esc(x.f)}`:""}${x.nf?` · NF ${esc(x.nf)}`:""}</span><span class="n">${brl(x.v)}</span><span>${x.arq?`<button class="xb" data-ga="${x.id}" title="Ver comprovante">📎</button>`:""}${x.t==="manual"?`<button class="xb" data-gd="${x.id}" title="Excluir lançamento">🗑</button>`:""}</span></div>`).join("")||'<span class="note">Nada lançado.</span>'}</td></tr>`).join("")}
+      </tbody><tfoot><tr><td><b>Total</b></td><td class="n"><b>${brl(tP)}</b></td><td class="n"><b>${brl(tR)}</b></td><td class="n"><b>${dif(tP-tR,tP)}</b></td></tr></tfoot></table></div>
+      <aside class="card"><h2>Últimos lançamentos</h2>${[...GA].sort((a,b)=>String(b.criado_em).localeCompare(String(a.criado_em))).slice(0,12).map(g=>`<div class="kv"><span>${esc(g.categoria)} · ${esc(g.descricao||"")}<span class="sm" style="display:block">${fdata(g.data)}${g.fornecedor?" · "+esc(g.fornecedor):""}</span></span><b>${brl(g.valor)}</b></div>`).join("")||'<p class="note">Nenhum gasto lançado.</p>'}</aside></div></div>`;
+    $$("[data-dc]").forEach(r=>r.onclick=()=>{const d=document.querySelector(`[data-dd="${CSS.escape(r.dataset.dc)}"]`);d.hidden=!d.hidden});
+    $$("[data-gd]").forEach(b=>b.onclick=e=>{e.stopPropagation();const g=GA.find(x=>x.id==b.dataset.gd);modal(`<h2>Excluir o lançamento?</h2><p>${esc(g.categoria)} · ${esc(g.descricao||"")} · ${brl(g.valor)}</p>`,async()=>{await chk(O.from("compra_gastos").delete().eq("id",g.id));GA=GA.filter(x=>x!==g);tDre()},"Excluir")});
+    $$("[data-ga]").forEach(b=>b.onclick=async e=>{e.stopPropagation();const g=GA.find(x=>x.id==b.dataset.ga);const w=window.open("","_blank");const {data}=await sb.storage.from("negocios").createSignedUrl(g.arquivo,3600);if(data&&data.signedUrl){if(w)w.location=data.signedUrl;else location.href=data.signedUrl}else if(w)w.close()});
+    const catsDl=`<datalist id="dlCat">${[...new Set([...CATS_G,...GA.map(g=>g.categoria),...Object.keys(PREV)])].map(c=>`<option value="${esc(c)}">`).join("")}</datalist>`;
+    $("#gNovo").onclick=()=>{const md=modal(`<h2>Lançar gasto da obra</h2><div class="grid2"><label class="fld">Data<input type="date" name="data" value="${new Date().toISOString().slice(0,10)}" required></label><label class="fld">Categoria<input name="cat" list="dlCat" required placeholder="Frete, Diárias, Hospedagem…">${catsDl}</label></div>
+        <label class="fld">Descrição<input name="desc" placeholder="ex.: frete dos postes (2ª carga)"></label><div class="grid2"><label class="fld">Fornecedor / pessoa<input name="forn" list="dlForn">${`<datalist id="dlForn">${FORNS.map(f=>`<option value="${esc(f.apelido||f.razao_social)}">`).join("")}</datalist>`}</label><label class="fld">Nº da nota<input name="nf"></label></div>
+        <div class="grid2"><label class="fld">Valor (R$)<input name="valor" required inputmode="decimal" placeholder="0,00"></label><label class="fld">Comprovante (opcional)<input type="file" name="arq" accept="image/*,application/pdf"></label></div>`,async f=>{
+        const v=pnum(f.valor);if(!(v>0)){toast("Informe o valor.");return false}let arq=null;const fl=md.querySelector("[name=arq]").files[0];
+        if(fl){const path=`compras/${id}/gastos/${Date.now().toString(36)}-${fl.name.replace(/[^\w.-]+/g,"_")}`;const up=await sb.storage.from("negocios").upload(path,fl,{contentType:fl.type||"application/octet-stream"});if(!up.error)arq=path}
+        const r=await chk(O.from("compra_gastos").insert({compra_id:id,data:f.data,categoria:f.cat.trim()||"Outros",descricao:f.desc.trim()||null,fornecedor:f.forn.trim()||null,nf:f.nf.trim()||null,valor:v,arquivo:arq,criado_nome:quem()}).select("*").single());GA.push(r);toast("Gasto lançado.");tDre()},"Lançar")};
+    $("#gOc").onclick=()=>{modal(`<h2>OC avulsa</h2><p class="note">Para OC de mão de obra, civil, frete e outros serviços (sem itens do comparativo). Entra no custo da obra na categoria escolhida.</p>
+        <div class="grid2"><label class="fld">Nº da OC<input name="oc" required></label><label class="fld">Categoria<input name="cat" list="dlCat" required value="Mão de obra">${catsDl}</label></div>
+        <label class="fld">Fornecedor<input name="forn" required list="dlForn2"><datalist id="dlForn2">${FORNS.map(f=>`<option value="${esc(f.apelido||f.razao_social)}">`).join("")}</datalist></label>
+        <label class="fld">Descrição<input name="desc" placeholder="ex.: equipe de rede · 1ª medição"></label><label class="fld">Valor (R$)<input name="valor" required inputmode="decimal"></label>`,async f=>{
+        const v=pnum(f.valor);if(!(v>0)){toast("Informe o valor.");return false}const n=await chk(O.rpc("proximo_pedido"));
+        const p=await chk(O.from("compra_pedidos").insert({compra_id:id,cotacao_id:null,fornecedor_nome:f.forn.trim(),numero:n,oc:f.oc.trim(),total:v,itens:[],categoria:f.cat.trim()||"Outros",entrega:f.desc.trim()||null,gerado_nome:quem()}).select("*").single());PD.unshift(p);toast("OC registrada.");shell()},"Registrar OC")};
+    $("#gXl").onclick=async()=>{if(!window.XLSX)await loadScript("vendor/xlsx.full.min.js");const XL=window.XLSX;const rows=[["Tipo","Data","Categoria","Descrição","Fornecedor","NF","Valor"]];PD.forEach(p=>rows.push(["OC",String(p.gerado_em||"").slice(0,10),catOC(p),"OC "+(p.oc||p.numero),p.fornecedor_nome,"",+p.total||0]));GA.forEach(g=>rows.push(["Manual",g.data,g.categoria,g.descricao||"",g.fornecedor||"",g.nf||"",+g.valor||0]));
+      const res=[["Categoria","Previsto","Realizado","Diferença"],...cats.map(c=>[c,PREV[c]||0,REAL[c]||0,(PREV[c]||0)-(REAL[c]||0)]),["Total",tP,tR,tP-tR]];
+      const wb=XL.utils.book_new();XL.utils.book_append_sheet(wb,XL.utils.aoa_to_sheet(res),"DRE");XL.utils.book_append_sheet(wb,XL.utils.aoa_to_sheet(rows),"Lançamentos");XL.writeFile(wb,`DRE ${C.titulo||"obra"}.xlsx`)}}
   /* ---- Painel: previsto x realizado ---- */
   function tPainel(){
     const k=contas(),pv=C.previsto||{},CR=Array.isArray(C.custos_real)?C.custos_real:[];
@@ -745,10 +789,11 @@ async function painel(id){
       modal(`<h2>OC para ${esc(c.fornecedor_nome)}</h2><p class="note">${its.length} itens · ${brl(tot)}${c.frete?" (com frete)":""}</p>${caros.length?`<div class="alerta">⚠ ${caros.length} item(ns) desta OC têm opção mais barata em outro fornecedor.</div>`:""}
         <div class="grid2"><label class="fld">Nº da OC<input name="oc" required placeholder="ex.: 1650"></label><label class="fld">Contato comercial<input name="contato" value="${esc(f.contato||"")}"></label></div>
         <div class="grid2"><label class="fld">Condições de pagamento<input name="cond" value="${esc(f.cond_pagto||"")}" placeholder="ex.: 30/60/90"></label><label class="fld">Sessão / obra<input name="sessao" value="${esc(C.sessao||[C.cliente,C.cidade?"("+C.cidade+")":""].filter(Boolean).join(" "))}"></label></div>
-        <label class="fld">Entrega<input name="entrega" value="Poderão ser entregues nas dependências da ON Engenharia"></label>`,async fm=>{
+        <label class="fld">Entrega<input name="entrega" value="Poderão ser entregues nas dependências da ON Engenharia"></label>
+        ${DRE_OK?`<label class="fld">Categoria no custo da obra<select name="cat">${CATS_G.map(x=>`<option ${x==="Material"?"selected":""}>${x}</option>`).join("")}</select></label>`:""}`,async fm=>{
         const oc=fm.oc.trim();if(!oc){toast("Informe o nº da OC.");return false}
         const n=await chk(O.rpc("proximo_pedido"));const itens=its.map(i=>({id:i.id,codigo:i.material_codigo,descricao:i.descricao,unidade:i.unidade,qtd:qc(i),preco:vEsc(i)}));const total=itens.reduce((s,x)=>s+x.qtd*x.preco,0)+(+c.frete||0);
-        const p=await chk(O.from("compra_pedidos").insert({compra_id:id,cotacao_id:cid,fornecedor_nome:c.fornecedor_nome,numero:n,oc,total,itens,cond_pagto:fm.cond.trim()||null,entrega:fm.entrega.trim()||null,contato:fm.contato.trim()||null,gerado_nome:quem()}).select("*").single());PD.unshift(p);
+        const p=await chk(O.from("compra_pedidos").insert({compra_id:id,cotacao_id:cid,fornecedor_nome:c.fornecedor_nome,numero:n,oc,total,itens,cond_pagto:fm.cond.trim()||null,entrega:fm.entrega.trim()||null,contato:fm.contato.trim()||null,gerado_nome:quem(),...(DRE_OK?{categoria:fm.cat||"Material"}:{})}).select("*").single());PD.unshift(p);
         await chk(O.from("compra_itens").update({oc,comprado:true}).in("id",its.map(i=>i.id)));its.forEach(i=>{i.oc=oc;i.comprado=true});
         if(fm.sessao.trim()!==(C.sessao||"")){C.sessao=fm.sessao.trim()||null;O.from("compras").update({sessao:C.sessao}).eq("id",id).then(()=>{})}
         if(f.id&&(fm.contato.trim()!==(f.contato||"")||fm.cond.trim()!==(f.cond_pagto||""))){f.contato=fm.contato.trim()||null;f.cond_pagto=fm.cond.trim()||null;O.from("fornecedores").update({contato:f.contato,cond_pagto:f.cond_pagto}).eq("id",f.id).then(()=>{})}
