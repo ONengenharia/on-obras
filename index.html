@@ -160,10 +160,23 @@ button.kp:hover{border-color:var(--c)}
 .fq{font-weight:700;text-align:right}.fv{font-size:11.5px;color:var(--muted);text-align:right}
 @media (max-width:900px){.mods{grid-template-columns:1fr 1fr}.pn-grid{grid-template-columns:1fr}}
 @media (max-width:520px){.fl{grid-template-columns:1fr 1fr 22px}.fv{display:none}.mb{font-size:26px}}
+.resumo.fino{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px}.resumo.fino .kp{padding:6px 10px}.resumo.fino .kp b{font-size:18px}.resumo.fino .kp small{display:none}
+.mlay{display:grid;grid-template-columns:minmax(0,1fr) 8px var(--mw,380px);gap:0;height:calc(100vh - 210px);min-height:460px;margin-top:8px}.mlay .mapabox{position:relative;height:100%}.mlay #mapa{height:100%;min-height:0}
+.mlay.rec{grid-template-columns:minmax(0,1fr) 0 0}.mlay.rec .mpan,.mlay.rec .mdiv{display:none}
+.mdiv{cursor:col-resize;background:transparent;border-radius:4px}.mdiv:hover{background:var(--accent-soft,#5aa9e633)}
+.mrec{position:absolute;right:10px;bottom:24px;z-index:500;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit;font-weight:600}
+.mpan{overflow:auto;display:flex;flex-direction:column;gap:8px;padding-left:4px}.mpan .filt{margin:0;flex-wrap:wrap}
+.mlist{display:grid;gap:4px}.mli{display:flex;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);color:inherit;font:inherit;border-radius:10px;padding:8px;cursor:pointer}.mli.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft,#5aa9e633)}
+.mli>i{width:10px;height:10px;border-radius:50%;flex:none}.mli>span{flex:1;min-width:0;display:grid;gap:2px}.mli b{font-size:13px}.mli small{font-size:11px;color:var(--muted)}.mli .pc{font-weight:700;font-size:12px}
+.msel{border:1px solid var(--accent);border-radius:10px;padding:10px;display:grid;gap:6px;background:var(--panel)}.msel .r{display:flex;gap:8px;align-items:center}.msel .mbar{flex:1}
+.semi2{display:flex;gap:6px;align-items:center}.semi2 .semi{flex:1}
+@media (max-width:900px){.mlay{grid-template-columns:1fr;height:auto}.mlay .mapabox{height:60vh}.mdiv{display:none}.mpan{max-height:none}}
 </style>
 <script src="vendor/supabase.js"></script>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <script src="vendor/leaflet/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js" onerror="0"></script>
 <script src="vendor/Sortable.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
@@ -331,38 +344,64 @@ async function renderPainel(){
 }
 
 /* ---------- início: mapa ---------- */
+let mapaQ="",soArea=false,mapSel=null,marcando=null;
 function renderInicio(){
   const tipos=[...new Set(obras.map(o=>o.tipo).filter(Boolean))].sort();
   const vis=obras.filter(o=>(!fTipo||(fTipo==="_"?!o.tipo:o.tipo===fTipo))&&(!fCol||o.coluna===fCol));
   const comPos=vis.filter(o=>posObra(o)),semPos=vis.filter(o=>!posObra(o));
   const media=vis.length?vis.reduce((a,o)=>a+(+o.avanco||0),0)/vis.length:0;
-  $("#corpo").innerHTML=`<section class="resumo">
-     <div class="kp main"><span>Obras</span><b>${vis.length}</b><small>avanço médio ${Math.round(media)}%</small></div>
+  let W=380,rec=false;try{W=+localStorage.getItem("on.mapaW")||380;rec=localStorage.getItem("on.mapaRec")==="1"}catch(e){}
+  $("#corpo").innerHTML=`<section class="resumo fino">
+     <button class="kp main ${!fCol?"sel":""}" data-fc="" title="Todas"><span>Obras</span><b>${vis.length}</b><small>avanço médio ${Math.round(media)}%</small></button>
      ${colunas.map(c=>`<button class="kp ${fCol===c.id?"sel":""}" data-fc="${c.id}" style="--c:${c.cor}" title="Mostrar só ${esc(c.nome)}"><span>${esc(c.nome)}</span><b>${obras.filter(o=>o.coluna===c.id&&(!fTipo||(fTipo==="_"?!o.tipo:o.tipo===fTipo))).length}</b></button>`).join("")}
    </section>
-   <div class="filt"><span class="note">Situação:</span><button class="chip ${!fCol?"on":""}" data-fc="">Todas</button>${colunas.map(c=>`<button class="chip ${fCol===c.id?"on":""}" data-fc="${c.id}"><i style="background:${c.cor}"></i>${esc(c.nome)}</button>`).join("")}</div>
-   <div class="filt"><span class="note">Tipo:</span><button class="chip ${!fTipo?"on":""}" data-t="">Todos</button>${tipos.map(t=>`<button class="chip ${fTipo===t?"on":""}" data-t="${esc(t)}"><i style="background:${corTipo(t)}"></i>${esc(t)}</button>`).join("")}${obras.some(o=>!o.tipo)?`<button class="chip ${fTipo==="_"?"on":""}" data-t="_"><i style="background:#8a96a3"></i>Sem tipo</button>`:""}${solares.length?`<button class="chip ${verSolar?"on":""}" id="cSol">☀ Solar (${solares.length})</button>`:""}<span class="note" style="margin-left:auto">Cor dos pinos:</span><span class="seg2"><button class="${corPor==="coluna"?"on":""}" data-cp="coluna">Situação</button><button class="${corPor==="tipo"?"on":""}" data-cp="tipo">Tipo</button></span></div>
-   <section class="mapabox"><div id="mapa"></div></section>
-   ${semPos.length?`<section class="sem"><h2>Sem localização (${semPos.length})</h2><p class="note">${ADM()?"Abra a obra e cole o link do Google Maps com as coordenadas, ou marque o ponto no mapa em Editar.":"Peça ao administrador para marcar a localização destas obras."}</p><div class="semlist">${semPos.map(o=>`<button class="semi" data-o="${o.id}"><i style="background:${corTipo(o.tipo)}"></i><span><b>${esc(o.titulo)}</b><small>${esc(o.local||o.cliente||"")}</small></span></button>`).join("")}</div></section>`:""}`;
+   <section class="mlay ${rec?"rec":""}" style="--mw:${W}px"><div class="mapabox"><div id="mapa"></div><button class="mrec" id="mRec" title="${rec?"Mostrar lista":"Esconder lista (mapa em tela cheia)"}">${rec?"◂ Lista":"▸"}</button></div>
+    <div class="mdiv" id="mDiv" title="Arraste para ajustar · duplo clique volta ao padrão"></div>
+    <aside class="mpan">
+     <input class="inp" id="mQ" placeholder="Buscar obra, cliente ou cidade" value="${esc(mapaQ)}">
+     <div class="filt"><span class="note">Situação:</span><button class="chip ${!fCol?"on":""}" data-fc="">Todas</button>${colunas.map(c=>`<button class="chip ${fCol===c.id?"on":""}" data-fc="${c.id}"><i style="background:${c.cor}"></i>${esc(c.nome)}</button>`).join("")}</div>
+     <div class="filt"><span class="note">Tipo:</span><button class="chip ${!fTipo?"on":""}" data-t="">Todos</button>${tipos.map(t=>`<button class="chip ${fTipo===t?"on":""}" data-t="${esc(t)}"><i style="background:${corTipo(t)}"></i>${esc(t)}</button>`).join("")}${obras.some(o=>!o.tipo)?`<button class="chip ${fTipo==="_"?"on":""}" data-t="_"><i style="background:#8a96a3"></i>Sem tipo</button>`:""}${solares.length?`<button class="chip ${verSolar?"on":""}" id="cSol">☀ Solar (${solares.length})</button>`:""}</div>
+     <div class="filt"><span class="note">Cor dos pinos:</span><span class="seg2"><button class="${corPor==="coluna"?"on":""}" data-cp="coluna">Situação</button><button class="${corPor==="tipo"?"on":""}" data-cp="tipo">Tipo</button></span><label class="note" style="margin-left:auto;display:flex;gap:4px;align-items:center"><input type="checkbox" id="mArea" ${soArea?"checked":""}> só as da área visível</label></div>
+     <div id="mSelBox"></div>
+     <div class="mlist" id="mList"></div>
+     ${semPos.length?`<div class="sem"><h2>Sem localização (${semPos.length})</h2><div class="semlist">${semPos.map(o=>`<div class="semi2"><button class="semi" data-o="${o.id}"><i style="background:${corTipo(o.tipo)}"></i><span><b>${esc(o.titulo)}</b><small>${esc(o.local||o.cliente||"")}</small></span></button>${ADM()?`<button class="btn sm" data-mk="${o.id}" title="Clique no mapa no lugar da obra">📍 Marcar</button>`:""}</div>`).join("")}</div></div>`:""}
+    </aside></section>`;
   document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{fTipo=b.dataset.t;renderInicio()});
   document.querySelectorAll("[data-fc]").forEach(b=>b.onclick=()=>{fCol=fCol===b.dataset.fc&&b.classList.contains("kp")?"":b.dataset.fc;renderInicio()});
   if($("#cSol"))$("#cSol").onclick=()=>{verSolar=!verSolar;renderInicio()};
   document.querySelectorAll("[data-cp]").forEach(b=>b.onclick=()=>{corPor=b.dataset.cp;try{localStorage.setItem("on.cor",corPor)}catch(e){}renderInicio()});
-  document.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>mural(obras.find(x=>x.id===b.dataset.o)));
+  document.querySelectorAll(".semi[data-o]").forEach(b=>b.onclick=()=>mural(obras.find(x=>x.id===b.dataset.o)));
+  const lay=document.querySelector(".mlay");
+  $("#mRec").onclick=()=>{const r=lay.classList.toggle("rec");try{localStorage.setItem("on.mapaRec",r?"1":"0")}catch(e){}$("#mRec").textContent=r?"◂ Lista":"▸";setTimeout(()=>mapa&&mapa.invalidateSize(),60)};
+  {const d=$("#mDiv");d.onpointerdown=e=>{e.preventDefault();d.setPointerCapture(e.pointerId);const x0=e.clientX,w0=lay.querySelector(".mpan").offsetWidth;
+    d.onpointermove=ev=>{const w=Math.max(260,Math.min(800,w0-(ev.clientX-x0)));lay.style.setProperty("--mw",w+"px");try{localStorage.setItem("on.mapaW",w)}catch(x){}};d.onpointerup=()=>{d.onpointermove=null;mapa&&mapa.invalidateSize()}};
+    d.ondblclick=()=>{lay.style.setProperty("--mw","380px");try{localStorage.removeItem("on.mapaW")}catch(x){}mapa&&mapa.invalidateSize()}}
   mapa=L.map("mapa",{zoomControl:true,attributionControl:true});
   const ruas=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; OpenStreetMap'});
   const sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imagens &copy; Esri"});
   ruas.addTo(mapa);L.control.layers({"Mapa":ruas,"Satélite":sat},null,{position:"topright"}).addTo(mapa);
-  const pts=[];
+  const grupo=L.markerClusterGroup?L.markerClusterGroup({maxClusterRadius:40}):L.layerGroup();grupo.addTo(mapa);
+  const pts=[],MK={};
   comPos.forEach(o=>{const p=posObra(o);pts.push([p.lat,p.lng]);
     const ic=L.divIcon({className:"pino",html:`<span style="background:${corPino(o)}"><b>${Math.round(+o.avanco||0)}</b></span>`,iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-30]});
-    L.marker([p.lat,p.lng],{icon:ic,title:o.titulo}).addTo(mapa).bindPopup(`<div class="pop"><b>${esc(o.titulo)}</b><small>${esc(o.tipo||"Sem tipo")} · ${esc(nomeCol(o.coluna))}</small><small>${esc(o.cliente||"")}${o.local?" · "+esc(o.local):""}</small><div class="r"><div class="bar ${+o.avanco>=100?"full":""}"><b style="width:${Math.round(+o.avanco||0)}%"></b></div><span class="pc">${Math.round(+o.avanco||0)}%</span></div><div class="row"><button class="lnk" data-pm="${o.id}">Mural</button><a class="lnk" href="obra.html?id=${o.id}">Abrir painel →</a></div></div>`)});
+    const mk=L.marker([p.lat,p.lng],{icon:ic,title:o.titulo}).bindPopup(`<div class="pop"><b>${esc(o.titulo)}</b><small>${esc(o.tipo||"Sem tipo")} · ${esc(nomeCol(o.coluna))}</small><small>${esc(o.cliente||"")}${o.local?" · "+esc(o.local):""}</small><div class="r"><div class="bar ${+o.avanco>=100?"full":""}"><b style="width:${Math.round(+o.avanco||0)}%"></b></div><span class="pc">${Math.round(+o.avanco||0)}%</span></div><div class="row"><button class="lnk" data-pm="${o.id}">Mural</button><a class="lnk" href="obra.html?id=${o.id}">Abrir painel →</a></div></div>`);
+    mk.on("click",()=>{mapSel=o.id;lista();const el=document.querySelector(`[data-ml="${o.id}"]`);el&&el.scrollIntoView({block:"nearest",behavior:"smooth"})});MK[o.id]=mk;grupo.addLayer(mk)});
   if(verSolar)solares.forEach(n=>{pts.push([n.lat,n.lng]);
     const ic=L.divIcon({className:"pinsol",html:SOL_SVG,iconSize:[38,48],iconAnchor:[19,48],popupAnchor:[0,-42]});
-    L.marker([n.lat,n.lng],{icon:ic,title:n.titulo}).addTo(mapa).bindPopup(`<div class="pop"><b>☀ ${esc(n.titulo)}</b><small>Instalação solar${n.pot?" · "+esc(n.pot)+" "+esc(n.un||""):""}</small><small>${esc(n.cliente||"")}${n.cidade?" · "+esc(n.cidade):""}</small><div class="row"><a class="lnk" href="negocios.html?n=${n.id}">Ver negócio →</a></div></div>`)});
+    grupo.addLayer(L.marker([n.lat,n.lng],{icon:ic,title:n.titulo}).bindPopup(`<div class="pop"><b>☀ ${esc(n.titulo)}</b><small>Instalação solar${n.pot?" · "+esc(n.pot)+" "+esc(n.un||""):""}</small><small>${esc(n.cliente||"")}${n.cidade?" · "+esc(n.cidade):""}</small><div class="row"><a class="lnk" href="negocios.html?n=${n.id}">Ver negócio →</a></div></div>`))});
   mapa.on("popupopen",e=>{const b=e.popup.getElement().querySelector("[data-pm]");if(b)b.onclick=()=>mural(obras.find(x=>x.id===b.dataset.pm))});
+  function lista(){const t=mapaQ.trim().toLowerCase();const bd=mapa.getBounds();
+    const L2=vis.filter(o=>(!t||(o.titulo+" "+(o.cliente||"")+" "+(o.local||"")).toLowerCase().includes(t))&&(!soArea||(posObra(o)&&bd.contains([posObra(o).lat,posObra(o).lng]))));
+    $("#mList").innerHTML=`<div class="note">${L2.length} obra(s)</div>`+L2.map(o=>{const p=Math.round(+o.avanco||0),c=colunas.find(x=>x.id===o.coluna);return `<button class="mli ${mapSel===o.id?"on":""}" data-ml="${o.id}"><i style="background:${corPino(o)}"></i><span><b>${esc(o.titulo)}</b><small>${esc([o.local,o.cliente].filter(Boolean).join(" · "))}</small><small>${esc(c?c.nome:"")}${posObra(o)?"":" · sem localização"}</small><span class="mbar"><b style="width:${p}%"></b></span></span><span class="pc">${p}%</span></button>`}).join("");
+    document.querySelectorAll("[data-ml]").forEach(b=>b.onclick=()=>{const o=obras.find(x=>x.id===b.dataset.ml);mapSel=o.id;const p=posObra(o);if(p){mapa.setView([p.lat,p.lng],Math.max(mapa.getZoom(),15));const mk=MK[o.id];if(mk){if(grupo.zoomToShowLayer)grupo.zoomToShowLayer(mk,()=>mk.openPopup());else mk.openPopup()}}lista()});
+    const o=obras.find(x=>x.id===mapSel);$("#mSelBox").innerHTML=o?`<div class="msel"><div class="row"><b>${esc(o.titulo)}</b><button class="lnk" id="mSelX">✕</button></div><small>${esc(o.cliente||"")}${o.local?" · "+esc(o.local):""}</small><div class="r"><div class="mbar"><b style="width:${Math.round(+o.avanco||0)}%"></b></div><span class="pc">${Math.round(+o.avanco||0)}%</span></div><div class="row"><button class="btn sm" id="mMur">Mural (fotos e diário)</button><a class="btn sm pri" href="obra.html?id=${o.id}">Abrir obra →</a></div></div>`:"";
+    if($("#mSelX"))$("#mSelX").onclick=()=>{mapSel=null;lista()};if($("#mMur"))$("#mMur").onclick=()=>mural(o)}
+  $("#mQ").oninput=e=>{mapaQ=e.target.value;lista()};$("#mArea").onchange=e=>{soArea=e.target.checked;lista()};mapa.on("moveend",()=>{if(soArea)lista()});
+  document.querySelectorAll("[data-mk]").forEach(b=>b.onclick=()=>{marcando=b.dataset.mk;toast("Clique no mapa no lugar da obra.");$("#mapa").style.cursor="crosshair"});
+  mapa.on("click",async e=>{if(!marcando)return;const o=obras.find(x=>x.id===marcando);marcando=null;$("#mapa").style.cursor="";
+    const {error}=await sb.from("obras").update({lat:e.latlng.lat,lng:e.latlng.lng}).eq("id",o.id);if(error){toast(error.message);return}o.lat=e.latlng.lat;o.lng=e.latlng.lng;toast("Localização gravada.");renderInicio()});
   if(pts.length===1)mapa.setView(pts[0],13);else if(pts.length)mapa.fitBounds(pts,{padding:[40,40],maxZoom:13});else mapa.setView([-28.6,-53.5],7);
-  setTimeout(()=>mapa&&mapa.invalidateSize(),60);
+  lista();setTimeout(()=>mapa&&mapa.invalidateSize(),60);
 }
 
 /* ---------- kanban ---------- */
