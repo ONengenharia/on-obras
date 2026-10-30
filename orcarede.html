@@ -306,6 +306,7 @@ tr.org-base td:first-child{box-shadow:inset 3px 0 #4a90d9}tr.org-cotacao td:firs
 .colm{display:flex;gap:8px;align-items:flex-end;height:120px}.colm>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}.colm .cc{flex:1;width:100%;display:flex;flex-direction:column-reverse;background:var(--line);border-radius:6px;overflow:hidden}.colm small{font-size:10.5px;color:var(--muted)}
 .selo{margin-right:6px}.selbar{position:sticky;bottom:10px;display:flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:8px 12px;box-shadow:0 6px 20px rgba(0,0,0,.2)}
 .tree{display:grid;gap:2px;max-height:50vh;overflow:auto;margin-top:8px}.tn{text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:7px 10px;border-radius:7px;cursor:pointer}.tn:hover{background:var(--accent-soft)}.tn.on{background:var(--accent);color:#fff}
+.dxfbox{border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0}.laygrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:2px 10px;max-height:140px;overflow:auto;font-size:12px}
 </style>
 </head>
 <body>
@@ -385,6 +386,50 @@ async function preparaImg(blob){const bmp=await createImageBitmap(blob);const k=
   const g=c.getContext("2d");g.imageSmoothingQuality="high";g.drawImage(bmp,0,0,c.width,c.height);const d=g.getImageData(0,0,c.width,c.height),a=d.data;let soma=0;for(let i=0;i<a.length;i+=4){const y=.3*a[i]+.59*a[i+1]+.11*a[i+2];a[i]=y;soma+=y}
   const lim=soma/(a.length/4)*.75;for(let i=0;i<a.length;i+=4){const v=a[i]<lim?0:255;a[i]=a[i+1]=a[i+2]=v}g.putImageData(d,0,0);return c}
 function limpaOcr(t){return t.split(/\n+/).map(l=>l.trim()).filter(Boolean).join(";").replace(/\s*;\s*/g,";").replace(/;{2,}/g,";").replace(/\s{2,}/g," ").replace(/^;|;$/g,"").replace(/\bce/gi,"CE").replace(/(\d)[lI|](?=[A-Za-z])/g,"$1").replace(/(\d)[oO](?=[\d)])/g,"$10").replace(/[|]/g,"1").replace(/\(([0-9]+)[oO]\)/g,"($10)")}
+/* ---- leitura simples de DXF (linhas, polilinhas, círculos, arcos, textos, blocos) ---- */
+function lerDXF(txt){
+  const L=txt.split(/\r?\n/);const P=[];for(let i=0;i+1<L.length;i+=2)P.push([parseInt(L[i]),L[i+1]]);
+  let i=0;const hdr={};const blocks={};const ents=[];
+  const lerEnt=(arr)=>{const t=P[i][1].trim();const e={t,layer:"0",v:[]};i++;
+    while(i<P.length&&P[i][0]!==0){const [c,v]=P[i];
+      if(c===8)e.layer=v.trim();else if(c===10)e.v.push({x:+v,y:0});else if(c===20&&e.v.length)e.v[e.v.length-1].y=+v;
+      else if(c===11)e.x2=+v;else if(c===21)e.y2=+v;else if(c===40)e.r=+v;else if(c===50)e.a1=+v;else if(c===51)e.a2=+v;else if(c===1)e.txt=(e.txt||"")+v;else if(c===3)e.txt=(e.txt||"")+v;
+      else if(c===2)e.name=v.trim();else if(c===41)e.sx=+v;else if(c===42)e.sy=+v;else if(c===70)e.f70=+v;else if(c===62)e.cor=+v;
+      i++}
+    if(t==="POLYLINE"){e.v=[];while(i<P.length&&!(P[i][0]===0&&P[i][1].trim()==="SEQEND")){if(P[i][0]===0&&P[i][1].trim()==="VERTEX"){const vx=lerEnt();if(vx.v[0])e.v.push(vx.v[0])}else i++}i++}
+    arr.push(e);return e};
+  while(i<P.length){
+    if(P[i][0]===0&&P[i][1].trim()==="SECTION"&&P[i+1]&&P[i+1][0]===2){const sec=P[i+1][1].trim();i+=2;
+      if(sec==="HEADER"){while(i<P.length&&!(P[i][0]===0&&P[i][1].trim()==="ENDSEC")){if(P[i][0]===9){const k=P[i][1].trim();i++;if(P[i])hdr[k]=P[i][1].trim()}i++}}
+      else if(sec==="BLOCKS"){let cur=null;while(i<P.length&&!(P[i][0]===0&&P[i][1].trim()==="ENDSEC")){const t=P[i][1].trim();
+          if(P[i][0]===0&&t==="BLOCK"){i++;cur={name:"",bx:0,by:0,ents:[]};while(i<P.length&&P[i][0]!==0){if(P[i][0]===2)cur.name=P[i][1].trim();if(P[i][0]===10)cur.bx=+P[i][1];if(P[i][0]===20)cur.by=+P[i][1];i++}blocks[cur.name]=cur}
+          else if(P[i][0]===0&&t==="ENDBLK"){cur=null;i++;while(i<P.length&&P[i][0]!==0)i++}
+          else if(P[i][0]===0&&cur)lerEnt(cur.ents);else i++}}
+      else if(sec==="ENTITIES"){while(i<P.length&&!(P[i][0]===0&&P[i][1].trim()==="ENDSEC")){if(P[i][0]===0)lerEnt(ents);else i++}}
+      else{while(i<P.length&&!(P[i][0]===0&&P[i][1].trim()==="ENDSEC"))i++}}
+    else i++}
+  /* expande blocos em segmentos simples */
+  const out=[];const T=(p,m)=>({x:m.a*p.x+m.c*p.y+m.e,y:m.b*p.x+m.d*p.y+m.f});
+  const comp=(m1,m2)=>({a:m1.a*m2.a+m1.c*m2.b,b:m1.b*m2.a+m1.d*m2.b,c:m1.a*m2.c+m1.c*m2.d,d:m1.b*m2.c+m1.d*m2.d,e:m1.a*m2.e+m1.c*m2.f+m1.e,f:m1.b*m2.e+m1.d*m2.f+m1.f});
+  const add=(E,m,lay,prof)=>E.forEach(e=>{const ly=e.layer==="0"&&lay?lay:e.layer;
+    if(e.t==="LINE"&&e.v[0])out.push({ly,k:"L",p:[T(e.v[0],m),T({x:e.x2,y:e.y2},m)]});
+    else if((e.t==="LWPOLYLINE"||e.t==="POLYLINE")&&e.v.length>1){const p=e.v.map(v=>T(v,m));if(e.f70&1)p.push(p[0]);out.push({ly,k:"L",p})}
+    else if(e.t==="CIRCLE"||e.t==="ARC"){const c=e.v[0];if(!c)return;const a1=e.t==="ARC"?e.a1*Math.PI/180:0;let a2=e.t==="ARC"?e.a2*Math.PI/180:2*Math.PI;if(a2<=a1)a2+=2*Math.PI;const n=Math.max(8,Math.ceil((a2-a1)/(Math.PI/18)));const p=[];for(let k=0;k<=n;k++){const a=a1+(a2-a1)*k/n;p.push(T({x:c.x+e.r*Math.cos(a),y:c.y+e.r*Math.sin(a)},m))}out.push({ly,k:"L",p})}
+    else if((e.t==="TEXT"||e.t==="MTEXT")&&e.v[0]&&e.txt){const s=Math.hypot(m.a,m.b);out.push({ly,k:"T",p:[T(e.v[0],m)],txt:e.txt.replace(/\\[A-Za-z][^;]*;|[{}]|\\P/g," ").trim(),h:(e.r||1)*s})}
+    else if(e.t==="INSERT"&&prof<6&&blocks[e.name]&&e.v[0]){const bl=blocks[e.name];const r=(e.a1||0)*Math.PI/180,sx=e.sx||1,sy=e.sy||1;
+      const mi={a:Math.cos(r)*sx,b:Math.sin(r)*sx,c:-Math.sin(r)*sy,d:Math.cos(r)*sy,e:e.v[0].x,f:e.v[0].y};const mb={a:1,b:0,c:0,d:1,e:-bl.bx,f:-bl.by};
+      add(bl.ents,comp(m,comp(mi,mb)),ly,prof+1)}});
+  add(ents,{a:1,b:0,c:0,d:1,e:0,f:0},"",0);
+  const un={1:0.0254,2:0.3048,4:0.001,5:0.01,6:1}[+hdr.$INSUNITS]||null;
+  return{prims:out,unidadeM:un,layers:[...new Set(out.map(o=>o.ly))].sort()}}
+function desenhaDXF(cv,D,layersOn,maxPx){
+  const P=D.prims.filter(o=>layersOn.has(o.ly));let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  P.forEach(o=>o.p.forEach(p=>{if(!isFinite(p.x)||!isFinite(p.y))return;x0=Math.min(x0,p.x);y0=Math.min(y0,p.y);x1=Math.max(x1,p.x);y1=Math.max(y1,p.y)}));
+  if(!isFinite(x0))return null;const W=x1-x0||1,H=y1-y0||1,k=Math.min((maxPx||6000)/Math.max(W,H),50),pad=20;
+  cv.width=Math.ceil(W*k)+pad*2;cv.height=Math.ceil(H*k)+pad*2;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.strokeStyle="#222";g.fillStyle="#222";g.lineWidth=Math.max(1,cv.width/3000);g.lineCap="round";
+  const X=x=>pad+(x-x0)*k,Y=y=>pad+(y1-y)*k;
+  P.forEach(o=>{if(o.k==="L"){g.beginPath();o.p.forEach((p,j)=>j?g.lineTo(X(p.x),Y(p.y)):g.moveTo(X(p.x),Y(p.y)));g.stroke()}else if(o.k==="T"){const fs=Math.max(6,o.h*k);if(fs<5)return;g.font=fs+"px sans-serif";g.fillText(o.txt,X(o.p[0].x),Y(o.p[0].y))}});
+  return{k}}
 var ORC_MODELO_OK=null;const PAL_CAT=["#2f6f9f","#c2185b","#e0a100","#2e7d32","#6a1b9a","#00838f","#ef6c00","#5d4037","#546e7a","#ad1457","#1565c0"];
 let SEG_PADRAO=[["MT","#c2185b"],["BT","#1565c0"],["IP","#e0a800"],["Transformação","#6a3fbf"]];
 
@@ -1826,14 +1871,15 @@ async function editor(id){
   function plantaDialog(){
     const m=document.createElement("div");m.className="modal";
     m.innerHTML=`<div class="mbox wide"><h2>Planta do projeto</h2>
-     <p class="note">Escolha o PDF do projeto ou uma imagem e arraste sobre o desenho para recortar a área da rede. Em PDF, informe a escala do desenho e a metragem sai direto; em imagem, use o botão <b>Escala</b> depois.</p>
-     <div class="row" style="justify-content:flex-start"><label class="btn pri" style="position:relative;overflow:hidden">Escolher arquivo<input type="file" accept="application/pdf,image/*" id="pFile" style="position:absolute;inset:0;opacity:0"></label>
+     <p class="note">Escolha o PDF do projeto, uma imagem ou um <b>DXF</b> do AutoCAD e arraste sobre o desenho para recortar a área da rede. Em PDF, informe a escala do desenho e a metragem sai direto; em imagem, use o botão <b>Escala</b> depois.</p>
+     <div class="row" style="justify-content:flex-start"><label class="btn pri" style="position:relative;overflow:hidden">Escolher arquivo<input type="file" accept="application/pdf,image/*,.dxf,.dwg" id="pFile" style="position:absolute;inset:0;opacity:0"></label>
      <label class="fld" id="pPageW" hidden>Página <select id="pPage"></select></label>
      <label class="fld">Escala do desenho 1:<input type="number" id="pEsc" value="1000" min="1" style="width:100px"></label></div>
+     <div id="pDxf" hidden class="dxfbox"><div class="row"><b>DXF</b><label class="fld" style="margin:0">Unidade do desenho<select id="pUn"><option value="1">metro</option><option value="0.001">milímetro</option><option value="0.01">centímetro</option></select></label></div><div class="note">Camadas (layers):</div><div id="pLay" class="laygrid"></div></div>
      <div class="crop" id="pCrop" hidden><canvas id="pCv"></canvas><div class="sel" id="pSel" hidden></div></div><p class="note" id="pMsg"></p>
      <div class="row"><span></span><span style="display:flex;gap:8px"><button class="btn" id="pCancel">Cancelar</button><button class="btn pri" id="pOk" disabled>Usar seleção</button></span></div></div>`;
     document.body.appendChild(m);
-    const cv=$("#pCv",m),sel=$("#pSel",m),msg=$("#pMsg",m);let k=1,isPdf=false,pdf=null,R=null,txt=[],pdfFile=null,pag=1;
+    const cv=$("#pCv",m),sel=$("#pSel",m),msg=$("#pMsg",m);let k=1,isPdf=false,pdf=null,R=null,txt=[],pdfFile=null,pag=1,isDxf=false,DX=null,dxfK=null;
     $("#pCancel",m).onclick=()=>m.remove();
     async function renderPage(n){msg.textContent="Gerando a imagem da página…";const page=await pdf.getPage(n);const vp1=page.getViewport({scale:1});
       pag=n;let px=40e6,vp,ok=false,t0=Date.now();const tick=setInterval(()=>{msg.textContent="Gerando a imagem da página… "+Math.round((Date.now()-t0)/1000)+" s (plantas grandes do CAD podem levar até 1 min)"},1000);
@@ -1848,7 +1894,13 @@ async function editor(id){
       shown()}
     function shown(){$("#pCrop",m).hidden=false;R={x:0,y:0,w:cv.width,h:cv.height};drawSel();$("#pOk",m).disabled=false;msg.textContent="Arraste sobre o desenho para recortar. Sem recorte, a página inteira é usada."}
     function drawSel(){const sc=cv.clientWidth/cv.width;sel.hidden=false;Object.assign(sel.style,{left:R.x*sc+"px",top:R.y*sc+"px",width:R.w*sc+"px",height:R.h*sc+"px"})}
-    $("#pFile",m).onchange=async e=>{const f=e.target.files[0];if(!f)return;
+    $("#pFile",m).onchange=async e=>{const f=e.target.files[0];if(!f)return;isDxf=false;$("#pDxf",m).hidden=true;
+      if(/\.dwg$/i.test(f.name)){msg.innerHTML="<b>DWG não é lido direto.</b> No AutoCAD use <b>Salvar como → DXF</b> e envie o arquivo .dxf.";return}
+      if(/\.dxf$/i.test(f.name)){try{msg.textContent="Lendo o DXF…";DX=lerDXF(await f.text());if(!DX.prims.length){msg.textContent="Não encontrei desenho no DXF.";return}
+          isDxf=true;isPdf=false;const on=new Set(DX.layers.filter(l=>!/COTA|DIM|HATCH|HACH/i.test(l)));if(DX.unidadeM)$("#pUn",m).value=String(DX.unidadeM);
+          const lay=$("#pLay",m);lay.innerHTML=DX.layers.map(l=>`<label><input type="checkbox" data-ly="${esc(l)}" ${on.has(l)?"checked":""}> ${esc(l)} <small class="note">(${DX.prims.filter(o=>o.ly===l).length})</small></label>`).join("");$("#pDxf",m).hidden=false;
+          const draw=()=>{const r=desenhaDXF(cv,DX,on,6000);if(!r){msg.textContent="Nenhuma camada visível.";return}dxfK=r.k;k=null;shown();msg.textContent="Escolha as camadas e arraste para recortar. A escala sai do próprio desenho."};
+          lay.querySelectorAll("[data-ly]").forEach(c=>c.onchange=()=>{c.checked?on.add(c.dataset.ly):on.delete(c.dataset.ly);draw()});draw()}catch(err){console.error(err);msg.textContent="Não consegui ler este DXF."}return}
       try{if(f.type==="application/pdf"||/\.pdf$/i.test(f.name)){isPdf=true;pdfFile=f;msg.textContent="Abrindo PDF…";const lib=await pdfjs();
           pdf=await lib.getDocument({data:new Uint8Array(await f.arrayBuffer()),isEvalSupported:false}).promise;
           const ps=$("#pPage",m);ps.innerHTML=Array.from({length:pdf.numPages},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join("");$("#pPageW",m).hidden=pdf.numPages<2;ps.onchange=()=>renderPage(+ps.value);await renderPage(1)}
@@ -1872,7 +1924,7 @@ async function editor(id){
         const codes=new Set(EST.map(e=>e.codigo.toUpperCase()));
         const tx=isPdf?txt.filter(([t,x,y])=>x>=R.x&&y>=R.y&&x<=R.x+R.w&&y<=R.y+R.h&&(/;/.test(t)||/^\d+\(\d+\)/.test(t)||codes.has(t.toUpperCase()))).map(([t,x,y])=>[t,Math.round(x-R.x),Math.round(y-R.y)]):[];
         const upd={planta_url:url,planta_w:out.width,planta_h:out.height,planta_tipo:isPdf?"pdf":"imagem",planta_textos:tx,planta_pdf:pdfPath,planta_pdf_pag:isPdf?pag:null,planta_pdf_k:isPdf?k:null,planta_off_x:isPdf?R.x:null,planta_off_y:isPdf?R.y:null};
-        if(isPdf&&k){const esc1=parseFloat($("#pEsc",m).value)||1000;upd.escala_m_por_unid=(esc1/1000)/(k*72/25.4)}else upd.escala_m_por_unid=null;
+        if(isPdf&&k){const esc1=parseFloat($("#pEsc",m).value)||1000;upd.escala_m_por_unid=(esc1/1000)/(k*72/25.4)}else if(isDxf&&dxfK){upd.escala_m_por_unid=(parseFloat($("#pUn",m).value)||1)/dxfK}else upd.escala_m_por_unid=null;
         await chk(O.from("orcamentos").update(upd).eq("id",ORC.id));Object.assign(ORC,upd);escala=+ORC.escala_m_por_unid||0;
         if(escala)for(const v of VAOS.filter(v=>!v.manual)){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}
         setPlanta();fit();renderHead();renderPins();renderLbls();m.remove();toast((escala?"Planta atualizada com escala.":"Planta atualizada. Use o botão Escala para calibrar.")+(tx.length?` ${tx.length} etiquetas de estrutura lidas do PDF.`:""))}
