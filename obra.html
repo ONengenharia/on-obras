@@ -225,6 +225,20 @@ svg.net line.hit{stroke:transparent}
 .app.mob .ttl h1{font-size:16.5px} .app.mob .logos img{height:36px} .app.mob .slot{height:36px}
 .app.mob .card{right:10px;top:auto;bottom:48px;width:calc(100% - 20px);max-height:60%}
 .app.mob .rz.l,.app.mob .rz.c{display:none}
+/* mapa em tela cheia (modo edição no celular) */
+body.mapfull{overflow:hidden;overscroll-behavior:none}
+.mapwrap.full{position:fixed;inset:0;z-index:15;height:auto!important;border:0;border-radius:0}
+.mapwrap.full .clip{border-radius:0}
+.mapwrap.full .rz{display:none}
+.mapwrap.full .mapui{top:calc(10px + env(safe-area-inset-top,0px))}
+.mapwrap.full .mapbar{top:calc(10px + env(safe-area-inset-top,0px))}
+.mapwrap.full .legend{display:none;bottom:calc(66px + env(safe-area-inset-bottom,0px))}
+.mapwrap.full.legon .legend{display:flex}
+.mapwrap.full .hint{top:calc(10px + env(safe-area-inset-top,0px));bottom:auto;max-width:calc(100% - 70px);left:calc(50% - 23px)}
+.app.mob .mapwrap.full .mapbar{top:auto;left:0;right:0;bottom:0;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:var(--panel);border-top:1px solid var(--line);flex-wrap:nowrap;overflow-x:auto;gap:6px}
+.app.mob .mapwrap.full .mapbar .btn{flex:1 0 auto;padding:9px 10px;font-size:13px;white-space:nowrap;box-shadow:none}
+.app.mob .mapwrap.full .card{left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));top:auto;width:auto;max-height:45%;border-radius:14px 14px 0 0;border-inline:0}
+.mapwrap.full .mapui .done{width:auto;padding:0 10px;font-size:13px;background:var(--onblue,#62a8dc);color:#0f1c28;border-color:transparent}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .andm{color:#e0a100;font-weight:600;font-size:.85em;margin-left:4px;white-space:nowrap}
 .aprc{display:flex;justify-content:space-between;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:6px}.aprc small{display:block;color:var(--muted)}
@@ -258,7 +272,7 @@ S.redes.forEach(g=>{if(g.tipo==="BT"&&!g.bt)g.bt=/70/.test(g.cabo||"")?"70":"50"
 if(!S.pxm)S.pxm=150/25.4;
 if(!S.linkMig){S.linkMig=1;const L={m4:"q4",m5:"q1",m6:"BT",m7:"q5",m8:"q6"};S.marcos.forEach(m=>{if(L[m.id]&&!m.link&&(!m.pct||+m.pct===0))m.link=L[m.id]})}
 
-let edit=false,canEdit=false,dirty=false,placing=false,selId=null,selSeg=null,tracing=null,anchor=null,tab="quant";
+let mapFull=false,edit=false,canEdit=false,dirty=false,placing=false,selId=null,selSeg=null,tracing=null,anchor=null,tab="quant";
 let artifactNs=null,assetsNs=null;
 const admEd=()=>edit&&role==="admin";
 let draft={txt:"",fotos:[],data:""},matQ="";
@@ -317,7 +331,7 @@ root.innerHTML=`<div class="app">
 <div class="mapwrap" id="map"><div class="clip"><div class="stage" id="stage"><img id="img" alt="Planta do loteamento"><svg class="net" id="net"></svg><div id="pins"></div></div></div>
  <div class="rz l" id="rzL" title="Arraste para ajustar a largura"></div><div class="rz b" id="rzB" title="Arraste para ajustar a altura"></div><div class="rz c" id="rzC" title="Arraste para ajustar"></div>
  <div class="mapbar" id="mapbar"></div>
- <div class="mapui"><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Ajustar à tela" style="font-size:14px">⤢</button></div>
+ <div class="mapui"><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Ajustar à tela" style="font-size:14px">⤢</button><button id="zfull" aria-label="Tela cheia" style="font-size:15px">⛶</button><button id="zleg" aria-label="Legenda" style="font-size:14px" hidden>ⓘ</button></div>
  <div class="legend"><span><i style="background:#1f8a4c"></i>Executado</span><span><i style="background:#d18b16"></i>Em andamento</span><span><i style="background:#7b8794"></i>Previsto</span><span><b class="seg" style="border-color:#c2185b"></b>MT</span><span><b class="seg" style="border-color:#1565c0"></b>BT 3×50</span><span><b class="seg" style="border-color:#00897b"></b>BT 3×70</span></div>
  <div class="hint" id="hint" hidden></div>
  <div class="card" id="card" hidden></div>
@@ -343,8 +357,8 @@ function renderHeader(){
   if(!canEdit){t.innerHTML=vs;bindView();return}
   t.innerHTML=voltar+vs+(role==="admin"?`<button class="btn" id="bLink">Link do cliente</button>`:"")+(edit?`${role==="admin"?'<button class="btn" id="bObra">Dados da obra</button><button class="btn" id="bPlanta">Trocar planta</button>':""}${dirty?'<span class="dirty">Alterações não salvas</span>':""}<button class="btn pri" id="bSave" ${dirty?"":"disabled"}>Salvar</button><button class="btn" id="bView">Ver como cliente</button>`:`<button class="btn pri" id="bEdit">Editar</button>`);
   bindView();
-  $("#bEdit")&&($("#bEdit").onclick=()=>{edit=true;renderAll()});
-  $("#bView")&&($("#bView").onclick=()=>{edit=false;placing=false;tracing=null;anchor=null;renderAll()});
+  $("#bEdit")&&($("#bEdit").onclick=()=>{edit=true;renderAll();if(view==="mob")setFull(true)});
+  $("#bView")&&($("#bView").onclick=()=>{setFull(false);edit=false;placing=false;tracing=null;anchor=null;renderAll()});
   $("#bSave")&&($("#bSave").onclick=save);
   $("#bObra")&&($("#bObra").onclick=editObra);
   $("#bPlanta")&&($("#bPlanta").onclick=plantaDialog);
@@ -629,8 +643,9 @@ function openAnexo(a){
 function renderMapbar(){
   const b=$("#mapbar");
   if(!edit){b.innerHTML="";return}
+  const sh=mapFull&&view==="mob";
   b.innerHTML=`<button class="btn ${placing?"on":""}" id="bPlace">${placing?"Cancelar":"+ Ponto"}</button>`
-   +[["MT","MT"],["BT50","BT 3×50"],["BT70","BT 3×70"]].map(([k,l])=>`<button class="btn ${tracing===k?"on":""}" data-tr="${k}">${tracing===k?"Concluir "+l:"Traçar "+l}</button>`).join("");
+   +[["MT","MT"],["BT50","BT 3×50"],["BT70","BT 3×70"]].map(([k,l])=>`<button class="btn ${tracing===k?"on":""}" data-tr="${k}">${tracing===k?(sh?"✓ ":"Concluir ")+l:(sh?"":"Traçar ")+l}</button>`).join("");
   $("#bPlace").onclick=()=>{placing=!placing;tracing=null;anchor=null;renderMapbar();updHint();renderPins()};
   b.querySelectorAll("[data-tr]").forEach(x=>x.onclick=()=>{tracing=tracing===x.dataset.tr?null:x.dataset.tr;anchor=null;placing=false;renderMapbar();updHint();renderPins()});
   b.onpointerdown=e=>e.stopPropagation();
@@ -867,7 +882,19 @@ function zoomAt(f,cx,cy){const r=wrap.getBoundingClientRect();const minS=Math.mi
 $("#zin").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1.5,r.width/2,r.height/2)};
 $("#zout").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1/1.5,r.width/2,r.height/2)};
 $("#zfit").onclick=fit;
-["zin","zout","zfit"].forEach(i=>$("#"+i).onpointerdown=e=>e.stopPropagation());
+["zin","zout","zfit","zfull","zleg"].forEach(i=>$("#"+i).onpointerdown=e=>e.stopPropagation());
+/* tela cheia: no celular, ao editar, o mapa ocupa a tela toda. Voltar do Android também sai. */
+function setFull(on){
+  if(on===mapFull)return;mapFull=on;
+  wrap.classList.toggle("full",on);wrap.classList.remove("legon");document.body.classList.toggle("mapfull",on);
+  const b=$("#zfull");b.textContent=on?"Concluir":"⛶";b.classList.toggle("done",on);b.setAttribute("aria-label",on?"Sair da tela cheia":"Tela cheia");
+  $("#zleg").hidden=!on;
+  if(on){try{history.pushState({mapFull:1},"")}catch(e){}}else if(history.state&&history.state.mapFull){try{history.back()}catch(e){}}
+  renderMapbar();setTimeout(fit,30);
+}
+$("#zfull").onclick=()=>setFull(!mapFull);
+$("#zleg").onclick=()=>wrap.classList.toggle("legon");
+addEventListener("popstate",()=>{if(mapFull)setFull(false)});
 wrap.addEventListener("wheel",e=>{e.preventDefault();const r=wrap.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
 const ptrs=new Map();let moved=0,pinch=null;
 wrap.addEventListener("pointerdown",e=>{wrap.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}}wrap.classList.add("drag")});
