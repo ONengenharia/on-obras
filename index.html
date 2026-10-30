@@ -179,6 +179,14 @@ button.kp:hover{border-color:var(--c)}
 .dsh .dk{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.dsh .dk div{background:var(--bg);border-radius:10px;padding:8px 10px;display:grid}.dsh .dk b{font-size:18px}.dsh .dk span{font-size:11.5px;color:var(--muted)}
 .dsh h4{margin:8px 0 2px}.dr{display:grid;grid-template-columns:minmax(110px,1fr) 2fr 130px;gap:8px;align-items:center;font-size:12.5px}.dr small{color:var(--muted)}.db{height:9px;background:var(--line);border-radius:5px;overflow:hidden}.db b{display:block;height:100%}.dv{text-align:right;font-size:12px;font-family:var(--f-mono,monospace)}
 @media (max-width:700px){.dsh .dk{grid-template-columns:1fr 1fr}}
+.eq{display:grid;gap:12px}.eq .filt label{display:flex;gap:6px;align-items:center}.eq select{padding:5px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit}
+.eqk{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.eqk div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;display:grid}.eqk b{font-size:20px}.eqk span{font-size:12px;color:var(--muted)}.eqk.sm b{font-size:16px}
+.eqg{overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}.eqt{border-collapse:collapse;font-size:12px;min-width:100%}.eqt th,.eqt td{border:1px solid var(--line);padding:0;text-align:center;min-width:24px;height:28px}.eqt th small{display:block;font-weight:400;font-size:9.5px;color:var(--muted)}
+.eqt .eqo{position:sticky;left:0;background:var(--panel);text-align:left;padding:4px 8px;min-width:220px;z-index:1}.eqt .eqo small{display:block;color:var(--muted);font-size:10.5px}.eqt tbody tr{cursor:pointer}.eqt tbody tr:hover .eqo,.eqt tr.on .eqo{background:var(--accent-soft,#e3eef8)}
+.eqt td.t{background:#4bb3d6}.eqt td.t.fds{background:#f5b400}.eqt th.fds,.eqt td.fdsv{background:rgba(245,180,0,.12)}.eqt td.n{padding:0 6px}
+.eqcols{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card2{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}.card2 h3{margin:0 0 6px}.tbl2{width:100%;border-collapse:collapse;font-size:13px}.tbl2 td,.tbl2 th{padding:5px 4px;border-bottom:1px solid var(--line);text-align:left}.tbl2 .n{text-align:right}.tbl2 small{display:block;color:var(--muted)}
+.eqadd{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.eqadd input{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;flex:1;min-width:110px}.eqd{font-size:12.5px;padding:3px 0;border-bottom:1px dashed var(--line)}
+@media (max-width:900px){.eqcols{grid-template-columns:1fr}.eqk{grid-template-columns:1fr 1fr}}
 </style>
 <script src="vendor/supabase.js"></script>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
@@ -244,7 +252,7 @@ function novaSenha(conv){
 /* ---------- dados ---------- */
 let fCol="",corPor=(()=>{try{return localStorage.getItem("on.cor")||"coluna"}catch(e){return"coluna"}})();
 let colunas=[],aba=(()=>{try{return"painel"}catch(e){return"painel"}})(),fTipo="",mapa=null,camadaPinos=null;
-{const hA=location.hash.replace("#","");if(["kanban","inicio","painel"].includes(hA))aba=hA;}
+{const hA=location.hash.replace("#","");if(["kanban","inicio","painel","equipe"].includes(hA))aba=hA;}
 const TIPOS_SUG=["Loteamento","Rede urbana","Rede rural","Subestação","Medição em MT","Usina fotovoltaica","Instalação MT/BT","Manutenção","Outro"];
 const PAL=["#2f6f9f","#d18b16","#1f8a4c","#c2185b","#6a4fb3","#00897b","#b3261e","#5d6b78","#8c6d1f","#1565c0"];
 function corTipo(t){if(!t)return"#8a96a3";let h=0;for(const c of t.toLowerCase())h=(h*31+c.charCodeAt(0))>>>0;const i=TIPOS_SUG.findIndex(x=>x.toLowerCase()===t.toLowerCase());return PAL[(i>=0?i:h)%PAL.length]}
@@ -292,7 +300,7 @@ async function contarAvisos(){try{const {count}=await sb.from("notificacoes").se
 function render(){
   $("#app").innerHTML=`<div class="wrap">
    <header><img src="assets/on-logo.png" alt="ON Engenharia"><h1><small>${aba==="painel"?"ON Engenharia":"Gerenciador de obras"}</small>${aba==="painel"?"Painel geral":ADM()?"Todas as obras":"Minhas obras"}</h1>
-    <nav class="abas"><button data-aba="painel" class="${aba==="painel"?"on":""}">🏠 Início</button><button data-aba="kanban" class="${aba==="kanban"?"on":""}">Obras</button><button data-aba="inicio" class="${aba==="inicio"?"on":""}">Mapa</button><a class="abalink" href="negocios.html">💼 Negócios<b class="nbadge" id="nBadge" hidden></b></a>${perfil&&perfil.papel==="admin"?'<a class="abalink" href="orcarede.html">🧮 OrçaRede</a>':""}${perfil&&perfil.papel==="admin"?'<a class="abalink" href="compras.html">🛒 Compras</a>':""}${perfil&&perfil.papel==="admin"?'<a class="abalink" href="lixeira.html">🗑 Lixeira</a>':""}</nav>
+    <nav class="abas"><button data-aba="painel" class="${aba==="painel"?"on":""}">🏠 Início</button><button data-aba="kanban" class="${aba==="kanban"?"on":""}">Obras</button><button data-aba="inicio" class="${aba==="inicio"?"on":""}">Mapa</button>${ADM()?`<button data-aba="equipe" class="${aba==="equipe"?"on":""}">📅 Equipe</button>`:""}<a class="abalink" href="negocios.html">💼 Negócios<b class="nbadge" id="nBadge" hidden></b></a>${perfil&&perfil.papel==="admin"?'<a class="abalink" href="orcarede.html">🧮 OrçaRede</a>':""}${perfil&&perfil.papel==="admin"?'<a class="abalink" href="compras.html">🛒 Compras</a>':""}${perfil&&perfil.papel==="admin"?'<a class="abalink" href="lixeira.html">🗑 Lixeira</a>':""}</nav>
     <div class="tools"><span class="who">${esc(perfil.nome||perfil.email)} · ${ADM()?"Administrador":"Executor"}</span>${ADM()?'<button class="btn" id="bU">Usuários</button>':""}<a class="btn" href="portfolio.html" target="_blank" rel="noopener">Portfólio</a><button class="btn" id="bS">Sair</button></div></header>
    <div id="corpo"></div></div>`;
   $("#bS").onclick=async()=>{await sb.auth.signOut();telaLogin()};
@@ -300,9 +308,9 @@ function render(){
   if(ADM()){$("#bU").onclick=usuarios}
   const nb=$("#nBadge");if(nb){nb.hidden=!nAvisos;nb.textContent=nAvisos}
   if(mapa){mapa.remove();mapa=null}
-  aba==="painel"?renderPainel():aba==="inicio"?renderInicio():renderKanban();
+  aba==="painel"?renderPainel():aba==="inicio"?renderInicio():aba==="equipe"?renderEquipe():renderKanban();
 }
-window.addEventListener("hashchange",()=>{const h=location.hash.replace("#","");if(["kanban","inicio","painel"].includes(h)&&h!==aba&&perfil){aba=h;render()}});
+window.addEventListener("hashchange",()=>{const h=location.hash.replace("#","");if(["kanban","inicio","painel","equipe"].includes(h)&&h!==aba&&perfil){aba=h;render()}});
 async function renderPainel(){
   const corpo=$("#corpo");corpo.innerHTML='<p class="note" style="padding:20px">Carregando…</p>';
   const eu=perfil.id,fimHoje=new Date();fimHoje.setHours(23,59,59,999);const em3=new Date(fimHoje.getTime()+3*864e5);
@@ -375,6 +383,63 @@ async function renderPainel(){
     draw()}
 }
 
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
+/* ---------- equipe: dias trabalhados, produção e custos (admin) ---------- */
+let eqMes=(()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")})(),eqTipo="",eqSel=null,eqTodas=false,EQC_OK=null;
+async function renderEquipe(){
+  const corpo=$("#corpo");if(!ADM()){corpo.innerHTML='<p class="note" style="padding:20px">Só para administradores.</p>';return}
+  corpo.innerHTML='<p class="note" style="padding:20px">Carregando…</p>';
+  const [Y,M]=eqMes.split("-").map(Number);const nd=new Date(Y,M,0).getDate();const ini=`${eqMes}-01`,fim=`${eqMes}-${String(nd).padStart(2,"0")}`;
+  const [rd,rp]=await Promise.all([sb.from("diario").select("obra_id,data,texto").gte("data",ini).lte("data",fim),sb.from("pontos").select("obra_id,tipo,status,data,lum,trafo").gte("data",ini).lte("data",fim)]);
+  const D=rd.data||[],P=(rp.data||[]).filter(p=>p.status==="executado");
+  let C=[];{const r=await sb.from("equipe_custos").select("*").eq("mes",eqMes).order("id");EQC_OK=!r.error;C=r.data||[]}
+  if(aba!=="equipe")return;
+  const porO={};D.forEach(x=>{(porO[x.obra_id]=porO[x.obra_id]||{});(porO[x.obra_id][x.data]=porO[x.obra_id][x.data]||[]).push(x.texto||"")});
+  const tipos=[...new Set(obras.map(o=>o.tipo).filter(Boolean))].sort();
+  const L=obras.filter(o=>(!eqTipo||o.tipo===eqTipo)&&(eqTodas||porO[o.id])).sort((a,b)=>Object.keys(porO[b.id]||{}).length-Object.keys(porO[a.id]||{}).length);
+  const dias=[...Array(nd)].map((_,i)=>{const d=new Date(Y,M-1,i+1);return{k:`${eqMes}-${String(i+1).padStart(2,"0")}`,n:i+1,w:d.getDay()}});const WD=["dom","seg","ter","qua","qui","sex","sáb"];
+  const diasComTrab=new Set(L.flatMap(o=>Object.keys(porO[o.id]||{})));const obraDias=L.reduce((s,o)=>s+Object.keys(porO[o.id]||{}).length,0);
+  const custoMes=C.reduce((s,c)=>s+(+c.valor||0),0);
+  const prod=oid=>{const X=P.filter(p=>p.obra_id===oid);return{postes:X.filter(p=>!/sem poste|apenas/i.test(p.tipo||"")).length,lum:X.filter(p=>p.lum).length,tr:X.filter(p=>p.trafo).length}};
+  const brl=v=>"R$ "+(+v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+  const meses=[];for(let k=-12;k<=1;k++){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+k);meses.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"))}
+  corpo.innerHTML=`<div class="eq">
+   <div class="filt"><label class="note">Mês <select id="eqM">${meses.reverse().map(m=>`<option value="${m}" ${m===eqMes?"selected":""}>${new Date(m+"-15").toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</option>`).join("")}</select></label>
+    <label class="note">Tipo <select id="eqT"><option value="">Todos</option>${tipos.map(t=>`<option ${t===eqTipo?"selected":""}>${esc(t)}</option>`).join("")}</select></label>
+    <label class="note"><input type="checkbox" id="eqA" ${eqTodas?"checked":""}> mostrar obras sem diário no mês</label><button class="btn" id="eqX" style="margin-left:auto">⬇ Excel</button></div>
+   <div class="eqk"><div><b>${diasComTrab.size}</b><span>dias trabalhados no mês</span></div><div><b>${L.filter(o=>porO[o.id]).length}</b><span>obras atendidas</span></div><div><b>${obraDias}</b><span>obra-dias (diários)</span></div><div><b>${EQC_OK?brl(custoMes):"—"}</b><span>custo da equipe lançado</span></div></div>
+   <div class="eqg"><table class="eqt"><thead><tr><th class="eqo">Obra</th>${dias.map(d=>`<th class="${d.w===0||d.w===6?"fds":""}"><small>${WD[d.w]}</small>${d.n}</th>`).join("")}<th>Dias</th></tr></thead><tbody>
+    ${L.map(o=>{const od=porO[o.id]||{};return `<tr data-eo="${o.id}" class="${eqSel===o.id?"on":""}"><td class="eqo"><b>${esc(o.titulo)}</b><small>${esc(o.tipo||"")}</small></td>${dias.map(d=>od[d.k]?`<td class="t ${d.w===0||d.w===6?"fds":""}" title="${esc(d.n+"/"+M+": "+od[d.k].join(" · "))}"></td>`:`<td class="${d.w===0||d.w===6?"fdsv":""}"></td>`).join("")}<td class="n"><b>${Object.keys(od).length}</b></td></tr>`}).join("")||`<tr><td colspan="${nd+2}" class="note">Nenhum diário neste mês.</td></tr>`}
+   </tbody><tfoot><tr><td class="eqo"><b>Obras no dia</b></td>${dias.map(d=>{const n=L.filter(o=>(porO[o.id]||{})[d.k]).length;return `<td class="n">${n||""}</td>`}).join("")}<td class="n"><b>${diasComTrab.size}</b></td></tr></tfoot></table></div>
+   <div class="eqcols"><div class="card2" id="eqRel"><p class="note">Clique numa obra do quadro para ver o relatório dela.</p></div>
+    <div class="card2"><h3>Fechamento do mês · custos da equipe</h3>${EQC_OK?`<p class="note">Lance os custos do mês (salários, encargos, diárias, alimentação, combustível…). O total é dividido entre as obras pelos dias trabalhados em cada uma.</p>
+      <table class="tbl2">${C.map(c=>`<tr><td>${esc(c.categoria)}<small>${esc(c.descricao||"")}</small></td><td class="n">${brl(c.valor)}</td><td><button class="xb" data-cd="${c.id}">🗑</button></td></tr>`).join("")}<tr><td><b>Total</b></td><td class="n"><b>${brl(custoMes)}</b></td><td></td></tr></table>
+      <div class="eqadd"><input id="ecC" list="dlEc" placeholder="Categoria"><datalist id="dlEc">${["Salários","Encargos","Diárias","Alimentação","Hospedagem","Combustível","Veículos","Ferramentas","Outros"].map(x=>`<option value="${x}">`).join("")}</datalist><input id="ecD" placeholder="Descrição"><input id="ecV" placeholder="Valor" inputmode="decimal"><button class="btn pri" id="ecOk">+ Lançar</button></div>
+      <h3 style="margin-top:12px">Rateio por obra</h3><table class="tbl2"><tr><th>Obra</th><th class="n">Dias</th><th class="n">Custo rateado</th><th class="n">Por dia</th></tr>${L.filter(o=>porO[o.id]).map(o=>{const nd2=Object.keys(porO[o.id]).length,cr=obraDias?custoMes*nd2/obraDias:0;return `<tr><td>${esc(o.titulo)}</td><td class="n">${nd2}</td><td class="n">${brl(cr)}</td><td class="n">${nd2?brl(cr/nd2):"—"}</td></tr>`}).join("")}</table>`:'<p class="note">O lançamento de custos está sendo ativado no banco de dados.</p>'}</div></div></div>`;
+  $("#eqM").onchange=e=>{eqMes=e.target.value;eqSel=null;renderEquipe()};$("#eqT").onchange=e=>{eqTipo=e.target.value;renderEquipe()};$("#eqA").onchange=e=>{eqTodas=e.target.checked;renderEquipe()};
+  document.querySelectorAll("[data-cd]").forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este custo?"))return;await sb.from("equipe_custos").delete().eq("id",b.dataset.cd);renderEquipe()});
+  if($("#ecOk"))$("#ecOk").onclick=async()=>{const v=parseFloat(String($("#ecV").value).replace(/\./g,"").replace(",","."));const c=$("#ecC").value.trim();if(!c||!(v>0)){toast("Informe categoria e valor.");return}
+    const {error}=await sb.from("equipe_custos").insert({mes:eqMes,categoria:c,descricao:$("#ecD").value.trim()||null,valor:v});if(error){toast(error.message);return}renderEquipe()};
+  document.querySelectorAll("[data-eo]").forEach(r=>r.onclick=()=>{eqSel=r.dataset.eo;document.querySelectorAll("[data-eo]").forEach(x=>x.classList.toggle("on",x===r));relObra(eqSel)});
+  $("#eqX").onclick=async()=>{if(!window.XLSX)await loadScript("vendor/xlsx.full.min.js");const XL=window.XLSX;const A=[["Obra","Tipo",...dias.map(d=>d.n),"Dias"]];L.forEach(o=>{const od=porO[o.id]||{};A.push([o.titulo,o.tipo||"",...dias.map(d=>od[d.k]?"X":""),Object.keys(od).length])});
+    const B=[["Data","Obra","Diário"]];D.sort((a,b)=>a.data.localeCompare(b.data)).forEach(x=>B.push([x.data,(obras.find(o=>o.id===x.obra_id)||{}).titulo||"",x.texto||""]));
+    const wb=XL.utils.book_new();XL.utils.book_append_sheet(wb,XL.utils.aoa_to_sheet(A),"Calendário");XL.utils.book_append_sheet(wb,XL.utils.aoa_to_sheet(B),"Diários");if(C.length)XL.utils.book_append_sheet(wb,XL.utils.aoa_to_sheet([["Categoria","Descrição","Valor"],...C.map(c=>[c.categoria,c.descricao||"",+c.valor])]),"Custos");XL.writeFile(wb,`Equipe ${eqMes}.xlsx`)};
+  if(eqSel)relObra(eqSel);
+  async function relObra(oid){const o=obras.find(x=>x.id===oid);const el=$("#eqRel");el.innerHTML='<p class="note">Carregando…</p>';
+    const [tot,ng]=await Promise.all([sb.from("diario").select("data,texto").eq("obra_id",oid).order("data"),sb.from("negocios").select("id").eq("obra_id",oid).limit(1)]);
+    const TD=[...new Set((tot.data||[]).map(x=>x.data))];const od=porO[oid]||{};const ndM=Object.keys(od).length;
+    let mo=null,diasPrev=null;try{const nid=ng.data&&ng.data[0]&&ng.data[0].id;if(nid){const O2=sb.schema("orcarede");const ro=await O2.from("orcamentos").select("id").eq("negocio_id",nid).eq("vigente",true).limit(1);const orc=ro.data&&ro.data[0];
+      if(orc){const pr=await O2.from("precificacao").select("custos").eq("orcamento_id",orc.id).limit(1);const cs=((pr.data&&pr.data[0]&&pr.data[0].custos)||[]).filter(c=>/m[aã]o de obra/i.test(c.grupo||""));
+        if(cs.length){mo=cs.reduce((s,c)=>s+(+c.v||((+c.q||0)*(+c.valor||0))||0),0);const m=cs.map(c=>String(c.desc||"")).join(" ").match(/(\d+)\s*DIAS?/i);diasPrev=m?+m[1]:null;if(!diasPrev){const q=cs.find(c=>/qtd|×|x/i.test(c.tipo||"")&&+c.q>1);if(q)diasPrev=+q.q}}}}}catch(e){}
+    const pd=prod(oid),cdia=mo&&diasPrev?mo/diasPrev:null;const custoR=obraDias?custoMes*ndM/obraDias:0;
+    el.innerHTML=`<h3>${esc(o.titulo)}</h3><p class="note">${esc(o.cliente||"")} · ${esc(o.tipo||"")} · avanço ${Math.round(+o.avanco||0)}%</p>
+      <div class="eqk sm"><div><b>${ndM}</b><span>dias no mês</span></div><div><b>${TD.length}</b><span>dias desde o início</span></div><div><b>${diasPrev??"—"}</b><span>dias previstos</span></div><div><b>${diasPrev?Math.round(TD.length/diasPrev*100)+"%":"—"}</b><span>do prazo consumido</span></div></div>
+      <table class="tbl2"><tr><td>Mão de obra prevista</td><td class="n">${mo!=null?brl(mo):"—"}</td></tr><tr><td>Custo previsto por dia</td><td class="n">${cdia?brl(cdia):"—"}</td></tr><tr><td>Previsto para os ${ndM} dia(s) do mês</td><td class="n">${cdia?brl(cdia*ndM):"—"}</td></tr>
+       ${EQC_OK?`<tr><td>Custo real rateado no mês</td><td class="n">${brl(custoR)}</td></tr><tr><td><b>Previsto × realizado</b></td><td class="n"><b style="color:${cdia&&cdia*ndM-custoR<0?"var(--bad,#c53030)":"var(--ok,#1f8a4c)"}">${cdia?brl(cdia*ndM-custoR):"—"}</b></td></tr>`:""}
+       <tr><td>Produção no mês</td><td class="n">${pd.postes} poste(s) · ${pd.lum} lum. · ${pd.tr} TR</td></tr><tr><td>Postes por dia</td><td class="n">${ndM?(pd.postes/ndM).toFixed(1).replace(".",","):"—"}</td></tr></table>
+      <h4>Diários do mês</h4>${Object.keys(od).sort().map(k=>`<div class="eqd"><b>${k.slice(8)}/${k.slice(5,7)}</b> ${esc(od[k].join(" · "))}</div>`).join("")||'<p class="note">—</p>'}
+      <p><a class="btn" href="obra.html?id=${oid}">Abrir obra →</a></p>`}
+}
 /* ---------- início: mapa ---------- */
 let mapaQ="",soArea=false,mapSel=null,marcando=null;
 function renderInicio(){
