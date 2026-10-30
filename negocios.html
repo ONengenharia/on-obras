@@ -228,12 +228,14 @@ img.logo{width:auto;height:38px;border-radius:0;object-fit:contain;background:no
 @media (max-width:900px){.fxside{display:none}}
 .col{position:relative}.colrz{position:absolute;top:0;right:-6px;width:10px;height:100%;cursor:col-resize;z-index:3}.colrz:hover{background:linear-gradient(90deg,transparent 4px,var(--accent,#5aa9e6) 4px,var(--accent,#5aa9e6) 6px,transparent 6px)}
 @keyframes chg{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px var(--accent,#5aa9e6)}}.card.chegou{animation:chg .7s ease 3}
+.txf{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.tfc{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);border-radius:8px;padding:3px 6px;font-size:12px}.tfc img{height:34px;border-radius:4px}.tfc button{border:0;background:transparent;cursor:pointer}
+.manx{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.manx img{max-width:240px;max-height:180px;border-radius:8px;display:block}.mfile{display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:8px;text-decoration:none;color:inherit}.comp.drop{outline:2px dashed var(--accent)}
 </style>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
 <script src="js/atalhos.js?v=2"></script>
-<script src="js/global.js?v=11" defer></script>
+<script src="js/global.js?v=12" defer></script>
 </head>
 <body>
 <div class="app" id="app"><p class="note" style="padding:20px">Carregando…</p></div>
@@ -559,7 +561,7 @@ async function abrir(id,manter){
    </div>
    <div class="tabs">${[["resumo","Resumo"+(extras.lemb&&extras.lemb.some(l=>!l.feito)?" ⏰":"")],["chat","Conversa ("+extras.msgs.length+")"+(naoLidasCard(c.id).n?` <b class="tdot">${naoLidasCard(c.id).n}</b>`:"")],["anx","Anexos ("+extras.anx.length+")"],["hist","Histórico"]].map(([k,l])=>`<button class="${abaCard===k?"on":""}" data-t="${k}">${l}</button>`).join("")}</div>
    <div class="gvb" id="gb"></div>
-   ${abaCard==="chat"?`<div class="comp"><div class="mwrap"><div class="ment" id="ment" hidden></div><textarea id="tx" placeholder="Escreva para a equipe… digite @ para chamar alguém"></textarea></div><button class="btn pri" id="env">Enviar</button></div>`:""}
+   ${abaCard==="chat"?`<div class="comp"><div class="mwrap"><div class="ment" id="ment" hidden></div><textarea id="tx" placeholder="Escreva para a equipe… @ chama alguém · cole um print (Ctrl+V) ou arraste arquivos"></textarea><div class="txf" id="txf"></div></div><label class="btn" title="Anexar arquivo ou foto" style="position:relative;overflow:hidden">📎<input type="file" id="txA" multiple style="position:absolute;inset:0;opacity:0"></label><button class="btn pri" id="env">Enviar</button></div>`:""}
   </div><div class="fxside" id="fxs"><p class="note" style="padding:10px">Carregando fluxo…</p></div></aside>`;
   document.body.appendChild(g);
   janela($(".gvp",g));
@@ -647,14 +649,24 @@ async function abrir(id,manter){
   }else if(abaCard==="chat"){
     if(INBOX.some(n=>!n.lido&&n.negocio_id===id&&(n.tipo==="mencao"||n.tipo==="msg"))){INBOX.forEach(n=>{if(n.negocio_id===id&&(n.tipo==="mencao"||n.tipo==="msg"))n.lido=true});sb.from("notificacoes").update({lido:true}).eq("negocio_id",id).in("tipo",["mencao","msg"]).eq("lido",false).then(()=>{});render();document.querySelector(".gv")||0}
     const nomes=U.map(u=>u.nome).sort((a,b)=>b.length-a.length);
-    const fmt=t=>{let h=esc(t);nomes.forEach(n=>{h=h.split("@"+esc(n)).join(`<span class="mention">@${esc(n)}</span>`)});return h};
+    const ANX=/\[\[anexo:([^|\]]+)\|([^|\]]*)\|([^\]]*)\]\]/g;
+    const fmt=t=>{const anx=[];const t2=String(t||"").replace(ANX,(m,u,n,ty)=>{anx.push({u,n,ty});return""}).trim();let h=esc(t2);nomes.forEach(n=>{h=h.split("@"+esc(n)).join(`<span class="mention">@${esc(n)}</span>`)});
+      return h+(anx.length?`<div class="manx">${anx.map(a=>/^image\//.test(a.ty)?`<a href="${esc(a.u)}" target="_blank" rel="noopener"><img src="${esc(a.u)}" alt="${esc(a.n)}"></a>`:`<a class="mfile" href="${esc(a.u)}" target="_blank" rel="noopener">📄 ${esc(a.n)}</a>`).join("")}</div>`:"")};
     const desenhar=()=>{gb.innerHTML=extras.msgs.length?`<div class="chat">${extras.msgs.map(m=>{const u=uById(m.autor);return `<div class="msg ${m.autor===eu?"eu":""}"><span class="dot" style="background:${u.cor};width:30px;height:30px;font-size:11px">${sigla(m.autor_nome)}</span><div class="b"><small><b>${esc(m.autor_nome)}</b> · ${fdt(m.criado_em)}</small>${fmt(m.texto)}</div></div>`}).join("")}</div>`:'<p class="note">Nenhuma mensagem ainda. Todos podem conversar aqui, mesmo quem só visualiza a etapa. Digite @ para chamar alguém: a pessoa recebe na caixa de entrada.</p>';gb.scrollTop=gb.scrollHeight};
     desenhar();
     const tx=$("#tx",g);tx.value=rascunho;tx.focus();
     autocompletar(tx,$("#ment",g));
-    const enviar=async()=>{const t=tx.value.trim();if(!t)return;const men=U.filter(u=>t.includes("@"+u.nome)).map(u=>u.id);
-      $("#env",g).disabled=true;const {error}=await sb.from("neg_mensagens").insert({negocio_id:id,texto:t,mencoes:men});$("#env",g).disabled=false;
-      if(error){toast("Não foi possível enviar: "+error.message);return}tx.value="";await carregarExtras(id);abrir(id,true)};
+    const FILA=[];const txf=$("#txf",g);
+    const drawF=()=>{txf.innerHTML=FILA.map((f,i)=>`<span class="tfc">${/^image\//.test(f.type)?`<img src="${URL.createObjectURL(f)}">`:"📄"} ${esc(f.name||"print.png")} <button data-tfx="${i}" title="Tirar">✕</button></span>`).join("");txf.querySelectorAll("[data-tfx]").forEach(b=>b.onclick=()=>{FILA.splice(+b.dataset.tfx,1);drawF()})};
+    const addF=fs=>{[...fs].forEach(f=>{if(f.size>25e6){toast(f.name+" passa de 25 MB.");return}FILA.push(f)});drawF();tx.focus()};
+    tx.addEventListener("paste",e=>{const fs=[...(e.clipboardData||{}).items||[]].filter(i=>i.kind==="file").map(i=>{const f=i.getAsFile();return f&&!f.name.includes(".")?new File([f],"print-"+Date.now()+".png",{type:f.type}):f}).filter(Boolean);if(fs.length){e.preventDefault();addF(fs)}});
+    $("#txA",g).onchange=e=>{addF(e.target.files);e.target.value=""};
+    const comp=g.querySelector(".comp");comp.addEventListener("dragover",e=>{e.preventDefault();comp.classList.add("drop")});comp.addEventListener("dragleave",()=>comp.classList.remove("drop"));comp.addEventListener("drop",e=>{e.preventDefault();comp.classList.remove("drop");if(e.dataTransfer.files.length)addF(e.dataTransfer.files)});
+    const enviar=async()=>{let t=tx.value.trim();if(!t&&!FILA.length)return;const men=U.filter(u=>t.includes("@"+u.nome)).map(u=>u.id);
+      $("#env",g).disabled=true;
+      try{for(const f of FILA){const nome=f.name||"print.png";toast("Enviando "+nome+"…");const url=await subirArquivo(id,f,nome);await sb.from("neg_anexos").insert({negocio_id:id,nome,tipo:f.type||"",tam:f.size,url});t+=`\n[[anexo:${url}|${nome.replace(/[|\]]/g,"_")}|${f.type||""}]]`}}catch(e){$("#env",g).disabled=false;toast("Não foi possível enviar o anexo: "+(e.message||e));return}
+      const {error}=await sb.from("neg_mensagens").insert({negocio_id:id,texto:t.trim(),mencoes:men});$("#env",g).disabled=false;
+      if(error){toast("Não foi possível enviar: "+error.message);return}FILA.length=0;tx.value="";await carregarExtras(id);abrir(id,true)};
     $("#env",g).onclick=enviar;
     tx.addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey))enviar()});
     pollChat=setInterval(async()=>{if(aberto!==id||abaCard!=="chat"){clearInterval(pollChat);return}const n=extras.msgs.length;await carregarExtras(id);if(extras.msgs.length!==n)desenhar()},2000);

@@ -32,7 +32,9 @@
   .gc-m .b small{display:block;font-size:10.5px;color:var(--muted,#5a6f83)}.gc-m .b small b{color:var(--ink,#1e2f40)}
   .gc-m.eu .b{background:var(--accent-soft,#e8f1f9);border-color:transparent}
   .gc-m .men{color:var(--accent,#2f6f9f);font-weight:700}
-  .gc-comp{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line,#d6e1ea);position:relative}
+  .gc-comp{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border-top:1px solid var(--line,#d6e1ea);position:relative}
+  .gc-fila{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px;font-size:12px}.gc-fila:empty{display:none}.gc-fila span{background:#e3eef8;color:#1e2f40;border-radius:6px;padding:2px 4px 2px 8px}.gc-comp .gc-fila button{background:transparent;color:inherit;padding:0 4px}
+  .gc-anx{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.gc-anx img{max-width:200px;max-height:150px;border-radius:8px;display:block}.gc-f{color:inherit}
   .gc-comp textarea{flex:1;resize:none;height:42px;border:1px solid var(--line,#d6e1ea);border-radius:8px;padding:8px;font:inherit;font-size:13px;background:var(--bg,#eef2f6);color:inherit}
   .gc-comp button{border:0;border-radius:8px;background:#2f6f9f;color:#fff;font-weight:600;padding:0 14px;cursor:pointer}
   .gc-ment{position:absolute;left:8px;bottom:calc(100% + 4px);width:calc(100% - 16px);background:var(--panel,#fff);border:1px solid var(--line,#d6e1ea);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:4px;display:grid;gap:2px;max-height:220px;overflow:auto}
@@ -118,7 +120,10 @@
   function bindChips() { win.querySelectorAll(".gc-ch").forEach(b => b.onclick = async () => { canal = b.dataset.c; try { localStorage.setItem("gc.canal", canal); } catch (er) {} await carregar(); desenharLista(); await marcarLido(); win.querySelector(".gc-chans").innerHTML = chips(); bindChips(); }); }
   const opcoesCanal = () => `<option value="geral" ${canal === "geral" ? "selected" : ""}># Geral (todos)${naoLidas.geral ? " · " + naoLidas.geral.qtd : ""}</option>` +
     U.filter(u => u.id !== eu).map(u => { const c = dm(u.id), n = naoLidas[c]; return `<option value="${c}" ${canal === c ? "selected" : ""}>✉ ${esc(u.nome)}${n ? " · " + n.qtd : ""}</option>`; }).join("");
-  function fmt(t) { let h = esc(t); U.map(u => u.nome).sort((a, b) => b.length - a.length).forEach(n => { h = h.split("@" + esc(n)).join(`<span class="men">@${esc(n)}</span>`); }); return h; }
+  const ANX = /\[\[anexo:([^|\]]+)\|([^|\]]*)\|([^\]]*)\]\]/g;
+  function fmt(t0) { const anx = []; const t = String(t0 || "").replace(ANX, (m, u, n, ty) => { anx.push({ u, n, ty }); return ""; }).trim(); let h = esc(t); U.map(u => u.nome).sort((a, b) => b.length - a.length).forEach(n => { h = h.split("@" + esc(n)).join(`<span class="men">@${esc(n)}</span>`); });
+    if (anx.length) h += `<div class="gc-anx">${anx.map(a => /^image\//.test(a.ty) ? `<a href="${esc(a.u)}" target="_blank" rel="noopener"><img src="${esc(a.u)}" alt="${esc(a.n)}"></a>` : `<a class="gc-f" href="${esc(a.u)}" target="_blank" rel="noopener">📄 ${esc(a.n)}</a>`).join("")}</div>`;
+    return h; }
   function desenharLista() {
     const L = win.querySelector(".gc-list");
     L.innerHTML = msgs.length ? msgs.map(m => `<div class="gc-m ${m.autor === eu ? "eu" : ""}"><span class="av" style="background:${corDe(m.autor)}">${sigla(m.autor_nome)}</span><div class="b"><small>${m.autor === eu ? "Você" : `<b>${esc(m.autor_nome)}</b>`} · ${fdt(m.criado_em)}</small>${fmt(m.texto)}</div></div>`).join("")
@@ -128,7 +133,7 @@
   function montar() {
     win.innerHTML = `<div class="gc-top"><b>Chat da equipe</b><button data-x="min" title="Minimizar" aria-label="Minimizar">—</button><button data-x="fec" title="Fechar" aria-label="Fechar">✕</button></div>
       <div class="gc-body"><div class="gc-chans">${chips()}</div><div class="gc-main"><div class="gc-list"></div>
-      <div class="gc-comp"><div class="gc-ment" hidden></div><div class="gc-emo" hidden>${EMO.map(e=>`<button type="button">${e}</button>`).join("")}</div><button type="button" class="gc-eb" title="Emojis" aria-label="Emojis">😊</button><textarea placeholder="Mensagem… digite @ para chamar alguém (Enter envia)"></textarea><button>Enviar</button></div></div></div>`;
+      <div class="gc-comp"><div class="gc-ment" hidden></div><div class="gc-emo" hidden>${EMO.map(e=>`<button type="button">${e}</button>`).join("")}</div><button type="button" class="gc-eb" title="Emojis" aria-label="Emojis">😊</button><label class="gc-eb" title="Anexar arquivo ou foto" style="position:relative;overflow:hidden;cursor:pointer">📎<input type="file" class="gc-fi" multiple style="position:absolute;inset:0;opacity:0"></label><textarea placeholder="Mensagem… @ chama alguém · cole um print (Ctrl+V) · Enter envia"></textarea><button class="gc-env">Enviar</button><div class="gc-fila"></div></div></div></div>`;
     win.querySelectorAll(".gc-top [data-x]").forEach(b => b.onclick = fechar);
     const emo = win.querySelector(".gc-emo");
     win.querySelector(".gc-eb").onclick = () => { emo.hidden = !emo.hidden; };
@@ -136,15 +141,26 @@
     bindChips();
     const tx = win.querySelector("textarea"), box = win.querySelector(".gc-ment");
     autocompletar(tx, box);
+    const FILA = [], fila = win.querySelector(".gc-fila");
+    const drawF = () => { fila.innerHTML = FILA.map((f, i) => `<span>${/^image\//.test(f.type) ? "🖼" : "📄"} ${esc(f.name)} <button type="button" data-fx="${i}">✕</button></span>`).join(""); fila.querySelectorAll("[data-fx]").forEach(b => b.onclick = () => { FILA.splice(+b.dataset.fx, 1); drawF(); }); };
+    const addF = fs => { [...fs].forEach(f => { if (f.size > 25e6) { alertaCurto(f.name + " passa de 25 MB."); return; } FILA.push(f.name && f.name.includes(".") ? f : new File([f], "print-" + Date.now() + ".png", { type: f.type })); }); drawF(); tx.focus(); };
+    win.querySelector(".gc-fi").onchange = e => { addF(e.target.files); e.target.value = ""; };
+    tx.addEventListener("paste", e => { const fs = [...((e.clipboardData || {}).items || [])].filter(i => i.kind === "file").map(i => i.getAsFile()).filter(Boolean); if (fs.length) { e.preventDefault(); addF(fs); } });
+    const cp = win.querySelector(".gc-comp"); cp.addEventListener("dragover", e => e.preventDefault()); cp.addEventListener("drop", e => { e.preventDefault(); if (e.dataTransfer.files.length) addF(e.dataTransfer.files); });
     const enviar = async () => {
-      const t = tx.value.trim(); if (!t) return;
+      let t = tx.value.trim(); if (!t && !FILA.length) return;
       const men = U.filter(u => t.includes("@" + u.nome)).map(u => u.id);
+      try { for (const f of FILA) { const ext = (f.name.split(".").pop() || "bin").toLowerCase(); const path = "chat/" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7) + "." + ext;
+          const up = await sb.storage.from("negocios").upload(path, f, { contentType: f.type || "application/octet-stream" }); if (up.error) throw up.error;
+          const url = sb.storage.from("negocios").getPublicUrl(path).data.publicUrl; t += `\n[[anexo:${url}|${f.name.replace(/[|\]]/g, "_")}|${f.type || ""}]]`; } }
+      catch (er) { alertaCurto("Não foi possível enviar o anexo: " + (er.message || er)); return; }
+      FILA.length = 0; drawF(); t = t.trim();
       tx.value = "";
       const { error } = await sb.from("chat_msgs").insert({ canal, texto: t, mencoes: men });
       if (error) { tx.value = t; alertaCurto("Não foi possível enviar: " + error.message); return; }
       await carregar(); desenharLista(); marcarLido();
     };
-    win.querySelector(".gc-comp > button:last-child").onclick = enviar;
+    win.querySelector(".gc-env").onclick = enviar;
     tx.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && box.hidden) { e.preventDefault(); enviar(); } });
     desenharLista();
   }
