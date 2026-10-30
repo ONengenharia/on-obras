@@ -13,8 +13,14 @@
 @media (max-width:700px){.atl .rot{display:none}.atl a{padding:7px 9px}}
 .atl .grip{cursor:grab;color:#9fb8cc;padding:7px 4px 7px 8px;user-select:none;touch-action:none}.atl .grip:active{cursor:grabbing}
 .atl.solto{transform:none}.atl.vert{flex-direction:column;border-radius:22px}.atl.vert .rot{display:none}.atl.vert .grip{padding:6px 7px 2px}
-.atl .fundo{font-size:13px}.fpop{position:fixed;z-index:950;background:#1e2f40;color:#e8f1f9;border:1px solid #3b5670;border-radius:12px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);font:500 13px Montserrat,system-ui,sans-serif;display:grid;gap:8px;width:260px}
-.fpop label{display:flex;justify-content:space-between;align-items:center;gap:8px}.fpop button{border:1px solid #3b5670;background:#2b4157;color:#e8f1f9;border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit}.fpop .sw{display:flex;gap:6px;flex-wrap:wrap}.fpop .sw i{width:22px;height:22px;border-radius:6px;cursor:pointer;border:2px solid #fff3}
+.atl .fundo{font-size:13px}
+.fpop{position:fixed;z-index:950;background:#1e2f40;color:#e8f1f9;border:1px solid #3b5670;border-radius:12px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);font:500 13px Montserrat,system-ui,sans-serif;display:flex;flex-direction:column;gap:10px;width:280px;box-sizing:border-box;text-align:left}
+.fpop *{box-sizing:border-box}.fpop .fp-r{display:flex!important;justify-content:space-between;align-items:center;gap:8px;margin:0;padding:0;width:100%}
+.fpop .fp-r>span{flex:1;white-space:nowrap}.fpop input[type=color]{width:44px!important;height:28px!important;min-width:0!important;flex:none!important;padding:0!important;border:1px solid #3b5670!important;border-radius:6px;background:none}
+.fpop input[type=range]{width:130px!important;min-width:0!important;flex:none!important;padding:0!important;border:0!important;background:none}
+.fpop .fp-file{position:relative;overflow:hidden;display:inline-block;border:1px solid #3b5670;background:#2b4157;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px}.fpop .fp-file input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%!important;min-width:0!important}
+.fpop button{border:1px solid #3b5670;background:#2b4157;color:#e8f1f9;border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit;width:auto;height:auto}
+.fpop .fp-sw{display:grid!important;grid-template-columns:repeat(8,24px);gap:6px}.fpop .fp-sw i{display:block;width:24px!important;height:24px!important;border-radius:6px;cursor:pointer;border:2px solid #ffffff33;padding:0;margin:0}
 @media print{.atl{display:none}}`;
   const st = document.createElement("style"); st.textContent = css; document.head.appendChild(st);
   const pg = location.pathname.split("/").pop() || "index.html", hash = location.hash;
@@ -56,11 +62,11 @@
       fstyle.textContent = `html,body{background:linear-gradient(rgba(10,18,28,${f.esc ?? .45}),rgba(10,18,28,${f.esc ?? .45})),url(${u}) center/cover fixed no-repeat!important}` } };
   const popFundo = () => { document.querySelectorAll(".fpop").forEach(x => x.remove()); const p = document.createElement("div"); p.className = "fpop";
     let f = null; try { f = JSON.parse(localStorage.getItem(FKEY) || "null") } catch (e) {}
-    p.innerHTML = `<b>Fundo de tela</b><div class="sw">${["#0f1c28", "#1b2a3a", "#23313f", "#e9eef3", "#f6f1e7", "#12261c", "#2a1e33", "#3a2a1a"].map(c => `<i style="background:${c}" data-c="${c}" title="${c}"></i>`).join("")}</div>
-      <label>Outra cor <input type="color" id="fCor" value="${f && f.t === "cor" ? f.v : "#1b2a3a"}"></label>
-      <label>Imagem <input type="file" id="fImg" accept="image/*" style="width:150px"></label>
-      <label>Escurecer imagem <input type="range" id="fEsc" min="0" max="0.8" step="0.05" value="${f && f.esc != null ? f.esc : .45}"></label>
-      <div style="display:flex;justify-content:space-between"><button id="fPad">Voltar ao padrão</button><button id="fX">Fechar</button></div>`;
+    p.innerHTML = `<b>Fundo de tela</b><div class="fp-sw">${["#0f1c28", "#1b2a3a", "#23313f", "#e9eef3", "#f6f1e7", "#12261c", "#2a1e33", "#3a2a1a"].map(c => `<i style="background:${c}" data-c="${c}" title="${c}"></i>`).join("")}</div>
+      <div class="fp-r"><span>Outra cor</span><input type="color" id="fCor" value="${f && f.t === "cor" ? f.v : "#1b2a3a"}"></div>
+      <div class="fp-r"><span>Imagem</span><label class="fp-file">Escolher…<input type="file" id="fImg" accept="image/*"></label></div>
+      <div class="fp-r"><span>Escurecer imagem</span><input type="range" id="fEsc" min="0" max="0.8" step="0.05" value="${f && f.esc != null ? f.esc : .45}"></div>
+      <div class="fp-r"><button id="fPad">Voltar ao padrão</button><button id="fX">Fechar</button></div>`;
     document.body.appendChild(p); const r = nav.getBoundingClientRect(); p.style.left = Math.max(8, Math.min(innerWidth - 270, r.left)) + "px"; p.style.top = Math.max(8, r.top - p.offsetHeight - 8) + "px";
     const salva = v => { try { v ? localStorage.setItem(FKEY, JSON.stringify(v)) : localStorage.removeItem(FKEY) } catch (e) {} aplicaFundo() };
     p.querySelectorAll("[data-c]").forEach(i => i.onclick = () => salva({ t: "cor", v: i.dataset.c }));
