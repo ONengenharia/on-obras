@@ -327,6 +327,15 @@ function modal(html,onOk,okTxt="OK"){const m=document.createElement("div");m.cla
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
 const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/[^A-Z0-9,./]+/g," ").replace(/\s+/g," ").trim();
 /* leitura genérica de linhas de cotação (texto de PDF sem cabeçalho, OCR ou texto colado) */
+let OCRW=null;
+async function ocrWorker(){if(OCRW)return OCRW;if(!window.Tesseract)await loadScript("vendor/tesseract/tesseract.min.js");
+  const base=new URL("vendor/tesseract/",location.href).href;
+  OCRW=await Tesseract.createWorker("eng",1,{workerPath:base+"worker.min.js",corePath:base,langPath:base,gzip:true,workerBlobURL:false});
+  await OCRW.setParameters({tessedit_char_whitelist:"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz();,_-./+ ",preserve_interword_spaces:"1"});return OCRW}
+async function preparaImg(blob){const bmp=await createImageBitmap(blob);const k=Math.max(1,Math.min(4,1400/Math.max(bmp.width,bmp.height)));const c=document.createElement("canvas");c.width=bmp.width*k;c.height=bmp.height*k;
+  const g=c.getContext("2d");g.imageSmoothingQuality="high";g.drawImage(bmp,0,0,c.width,c.height);const d=g.getImageData(0,0,c.width,c.height),a=d.data;let soma=0;for(let i=0;i<a.length;i+=4){const y=.3*a[i]+.59*a[i+1]+.11*a[i+2];a[i]=y;soma+=y}
+  const lim=soma/(a.length/4)*.75;for(let i=0;i<a.length;i+=4){const v=a[i]<lim?0:255;a[i]=a[i+1]=a[i+2]=v}g.putImageData(d,0,0);return c}
+function lerTextoC(texto,modo){const L=String(texto||"").split(/\n+/);const r=parseLinhasCot(L,modo);return{itens:r.itens,cab:L.slice(0,12).join("\n"),modo:modo||"texto",ignoradas:r.ignoradas}}
 function parseLinhasCot(linhas,modo){
   const NAO=/\b(ICMS|IPI|PIS|COFINS|SUBTOTAL|SUB-TOTAL|TOTAL|TOTAIS|PEDIDO M[IÍ]NIMO|FATURAMENTO|FRETE|DESCONTO|CNPJ|INSCRI|VALIDADE|PRAZO|PAGAMENTO|CONDI[CÇ]|ENTREGA|VENDEDOR|TELEFONE|FONE|E-?MAIL|CEP|ENDERE[CÇ]O|OBSERVA|BANCO|PIX|BOLETO|EMISS[AÃ]O|P[AÁ]GINA|IMPOSTOS?|TRIBUT|SEGURO|ASSINATURA|PROPOSTA|OR[CÇ]AMENTO N)\b/i;
   const item=d=>{const w=norm(d).split(" ").filter(t=>/^[A-Z]{3,}$/.test(t));return w.length>=1&&w.join("").length>=5&&!NAO.test(d)};
@@ -607,16 +616,44 @@ async function painel(id){
   function tCot(){
     const pf=porFornecedor();
     $("#full").innerHTML=`<div class="wrap2"><div class="card"><div class="row"><h2>Cotações recebidas</h2><div class="tools">
-       <label class="btn pri" style="position:relative;overflow:hidden">⬆ Importar PDF ou Excel<input type="file" id="cotF" accept=".pdf,.xlsx,.xls,.csv" multiple style="position:absolute;inset:0;opacity:0"></label><button class="btn" id="cotM">+ Cotação manual</button></div></div>
+       <label class="btn pri" style="position:relative;overflow:hidden">⬆ Importar PDF, Excel ou imagem<input type="file" id="cotF" accept=".pdf,.xlsx,.xls,.csv,image/*" multiple style="position:absolute;inset:0;opacity:0"></label><button class="btn" id="cotM">+ Cotação manual</button></div></div>
       <p class="note">O sistema lê a coluna de descrição/item, quantidade e valor unitário, e liga cada linha a um material desta obra. Na revisão você confirma ou corrige; o que você corrigir fica aprendido para as próximas.</p>
       <table class="tbl"><thead><tr><th>Fornecedor</th><th class="hm">Documento</th><th class="hm">Data</th><th class="n">Itens cotados</th><th class="n">Total cotado</th><th class="n">Frete</th><th></th></tr></thead><tbody>
       ${pf.map(({c,tot,n})=>`<tr><td><b>${esc(c.fornecedor_nome)}</b>${c.prazo?`<span class="sm">prazo ${esc(c.prazo)}</span>`:""}</td><td class="hm">${esc(c.documento||"")}</td><td class="hm">${fdata(c.data)}</td><td class="n">${n}/${ativos().length}</td><td class="n">${brl(tot)}</td><td class="n"><input class="inp n" data-fr="${c.id}" value="${c.frete?num(c.frete,2):""}" placeholder="0" style="width:90px"></td><td class="n"><button class="xb" data-dc="${c.id}" title="Excluir cotação">🗑</button></td></tr>`).join("")||'<tr><td colspan="7" class="note">Nenhuma cotação.</td></tr>'}</tbody></table></div></div>`;
     $("#cotF").onchange=async e=>{const fs=[...e.target.files];e.target.value="";for(const f of fs)await importar(f)};
-    $("#cotM").onclick=()=>fornDialog(null,async(fid,nome)=>{const r=await chk(O.from("compra_cotacoes").insert({compra_id:id,fornecedor_id:fid,fornecedor_nome:nome}).select("*").single());CT.push(r);aba="comparativo";shell();toast("Cotação criada. Clique em ＋ nas células para digitar os preços.")});
+    $("#cotM").onclick=()=>fornDialog(null,(fid,nome)=>cotManual(fid,nome));
     $$("[data-fr]").forEach(x=>x.onchange=async()=>{const c=CT.find(c=>c.id==x.dataset.fr);c.frete=pnum(x.value);await chk(O.from("compra_cotacoes").update({frete:c.frete}).eq("id",c.id));tCot()});
     $$("[data-dc]").forEach(b=>b.onclick=()=>{const c=CT.find(c=>c.id==b.dataset.dc);modal(`<h2>Excluir a cotação de ${esc(c.fornecedor_nome)}?</h2><p class="note">Os preços dela somem do comparativo e as escolhas feitas nela são desfeitas.</p>`,async()=>{
       await chk(O.from("compra_cotacoes").delete().eq("id",c.id));CT=CT.filter(x=>x!==c);PR=PR.filter(p=>p.cotacao_id!=c.id);PM=P();IT.forEach(i=>{if(i.cotacao_escolhida==c.id){i.cotacao_escolhida=null;i.preco_escolhido=null}});shell()},"Excluir")})}
 
+  function cotManual(fid,nome){const m=document.createElement("div");m.className="modal";const FILA=[];const A=ativos();
+    m.innerHTML=`<div class="mbox wide" style="width:min(900px,96vw)"><div class="row"><h2>Cotação manual · ${esc(nome)}</h2><button class="btn" data-xm>Fechar</button></div>
+      <label class="fld">Referência (opcional)<input id="cmD" placeholder="ex.: WhatsApp 28/10"></label>
+      <div style="display:flex;gap:8px;align-items:center;margin:8px 0"><div class="acw" style="flex:1"><input class="inp" id="cmQ" placeholder="Digite para procurar o item da compra…" autocomplete="off" style="width:100%"><div class="acl" id="cmAc" hidden></div></div><input class="inp n" id="cmV" placeholder="Valor unit. R$" inputmode="decimal" style="width:130px"><button class="btn pri" id="cmAdd" type="button">+ Incluir</button></div>
+      <div id="cmSel" class="note" style="min-height:18px"></div>
+      <div style="overflow:auto;max-height:45vh"><table class="tbl"><thead><tr><th>Item</th><th class="n">Qtd</th><th class="n">Valor unit.</th><th class="n">Total</th><th></th></tr></thead><tbody id="cmL"></tbody></table></div>
+      <div class="row"><span class="note" id="cmN"></span><button class="btn pri" id="cmOk">Gravar cotação</button></div></div>`;
+    document.body.appendChild(m);cmpModal(m);m.querySelector("[data-xm]").onclick=()=>m.remove();
+    let sel=null,R2=[],h=0;const q=$("#cmQ",m),box=$("#cmAc",m),vv=$("#cmV",m);
+    const NI=A.map(i=>[i,norm(i.descricao+" "+(i.material_codigo||"")+" "+(i.subgrupo||""))]);
+    const show=()=>{posAcl(q,box);box.innerHTML=R2.map((i,k)=>`<div class="aci${k===h?" on":""}" data-k="${k}"><b>${esc(i.descricao)}</b> <span class="sm">${esc(i.material_codigo||"")} · ${num(+i.qtd,2)} ${esc(i.unidade||"")}</span></div>`).join("")||'<div class="aci"><span class="note">Nada encontrado nesta compra.</span></div>';box.hidden=false};
+    const filt=()=>{const t=norm(q.value).split(" ").filter(Boolean);h=0;const sc=x=>t.reduce((a,w)=>a+((" "+x+" ").includes(" "+w+" ")?2:0),0);
+      R2=NI.filter(([,x])=>t.every(w=>x.includes(w))).sort((a,b)=>sc(b[1])-sc(a[1])||a[1].length-b[1].length).slice(0,40).map(x=>x[0]);show()};
+    const pick=k=>{const i=R2[k];if(!i)return;sel=i;q.value=i.descricao;box.hidden=true;$("#cmSel",m).innerHTML=`Selecionado: <b>${esc(i.descricao)}</b> · ${num(+i.qtd,2)} ${esc(i.unidade||"")}`;vv.focus()};
+    q.oninput=()=>{sel=null;$("#cmSel",m).textContent="";filt()};q.onfocus=()=>{if(q.value&&!sel)filt()};q.onblur=()=>setTimeout(()=>box.hidden=true,150);
+    q.onkeydown=e=>{if(box.hidden)return;if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();h=(h+(e.key==="ArrowDown"?1:-1)+R2.length)%Math.max(1,R2.length);show()}else if(e.key==="Enter"){e.preventDefault();pick(h)}else if(e.key==="Escape"){e.stopPropagation();box.hidden=true}};
+    box.addEventListener("pointerdown",e=>{const d=e.target.closest("[data-k]");if(!d)return;e.preventDefault();pick(+d.dataset.k)});
+    const draw=()=>{$("#cmL",m).innerHTML=FILA.map((x,k)=>`<tr><td>${esc(x.i.descricao)}<span class="sm">${esc(x.i.material_codigo||"")}</span></td><td class="n">${num(+x.i.qtd,2)}</td><td class="n">${brl(x.v)}</td><td class="n">${brl(x.v*x.i.qtd)}</td><td class="n"><button class="xb" data-rm2="${k}" title="Tirar">×</button></td></tr>`).join("")||'<tr><td colspan="5" class="note">Procure o item, digite o valor e clique em Incluir (ou Enter).</td></tr>';
+      $("#cmN",m).textContent=FILA.length?`${FILA.length} item(ns) · ${brl(FILA.reduce((t,x)=>t+x.v*x.i.qtd,0))}`:"";m.querySelectorAll("[data-rm2]").forEach(b=>b.onclick=()=>{FILA.splice(+b.dataset.rm2,1);draw()})};draw();
+    const add=()=>{if(!sel){toast("Escolha o item na lista.");q.focus();return}const v=pnum(vv.value);if(!(v>0)){toast("Digite o valor.");vv.focus();return}
+      const ja=FILA.find(x=>x.i.id===sel.id);if(ja)ja.v=v;else FILA.push({i:sel,v});sel=null;q.value="";vv.value="";$("#cmSel",m).textContent="";draw();q.focus()};
+    $("#cmAdd",m).onclick=add;vv.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();add()}};
+    $("#cmOk",m).onclick=async()=>{if(!FILA.length){toast("Inclua ao menos um item.");return}const b=$("#cmOk",m);b.disabled=true;b.textContent="Gravando…";
+      try{const c=await chk(O.from("compra_cotacoes").insert({compra_id:id,fornecedor_id:fid,fornecedor_nome:nome,documento:$("#cmD",m).value.trim()||"manual",data:new Date().toISOString().slice(0,10)}).select("*").single());
+        const rows=await chk(O.from("compra_precos").insert(FILA.map(x=>({cotacao_id:c.id,item_id:x.i.id,preco_unit:x.v,qtd:+x.i.qtd,texto:"digitado"}))).select("*"));
+        CT.push(c);PR.push(...rows);PM=P();m.remove();toast(`Cotação manual de ${nome}: ${rows.length} preços.`);aba="comparativo";shell()}
+      catch(e){console.error(e);b.disabled=false;b.textContent="Gravar cotação"}};
+    setTimeout(()=>q.focus(),50)}
   function fornDialog(cab,done){cab=cab||{};const sug=FORNS.find(f=>cab.cnpj&&f.cnpj&&f.cnpj.replace(/\D/g,"")===cab.cnpj.replace(/\D/g,""))||FORNS.find(f=>cab.razao_social&&norm(f.razao_social||"")===norm(cab.razao_social));
     const md=modal(`<h2>Fornecedor da cotação</h2>
       <label class="fld">Fornecedor cadastrado<select name="fid"><option value="">— novo fornecedor —</option>${FORNS.map(f=>`<option value="${f.id}" ${sug&&sug.id===f.id?"selected":""}>${esc(f.apelido||f.razao_social)}</option>`).join("")}</select></label>
@@ -629,7 +666,7 @@ async function painel(id){
     const s=md.querySelector("[name=fid]");s.onchange=()=>{md.querySelector("#fnovo").hidden=!!s.value}}
 
   async function importar(file){toast("Lendo "+file.name+"…");let r;
-    try{r=/\.pdf$/i.test(file.name)?await lerPdf(file):await lerPlanilha(file)}catch(e){console.error(e);toast("Não consegui ler este arquivo.");return}
+    try{if(/^image\//.test(file.type)||/\.(png|jpe?g|webp|bmp)$/i.test(file.name)){toast("Lendo imagem (OCR)… pode levar alguns segundos");const W=await ocrWorker();const {data}=await W.recognize(await preparaImg(file));r=lerTextoC(data.text,"ocr")}else r=/\.pdf$/i.test(file.name)?await lerPdf(file):await lerPlanilha(file)}catch(e){console.error(e);toast("Não consegui ler este arquivo.");return}
     if(!r.itens.length){toast("Não encontrei itens com preço neste arquivo.");return}
     const cab=lerCabecalho(r.cab);
     await new Promise(res=>fornDialog(cab,async(fid,nome)=>{await revisar(r,cab,fid,nome,file.name);res()}))}
