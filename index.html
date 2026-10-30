@@ -165,7 +165,7 @@ button.kp:hover{border-color:var(--c)}
 .mlay.rec{grid-template-columns:minmax(0,1fr) 0 0}.mlay.rec .mpan,.mlay.rec .mdiv{display:none}
 .mdiv{cursor:col-resize;background:transparent;border-radius:4px}.mdiv:hover{background:var(--accent-soft,#5aa9e633)}
 .mrec{position:absolute;right:10px;bottom:24px;z-index:500;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit;font-weight:600}
-.mpan{overflow:auto;display:flex;flex-direction:column;gap:8px;padding-left:4px}.mpan>*{flex:none}.mpan #mQ{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;height:auto;min-height:0}.mpan label.note,.eq .filt label{display:inline-flex!important;gap:6px;align-items:center;width:auto}.mpan label.note input,.eq .filt label input[type=checkbox]{width:auto;margin:0}.mpan .filt{margin:0;flex-wrap:wrap}
+.mpan{overflow:auto;display:flex;flex-direction:column;gap:8px;padding-left:4px}.mpan>*{flex:none}.mpan #mQ{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;height:auto;min-height:0}.mpan label.note,.eq .filt label{display:inline-flex!important;gap:6px;align-items:center;width:auto}.mpan label.note input,.eq .filt label input[type=checkbox]{width:16px!important;min-width:0!important;flex:none!important;padding:0;margin:0}.mpan .filt{margin:0;flex-wrap:wrap}
 .mlist{display:grid;gap:4px}.mli{display:flex;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);color:inherit;font:inherit;border-radius:10px;padding:8px;cursor:pointer}.mli.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft,#5aa9e633)}
 .mli>i{width:10px;height:10px;border-radius:50%;flex:none}.mli>span{flex:1;min-width:0;display:grid;gap:2px}.mli b{font-size:13px}.mli small{font-size:11px;color:var(--muted)}.mli .pc{font-weight:700;font-size:12px}
 .msel{border:1px solid var(--accent);border-radius:10px;padding:10px;display:grid;gap:6px;background:var(--panel)}.msel .r{display:flex;gap:8px;align-items:center}.msel .mbar{flex:1}
@@ -197,6 +197,7 @@ button.kp:hover{border-color:var(--c)}
 .eqobras{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;display:grid;gap:6px;max-height:calc(100vh - 160px);overflow:auto;position:sticky;top:8px}.eqobras .row{display:flex;justify-content:space-between;align-items:center}
 .eob{display:flex;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);color:inherit;font:inherit;border-radius:10px;padding:8px;cursor:pointer}.eob.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft,#5aa9e633)}.eob>span:nth-child(2){flex:1;min-width:0;display:grid}.eob small{color:var(--muted);font-size:11px}.eob b{font-size:12.5px}.en{display:grid;text-align:center;font-weight:800;font-size:18px}.en small{font-weight:400}
 @media (max-width:1000px){.eqlay{grid-template-columns:1fr}.cd{min-height:64px}.cob{font-size:9.5px}}
+.vista{display:flex;justify-content:flex-start;margin:0 0 8px}.vista .seg2 button{padding:6px 14px;font-weight:600}
 </style>
 <script src="vendor/supabase.js"></script>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
@@ -310,7 +311,7 @@ async function contarAvisos(){try{const {count}=await sb.from("notificacoes").se
 function render(){
   $("#app").innerHTML=`<div class="wrap">
    <header><img src="assets/on-logo.png" alt="ON Engenharia"><h1><small>${aba==="painel"?"ON Engenharia":"Gerenciador de obras"}</small>${aba==="painel"?"Painel geral":ADM()?"Todas as obras":"Minhas obras"}</h1>
-    <nav class="abas"><button data-aba="painel" class="${aba==="painel"?"on":""}">🏠 Início</button><button data-aba="kanban" class="${aba==="kanban"?"on":""}">Obras</button><button data-aba="inicio" class="${aba==="inicio"?"on":""}">Mapa</button>${ADM()?`<button data-aba="equipe" class="${aba==="equipe"?"on":""}">📅 Equipe</button>`:""}<a class="abalink" href="negocios.html">💼 Negócios<b class="nbadge" id="nBadge" hidden></b></a>${perfil&&perfil.papel==="admin"?'<a class="abalink" href="orcarede.html">🧮 OrçaRede</a>':""}${perfil&&perfil.papel==="admin"?'<a class="abalink" href="compras.html">🛒 Compras</a>':""}${perfil&&perfil.papel==="admin"?'<a class="abalink" href="lixeira.html">🗑 Lixeira</a>':""}</nav>
+    <nav class="abas"><button data-aba="painel" class="${aba==="painel"?"on":""}">🏠 Início</button><button data-aba="${(()=>{try{return localStorage.getItem("on.obrasVista")==="inicio"?"inicio":"kanban"}catch(e){return"kanban"}})()}" class="${aba==="kanban"||aba==="inicio"?"on":""}">Obras</button>${ADM()?`<button data-aba="equipe" class="${aba==="equipe"?"on":""}">📅 Equipe</button>`:""}<a class="abalink" href="negocios.html">💼 Negócios<b class="nbadge" id="nBadge" hidden></b></a>${perfil&&perfil.papel==="admin"?'<a class="abalink" href="orcarede.html">🧮 OrçaRede</a>':""}${perfil&&perfil.papel==="admin"?'<a class="abalink" href="compras.html">🛒 Compras</a>':""}${perfil&&perfil.papel==="admin"?'<a class="abalink" href="lixeira.html">🗑 Lixeira</a>':""}</nav>
     <div class="tools"><span class="who">${esc(perfil.nome||perfil.email)} · ${ADM()?"Administrador":"Executor"}</span>${ADM()?'<button class="btn" id="bU">Usuários</button>':""}<a class="btn" href="portfolio.html" target="_blank" rel="noopener">Portfólio</a><button class="btn" id="bS">Sair</button></div></header>
    <div id="corpo"></div></div>`;
   $("#bS").onclick=async()=>{await sb.auth.signOut();telaLogin()};
@@ -318,7 +319,10 @@ function render(){
   if(ADM()){$("#bU").onclick=usuarios}
   const nb=$("#nBadge");if(nb){nb.hidden=!nAvisos;nb.textContent=nAvisos}
   if(mapa){mapa.remove();mapa=null}
+  if(aba==="kanban"||aba==="inicio"){try{localStorage.setItem("on.obrasVista",aba)}catch(e){}}
   aba==="painel"?renderPainel():aba==="inicio"?renderInicio():aba==="equipe"?renderEquipe():renderKanban();
+  if(aba==="kanban"||aba==="inicio"){const c=$("#corpo");const v=document.createElement("div");v.className="vista";v.innerHTML=`<span class="seg2"><button class="${aba==="kanban"?"on":""}" data-vis="kanban">🗂 Quadro</button><button class="${aba==="inicio"?"on":""}" data-vis="inicio">📍 Mapa</button></span>`;c.prepend(v);
+    v.querySelectorAll("[data-vis]").forEach(b=>b.onclick=()=>{if(b.dataset.vis===aba)return;aba=b.dataset.vis;try{history.replaceState(null,"","#"+aba)}catch(e){}render()})}
 }
 window.addEventListener("hashchange",()=>{const h=location.hash.replace("#","");if(["kanban","inicio","painel","equipe"].includes(h)&&h!==aba&&perfil){aba=h;render()}});
 async function renderPainel(){
