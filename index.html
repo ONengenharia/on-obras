@@ -202,6 +202,9 @@ button.kp:hover{border-color:var(--c)}
 .saf{display:grid;grid-template-columns:1fr 1fr;gap:8px}.saf label{display:grid;gap:3px;font-size:12px;color:var(--muted)}.saf label.w{grid-column:1/-1}.saf input,.saf textarea{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;width:100%;min-width:0;max-width:none}
 .vista{align-items:center;gap:8px}
 .moed{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:6px 0}.moed label{display:grid;gap:3px;font-size:12px;color:var(--muted)}.moed input{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;width:150px;min-width:0;flex:none}
+.anog{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:12px}.anom{text-align:left;border:2px solid transparent;background:var(--bg);color:inherit;font:inherit;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px;min-height:150px;cursor:pointer;overflow:hidden}
+.anom.tem{background:rgba(75,179,214,.1)}.anom:hover{border-color:#62a8dc}.anoh{display:flex;justify-content:space-between;align-items:baseline}.anoh b{font-size:15px}.anoh span{font-size:12px;color:var(--muted)}.anon{font-size:12px;color:var(--muted)}.anon b{color:var(--ink);font-size:16px}
+@media (max-width:1100px){.anog{grid-template-columns:repeat(3,1fr)}}@media (max-width:700px){.anog{grid-template-columns:repeat(2,1fr)}}
 </style>
 <script src="vendor/supabase.js"></script>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
@@ -403,7 +406,7 @@ async function renderPainel(){
 
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
 /* ---------- equipe: dias trabalhados, produção e custos (admin) ---------- */
-let eqFO=new Set(),eqDia=null;let eqMes=(()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")})(),eqTipo="",eqSel=null,eqTodas=false,EQC_OK=null;
+let eqFO=new Set(),eqDia=null,eqVista="mes";let eqMes=(()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")})(),eqTipo="",eqSel=null,eqTodas=false,EQC_OK=null;
 function servicoAvulso(depois){const m=document.createElement("div");m.className="lemod";const hoje=new Date();const h=hoje.getFullYear()+"-"+String(hoje.getMonth()+1).padStart(2,"0")+"-"+String(hoje.getDate()).padStart(2,"0");
   m.innerHTML=`<div class="lebox" style="width:min(560px,100%)"><div class="row"><h2 style="margin:0;font-size:18px">⚡ Serviço avulso do dia</h2><button class="btn" id="saX">Fechar</button></div><p class="note">Para serviço emergencial ou rápido, sem projeto nem obra criada. Entra no calendário da equipe.</p>
    <div class="saf"><label>Data<input type="date" id="saD" value="${h}"></label><label>Cliente<input id="saC" list="dlSaC" placeholder="escolha da lista ou digite um novo" autocomplete="off"><datalist id="dlSaC"></datalist></label><label>Local<input id="saL" placeholder="cidade / endereço"></label><label>Equipe<input id="saE" placeholder="quem foi"></label><label>Horas<input id="saH" inputmode="decimal" placeholder="opcional"></label><label class="w">O que foi feito<textarea id="saT" rows="3" placeholder="ex.: troca de chave fusível queimada, religamento"></textarea></label></div>
@@ -419,9 +422,39 @@ function servicoAvulso(depois){const m=document.createElement("div");m.className
     if(error){toast("Não foi possível lançar: "+error.message);return}m.remove();toast("Serviço lançado.");if(depois)depois()}}
 const PAL_OB=["#4bb3d6","#e07a1f","#1f8a4c","#8e5ec9","#c2185b","#2f6f9f","#b7791f","#00838f","#6d4c41","#5b8def","#d32f2f","#689f38"];
 function corObra(id){const i=obras.findIndex(o=>o.id===id);return PAL_OB[(i<0?0:i)%PAL_OB.length]}
+async function renderAno(){
+  const corpo=$("#corpo");const Y=+eqMes.slice(0,4);
+  const [rd,rs]=await Promise.all([sb.from("diario").select("obra_id,data").gte("data",Y+"-01-01").lte("data",Y+"-12-31"),sb.from("servicos_avulsos").select("data").gte("data",Y+"-01-01").lte("data",Y+"-12-31")]);
+  if(aba!=="equipe"||eqVista!=="ano")return;
+  const D=(rd.data||[]).filter(x=>{const o=obras.find(k=>k.id===x.obra_id);return o&&(!eqTipo||o.tipo===eqTipo)&&(!eqFO.size||eqFO.has(o.id))}),SA=rs.error?[]:(rs.data||[]);
+  const MES=[...Array(12)].map((_,i)=>{const k=Y+"-"+String(i+1).padStart(2,"0");const dm=D.filter(x=>x.data.startsWith(k));const ob={};dm.forEach(x=>{(ob[x.obra_id]=ob[x.obra_id]||new Set()).add(x.data)});
+    const sa=SA.filter(x=>x.data.startsWith(k));return{k,i,dias:new Set([...dm.map(x=>x.data),...(eqFO.size?[]:sa.map(x=>x.data))]).size,ob,nsa:sa.length}});
+  const porO={};D.forEach(x=>{(porO[x.obra_id]=porO[x.obra_id]||new Set()).add(x.data)});
+  const tipos=[...new Set(obras.map(o=>o.tipo).filter(Boolean))].sort();const NM=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const anos=[];for(let a=new Date().getFullYear()+1;a>=2024;a--)anos.push(a);
+  const totD=MES.reduce((s,m)=>s+m.dias,0);
+  corpo.innerHTML=`<div class="eq"><div class="filt"><span class="seg2"><button data-ev="mes">Mês</button><button class="on" data-ev="ano">Ano</button></span>
+     <label class="note">Ano <select id="eqY">${anos.map(a=>`<option ${a===Y?"selected":""}>${a}</option>`).join("")}</select></label>
+     <label class="note">Tipo <select id="eqT"><option value="">Todos</option>${tipos.map(t=>`<option ${t===eqTipo?"selected":""}>${esc(t)}</option>`).join("")}</select></label><button class="btn pri" id="eqSA">+ Serviço avulso do dia</button></div>
+   <div class="eqk"><div><b>${totD}</b><span>dias trabalhados no ano</span></div><div><b>${Object.keys(porO).length}</b><span>obras com registro</span></div><div><b>${D.length}</b><span>registros de diário</span></div><div><b>${SA.length}</b><span>serviços avulsos</span></div></div>
+   <div class="eqlay"><div class="calw"><div class="calh"><button class="btn" id="eqYp">◀</button><b>${Y}</b><button class="btn" id="eqYn">▶</button></div>
+    <div class="anog">${MES.map(m=>{const L=Object.keys(m.ob).map(id=>obras.find(o=>o.id===id)).filter(Boolean).sort((a,b)=>m.ob[b.id].size-m.ob[a.id].size);
+      return `<button class="anom ${m.dias?"tem":""}" data-am="${m.k}"><div class="anoh"><b>${NM[m.i]}</b><span>${m.dias} dia${m.dias===1?"":"s"}</span></div><div class="anon"><b>${L.length}</b> obra${L.length===1?"":"s"} com registro${m.nsa?` · ⚡ ${m.nsa} avulso${m.nsa===1?"":"s"}`:""}</div>
+        ${L.slice(0,4).map(o=>`<span class="cob" style="--c:${corObra(o.id)}">${esc(o.titulo)} · ${m.ob[o.id].size}d</span>`).join("")}${L.length>4?`<span class="cmais">+${L.length-4}</span>`:""}</button>`}).join("")}</div>
+    <div class="caldet"><span class="note">Clique num mês para abrir o calendário dele.</span></div></div>
+    <aside class="eqobras"><div class="row"><b>Obras com registro em ${Y}</b>${eqFO.size?'<button class="lnk" id="eqFX">limpar filtro</button>':""}</div><p class="note">Clique para filtrar os meses (pode marcar várias).</p>
+     ${Object.keys(porO).map(id=>obras.find(o=>o.id===id)).filter(Boolean).sort((a,b)=>porO[b.id].size-porO[a.id].size).map(o=>`<button class="eob ${eqFO.has(o.id)?"on":""}" data-fo="${o.id}"><i style="background:${corObra(o.id)}"></i><span><b>${esc(o.titulo)}</b><small>${esc(o.tipo||"")}</small></span><span class="en">${porO[o.id].size}<small>dias</small></span></button>`).join("")||'<p class="note">Nenhum registro neste ano.</p>'}</aside></div></div>`;
+  document.querySelectorAll("[data-ev]").forEach(b=>b.onclick=()=>{eqVista=b.dataset.ev;renderEquipe()});
+  const setY=y=>{eqMes=y+eqMes.slice(4);renderEquipe()};$("#eqY").onchange=e=>setY(e.target.value);$("#eqYp").onclick=()=>setY(Y-1);$("#eqYn").onclick=()=>setY(Y+1);
+  $("#eqT").onchange=e=>{eqTipo=e.target.value;renderEquipe()};$("#eqSA").onclick=()=>servicoAvulso(()=>renderEquipe());
+  document.querySelectorAll("[data-am]").forEach(b=>b.onclick=()=>{eqMes=b.dataset.am;eqVista="mes";eqDia=null;renderEquipe()});
+  document.querySelectorAll("[data-fo]").forEach(b=>b.onclick=()=>{const k=b.dataset.fo;eqFO.has(k)?eqFO.delete(k):eqFO.add(k);renderEquipe()});
+  if($("#eqFX"))$("#eqFX").onclick=()=>{eqFO.clear();renderEquipe()};
+}
 async function renderEquipe(){
   const corpo=$("#corpo");if(!ADM()){corpo.innerHTML='<p class="note" style="padding:20px">Só para administradores.</p>';return}
   corpo.innerHTML='<p class="note" style="padding:20px">Carregando…</p>';
+  if(eqVista==="ano")return renderAno();
   const [Y,M]=eqMes.split("-").map(Number);const nd=new Date(Y,M,0).getDate();const ini=`${eqMes}-01`,fim=`${eqMes}-${String(nd).padStart(2,"0")}`;
   const [rd,rp]=await Promise.all([sb.from("diario").select("obra_id,data,texto").gte("data",ini).lte("data",fim),sb.from("pontos").select("obra_id,tipo,status,data,lum,trafo").gte("data",ini).lte("data",fim)]);
   const D=rd.data||[],P=(rp.data||[]).filter(p=>p.status==="executado");
@@ -439,7 +472,7 @@ async function renderEquipe(){
   const brl=v=>"R$ "+(+v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
   const meses=[];for(let k=-12;k<=1;k++){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+k);meses.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"))}
   corpo.innerHTML=`<div class="eq">
-   <div class="filt"><label class="note">Mês <select id="eqM">${meses.reverse().map(m=>`<option value="${m}" ${m===eqMes?"selected":""}>${new Date(m+"-15").toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</option>`).join("")}</select></label>
+   <div class="filt"><span class="seg2"><button class="on" data-ev="mes">Mês</button><button data-ev="ano">Ano</button></span><label class="note">Mês <select id="eqM">${meses.reverse().map(m=>`<option value="${m}" ${m===eqMes?"selected":""}>${new Date(m+"-15").toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</option>`).join("")}</select></label>
     <label class="note">Tipo <select id="eqT"><option value="">Todos</option>${tipos.map(t=>`<option ${t===eqTipo?"selected":""}>${esc(t)}</option>`).join("")}</select></label>
     <label class="note"><input type="checkbox" id="eqA" ${eqTodas?"checked":""}> mostrar obras sem diário no mês</label><button class="btn pri" id="eqSA">+ Serviço avulso do dia</button><button class="btn" id="eqX" style="margin-left:auto">⬇ Excel</button></div>
    <div class="eqk"><div><b>${diasComTrab.size}</b><span>dias trabalhados no mês</span></div><div><b>${L.filter(o=>porO[o.id]).length}</b><span>obras atendidas</span></div><div><b>${obraDias}</b><span>obra-dias (diários)</span></div><div><b>${EQC_OK?brl(custoMes):"—"}</b><span>custo da equipe lançado</span></div></div>
@@ -459,6 +492,7 @@ async function renderEquipe(){
       <div class="eqadd"><input id="ecC" list="dlEc" placeholder="Categoria"><datalist id="dlEc">${["Salários","Encargos","Diárias","Alimentação","Hospedagem","Combustível","Veículos","Ferramentas","Outros"].map(x=>`<option value="${x}">`).join("")}</datalist><input id="ecD" placeholder="Descrição"><input id="ecV" placeholder="Valor" inputmode="decimal"><button class="btn pri" id="ecOk">+ Lançar</button></div>
       <h3 style="margin-top:12px">Rateio por obra</h3><table class="tbl2"><tr><th>Obra</th><th class="n">Dias</th><th class="n">Custo rateado</th><th class="n">Por dia</th></tr>${L.filter(o=>porO[o.id]).map(o=>{const nd2=Object.keys(porO[o.id]).length,cr=obraDias?custoMes*nd2/obraDias:0;return `<tr><td>${esc(o.titulo)}</td><td class="n">${nd2}</td><td class="n">${brl(cr)}</td><td class="n">${nd2?brl(cr/nd2):"—"}</td></tr>`}).join("")}</table>`:'<p class="note">O lançamento de custos está sendo ativado no banco de dados.</p>'}</div></div></div>`;
   $("#eqM").onchange=e=>{eqMes=e.target.value;eqSel=null;eqDia=null;renderEquipe()};
+  document.querySelectorAll("[data-ev]").forEach(b=>b.onclick=()=>{eqVista=b.dataset.ev;renderEquipe()});
   const mv=k=>{const d=new Date(eqMes+"-15");d.setMonth(d.getMonth()+k);eqMes=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");eqSel=null;eqDia=null;renderEquipe()};$("#eqPrev").onclick=()=>mv(-1);$("#eqNext").onclick=()=>mv(1);
   document.querySelectorAll("[data-dia]").forEach(c=>c.onclick=()=>{eqDia=eqDia===c.dataset.dia?null:c.dataset.dia;renderEquipe()});
   document.querySelectorAll("[data-fo]").forEach(b=>{b.onclick=()=>{const k=b.dataset.fo;eqFO.has(k)?eqFO.delete(k):eqFO.add(k);if(k!=="__sa")eqSel=k;renderEquipe()};b.ondblclick=()=>{if(b.dataset.fo==="__sa")return;eqSel=b.dataset.fo;relObra(eqSel);document.getElementById("eqRel").scrollIntoView({behavior:"smooth"})}});
