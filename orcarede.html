@@ -287,6 +287,9 @@ html.sover #bVer,html.sover #bVig,html.sover #bFin,html.sover #bDados,html.sover
 .tabs2{display:flex;gap:6px;margin:6px 0 10px}
 .cmpsc .tbl.cmp thead th{position:sticky;top:0;z-index:2;background:var(--panel);box-shadow:0 1px 0 var(--line)}.cmpsc .tbl.cmp tfoot td{position:sticky;bottom:0;background:var(--panel);box-shadow:0 -1px 0 var(--line)}
 .cmadd{display:grid;grid-template-columns:1fr 140px auto;gap:8px;align-items:center;margin-top:6px}@media (max-width:640px){.cmadd{grid-template-columns:1fr}}
+.aci.acm{display:grid;grid-template-columns:130px 1fr 50px 100px;gap:8px;align-items:start}.aci.acm .nm{white-space:normal}.aci.acm .sm{text-align:right}
+.esSel{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}.esChip{display:inline-flex;align-items:center;gap:4px;background:var(--accent-soft);border-radius:8px;padding:2px 4px 2px 8px;font-size:12px}.esChip input{width:38px;padding:2px 4px}
+.legtot{border-top:1px solid rgba(255,255,255,.18);margin-top:6px;padding-top:6px;display:grid;gap:2px}.legtot>div{display:flex!important;justify-content:space-between;gap:12px}.legtot .legtr{display:block!important;font-size:11px;opacity:.85}
 </style>
 </head>
 <body>
@@ -1146,7 +1149,7 @@ async function editor(id){
     if(mt&&(bt||ip))return"MT + BT/IP";if(mt)return"Só MT";if(bt&&ip)return"BT + IP";if(bt)return"Só BT";if(ip)return"Só IP";return"Outros"}
   const fixIP=p=>{const ps=POM[p.poste_id];if(!ps)return null;const c=`FIX_IP_${+ps.altura_m}(${+ps.esforco_kn})`.toUpperCase();return EST.find(e=>e.codigo.toUpperCase()===c)||null};
   let P=(PRC.data&&PRC.data[0])||{orcamento_id:id,metodo:"A",pct_materiais:50,valor_servico:null,lucro_pct:15,custos:[],materiais_ref:null};
-  let etapa=["projeto","materiais","precificacao"].includes(Q.get("etapa"))?Q.get("etapa"):"projeto";
+  let etapa=["projeto","materiais","precificacao"].includes(Q.get("etapa"))?Q.get("etapa"):"materiais";
   let selP=null,selV=null,placing=false,tracing=null,anchor=null,calib=null,fMat="",fPt="",soSemPreco=false,fCat="",fSub="",cardModo=(()=>{try{return localStorage.getItem("orc_cardModo")||"cat"}catch(e){return"cat"}})(),SUBL=null,ordMat=(()=>{try{return localStorage.getItem("orc_ordMat")||"alfa"}catch(e){return"alfa"}})();const marcados=new Set();
 
   const preco=c=>{const o=OP[c];return (o&&(o.manual||ORC.modo_preco==="travado"))?(o?o.v:VIG[c]):(VIG[c]??(o&&o.v))};
@@ -1333,8 +1336,8 @@ async function editor(id){
       ${pes.map((e,k)=>{const its=IT.filter(i=>i.ponto_estrutura_id===e.id);const ed=its.some(i=>i.editado);const s=soma(its.map(i=>({c:i.material_codigo,q:+i.quantidade})));
         return `<details class="est" data-k="${k}"><summary><span>${esc((ESTM[e.estrutura_id]||{}).codigo||"?")} <span class="note">(${its.length})</span>${ed?'<span class="ed">editada</span>':""}</span><span style="display:flex;gap:8px;align-items:center"><select class="seg" data-segpe="${e.id}" title="Segmento desta estrutura" aria-label="Segmento da estrutura">${segOpts(e.segmento_id,"seg. do ponto")}</select><span class="mono">${num(s)}</span><button class="xb" data-de="${e.id}" title="Remover estrutura">×</button></span></summary>
          <table class="its">${its.map(itRow).join("")}</table><div style="padding:6px 8px"><button class="lnk" data-addm="${e.id}">+ material nesta estrutura</button></div></details>`}).join("")||'<p class="note">Nenhuma estrutura.</p>'}
-      <div class="seq"><input class="inp" list="dlEst" id="pEst" placeholder="Adicionar estrutura (código)" aria-label="Adicionar estrutura"><button class="btn" id="pEstOk">Adicionar</button></div>
-      <datalist id="dlEst">${EST.map(e=>`<option value="${esc(e.codigo)}">`).join("")}</datalist>
+      <div class="esSel" id="pEstSel"></div>
+      <div class="seq acw"><input class="inp" id="pEst" placeholder="Adicionar estruturas: digite, marque várias (ou cole CE3-2;IT_50)" aria-label="Adicionar estrutura" autocomplete="off"><button class="btn" id="pEstOk">Adicionar</button><div class="acl" id="pEstAc" hidden></div></div>
       ${cintaHtml(pt)}
       <div class="lbl">Materiais avulsos</div>
       ${avulsos.length?`<table class="its">${avulsos.map(itRow).join("")}</table>`:'<p class="note">Nenhum.</p>'}
@@ -1344,9 +1347,20 @@ async function editor(id){
     $("#pPoste").onchange=async e=>{const v=e.target.value?+e.target.value:null;await chk(O.from("orc_pontos").update({poste_id:v}).eq("id",pt.id));pt.poste_id=v;await recalcCintas(pt);renderHead();renderPins();renderSide()};
     $("#pSeg").onchange=async e=>{const v=e.target.value||null;await chk(O.from("orc_pontos").update({segmento_id:v}).eq("id",pt.id));pt.segmento_id=v;renderHead();renderPins()};
     $("#pTit").onchange=async e=>{await chk(O.from("orc_pontos").update({titulo:e.target.value.trim()}).eq("id",pt.id));pt.titulo=e.target.value.trim();renderSide()};
-    const addEst=async()=>{const cod=$("#pEst").value.trim();const e=acharEstrutura(cod);if(!e){toast("Estrutura não encontrada: "+cod);return}if(AUTO_CINTA&&ehFixCinta(e)&&!pt.cintas_manual){toast("A fixação com cintas é calculada automaticamente para este ponto.");return}
-      await chk(O.rpc("aplicar_estrutura",{p_ponto:pt.id,p_estrutura:e.id}));await recarregaPonto(pt.id);renderHead();renderSide();setTimeout(()=>$("#pEst")&&$("#pEst").focus(),10)};
-    $("#pEstOk").onclick=addEst;$("#pEst").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addEst()}};
+    {const SEL=new Map(),inp=$("#pEst"),box=$("#pEstAc"),selB=$("#pEstSel");
+     const chips=()=>{selB.innerHTML=[...SEL].map(([k,q])=>`<span class="esChip"><b>${esc(k)}</b><input class="inp n" data-esq="${esc(k)}" value="${q}" inputmode="numeric" title="Quantidade"><button class="xb" data-esx="${esc(k)}" title="Tirar">×</button></span>`).join("");
+       selB.querySelectorAll("[data-esq]").forEach(i=>i.onchange=()=>SEL.set(i.dataset.esq,Math.max(1,parseInt(i.value)||1)));selB.querySelectorAll("[data-esx]").forEach(b=>b.onclick=()=>{SEL.delete(b.dataset.esx);chips();lista()});$("#pEstOk").textContent=SEL.size?`Adicionar (${SEL.size})`:"Adicionar"};
+     const lista=()=>{const t=norm(inp.value);if(/[;,]/.test(inp.value)){box.hidden=true;return}const L=EST.filter(e=>!t||norm(e.codigo+" "+(e.descricao||"")).includes(t)).slice(0,120);
+       posAcl(inp,box);box.style.maxHeight="min(50vh,420px)";box.innerHTML=L.map(e=>`<label class="aci" style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" data-esc="${esc(e.codigo)}" ${SEL.has(e.codigo)?"checked":""}><span><b class="mono">${esc(e.codigo)}</b> <span class="sm">${esc(e.descricao||"")}</span></span></label>`).join("")||'<div class="aci note">Nada encontrado.</div>';box.hidden=false;
+       box.querySelectorAll("[data-esc]").forEach(c=>c.onchange=()=>{if(c.checked)SEL.set(c.dataset.esc,1);else SEL.delete(c.dataset.esc);chips()})};
+     inp.onfocus=lista;inp.oninput=lista;box.addEventListener("pointerdown",e=>e.preventDefault());
+     inp.addEventListener("blur",()=>setTimeout(()=>{if(!box.contains(document.activeElement))box.hidden=true},180));
+     const addEst=async()=>{const txt=inp.value.trim();if(txt)txt.split(/[;,]/).map(x=>x.trim()).filter(Boolean).forEach(cod=>{const e=acharEstrutura(cod);if(e)SEL.set(e.codigo,(SEL.get(e.codigo)||0)+1);else toast("Estrutura não encontrada: "+cod)});
+       if(!SEL.size){toast("Marque ou digite pelo menos uma estrutura.");return}const b=$("#pEstOk");b.disabled=true;b.textContent="Adicionando…";let n=0;
+       for(const [cod,q] of SEL){const e=acharEstrutura(cod);if(!e)continue;if(AUTO_CINTA&&ehFixCinta(e)&&!pt.cintas_manual){toast("A fixação com cintas é calculada automaticamente para este ponto.");continue}
+         for(let k=0;k<q;k++){await chk(O.rpc("aplicar_estrutura",{p_ponto:pt.id,p_estrutura:e.id}));n++}}
+       await recarregaPonto(pt.id);renderHead();renderSide();toast(n+" estrutura(s) adicionada(s).");setTimeout(()=>$("#pEst")&&$("#pEst").focus(),10)};
+     $("#pEstOk").onclick=addEst;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addEst()}else if(e.key==="Escape")box.hidden=true}}
     const seq=async()=>{const txt=$("#pSeq").value;if(lerTokens(txt).some(t=>!t.alvo&&!t.ign))return verificar(pt,txt,"digitado");const r=await aplicarSequencia(pt,txt);renderHead();renderPins();renderSide();
       toast([r.ok.length?`Aplicado: ${r.ok.join(", ")}`:"",r.nok.length?`Não reconhecido: ${r.nok.join(", ")}`:""].filter(Boolean).join(" · ")||"Nada novo para aplicar.")};
     $("#pSeqOk").onclick=seq;
@@ -1456,7 +1470,7 @@ async function editor(id){
       const rows=await chk(O.from("orc_ponto_itens").insert(fila.map(x=>({ponto_id:pt.id,ponto_estrutura_id:peId,material_codigo:x.c,quantidade:x.q,editado:true}))).select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado,auto"));
       IT.push(...(rows||[]));if(peId){IT.forEach(i=>{if(i.ponto_estrutura_id===peId)i.editado=true});await O.from("orc_ponto_itens").update({editado:true}).eq("ponto_estrutura_id",peId)}
       toast(`${fila.length} material(is) adicionado(s).`);renderHead();renderSide()},"Adicionar todos");
-    const ok=md.querySelector(".btn.pri");md.querySelector(".mbox").classList.add("wide");acMat($("#amM",md),$("#amAc",md));
+    const ok=md.querySelector(".btn.pri");md.querySelector(".mbox").classList.add("wide");md.querySelector(".mbox").style.width="min(1100px,96vw)";acMat($("#amM",md),$("#amAc",md));
     const draw=()=>{$("#amL",md).innerHTML=fila.length?`<table class="its">${fila.map((x,i)=>`<tr><td>${esc((MAT[x.c]||{}).nome||x.c)}<span class="sm mono">${esc(x.c)}</span></td><td class="n"><input class="inp n" data-fq="${i}" value="${num(x.q,3)}" style="width:80px"></td><td class="n"><button type="button" class="xb" data-fr="${i}">×</button></td></tr>`).join("")}</table>`:"";
       ok.textContent=fila.length?`Adicionar todos (${fila.length})`:"Adicionar todos";
       $$("[data-fq]",md).forEach(i=>i.onchange=()=>{fila[+i.dataset.fq].q=pnum(i.value)});$$("[data-fr]",md).forEach(b=>b.onclick=()=>{fila.splice(+b.dataset.fr,1);draw()})};
@@ -1596,7 +1610,10 @@ async function editor(id){
     $("#ncAdd",md).onclick=()=>{$("#ncIts",md).insertAdjacentHTML("beforeend",linha());bind()};
   }
   function renderLegenda(){const el=$("#leg");if(!el)return;const A={};VAOS.forEach(v=>{(A[v.tipo_rede_id]=A[v.tipo_rede_id]||0);A[v.tipo_rede_id]+=+v.comprimento_m});
-    const ks=Object.keys(A);el.hidden=!ks.length;el.innerHTML=ks.map(k=>{const t=TRM[k]||{cor:"#555",nome:"?"};return `<div><span class="dot" style="border-color:${t.cor};border-top-width:4px;width:20px"></span>${esc(t.nome)}<b>${num(A[k],0)} m</b></div>`}).join("")}
+    const ks=Object.keys(A);const nPo=PTS.filter(p=>p.poste_id).length,nIP=PTS.filter(p=>temIP(p)).length;
+    const TRK={};let nTR=0;IT.forEach(i=>{const nm=String((MAT[i.material_codigo]||{}).nome||"").toUpperCase();if(!/TRANSFORMADOR/.test(nm)||/SUPORTE|SUP\.|CINTA/.test(nm))return;const m=nm.match(/(\d+(?:[.,]\d+)?)\s*KVA/);const k=m?m[1].replace(".",",")+" kVA":"?";const q=Math.round(+i.quantidade||1);TRK[k]=(TRK[k]||0)+q;nTR+=q});
+    el.hidden=!ks.length&&!PTS.length;el.innerHTML=ks.map(k=>{const t=TRM[k]||{cor:"#555",nome:"?"};return `<div><span class="dot" style="border-color:${t.cor};border-top-width:4px;width:20px"></span>${esc(t.nome)}<b>${num(A[k],0)} m</b></div>`}).join("")+
+      `<div class="legtot"><div><span>Postes</span><b>${nPo}</b></div><div><span>Luminárias</span><b>${nIP}</b></div><div><span>Transformadores</span><b>${nTR}</b></div>${nTR?`<div class="legtr">${Object.entries(TRK).sort((a,b)=>pnum(a[0])-pnum(b[0])).map(([k,q])=>`${q} × ${esc(k)}`).join(" · ")}</div>`:""}</div>`}
   async function traceTap(pid){
     if(!anchor||anchor===pid){anchor=pid;renderPins();updHint();return}
     const dup=VAOS.some(g=>g.tipo_rede_id===tracing&&((g.ponto_a===anchor&&g.ponto_b===pid)||(g.ponto_a===pid&&g.ponto_b===anchor)));
@@ -1607,9 +1624,17 @@ async function editor(id){
   function renderNet(){
     const svg=$("#net");if(!svg)return;svg.setAttribute("width",D.w);svg.setAttribute("height",D.h);const w=inv();
     const bts=TR.filter(t=>!/^MT/i.test(t.nome)),lado=t=>{if(!t||/^MT/i.test(t.nome))return 0;const i=bts.indexOf(t);return (i%2?-1:1)*(Math.floor(i/2)+1)*10};
+    /* redes paralelas: só desloca quando há mais de uma rede no mesmo vão; o lado segue o caminho (não troca de lado entre vãos) */
+    const PR={};VAOS.forEach(g=>{const k=[g.ponto_a,g.ponto_b].sort().join("|");(PR[k]=PR[k]||{a:[g.ponto_a,g.ponto_b].sort()[0],b:[g.ponto_a,g.ponto_b].sort()[1],L:[]}).L.push(g)});
+    const ordT=id=>{const i=TR.findIndex(t=>t.id===id);return i<0?99:i};Object.values(PR).forEach(p=>p.L.sort((x,y)=>ordT(x.tipo_rede_id)-ordT(y.tipo_rede_id)));
+    const multi=Object.entries(PR).filter(([,p])=>p.L.length>1),DIR={},porPt={};multi.forEach(([k,p])=>{[p.a,p.b].forEach(x=>(porPt[x]=porPt[x]||[]).push(k))});
+    multi.forEach(([k0,p0])=>{if(DIR[k0])return;const A=ptById(p0.a),B=ptById(p0.b);if(!A||!B)return;DIR[k0]=(B.x-A.x>0||(B.x===A.x&&B.y>A.y))?[p0.a,p0.b]:[p0.b,p0.a];const fila=[k0];
+      while(fila.length){const k=fila.shift();const [f,t]=DIR[k];[[t,"ini"],[f,"fim"]].forEach(([P,modo])=>(porPt[P]||[]).forEach(k2=>{if(DIR[k2])return;const q=PR[k2];const o=q.a===P?q.b:q.a;DIR[k2]=modo==="ini"?[P,o]:[o,P];fila.push(k2)}))}});
     svg.innerHTML=VAOS.map(g=>{const a=ptById(g.ponto_a),b=ptById(g.ponto_b);if(!a||!b)return"";const t=TRM[g.tipo_rede_id]||{cor:"#555"};
-      const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1;let nx=-dy/L,ny=dx/L;if(ny<0||(ny===0&&nx<0)){nx=-nx;ny=-ny}
-      const off=lado(TRM[g.tipo_rede_id])*w,ax=a.x+nx*off,ay=a.y+ny*off,bx=b.x+nx*off,by=b.y+ny*off,sel=g.id===selV;
+      const k=[g.ponto_a,g.ponto_b].sort().join("|"),pr=PR[k];let nx=0,ny=0,off=0;
+      if(pr.L.length>1&&DIR[k]){const F=ptById(DIR[k][0]),T2=ptById(DIR[k][1]);const dx=T2.x-F.x,dy=T2.y-F.y,L=Math.hypot(dx,dy)||1;nx=-dy/L;ny=dx/L;off=(pr.L.indexOf(g)-(pr.L.length-1)/2)*9*w}
+      else{const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1;nx=-dy/L;ny=dx/L;if(ny<0||(ny===0&&nx<0)){nx=-nx;ny=-ny}}
+      const ax=a.x+nx*off,ay=a.y+ny*off,bx=b.x+nx*off,by=b.y+ny*off,sel=g.id===selV;
       const mx=(ax+bx)/2+nx*12*w,my=(ay+by)/2+ny*12*w;
       return `<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="${t.cor}" stroke-width="${(sel?7:4)*w}"/><line class="hit" data-v="${g.id}" x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke-width="${14*w}"/>${T.s>.35||sel?`<text x="${mx}" y="${my}" font-size="${11*w}" stroke-width="${3*w}" fill="${t.cor}" text-anchor="middle">${num(g.comprimento_m,0)}</text>`:""}`}).join("")
       +(calib&&calib.length?`<circle cx="${calib[0].x}" cy="${calib[0].y}" r="${6*w}" fill="#c2185b"/>`:"");
@@ -1674,10 +1699,14 @@ async function editor(id){
   }
   let pdfReady=null;
   const pdfjs=()=>pdfReady||(pdfReady=loadScript("vendor/pdf.min.js").then(()=>{const L=window.pdfjsLib;try{L.GlobalWorkerOptions.workerSrc=new URL("vendor/pdf.worker.min.js",location.href).href}catch(e){}return L}));
-  function acMat(inp,box){let L=[],h=0;const N=MATS.map(m=>[m,norm(m.codigo+" "+m.nome)]);
-    const show=()=>{box.hidden=!L.length;box.innerHTML=L.map((m,i)=>`<div class="aci${i===h?" on":""}" data-i="${i}"><b class="mono">${esc(m.codigo)}</b> ${esc(m.nome)}${m.unidade?` <span class="sm">${esc(m.unidade)}</span>`:""}</div>`).join("");const o=box.querySelector(".on");o&&o.scrollIntoView({block:"nearest"})};
+  function rankMat(q,lim){const t=norm(q).split(/\s+/).filter(Boolean);if(!t.length)return[];const NM=rankMat.N||(rankMat.N=MATS.map(m=>{const n=norm(m.codigo+" "+m.nome);return[m,n,new Set(n.split(/[^A-Z0-9,]+/).filter(Boolean))]}));
+    const num=w=>/\d/.test(w);const R=[];for(const [m,n,W] of NM){let sc=0,ok=true;for(const w of t){if(W.has(w))sc+=num(w)?5:3;else if(n.includes(w)){if(num(w)){const re=new RegExp("(^|[^0-9])"+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?![0-9])");if(re.test(n))sc+=4;else{sc+=0.2}}else sc+=1}else{ok=false;break}}if(ok)R.push([m,sc-n.length/400])}
+    return R.sort((x,y)=>y[1]-x[1]).slice(0,lim||60).map(x=>x[0])}
+  function acMat(inp,box){let L=[],h=0;
+    const show=()=>{box.hidden=!L.length;if(typeof posAcl==="function"&&L.length){posAcl(inp,box);box.style.width=Math.min(innerWidth-24,Math.max(inp.getBoundingClientRect().width,900))+"px";box.style.maxHeight="min(60vh,560px)"}
+      box.innerHTML=L.map((m,i)=>{const pr=typeof preco==="function"?preco(m.codigo):null;return `<div class="aci acm${i===h?" on":""}" data-i="${i}"><b class="mono">${esc(m.codigo)}</b><span class="nm">${esc(m.nome)}</span><span class="sm">${esc(m.unidade||"")}</span><span class="sm mono">${pr?brl(pr):""}</span></div>`}).join("");const o=box.querySelector(".on");o&&o.scrollIntoView({block:"nearest"})};
     const pick=i=>{const m=L[i];if(!m)return;inp.value=m.codigo+" · "+m.nome;L=[];show()};
-    inp.addEventListener("input",()=>{const t=norm(inp.value).split(/\s+/).filter(Boolean);h=0;L=t.length?N.filter(([,n])=>t.every(w=>n.includes(w))).slice(0,40).map(x=>x[0]):[];show()});
+    inp.addEventListener("input",()=>{h=0;L=rankMat(inp.value,60);show()});
     inp.addEventListener("keydown",e=>{if(box.hidden)return;if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();h=(h+(e.key==="ArrowDown"?1:-1)+L.length)%L.length;show()}
       else if(e.key==="Enter"){e.preventDefault();e.stopImmediatePropagation();pick(h)}else if(e.key==="Escape"){e.stopPropagation();L=[];show()}},true);
     box.addEventListener("pointerdown",e=>{const d=e.target.closest("[data-i]");if(!d)return;e.preventDefault();pick(+d.dataset.i);inp.focus()});
