@@ -299,6 +299,13 @@ tr.org-base td:first-child{box-shadow:inset 3px 0 #4a90d9}tr.org-cotacao td:firs
 .mbox.cmpfull .kvg{display:flex;gap:6px;overflow-x:auto;flex:0 0 auto;padding-bottom:2px}.mbox.cmpfull .kvc{flex:0 0 auto;min-width:170px;padding:5px 9px}.mbox.cmpfull .kvc span{font-size:11px}.mbox.cmpfull .kvc b{font-size:14px}
 .mbox.cmpfull .chipsel{flex:0 0 auto;margin:0}.mbox.cmpfull .filtros{flex:0 0 auto;margin:0}.mbox.cmpfull .cmpsc{flex:1 1 auto;min-height:0;max-height:none!important}
 .tbl.cmp th:first-child,.tbl.cmp td:first-child{position:sticky;left:0;z-index:1;background:var(--panel);min-width:300px;max-width:420px;white-space:normal}.cmpsc .tbl.cmp thead th:first-child,.cmpsc .tbl.cmp tfoot td:first-child{z-index:3}
+.page.wide{max-width:none}.l3{display:grid;grid-template-columns:290px minmax(0,1fr) 340px;gap:14px;align-items:start}.l3m{display:grid;gap:14px;min-width:0}.l3s{display:grid;gap:12px;position:sticky;top:8px}
+@media (max-width:1300px){.l3{grid-template-columns:minmax(0,1fr) 320px}.l3>.l3s:first-child{grid-column:2;grid-row:1}.l3m{grid-row:1/span 2;grid-column:1}}@media (max-width:900px){.l3{grid-template-columns:1fr}.l3>*{grid-column:auto!important;grid-row:auto!important}.l3s{position:static}}
+.rkl{display:grid;gap:4px}.rk{display:flex;justify-content:space-between;gap:8px;text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:6px;border-radius:8px;cursor:pointer}.rk:hover{background:var(--accent-soft)}.rk b{display:block;font-size:12.5px}.rk small{display:block;color:var(--muted);font-size:11px}.rk .r{white-space:nowrap;font-size:12px}
+.hb3{display:grid;gap:7px}.hb3>div{display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:2px 8px;font-size:12px;align-items:center}.hb3 .bar{grid-column:1/-1;height:8px;grid-row:2}.hb3 .mono{text-align:right;font-size:11.5px}
+.colm{display:flex;gap:8px;align-items:flex-end;height:120px}.colm>div{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}.colm .cc{flex:1;width:100%;display:flex;flex-direction:column-reverse;background:var(--line);border-radius:6px;overflow:hidden}.colm small{font-size:10.5px;color:var(--muted)}
+.selo{margin-right:6px}.selbar{position:sticky;bottom:10px;display:flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--accent);border-radius:10px;padding:8px 12px;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+.tree{display:grid;gap:2px;max-height:50vh;overflow:auto;margin-top:8px}.tn{text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:7px 10px;border-radius:7px;cursor:pointer}.tn:hover{background:var(--accent-soft)}.tn.on{background:var(--accent);color:#fff}
 </style>
 </head>
 <body>
@@ -378,6 +385,7 @@ async function preparaImg(blob){const bmp=await createImageBitmap(blob);const k=
   const g=c.getContext("2d");g.imageSmoothingQuality="high";g.drawImage(bmp,0,0,c.width,c.height);const d=g.getImageData(0,0,c.width,c.height),a=d.data;let soma=0;for(let i=0;i<a.length;i+=4){const y=.3*a[i]+.59*a[i+1]+.11*a[i+2];a[i]=y;soma+=y}
   const lim=soma/(a.length/4)*.75;for(let i=0;i<a.length;i+=4){const v=a[i]<lim?0:255;a[i]=a[i+1]=a[i+2]=v}g.putImageData(d,0,0);return c}
 function limpaOcr(t){return t.split(/\n+/).map(l=>l.trim()).filter(Boolean).join(";").replace(/\s*;\s*/g,";").replace(/;{2,}/g,";").replace(/\s{2,}/g," ").replace(/^;|;$/g,"").replace(/\bce/gi,"CE").replace(/(\d)[lI|](?=[A-Za-z])/g,"$1").replace(/(\d)[oO](?=[\d)])/g,"$10").replace(/[|]/g,"1").replace(/\(([0-9]+)[oO]\)/g,"($10)")}
+var ORC_MODELO_OK=null;const PAL_CAT=["#2f6f9f","#c2185b","#e0a100","#2e7d32","#6a1b9a","#00838f","#ef6c00","#5d4037","#546e7a","#ad1457","#1565c0"];
 let SEG_PADRAO=[["MT","#c2185b"],["BT","#1565c0"],["IP","#e0a800"],["Transformação","#6a3fbf"]];
 
 const sess=await DB.sessao();
@@ -943,12 +951,18 @@ async function config(aba){
 }
 
 /* ============ LISTA: pastas e versões ============ */
+
+async function modeloOk(){if(ORC_MODELO_OK===null){const r=await O.from("orcamentos").select("modelo").limit(1);ORC_MODELO_OK=!r.error}return ORC_MODELO_OK}
 async function lista(pastaId){
-  const [PAS,ORCS,ITS]=await Promise.all([
+  await modeloOk();
+  const [PAS,ORCS0,ITS]=await Promise.all([
     todos(()=>O.from("pastas").select("*").order("nome")),
-    todos(()=>O.from("orcamentos").select("id,titulo,cliente,cidade,status,concessionaria_id,negocio_id,pasta_id,versao,vigente,atualizado_em").order("atualizado_em",{ascending:false})),
-    todos(()=>O.from("v_orc_itens").select("orcamento_id,subtotal"))]);
+    todos(()=>O.from("orcamentos").select("id,titulo,cliente,cidade,status,concessionaria_id,negocio_id,pasta_id,versao,vigente,atualizado_em"+(ORC_MODELO_OK?",modelo":"")).order("atualizado_em",{ascending:false})),
+    todos(()=>O.from("v_orc_itens").select("orcamento_id,subgrupo,subtotal"))]);
+  const MODS=ORCS0.filter(o=>o.modelo),ORCS=ORCS0.filter(o=>!o.modelo);
   const tot={};ITS.forEach(i=>tot[i.orcamento_id]=(tot[i.orcamento_id]||0)+(+i.subtotal||0));
+  let NEGT={};try{const r=await sb.from("negocios").select("id,tipo");(r.data||[]).forEach(n=>NEGT[n.id]=n.tipo||"")}catch(e){}
+  const SELO=new Set();
   const filhos=id=>PAS.filter(p=>(p.pai_id||null)===(id||null));
   const descend=id=>{let s=[id];filhos(id).forEach(f=>s=s.concat(descend(f.id)));return s};
   let q="";
@@ -976,6 +990,25 @@ async function lista(pastaId){
        <div class="sit"><div><span class="k">Andamento</span><div class="bar sitb"><b style="width:${100-tx}%;background:var(--warn)"></b></div></div><div><span class="k">Finalizado</span><div class="bar sitb"><b style="width:${tx}%"></b></div></div></div></div></div>
      <div class="row"><h2 style="margin:4px 0 0;font-size:15px">Pastas e orçamentos</h2></div>`;
   }
+  function lados(){
+    const vig=ORCS.filter(o=>o.vigente!==false);const negDe=o=>o.negocio_id||((PAS.find(p=>p.id===o.pasta_id)||{}).negocio_id)||null;
+    const top=[...vig].sort((a,b)=>(tot[b.id]||0)-(tot[a.id]||0)).slice(0,5);
+    const parados=vig.filter(o=>o.status!=="finalizado").sort((a,b)=>String(a.atualizado_em).localeCompare(String(b.atualizado_em))).slice(0,5);
+    const sem=ORCS.filter(o=>Date.now()-new Date(o.atualizado_em)<7*864e5).length;
+    const li=(L,f)=>L.map(o=>`<button class="rk" data-rec="${o.id}"><span><b>${esc(o.titulo)}</b><small>${esc([o.cliente,o.cidade].filter(Boolean).join(" · "))}</small></span><span class="r">${f(o)}</span></button>`).join("")||'<p class="note">—</p>';
+    const barras=(E,cor)=>{const mx=Math.max(1,...E.map(x=>x[1]));return `<div class="hb3">${E.map(([k,v,n],i)=>`<div><span>${esc(k)}${n!=null?` <small class="note">(${n})</small>`:""}</span><div class="bar"><b style="width:${v/mx*100}%;background:${cor||PAL_CAT[i%PAL_CAT.length]}"></b></div><span class="mono">${brl(v)}</span></div>`).join("")||'<p class="note">—</p>'}</div>`};
+    const porT={};vig.forEach(o=>{const t=NEGT[negDe(o)]||"Sem tipo";(porT[t]=porT[t]||[t,0,0]);porT[t][1]+=tot[o.id]||0;porT[t][2]++});
+    const porC={};vig.forEach(o=>{const k=concSig(o.concessionaria_id)||"—";(porC[k]=porC[k]||[k,0,0]);porC[k][1]+=tot[o.id]||0;porC[k][2]++});
+    const vigIds=new Set(vig.map(o=>o.id));const porS={};ITS.forEach(i=>{if(!vigIds.has(i.orcamento_id))return;const k=i.subgrupo||"Sem subgrupo";porS[k]=(porS[k]||0)+(+i.subtotal||0)});
+    const meses=[];for(let k=5;k>=0;k--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-k);meses.push(d.toISOString().slice(0,7))}
+    const pm=meses.map(m=>{const L=vig.filter(o=>String(o.atualizado_em).slice(0,7)===m);return[m,L.filter(o=>o.status!=="finalizado").length,L.filter(o=>o.status==="finalizado").length]});const mxm=Math.max(1,...pm.map(x=>x[1]+x[2]));
+    const esq=`<div class="card"><h2>🏆 Maiores orçamentos</h2><div class="rkl">${li(top,o=>`<b class="mono">${brl(tot[o.id])}</b>`)}</div></div>
+      <div class="card"><h2>⏳ Parados há mais tempo</h2><div class="rkl">${li(parados,o=>`<small>${quando(o.atualizado_em)}</small>`)}</div></div>
+      <div class="card"><h2>⚡ Esta semana</h2><p class="note">${sem} orçamento(s) mexido(s) nos últimos 7 dias.</p></div>`;
+    const dir=`<div class="card"><h2>Por tipo de obra</h2><p class="note">Versões vigentes · material (tipo do negócio ligado)</p>${barras(Object.values(porT).sort((a,b)=>b[1]-a[1]))}</div>
+      <div class="card"><h2>Andamento × finalizado</h2><p class="note">Pela última movimentação, últimos 6 meses</p><div class="colm">${pm.map(([m,a,f])=>`<div title="${m}: ${a} em andamento, ${f} finalizados"><div class="cc"><b style="height:${f/mxm*100}%;background:var(--ok)"></b><b style="height:${a/mxm*100}%;background:var(--warn)"></b></div><small>${m.slice(5)}/${m.slice(2,4)}</small></div>`).join("")}</div></div>
+      <div class="card"><h2>Materiais que mais pesam</h2><p class="note">Soma de todos os orçamentos vigentes</p>${barras(Object.entries(porS).sort((a,b)=>b[1]-a[1]).slice(0,8))}</div>`;
+    return{esq,dir}}
   function render(){
     const cur=PAS.find(p=>p.id===pastaId)||null;
     const trilha=[];for(let p=cur;p;p=PAS.find(x=>x.id===p.pai_id))trilha.unshift(p);
@@ -985,16 +1018,20 @@ async function lista(pastaId){
     else{pastas=filhos(pastaId);orcs=ORCS.filter(o=>(o.pasta_id||null)===(pastaId||null)).sort((a,b)=>b.versao-a.versao)}
     const cont=p=>{const ids=descend(p.id);const n=ORCS.filter(o=>ids.includes(o.pasta_id)).length,s=filhos(p.id).length;return `${n} ${n===1?"versão":"versões"}${s?` · ${s} ${s===1?"pasta":"pastas"}`:""}`};
     const vig=p=>ORCS.filter(o=>o.pasta_id===p.id).sort((a,b)=>(b.vigente-a.vigente)||(b.versao-a.versao))[0];
-    root.innerHTML=`<div class="page">
+    root.innerHTML=`<div class="page wide">
      <header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div class="ttl"><div class="eye">ON Engenharia</div><h1>OrçaRede</h1><div class="sub">Projete a rede, consolide os materiais e siga para a precificação</div></div>
       <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><a class="btn" href="index.html">← Obras</a><a class="btn" href="negocios.html">Negócios</a>${ADMO?'<a class="btn" href="orcarede.html?cfg=materiais">⚙ Configurações</a>':""}${SOVER?"":'<button class="btn" id="bPasta">+ Pasta</button><button class="btn pri" id="bNovo">+ Novo orçamento</button>'}</div></header>
+     <div class="l3"><aside class="l3s">${lados().esq}</aside><div class="l3m">
      ${pastaId||busca?"":dash()}
+     ${!pastaId&&!busca&&MODS.length?`<div class="card"><h2>★ Orçamentos padrão</h2><p class="note">Modelos para começar orçamentos novos (lista de material e precificação). Não entram nos totais.</p><div class="rkl">${MODS.map(o=>`<div class="rk" style="cursor:default"><span><b>${esc(o.titulo)}</b><small>${esc(concSig(o.concessionaria_id))} · v${o.versao}</small></span><span style="display:flex;gap:6px"><button class="btn sm" data-rec="${o.id}">Abrir</button><button class="btn sm" data-om="${o.id}">⋯</button></span></div>`).join("")}</div></div>`:""}
      <div class="row"><div class="bc"><button data-go="">Todos</button>${trilha.map(p=>`<span>›</span><button data-go="${p.id}">${esc(p.nome)}</button>`).join("")}</div>
       <input class="inp" id="q" placeholder="Buscar por projeto, cliente ou cidade" value="${esc(q)}" style="width:min(360px,100%)"></div>
      ${pastas.length||orcs.length?`<table class="tbl"><thead><tr><th>Nome</th><th class="hm">Cliente</th><th class="hm">Conc.</th><th>Situação</th><th class="n">Material</th></tr></thead><tbody>
       ${pastas.map(p=>{const v=vig(p);return `<tr class="go" data-p="${p.id}"><td><div class="nm"><span class="ico f">▤</span><div><b>${esc(p.nome)}</b><span class="sm">${cont(p)}${p.negocio_id?" · ligada ao negócio":""}</span></div><button class="btn sm mais" data-pm="${p.id}" title="Renomear, mover ou excluir">⋯</button></div></td><td class="hm">${esc(v?v.cliente||"":"")}</td><td class="hm">${v?esc(concSig(v.concessionaria_id)):""}</td><td>${v?`<span class="chip ${v.status}">${stTxt(v.status)}</span>`:""}</td><td class="n">${v?brl(tot[v.id])+`<span class="sm">v${v.versao}${v.vigente?" vigente":""}</span>`:""}</td></tr>`}).join("")}
-      ${orcs.map(o=>`<tr class="go" data-o="${o.id}"><td><div class="nm"><span class="ico">⚡</span><div><b>${esc(o.titulo)} · v${o.versao}</b><span class="sm"><button class="btn sm mais" data-om="${o.id}" title="Mover para outra pasta">⋯</button>${o.vigente?"vigente":"versão anterior"}${busca&&o.pasta_id?" · em "+esc((PAS.find(p=>p.id===o.pasta_id)||{}).nome||""):""}</span></div></div></td><td class="hm">${esc(o.cliente||"")}${o.cidade?`<span class="sm">${esc(o.cidade)}</span>`:""}</td><td class="hm">${esc(concSig(o.concessionaria_id))}</td><td><span class="chip ${o.status}">${stTxt(o.status)}</span></td><td class="n">${brl(tot[o.id])}</td></tr>`).join("")}
-     </tbody></table>`:`<p class="note">${busca?"Nada encontrado.":"Pasta vazia."}</p>`}</div>`;
+      ${orcs.map(o=>`<tr class="go" data-o="${o.id}"><td><div class="nm">${SOVER?"":`<input type="checkbox" class="selo" data-selo="${o.id}" ${SELO.has(o.id)?"checked":""} title="Selecionar para mover">`}<span class="ico">⚡</span><div><b>${esc(o.titulo)} · v${o.versao}</b><span class="sm"><button class="btn sm mais" data-om="${o.id}" title="Mover para outra pasta">⋯</button>${o.vigente?"vigente":"versão anterior"}${busca&&o.pasta_id?" · em "+esc((PAS.find(p=>p.id===o.pasta_id)||{}).nome||""):""}</span></div></div></td><td class="hm">${esc(o.cliente||"")}${o.cidade?`<span class="sm">${esc(o.cidade)}</span>`:""}</td><td class="hm">${esc(concSig(o.concessionaria_id))}</td><td><span class="chip ${o.status}">${stTxt(o.status)}</span></td><td class="n">${brl(tot[o.id])}</td></tr>`).join("")}
+     </tbody></table>`:`<p class="note">${busca?"Nada encontrado.":"Pasta vazia."}</p>`}
+     <div class="selbar" id="selbar" ${SELO.size?"":"hidden"}><span>${SELO.size} selecionado(s)</span><button class="btn sm pri" id="selMv">Mover para…</button><button class="btn sm" id="selX">Limpar seleção</button></div>
+     </div><aside class="l3s">${lados().dir}</aside></div></div>`;
     $$("[data-go]").forEach(b=>b.onclick=()=>{pastaId=b.dataset.go||null;q="";history.pushState(null,"",pastaId?"?pasta="+pastaId:"orcarede.html");render()});
     const opPastas=(excl)=>{const out=[];const walk=(pid,d)=>filhos(pid).forEach(p=>{if(excl&&descend(excl).includes(p.id))return;out.push(`<option value="${p.id}">${"— ".repeat(d)}${esc(p.nome)}</option>`);walk(p.id,d+1)});walk(null,0);return `<option value="">(raiz — Todos)</option>`+out.join("")};
     $$("[data-pm]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const p=PAS.find(x=>x.id===b.dataset.pm);const ids=descend(p.id);const nO=ORCS.filter(o=>ids.includes(o.pasta_id)).length;
@@ -1008,9 +1045,19 @@ async function lista(pastaId){
         await chk(O.from("orcamentos").update({pasta_id:pai}).eq("pasta_id",p.id));ORCS.forEach(o=>{if(o.pasta_id===p.id)o.pasta_id=pai});
         await chk(O.from("pastas").update({pai_id:pai}).eq("pai_id",p.id));PAS.forEach(x=>{if(x.pai_id===p.id)x.pai_id=pai});
         await chk(O.from("pastas").delete().eq("id",p.id));PAS.splice(PAS.indexOf(p),1);md.remove();render()}});
-    $$("[data-om]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const o=ORCS.find(x=>x.id===b.dataset.om);
-      const md=modal(`<h2>Mover “${esc(o.titulo)} · v${o.versao}”</h2><label class="fld">Para a pasta<select name="pasta">${opPastas()}</select></label><p class="note">Só muda onde aparece; o orçamento não é alterado.</p>`,async f=>{
-        await chk(O.from("orcamentos").update({pasta_id:f.pasta||null}).eq("id",o.id));o.pasta_id=f.pasta||null;render()},"Mover");md.querySelector("select").value=o.pasta_id||""});
+    const escolherPasta=(titulo,atual,excl,ok)=>{let dest=atual||"",fq="";const md=modal(`<h2>${titulo}</h2><input class="inp" id="tpQ" placeholder="Buscar pasta…" autocomplete="off"><div class="tree" id="tpT"></div><p class="note">Clique na pasta de destino e confirme.</p>`,async()=>{await ok(dest||null)},"Mover para cá");md.querySelector(".mbox").style.width="min(560px,96vw)";
+      const draw=()=>{const t=norm(fq);const L=[];const walk=(pid,d)=>filhos(pid).forEach(p=>{if(excl&&descend(excl).includes(p.id))return;const ok2=!t||norm(p.nome).includes(t)||descend(p.id).some(i=>norm((PAS.find(x=>x.id===i)||{}).nome||"").includes(t));if(ok2)L.push(`<button type="button" class="tn ${dest===p.id?"on":""}" data-tp="${p.id}" style="padding-left:${10+d*18}px">▤ ${esc(p.nome)}</button>`);walk(p.id,d+1)});
+        walk(null,0);$("#tpT",md).innerHTML=`<button type="button" class="tn ${!dest?"on":""}" data-tp="">⌂ Todos (raiz)</button>`+L.join("");$$("[data-tp]",md).forEach(b=>b.onclick=()=>{dest=b.dataset.tp;draw()})};
+      $("#tpQ",md).oninput=e=>{fq=e.target.value;draw()};draw()};
+    $$("[data-om]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const o=ORCS0.find(x=>x.id===b.dataset.om);
+      const md=modal(`<h2>“${esc(o.titulo)} · v${o.versao}”</h2><div style="display:grid;gap:8px"><button type="button" class="btn" id="omMv">📁 Mover para…</button><button type="button" class="btn" id="omRn">✏️ Renomear</button><button type="button" class="btn" id="omDup">⧉ Duplicar (nova versão)</button>${ORC_MODELO_OK?`<button type="button" class="btn" id="omMod">${o.modelo?"★ Deixar de ser orçamento padrão":"☆ Usar como orçamento padrão"}</button>`:""}</div>`,null,"OK");md.querySelector(".btn.pri").remove();md.querySelector("[data-x]").textContent="Fechar";
+      $("#omMv",md).onclick=()=>{md.remove();escolherPasta(`Mover “${esc(o.titulo)}”`,o.pasta_id,null,async d=>{await chk(O.from("orcamentos").update({pasta_id:d}).eq("id",o.id));o.pasta_id=d;render()})};
+      $("#omRn",md).onclick=()=>{md.remove();modal(`<h2>Renomear</h2><label class="fld">Nome<input name="t" required value="${esc(o.titulo)}"></label>`,async f=>{await chk(O.from("orcamentos").update({titulo:f.t.trim()}).eq("id",o.id));o.titulo=f.t.trim();render()},"Salvar")};
+      $("#omDup",md).onclick=async()=>{md.remove();const r=await chk(O.rpc("duplicar_orcamento",{p_orc:o.id,p_vigente:false}));toast("Cópia criada como nova versão (não vigente).");location.href="orcarede.html?id="+r};
+      if($("#omMod",md))$("#omMod",md).onclick=async()=>{md.remove();await chk(O.from("orcamentos").update({modelo:!o.modelo}).eq("id",o.id));o.modelo=!o.modelo;toast(o.modelo?"Agora é um orçamento padrão.":"Deixou de ser padrão.");render()}});
+    $$("[data-selo]").forEach(c=>{c.onclick=ev=>ev.stopPropagation();c.onchange=()=>{c.checked?SELO.add(c.dataset.selo):SELO.delete(c.dataset.selo);const sb2=$("#selbar");sb2.hidden=!SELO.size;sb2.querySelector("span").textContent=SELO.size+" selecionado(s)"}});
+    if($("#selMv"))$("#selMv").onclick=()=>escolherPasta(`Mover ${SELO.size} orçamento(s)`,null,null,async d=>{for(const id of SELO){await chk(O.from("orcamentos").update({pasta_id:d}).eq("id",id));const o=ORCS.find(x=>x.id===id);if(o)o.pasta_id=d}SELO.clear();render()});
+    if($("#selX"))$("#selX").onclick=()=>{SELO.clear();render()};
     $$("tr[data-p]").forEach(r=>r.onclick=()=>{pastaId=r.dataset.p;q="";history.pushState(null,"","?pasta="+pastaId);render()});
     $$("tr[data-o],[data-rec]").forEach(r=>r.onclick=()=>location.href="orcarede.html?id="+(r.dataset.o||r.dataset.rec));
     $("#q").oninput=e=>{q=e.target.value;const pos=e.target.selectionStart;render();const i=$("#q");i.focus();i.setSelectionRange(pos,pos)};
@@ -1020,8 +1067,10 @@ async function lista(pastaId){
   }
   render();
 }
-function novoOrc(pre){
-  modal(`<h2>Novo orçamento</h2>
+async function novoOrc(pre){
+  let MD=[];if(await modeloOk()){const r=await O.from("orcamentos").select("id,titulo,concessionaria_id,tensao_kv").eq("modelo",true).order("titulo");MD=r.data||[]}
+  const md0=modal(`<h2>Novo orçamento</h2>
+   ${MD.length?`<label class="fld">Começar a partir de um orçamento padrão?<select name="mod"><option value="">— Em branco —</option>${MD.map(m=>`<option value="${m.id}">★ ${esc(m.titulo)} (${esc(concSig(m.concessionaria_id))})</option>`).join("")}</select><span class="note">Copia lista de materiais, quantidades e precificação; os preços vêm atualizados da base.</span></label>`:""}
    <label class="fld">Projeto<input name="titulo" required value="${esc(pre.titulo||"")}"></label>
    <div class="grid2"><label class="fld">Cliente<input name="cliente" value="${esc(pre.cliente||"")}"></label><label class="fld">Cidade<input name="cidade" value="${esc(pre.cidade||"")}"></label></div>
    <div class="grid2"><label class="fld">Concessionária<select name="conc">${CONCS.map(c=>`<option value="${c.id}" ${pre.conc==c.id?"selected":""}>${esc(c.sigla)}</option>`).join("")}</select></label>
@@ -1029,9 +1078,11 @@ function novoOrc(pre){
    <p class="note">É criada uma pasta com este nome, e o orçamento entra nela como versão 1.</p>`,
   async f=>{
     const pasta=await chk(O.from("pastas").insert({nome:f.titulo.trim(),pai_id:pre.pasta||null,negocio_id:pre.negocio||null}).select("*").single());
+    if(f.mod){const nid=await chk(O.rpc("orcamento_de_modelo",{p_modelo:f.mod,p_pasta:pasta.id,p_titulo:f.titulo.trim(),p_cliente:f.cliente.trim()||null,p_cidade:f.cidade.trim()||null,p_negocio:pre.negocio||null}));location.href="orcarede.html?id="+nid;return}
     const r=await chk(O.from("orcamentos").insert({titulo:f.titulo.trim(),cliente:f.cliente.trim()||null,cidade:f.cidade.trim()||null,concessionaria_id:+f.conc,tensao_kv:+f.kv,negocio_id:pre.negocio||null,pasta_id:pasta.id,versao:1,vigente:true,status:"andamento",sobra_condutor_pct:4,criado_por:perfil.id}).select("id").single());
     await chk(O.from("orc_segmentos").insert(SEG_PADRAO.map(([nome,cor],i)=>({orcamento_id:r.id,nome,cor,ordem:i}))));
     location.href="orcarede.html?id="+r.id},"Criar");
+  const sm=md0.querySelector("[name=mod]");if(sm)sm.onchange=()=>{const k=md0.querySelector("[name=kv]");k.required=!sm.value;k.closest("label").style.opacity=sm.value?".5":"";const m=MD.find(x=>x.id===sm.value);if(m){const c=md0.querySelector("[name=conc]");c.value=m.concessionaria_id;if(m.tensao_kv)k.value=String(m.tensao_kv)}};
 }
 async function deNegocio(nid){
   const ja=await O.from("pastas").select("id").eq("negocio_id",nid).limit(1);
@@ -1171,7 +1222,7 @@ async function editor(id){
   let _TD=null,_TK="";const todas=()=>{const k=IT.length+"|"+PE.length+"|"+PTS.length+"|"+VAOS.length+"|"+EXT.length;if(_TD&&_TK===k)return _TD;_TK=k;_IX=null;_TD=todas0();setTimeout(()=>{_TD=null},0);return _TD};
   const todas0=()=>PTS.flatMap(linhasPonto).concat(VAOS.flatMap(linhasVao),EXT.map(x=>({c:x.material_codigo,q:+x.quantidade,s:x.segmento_id,extra:1,k:"Avulsos"})));
   function porCategoria(){const R={};todas().forEach(l=>{R[l.k]=(R[l.k]||0)+l.q*(preco(l.c)||0)});return R}
-  const PAL_CAT=["#2f6f9f","#c2185b","#e0a100","#2e7d32","#6a1b9a","#00838f","#ef6c00","#5d4037","#546e7a","#ad1457","#1565c0"];
+
   const soma=L=>L.reduce((s,l)=>s+l.q*(preco(l.c)||0),0);
   function agregado(){const A={};todas().forEach(l=>{(A[l.c]=A[l.c]||{c:l.c,q:0}).q+=l.q});return Object.values(A)}
   const totalMat=()=>soma(todas());
