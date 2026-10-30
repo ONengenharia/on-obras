@@ -416,10 +416,12 @@ function renderApr(pane){
   if(APRS===null){pane.innerHTML='<p class="note">Carregando…</p>';aprCarregar().then(()=>renderApr(pane));return}
   if(!APR_OK){pane.innerHTML='<p class="empty">A APR está sendo ativada no banco de dados. Assim que estiver pronta, aparece aqui.</p>';return}
   pane.innerHTML=`<div class="row"><span class="note">APR da equipe antes de começar o serviço. Só a equipe interna vê.</span><button class="btn pri" id="aprNova">+ Nova APR</button></div>
-   ${APRS.map(a=>`<div class="aprc"><div><b>${fdate(a.data)}</b> · ${esc((a.atividades||[]).join(", ")||"—")}<small>${esc(a.responsavel||"")} · ${(a.equipe||[]).length} pessoa(s) · ${Object.keys(a.assinaturas||{}).length} assinatura(s)</small></div><span style="display:flex;gap:6px"><button class="btn sm" data-apdf="${a.id}">⬇ PDF</button><button class="btn sm" data-aed="${a.id}">Abrir</button></span></div>`).join("")||'<p class="empty">Nenhuma APR ainda.</p>'}`;
+   ${APRS.map(a=>`<div class="aprc"><div><b>${fdate(a.data)}</b> · ${esc((a.atividades||[]).join(", ")||"—")}<small>${esc(a.responsavel||"")} · ${(a.equipe||[]).length} pessoa(s) · ${Object.keys(a.assinaturas||{}).length} assinatura(s)</small></div><span style="display:flex;gap:6px"><button class="btn sm" data-apdf="${a.id}">⬇ PDF</button><button class="btn sm" data-aed="${a.id}">Abrir</button>${role==="admin"?`<button class="btn sm" data-adel="${a.id}" title="Excluir APR" style="color:#c53030">🗑</button>`:""}</span></div>`).join("")||'<p class="empty">Nenhuma APR ainda.</p>'}`;
   $("#aprNova",pane).onclick=()=>aprForm(null);
   pane.querySelectorAll("[data-aed]").forEach(b=>b.onclick=()=>aprForm(APRS.find(x=>x.id===b.dataset.aed)));
   pane.querySelectorAll("[data-apdf]").forEach(b=>b.onclick=()=>aprPdf(APRS.find(x=>x.id===b.dataset.apdf)));
+  pane.querySelectorAll("[data-adel]").forEach(b=>b.onclick=async()=>{const a=APRS.find(x=>x.id===b.dataset.adel);if(!confirm(`Excluir a APR de ${fdate(a.data)}? Não dá para desfazer.`))return;
+    const {error}=await DB.sb.from("obra_aprs").delete().eq("id",a.id);if(error){toast("Não foi possível excluir: "+error.message);return}APRS=APRS.filter(x=>x!==a);toast("APR excluída.");renderApr(pane)});
 }
 function aprForm(A){
   const sb=DB.sb,oid=new URLSearchParams(location.search).get("id");
