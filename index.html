@@ -188,16 +188,19 @@ button.kp:hover{border-color:var(--c)}
 .eqadd{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.eqadd input{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;flex:1;min-width:110px}.eqd{font-size:12.5px;padding:3px 0;border-bottom:1px dashed var(--line)}
 @media (max-width:900px){.eqcols{grid-template-columns:1fr}.eqk{grid-template-columns:1fr 1fr}}
 .eqlay{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:12px;align-items:start}.calw{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
-.calh{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#e04a5f;color:#fff;letter-spacing:.08em}.calh b{font-size:18px}.calh .btn{background:rgba(255,255,255,.2);color:#fff;border:0}
-.calg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:12px}.cwd{text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted)}.cwd.fds{color:#e04a5f}
-.cd{min-height:92px;border-radius:10px;background:var(--bg);padding:5px;display:flex;flex-direction:column;gap:3px;cursor:pointer;border:2px solid transparent;overflow:hidden}.cd.vaz{background:transparent;cursor:default}.cd.fds{background:rgba(224,74,95,.08)}
-.cd.tem{background:rgba(75,179,214,.12)}.cd.sel{border-color:#e04a5f}.cd.hoje .cn{background:#e04a5f;color:#fff;border-radius:999px;padding:0 6px}.cn{font-weight:700;font-size:12px;align-self:flex-start}
+.calh{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:linear-gradient(90deg,#1e3a54,#2f6f9f);color:#fff;letter-spacing:.08em}.calh b{font-size:18px}.calh .btn{background:rgba(255,255,255,.2);color:#fff;border:0}
+.calg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:12px}.cwd{text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted)}.cwd.fds{color:#62a8dc}
+.cd{min-height:92px;border-radius:10px;background:var(--bg);padding:5px;display:flex;flex-direction:column;gap:3px;cursor:pointer;border:2px solid transparent;overflow:hidden}.cd.vaz{background:transparent;cursor:default}.cd.fds{background:rgba(98,168,220,.07)}
+.cd.tem{background:rgba(75,179,214,.12)}.cd.sel{border-color:#62a8dc}.cd.hoje .cn{background:#62a8dc;color:#fff;border-radius:999px;padding:0 6px}.cn{font-weight:700;font-size:12px;align-self:flex-start}
 .cob{display:block;font-size:10.5px;line-height:1.25;padding:2px 5px;border-radius:5px;background:var(--c);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cmais{font-size:10.5px;color:var(--muted)}
 .caldet{border-top:1px solid var(--line);padding:10px 14px;display:grid;gap:4px}.caldet .eqd i,.eob i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;flex:none}
 .eqobras{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;display:grid;gap:6px;max-height:calc(100vh - 160px);overflow:auto;position:sticky;top:8px}.eqobras .row{display:flex;justify-content:space-between;align-items:center}
 .eob{display:flex;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--panel);color:inherit;font:inherit;border-radius:10px;padding:8px;cursor:pointer}.eob.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft,#5aa9e633)}.eob>span:nth-child(2){flex:1;min-width:0;display:grid}.eob small{color:var(--muted);font-size:11px}.eob b{font-size:12.5px}.en{display:grid;text-align:center;font-weight:800;font-size:18px}.en small{font-weight:400}
 @media (max-width:1000px){.eqlay{grid-template-columns:1fr}.cd{min-height:64px}.cob{font-size:9.5px}}
 .vista{display:flex;justify-content:flex-start;margin:0 0 8px}.vista .seg2 button{padding:6px 14px;font-weight:600}
+.tlm{display:flex;gap:2px;flex-wrap:wrap;margin:6px 0}.tlm span{width:22px;height:22px;border-radius:5px;font-size:10px;display:grid;place-items:center;background:var(--bg);color:var(--muted)}.tlm span.fds{background:rgba(98,168,220,.1)}.tlm span.on{background:#2f6f9f;color:#fff;font-weight:700}
+.saf{display:grid;grid-template-columns:1fr 1fr;gap:8px}.saf label{display:grid;gap:3px;font-size:12px;color:var(--muted)}.saf label.w{grid-column:1/-1}.saf input,.saf textarea{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;width:100%;min-width:0;max-width:none}
+.vista{align-items:center;gap:8px}
 </style>
 <script src="vendor/supabase.js"></script>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
@@ -321,7 +324,7 @@ function render(){
   if(mapa){mapa.remove();mapa=null}
   if(aba==="kanban"||aba==="inicio"){try{localStorage.setItem("on.obrasVista",aba)}catch(e){}}
   aba==="painel"?renderPainel():aba==="inicio"?renderInicio():aba==="equipe"?renderEquipe():renderKanban();
-  if(aba==="kanban"||aba==="inicio"){const c=$("#corpo");const v=document.createElement("div");v.className="vista";v.innerHTML=`<span class="seg2"><button class="${aba==="kanban"?"on":""}" data-vis="kanban">🗂 Quadro</button><button class="${aba==="inicio"?"on":""}" data-vis="inicio">📍 Mapa</button></span>`;c.prepend(v);
+  if(aba==="kanban"||aba==="inicio"){const c=$("#corpo");const v=document.createElement("div");v.className="vista";v.innerHTML=`<span class="seg2"><button class="${aba==="kanban"?"on":""}" data-vis="kanban">🗂 Quadro</button><button class="${aba==="inicio"?"on":""}" data-vis="inicio">📍 Mapa</button></span><button class="btn" id="vSA" style="margin-left:auto" title="Serviço emergencial, sem projeto">⚡ Lançar serviço avulso do dia</button>`;c.prepend(v);v.querySelector("#vSA").onclick=()=>servicoAvulso();
     v.querySelectorAll("[data-vis]").forEach(b=>b.onclick=()=>{if(b.dataset.vis===aba)return;aba=b.dataset.vis;try{history.replaceState(null,"","#"+aba)}catch(e){}render()})}
 }
 window.addEventListener("hashchange",()=>{const h=location.hash.replace("#","");if(["kanban","inicio","painel","equipe"].includes(h)&&h!==aba&&perfil){aba=h;render()}});
@@ -400,6 +403,15 @@ async function renderPainel(){
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
 /* ---------- equipe: dias trabalhados, produção e custos (admin) ---------- */
 let eqFO=new Set(),eqDia=null;let eqMes=(()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")})(),eqTipo="",eqSel=null,eqTodas=false,EQC_OK=null;
+function servicoAvulso(depois){const m=document.createElement("div");m.className="lemod";const hoje=new Date();const h=hoje.getFullYear()+"-"+String(hoje.getMonth()+1).padStart(2,"0")+"-"+String(hoje.getDate()).padStart(2,"0");
+  m.innerHTML=`<div class="lebox" style="width:min(560px,100%)"><div class="row"><h2 style="margin:0;font-size:18px">⚡ Serviço avulso do dia</h2><button class="btn" id="saX">Fechar</button></div><p class="note">Para serviço emergencial ou rápido, sem projeto nem obra criada. Entra no calendário da equipe.</p>
+   <div class="saf"><label>Data<input type="date" id="saD" value="${h}"></label><label>Cliente<input id="saC" placeholder="ex.: Coopertradição"></label><label>Local<input id="saL" placeholder="cidade / endereço"></label><label>Equipe<input id="saE" placeholder="quem foi"></label><label>Horas<input id="saH" inputmode="decimal" placeholder="opcional"></label><label class="w">O que foi feito<textarea id="saT" rows="3" placeholder="ex.: troca de chave fusível queimada, religamento"></textarea></label></div>
+   <div class="row"><span></span><button class="btn pri" id="saOk">Lançar</button></div></div>`;
+  document.body.appendChild(m);m.querySelector("#saX").onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()};
+  m.querySelector("#saOk").onclick=async()=>{const t=m.querySelector("#saT").value.trim();if(!t){toast("Descreva o que foi feito.");return}
+    const hr=parseFloat(String(m.querySelector("#saH").value).replace(",","."));
+    const {error}=await sb.from("servicos_avulsos").insert({data:m.querySelector("#saD").value,cliente:m.querySelector("#saC").value.trim()||null,local:m.querySelector("#saL").value.trim()||null,equipe:m.querySelector("#saE").value.trim()||null,horas:isNaN(hr)?null:hr,descricao:t,criado_nome:perfil.nome||perfil.email});
+    if(error){toast("Não foi possível lançar: "+error.message);return}m.remove();toast("Serviço lançado.");if(depois)depois()}}
 const PAL_OB=["#4bb3d6","#e07a1f","#1f8a4c","#8e5ec9","#c2185b","#2f6f9f","#b7791f","#00838f","#6d4c41","#5b8def","#d32f2f","#689f38"];
 function corObra(id){const i=obras.findIndex(o=>o.id===id);return PAL_OB[(i<0?0:i)%PAL_OB.length]}
 async function renderEquipe(){
@@ -408,13 +420,15 @@ async function renderEquipe(){
   const [Y,M]=eqMes.split("-").map(Number);const nd=new Date(Y,M,0).getDate();const ini=`${eqMes}-01`,fim=`${eqMes}-${String(nd).padStart(2,"0")}`;
   const [rd,rp]=await Promise.all([sb.from("diario").select("obra_id,data,texto").gte("data",ini).lte("data",fim),sb.from("pontos").select("obra_id,tipo,status,data,lum,trafo").gte("data",ini).lte("data",fim)]);
   const D=rd.data||[],P=(rp.data||[]).filter(p=>p.status==="executado");
+  let SA=[];{const r=await sb.from("servicos_avulsos").select("*").gte("data",ini).lte("data",fim).order("data");SA=r.error?[]:(r.data||[])}
+  const saDia={};SA.forEach(x=>(saDia[x.data]=saDia[x.data]||[]).push(x));
   let C=[];{const r=await sb.from("equipe_custos").select("*").eq("mes",eqMes).order("id");EQC_OK=!r.error;C=r.data||[]}
   if(aba!=="equipe")return;
   const porO={};D.forEach(x=>{(porO[x.obra_id]=porO[x.obra_id]||{});(porO[x.obra_id][x.data]=porO[x.obra_id][x.data]||[]).push(x.texto||"")});
   const tipos=[...new Set(obras.map(o=>o.tipo).filter(Boolean))].sort();
   const L=obras.filter(o=>(!eqTipo||o.tipo===eqTipo)&&(eqTodas||porO[o.id])).sort((a,b)=>Object.keys(porO[b.id]||{}).length-Object.keys(porO[a.id]||{}).length);
   const dias=[...Array(nd)].map((_,i)=>{const d=new Date(Y,M-1,i+1);return{k:`${eqMes}-${String(i+1).padStart(2,"0")}`,n:i+1,w:d.getDay()}});const WD=["dom","seg","ter","qua","qui","sex","sáb"];
-  const diasComTrab=new Set(L.flatMap(o=>Object.keys(porO[o.id]||{})));const obraDias=L.reduce((s,o)=>s+Object.keys(porO[o.id]||{}).length,0);
+  const diasComTrab=new Set([...L.flatMap(o=>Object.keys(porO[o.id]||{})),...(eqFO.size&&!eqFO.has("__sa")?[]:Object.keys(saDia))]);const obraDias=L.reduce((s,o)=>s+Object.keys(porO[o.id]||{}).length,0);
   const custoMes=C.reduce((s,c)=>s+(+c.valor||0),0);
   const prod=oid=>{const X=P.filter(p=>p.obra_id===oid);return{postes:X.filter(p=>!/sem poste|apenas/i.test(p.tipo||"")).length,lum:X.filter(p=>p.lum).length,tr:X.filter(p=>p.trafo).length}};
   const brl=v=>"R$ "+(+v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -422,15 +436,16 @@ async function renderEquipe(){
   corpo.innerHTML=`<div class="eq">
    <div class="filt"><label class="note">Mês <select id="eqM">${meses.reverse().map(m=>`<option value="${m}" ${m===eqMes?"selected":""}>${new Date(m+"-15").toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</option>`).join("")}</select></label>
     <label class="note">Tipo <select id="eqT"><option value="">Todos</option>${tipos.map(t=>`<option ${t===eqTipo?"selected":""}>${esc(t)}</option>`).join("")}</select></label>
-    <label class="note"><input type="checkbox" id="eqA" ${eqTodas?"checked":""}> mostrar obras sem diário no mês</label><button class="btn" id="eqX" style="margin-left:auto">⬇ Excel</button></div>
+    <label class="note"><input type="checkbox" id="eqA" ${eqTodas?"checked":""}> mostrar obras sem diário no mês</label><button class="btn pri" id="eqSA">+ Serviço avulso do dia</button><button class="btn" id="eqX" style="margin-left:auto">⬇ Excel</button></div>
    <div class="eqk"><div><b>${diasComTrab.size}</b><span>dias trabalhados no mês</span></div><div><b>${L.filter(o=>porO[o.id]).length}</b><span>obras atendidas</span></div><div><b>${obraDias}</b><span>obra-dias (diários)</span></div><div><b>${EQC_OK?brl(custoMes):"—"}</b><span>custo da equipe lançado</span></div></div>
    <div class="eqlay"><div class="calw">
      <div class="calh"><button class="btn" id="eqPrev">◀</button><b>${new Date(eqMes+"-15").toLocaleDateString("pt-BR",{month:"long",year:"numeric"}).toUpperCase()}</b><button class="btn" id="eqNext">▶</button></div>
      <div class="calg">${WD.map((w,i)=>`<div class="cwd ${i===0||i===6?"fds":""}">${w}</div>`).join("")}${Array(dias[0].w).fill('<div class="cd vaz"></div>').join("")}
       ${dias.map(d=>{const ob=L.filter(o=>(porO[o.id]||{})[d.k]&&(!eqFO.size||eqFO.has(o.id)));const hoje=d.k===new Date().toISOString().slice(0,10);
-        return `<div class="cd ${d.w===0||d.w===6?"fds":""} ${ob.length?"tem":""} ${eqDia===d.k?"sel":""} ${hoje?"hoje":""}" data-dia="${d.k}"><span class="cn">${d.n}</span>${ob.slice(0,4).map(o=>`<span class="cob" style="--c:${corObra(o.id)}" title="${esc(o.titulo+": "+porO[o.id][d.k].join(" · "))}">${esc(o.titulo)}</span>`).join("")}${ob.length>4?`<span class="cmais">+${ob.length-4}</span>`:""}</div>`}).join("")}</div>
-     <div class="caldet" id="eqDet">${eqDia?(()=>{const ob=L.filter(o=>(porO[o.id]||{})[eqDia]);return `<b>${eqDia.slice(8)}/${eqDia.slice(5,7)} · ${ob.length} obra(s)</b>${ob.map(o=>`<div class="eqd"><i style="background:${corObra(o.id)}"></i><b>${esc(o.titulo)}</b> — ${esc(porO[o.id][eqDia].join(" · "))}</div>`).join("")||'<p class="note">Sem diário neste dia.</p>'}`})():'<span class="note">Clique num dia para ver os diários.</span>'}</div></div>
+        return `<div class="cd ${d.w===0||d.w===6?"fds":""} ${ob.length?"tem":""} ${eqDia===d.k?"sel":""} ${hoje?"hoje":""}" data-dia="${d.k}"><span class="cn">${d.n}</span>${ob.slice(0,4).map(o=>`<span class="cob" style="--c:${corObra(o.id)}" title="${esc(o.titulo+": "+porO[o.id][d.k].join(" · "))}">${esc(o.titulo)}</span>`).join("")}${ob.length>4?`<span class="cmais">+${ob.length-4}</span>`:""}${(!eqFO.size||eqFO.has("__sa"))?(saDia[d.k]||[]).map(x=>`<span class="cob" style="--c:#7a8b99" title="${esc("Serviço avulso: "+x.descricao+(x.cliente?" · "+x.cliente:""))}">⚡ ${esc(x.cliente||x.descricao)}</span>`).join(""):""}</div>`}).join("")}</div>
+     <div class="caldet" id="eqDet">${eqDia?(()=>{const ob=L.filter(o=>(porO[o.id]||{})[eqDia]);const sa=saDia[eqDia]||[];return `<b>${eqDia.slice(8)}/${eqDia.slice(5,7)} · ${ob.length} obra(s)${sa.length?` · ${sa.length} serviço(s) avulso(s)`:""}</b>${ob.map(o=>`<div class="eqd"><i style="background:${corObra(o.id)}"></i><b>${esc(o.titulo)}</b> — ${esc(porO[o.id][eqDia].join(" · "))}</div>`).join("")}${sa.map(x=>`<div class="eqd"><i style="background:#7a8b99"></i><b>⚡ Avulso${x.cliente?" · "+esc(x.cliente):""}</b>${x.local?" ("+esc(x.local)+")":""} — ${esc(x.descricao)}${x.equipe?" · equipe: "+esc(x.equipe):""}${x.horas?" · "+x.horas+" h":""} <button class="lnk" data-sad="${x.id}">excluir</button></div>`).join("")}${!ob.length&&!sa.length?'<p class="note">Sem diário neste dia.</p>':""}`})():'<span class="note">Clique num dia para ver os diários.</span>'}</div></div>
     <aside class="eqobras"><div class="row"><b>Obras com diário</b>${eqFO.size?'<button class="lnk" id="eqFX">limpar filtro</button>':""}</div><p class="note">Clique para filtrar o calendário (pode marcar várias). Duplo clique abre o relatório.</p>
+     ${SA.length?`<button class="eob ${eqFO.has("__sa")?"on":""}" data-fo="__sa"><i style="background:#7a8b99"></i><span><b>⚡ Serviços avulsos</b><small>emergenciais, sem projeto</small></span><span class="en">${Object.keys(saDia).length}<small>dias</small></span></button>`:""}
      ${L.map(o=>{const n=Object.keys(porO[o.id]||{}).length;return `<button class="eob ${eqFO.has(o.id)?"on":""} ${eqSel===o.id?"rel":""}" data-fo="${o.id}"><i style="background:${corObra(o.id)}"></i><span><b>${esc(o.titulo)}</b><small>${esc(o.tipo||"")}${o.cliente?" · "+esc(o.cliente):""}</small></span><span class="en">${n}<small>dia${n===1?"":"s"}</small></span></button>`}).join("")||'<p class="note">Nenhum diário neste mês.</p>'}
     </aside></div>
    <div class="eqcols"><div class="card2" id="eqRel"><p class="note">Clique numa obra da lista à direita para ver o relatório dela.</p></div>
@@ -441,8 +456,10 @@ async function renderEquipe(){
   $("#eqM").onchange=e=>{eqMes=e.target.value;eqSel=null;eqDia=null;renderEquipe()};
   const mv=k=>{const d=new Date(eqMes+"-15");d.setMonth(d.getMonth()+k);eqMes=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");eqSel=null;eqDia=null;renderEquipe()};$("#eqPrev").onclick=()=>mv(-1);$("#eqNext").onclick=()=>mv(1);
   document.querySelectorAll("[data-dia]").forEach(c=>c.onclick=()=>{eqDia=eqDia===c.dataset.dia?null:c.dataset.dia;renderEquipe()});
-  document.querySelectorAll("[data-fo]").forEach(b=>{b.onclick=()=>{const k=b.dataset.fo;eqFO.has(k)?eqFO.delete(k):eqFO.add(k);eqSel=k;renderEquipe()};b.ondblclick=()=>{eqSel=b.dataset.fo;relObra(eqSel);document.getElementById("eqRel").scrollIntoView({behavior:"smooth"})}});
-  if($("#eqFX"))$("#eqFX").onclick=()=>{eqFO.clear();renderEquipe()};$("#eqT").onchange=e=>{eqTipo=e.target.value;renderEquipe()};$("#eqA").onchange=e=>{eqTodas=e.target.checked;renderEquipe()};
+  document.querySelectorAll("[data-fo]").forEach(b=>{b.onclick=()=>{const k=b.dataset.fo;eqFO.has(k)?eqFO.delete(k):eqFO.add(k);if(k!=="__sa")eqSel=k;renderEquipe()};b.ondblclick=()=>{if(b.dataset.fo==="__sa")return;eqSel=b.dataset.fo;relObra(eqSel);document.getElementById("eqRel").scrollIntoView({behavior:"smooth"})}});
+  if($("#eqFX"))$("#eqFX").onclick=()=>{eqFO.clear();renderEquipe()};
+  $("#eqSA").onclick=()=>servicoAvulso(()=>renderEquipe());
+  document.querySelectorAll("[data-sad]").forEach(b=>b.onclick=async e=>{e.stopPropagation();if(!confirm("Excluir este serviço avulso?"))return;const {error}=await sb.from("servicos_avulsos").delete().eq("id",b.dataset.sad);if(error){toast(error.message);return}renderEquipe()});$("#eqT").onchange=e=>{eqTipo=e.target.value;renderEquipe()};$("#eqA").onchange=e=>{eqTodas=e.target.checked;renderEquipe()};
   document.querySelectorAll("[data-cd]").forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este custo?"))return;await sb.from("equipe_custos").delete().eq("id",b.dataset.cd);renderEquipe()});
   if($("#ecOk"))$("#ecOk").onclick=async()=>{const v=parseFloat(String($("#ecV").value).replace(/\./g,"").replace(",","."));const c=$("#ecC").value.trim();if(!c||!(v>0)){toast("Informe categoria e valor.");return}
     const {error}=await sb.from("equipe_custos").insert({mes:eqMes,categoria:c,descricao:$("#ecD").value.trim()||null,valor:v});if(error){toast(error.message);return}renderEquipe()};
@@ -450,7 +467,7 @@ async function renderEquipe(){
   $("#eqX").onclick=async()=>{if(!window.XLSX)await loadScript("vendor/xlsx.full.min.js");const XL=window.XLSX;const A=[["Obra","Tipo",...dias.map(d=>d.n),"Dias"]];L.forEach(o=>{const od=porO[o.id]||{};A.push([o.titulo,o.tipo||"",...dias.map(d=>od[d.k]?"X":""),Object.keys(od).length])});
     const B=[["Data","Obra","Diário"]];D.sort((a,b)=>a.data.localeCompare(b.data)).forEach(x=>B.push([x.data,(obras.find(o=>o.id===x.obra_id)||{}).titulo||"",x.texto||""]));
     const wb=XL.utils.book_new();XL.utils.book_append_sheet(wb,XL.utils.aoa_to_sheet(A),"Calendário");XL.utils.book_append_sheet(wb,XL.utils.aoa_to_sheet(B),"Diários");if(C.length)XL.utils.book_append_sheet(wb,XL.utils.aoa_to_sheet([["Categoria","Descrição","Valor"],...C.map(c=>[c.categoria,c.descricao||"",+c.valor])]),"Custos");XL.writeFile(wb,`Equipe ${eqMes}.xlsx`)};
-  if(eqSel)relObra(eqSel);
+  if(eqSel&&eqSel!=="__sa")relObra(eqSel);
   async function relObra(oid){const o=obras.find(x=>x.id===oid);const el=$("#eqRel");el.innerHTML='<p class="note">Carregando…</p>';
     const [tot,ng]=await Promise.all([sb.from("diario").select("data,texto").eq("obra_id",oid).order("data"),sb.from("negocios").select("id").eq("obra_id",oid).limit(1)]);
     const TD=[...new Set((tot.data||[]).map(x=>x.data))];const od=porO[oid]||{};const ndM=Object.keys(od).length;
@@ -460,11 +477,12 @@ async function renderEquipe(){
     const pd=prod(oid),cdia=mo&&diasPrev?mo/diasPrev:null;const custoR=obraDias?custoMes*ndM/obraDias:0;
     el.innerHTML=`<h3>${esc(o.titulo)}</h3><p class="note">${esc(o.cliente||"")} · ${esc(o.tipo||"")} · avanço ${Math.round(+o.avanco||0)}%</p>
       <div class="eqk sm"><div><b>${ndM}</b><span>dias no mês</span></div><div><b>${TD.length}</b><span>dias desde o início</span></div><div><b>${diasPrev??"—"}</b><span>dias previstos</span></div><div><b>${diasPrev?Math.round(TD.length/diasPrev*100)+"%":"—"}</b><span>do prazo consumido</span></div></div>
-      <table class="tbl2"><tr><td>Mão de obra prevista</td><td class="n">${mo!=null?brl(mo):"—"}</td></tr><tr><td>Custo previsto por dia</td><td class="n">${cdia?brl(cdia):"—"}</td></tr><tr><td>Previsto para os ${ndM} dia(s) do mês</td><td class="n">${cdia?brl(cdia*ndM):"—"}</td></tr>
+      <div class="tlm">${dias.map(d=>`<span class="${od[d.k]?"on":""} ${d.w===0||d.w===6?"fds":""}" title="${d.n}/${M}${od[d.k]?": "+esc(od[d.k].join(" · ")):""}">${d.n}</span>`).join("")}</div>
+      <table class="tbl2"><tr><td>Mão de obra prevista</td><td class="n">${mo!=null?brl(mo):"—"}</td></tr><tr><td>Custo previsto por dia</td><td class="n">${cdia?brl(cdia):"—"}</td></tr><tr><td><b>Custo por dia trabalhado</b> <small>(prevista ÷ ${TD.length} dia(s) na obra)</small></td><td class="n"><b>${mo!=null&&TD.length?brl(mo/TD.length):"—"}</b></td></tr><tr><td>Previsto para os ${ndM} dia(s) do mês</td><td class="n">${cdia?brl(cdia*ndM):"—"}</td></tr>
        ${EQC_OK?`<tr><td>Custo real rateado no mês</td><td class="n">${brl(custoR)}</td></tr><tr><td><b>Previsto × realizado</b></td><td class="n"><b style="color:${cdia&&cdia*ndM-custoR<0?"var(--bad,#c53030)":"var(--ok,#1f8a4c)"}">${cdia?brl(cdia*ndM-custoR):"—"}</b></td></tr>`:""}
        <tr><td>Produção no mês</td><td class="n">${pd.postes} poste(s) · ${pd.lum} lum. · ${pd.tr} TR</td></tr><tr><td>Postes por dia</td><td class="n">${ndM?(pd.postes/ndM).toFixed(1).replace(".",","):"—"}</td></tr></table>
       <h4>Diários do mês</h4>${Object.keys(od).sort().map(k=>`<div class="eqd"><b>${k.slice(8)}/${k.slice(5,7)}</b> ${esc(od[k].join(" · "))}</div>`).join("")||'<p class="note">—</p>'}
-      <p><a class="btn" href="obra.html?id=${oid}">Abrir obra →</a></p>`}
+      <p style="display:flex;gap:6px"><a class="btn" href="obra.html?id=${oid}">Abrir obra →</a>${ng.data&&ng.data[0]?`<a class="btn" href="negocios.html?n=${ng.data[0].id}">🎫 Ticket</a>`:""}</p>`}
 }
 /* ---------- início: mapa ---------- */
 let mapaQ="",soArea=false,mapSel=null,marcando=null;
