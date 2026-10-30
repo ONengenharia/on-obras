@@ -1882,8 +1882,8 @@ async function editor(id){
       <div id="sMap" style="flex:1;min-height:300px;border-radius:8px"></div>
       <div class="row"><span class="note" id="sMsg">Enquadre a área da obra (de preferência bem de perto) e clique em “Usar esta área”. As distâncias saem em metros reais.</span><button class="btn pri" id="sOk">Usar esta área</button></div></div>`;
     document.body.appendChild(m);$("#sX",m).onclick=()=>m.remove();
-    const map=L.map($("#sMap",m),{maxZoom:19}).setView(centro,zoom);let camada="sat";
-    const T={sat:L.tileLayer(SAT_URL.sat,{maxZoom:19,attribution:"Esri World Imagery"}),rua:L.tileLayer(SAT_URL.rua,{maxZoom:19,attribution:"© OpenStreetMap"})};T.sat.addTo(map);
+    const map=L.map($("#sMap",m),{maxZoom:20}).setView(centro,zoom);let camada="sat";
+    const NAT={sat:17,rua:19};const T={sat:L.tileLayer(SAT_URL.sat,{maxZoom:20,maxNativeZoom:NAT.sat,attribution:"Esri World Imagery"}),rua:L.tileLayer(SAT_URL.rua,{maxZoom:20,maxNativeZoom:NAT.rua,attribution:"© OpenStreetMap"})};T.sat.addTo(map);
     m.querySelectorAll("[data-ly]").forEach(b=>b.onclick=()=>{T[camada].remove();camada=b.dataset.ly;T[camada].addTo(map)});
     const ir=async()=>{const q=$("#sQ",m).value.trim();if(!q)return;const c=q.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||q.match(/(-?\d{1,2}\.\d+)\s*[,; ]\s*(-?\d{1,3}\.\d+)/);
       if(c){map.setView([+c[1],+c[2]],18);return}
@@ -1891,12 +1891,13 @@ async function editor(id){
     $("#sGo",m).onclick=ir;$("#sQ",m).onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();ir()}};
     setTimeout(()=>map.invalidateSize(),50);
     $("#sOk",m).onclick=async()=>{const b=$("#sOk",m),msg=$("#sMsg",m);b.disabled=true;
-      try{const bd=map.getBounds();let z=Math.min(19,map.getZoom()+1);const proj=(lat,lng,zz)=>{const n=256*2**zz;const x=(lng+180)/360*n;const s=Math.sin(lat*Math.PI/180);const y=(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n;return{x,y}};
+      try{const bd=map.getBounds();let z=Math.min(19,Math.round(map.getZoom())+1);const proj=(lat,lng,zz)=>{const n=256*2**zz;const x=(lng+180)/360*n;const s=Math.sin(lat*Math.PI/180);const y=(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n;return{x,y}};
         let a,c;for(;;){a=proj(bd.getNorth(),bd.getWest(),z);c=proj(bd.getSouth(),bd.getEast(),z);if((c.x-a.x)*(c.y-a.y)<=6000*6000||z<=10)break;z--}
         const x0=Math.floor(a.x),y0=Math.floor(a.y),W=Math.ceil(c.x-a.x),H=Math.ceil(c.y-a.y);const cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,W,H);
-        const tx0=Math.floor(x0/256),ty0=Math.floor(y0/256),tx1=Math.floor((x0+W)/256),ty1=Math.floor((y0+H)/256);const tot=(tx1-tx0+1)*(ty1-ty0+1);let feitos=0;
-        const url=(x,y)=>SAT_URL[camada].replace("{z}",z).replace("{x}",x).replace("{y}",y);
-        await Promise.all([...Array(tot)].map((_,k)=>{const tx=tx0+k%(tx1-tx0+1),ty=ty0+Math.floor(k/(tx1-tx0+1));return new Promise(res=>{const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{g.drawImage(im,tx*256-x0,ty*256-y0);feitos++;msg.textContent=`Baixando imagem… ${feitos}/${tot}`;res()};im.onerror=()=>res();im.src=url(tx,ty)})}));
+        const zt=Math.min(z,NAT[camada]),f=2**(z-zt),TS=256*f;g.imageSmoothingQuality="high";
+        const tx0=Math.floor(x0/TS),ty0=Math.floor(y0/TS),tx1=Math.floor((x0+W)/TS),ty1=Math.floor((y0+H)/TS);const tot=(tx1-tx0+1)*(ty1-ty0+1);let feitos=0;
+        const url=(x,y)=>SAT_URL[camada].replace("{z}",zt).replace("{x}",x).replace("{y}",y);
+        await Promise.all([...Array(tot)].map((_,k)=>{const tx=tx0+k%(tx1-tx0+1),ty=ty0+Math.floor(k/(tx1-tx0+1));return new Promise(res=>{const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{g.drawImage(im,tx*TS-x0,ty*TS-y0,TS,TS);feitos++;msg.textContent=`Baixando imagem… ${feitos}/${tot}`;res()};im.onerror=()=>res();im.src=url(tx,ty)})}));
         let blob;try{blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",.9))}catch(e){throw new Error("O servidor de mapas não permitiu copiar a imagem.")}
         const stamp=Date.now().toString(36),path=`orcarede/${ORC.id}/${stamp}-sat.jpg`;msg.textContent="Enviando…";
         const {error}=await sb.storage.from("negocios").upload(path,blob,{contentType:"image/jpeg",upsert:false});if(error)throw error;
