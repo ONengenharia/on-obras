@@ -1347,7 +1347,7 @@ async function editor(id){
     const L=PTS.filter(p=>(!cfs||IT.some(i=>i.ponto_id===p.id&&cfs.has(i.material_codigo)))).filter(p=>!f||nomePonto(p).toLowerCase().includes(f)||((POM[p.poste_id]||{}).codigo||"").toLowerCase().includes(f));
     const st=a.querySelector(".pane")?a.querySelector(".pane").scrollTop:0;
     const cf=conflitos();
-    a.innerHTML=`<div class="ah">${cf.length?`<div class="kvwarn one" title="${esc(cf.map(x=>(MAT[x.c]||{}).nome).join(" · "))}"><b>⚠ ${cf.length} fora da classe ${ORC.tensao_kv} kV</b><button class="lnk" id="cfVer">${fKV?"mostrar todos":"ver os pontos"}</button></div>`:""}<div class="row"><b>Lista de postes</b><span class="note">${L.length} de ${PTS.length}</span></div>
+    a.innerHTML=`<div class="ah">${cf.length?`<div class="kvwarn one" title="${esc(cf.map(x=>(MAT[x.c]||{}).nome).join(" · "))}"><b>⚠ ${cf.length} fora da classe ${ORC.tensao_kv} kV</b><button class="lnk" id="cfVer">${fKV?"mostrar todos":"ver os pontos"}</button></div>`:""}<div class="row"><b>Lista de postes</b><span class="note">${L.length} de ${PTS.length}${SOVER?"":` · <button class="lnk" id="bXlPt" title="Criar pontos a partir de uma lista do Excel">⬆ Importar Excel</button>`}</span></div>
       <input class="inp" id="fPt" placeholder="Buscar ponto, estrutura ou poste" value="${esc(fPt)}">
       ${marcados.size?`<div class="bulk"><b>${marcados.size} marcado(s)</b> → segmento <select class="inp" id="bSeg" style="padding:3px 6px">${segOpts("","— escolher —")}</select><button class="lnk" id="bClr">limpar</button></div>`
         :`<div class="row"><span class="note">Marque as caixas para aplicar segmento em lote.</span><button class="lnk" id="bAll">Marcar os ${L.length}</button></div>`}</div>
@@ -1356,6 +1356,7 @@ async function editor(id){
     a.querySelector(".pane").scrollTop=st;
     $("#cfVer")&&($("#cfVer").onclick=()=>{const cs=new Set(conflitos().map(x=>x.c));fPt="";const ids=new Set(IT.filter(i=>cs.has(i.material_codigo)).map(i=>i.ponto_id));fKV=!fKV;sideLista(a);toast(fKV?`Mostrando ${ids.size} ponto(s) com material fora da classe.`:"Mostrando todos os pontos.")});
     const rs=a.querySelector(".resumo");rs&&(rs.ontoggle=()=>{resumoAberto=rs.open});
+    if($("#bXlPt"))$("#bXlPt").onclick=importarExcel;
     $("#fPt").oninput=e=>{fPt=e.target.value;const pos=e.target.selectionStart;sideLista(a);const i=$("#fPt");i.focus();i.setSelectionRange(pos,pos)};
     $$("[data-ck]",a).forEach(c=>{c.onclick=e=>e.stopPropagation();c.onchange=()=>{c.checked?marcados.add(c.dataset.ck):marcados.delete(c.dataset.ck);sideLista(a)}});
     $$(".pl",a).forEach(r=>r.onclick=()=>{selP=r.dataset.p;selV=null;renderPins();renderSide();centrar(ptById(selP))});
@@ -1759,6 +1760,57 @@ async function editor(id){
   }
   let pdfReady=null;
   const pdfjs=()=>pdfReady||(pdfReady=loadScript("vendor/pdf.min.js").then(()=>{const L=window.pdfjsLib;try{L.GlobalWorkerOptions.workerSrc=new URL("vendor/pdf.worker.min.js",location.href).href}catch(e){}return L}));
+  /* ---- importar lista do Excel (pontos ou materiais) ---- */
+  async function importarExcel(){if(SOVER){toast("Somente visualização.");return}
+    const inp=document.createElement("input");inp.type="file";inp.accept=".xlsx,.xls,.csv";inp.onchange=async()=>{const file=inp.files[0];if(!file)return;
+      try{if(!window.XLSX)await loadScript("vendor/xlsx.full.min.js");
+        const wb=XLSX.read(await file.arrayBuffer());let best=null;
+        for(const nm of wb.SheetNames){const A=XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,defval:""});const r=detectaXl(A);if(r&&(!best||r.n>best.n))best=r}
+        if(!best){toast("Não reconheci as colunas. Use cabeçalhos como Poste, Estrutura (pontos) ou Código, Descrição, Qtd (materiais).");return}
+        if(best.tipo==="pontos")revisaPontosXl(best);else revisaMatsXl(best)}catch(e){console.error(e);toast("Não consegui ler a planilha: "+(e.message||e))}};inp.click()}
+  function detectaXl(A){
+    for(let h=0;h<Math.min(A.length,30);h++){const H=A[h].map(c=>norm(String(c)));const ix=re=>H.findIndex(c=>re.test(c));
+      const iE=ix(/ESTRUT|SEQUENC|LANCAMENTO/),iP=ix(/^POSTE$|TIPO DE POSTE|TIPO POSTE|^POSTE /),iN=ix(/^(PONTO|N|NO|NUM|NUMERO|N PONTO|ITEM|CONTADOR)$/),iL=ix(/LUMIN|^IP$|ILUMIN/),iS=ix(/SEGMENT/),iLat=ix(/^LAT/),iLng=ix(/^(LON|LNG)/);
+      const iC=ix(/^(COD|CODIGO|COD MATERIAL|CODIGO MATERIAL)/),iD=ix(/DESCRI|MATERIAL|PRODUTO/),iQ=ix(/QUANT|QTD|QTDE/),iPr=ix(/UNIT|PRECO|VALOR/);
+      const rows=A.slice(h+1).filter(r=>r.some(c=>String(c).trim()!==""));
+      if(iE>=0||(iP>=0&&iD<0)){const L=rows.map((r,k)=>{const toks=[];const add=v=>String(v||"").split(/[;\n]/).map(x=>x.trim()).filter(Boolean).forEach(x=>toks.push(x));
+          if(iP>=0)add(r[iP]);if(iE>=0)add(r[iE]);if(iL>=0&&String(r[iL]).trim()&&!/^(N|NAO|NÃO|0|-)$/i.test(String(r[iL]).trim()))add(r[iL]);
+          return{num:iN>=0?parseInt(r[iN])||null:null,seq:toks.join(";"),seg:iS>=0?String(r[iS]).trim():"",lat:iLat>=0?pnum(r[iLat]):null,lng:iLng>=0?pnum(r[iLng]):null}}).filter(x=>x.seq);
+        if(L.length)return{tipo:"pontos",L,n:L.length}}
+      if((iC>=0||iD>=0)&&iQ>=0){const L=rows.map(r=>({cod:iC>=0?String(r[iC]).trim():"",txt:iD>=0?String(r[iD]).trim():"",q:pnum(r[iQ]),p:iPr>=0?pnum(r[iPr]):null})).filter(x=>(x.cod||x.txt)&&x.q>0);
+        if(L.length)return{tipo:"materiais",L,n:L.length}}}
+    return null}
+  function revisaPontosXl({L}){
+    const tokOk=t=>!!(acharPoste(t)||acharEstrutura(t));
+    const md=modal(`<h2>Importar pontos do Excel · ${L.length} linha(s)</h2><p class="note">Cada linha vira um ponto com o poste e as estruturas. <span style="color:var(--danger)">Em vermelho</span>: código que não existe na base — corrija no texto (separado por “;”) ou desmarque a linha.</p>
+      <div style="max-height:58vh;overflow:auto"><table class="tbl"><thead><tr><th></th><th>Nº</th><th>Poste e estruturas</th><th>Segmento</th></tr></thead><tbody>${L.map((x,i)=>`<tr><td><input type="checkbox" data-xk="${i}" checked></td><td class="mono">${x.num||"—"}</td><td><input class="inp" data-xs="${i}" value="${esc(x.seq)}" style="width:100%"><div class="sm" data-xv="${i}"></div></td><td class="sm">${esc(x.seg||"")}</td></tr>`).join("")}</tbody></table></div>`,async()=>{
+      const sel=L.map((x,i)=>({...x,seq:md.querySelector(`[data-xs="${i}"]`).value.trim(),on:md.querySelector(`[data-xk="${i}"]`).checked})).filter(x=>x.on&&x.seq);if(!sel.length)return false;
+      const ov=document.createElement("div");ov.className="modal";ov.innerHTML=`<div class="mbox" style="width:min(380px,100%);text-align:center"><h2>Criando pontos…</h2><p class="note" id="xp">0 de ${sel.length}</p></div>`;document.body.appendChild(ov);
+      let n=PTS.reduce((m,p)=>Math.max(m,p.numero),0);const cols=Math.max(5,Math.floor((D.w-80)/90));const nok=new Set();
+      try{for(let k=0;k<sel.length;k++){const x=sel[k];const num=x.num&&!PTS.some(p=>p.numero===x.num)?x.num:++n;n=Math.max(n,num);
+          const seg=x.seg?SEGS.find(s=>norm(s.nome)===norm(x.seg)):null;
+          const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:num,x:60+(k%cols)*90,y:60+Math.floor(k/cols)*90,segmento_id:seg?seg.id:null}).select("*").single());PTS.push(pt);
+          const r=await aplicarSequencia(pt,x.seq);r.nok.forEach(t=>nok.add(t));$("#xp",ov).textContent=`${k+1} de ${sel.length}`}}
+      finally{ov.remove()}
+      D=dims();toast(`${sel.length} ponto(s) criado(s).`+(nok.size?` Não encontrados: ${[...nok].slice(0,8).join(", ")}`:""));renderHead();if(typeof renderPins==="function"&&$("#pins"))renderPins();renderSide()},"Criar pontos");
+    md.querySelector(".mbox").style.width="min(1100px,96vw)";
+    const val=i=>{const v=md.querySelector(`[data-xs="${i}"]`).value;md.querySelector(`[data-xv="${i}"]`).innerHTML=v.split(/[;,]/).map(t=>t.trim()).filter(Boolean).map(t=>`<span style="${tokOk(t)?"":"color:var(--danger);font-weight:700"}">${esc(t)}</span>`).join(" ; ")};
+    L.forEach((x,i)=>{val(i);md.querySelector(`[data-xs="${i}"]`).oninput=()=>val(i)})}
+  function revisaMatsXl({L}){
+    const sug=x=>{if(x.cod&&MAT[x.cod])return x.cod;const r=rankMat(x.txt||x.cod,3);return r[0]?r[0].codigo:""};
+    L.forEach(x=>x.c=sug(x));
+    const md=modal(`<h2>Importar materiais do Excel · ${L.length} linha(s)</h2><p class="note">Entram como <b>avulsos do orçamento</b>. Confira o material ligado a cada linha (digite para trocar).</p>
+      <div style="max-height:55vh;overflow:auto"><table class="tbl"><thead><tr><th></th><th>Na planilha</th><th>Material da base</th><th class="n">Qtd</th><th class="n">Preço</th></tr></thead><tbody>${L.map((x,i)=>`<tr><td><input type="checkbox" data-mk="${i}" ${x.c?"checked":""}></td><td>${esc(x.txt||"")}<span class="sm mono">${esc(x.cod||"")}</span></td><td style="min-width:340px"><div class="acw"><input class="inp" data-mc="${i}" value="${x.c?esc(x.c+" · "+(MAT[x.c]||{}).nome):""}" placeholder="Procurar material…" style="width:100%" autocomplete="off"><div class="acl" data-ma="${i}" hidden></div></div></td><td class="n">${num(x.q,3)}</td><td class="n">${x.p?brl(x.p):"—"}</td></tr>`).join("")}</tbody></table></div>
+      ${L.some(x=>x.p)?`<label class="note"><input type="checkbox" id="mxP" checked> usar os preços da planilha neste orçamento</label><label class="note"><input type="checkbox" id="mxB"> também atualizar a base de preços</label>`:""}`,async()=>{
+      const sel=L.map((x,i)=>({...x,c:md.querySelector(`[data-mc="${i}"]`).value.split(" · ")[0].trim(),on:md.querySelector(`[data-mk="${i}"]`).checked})).filter(x=>x.on&&MAT[x.c]);if(!sel.length){toast("Nenhuma linha ligada a material.");return false}
+      const U={};sel.forEach(x=>{const u=U[x.c]=U[x.c]||{c:x.c,q:0,p:x.p};u.q+=x.q;if(x.p)u.p=x.p});const V=Object.values(U);
+      const rows=await chk(O.from("orc_itens_extra").insert(V.map(u=>({orcamento_id:ORC.id,material_codigo:u.c,quantidade:u.q}))).select("*"));EXT.push(...(rows||[]));
+      const usaP=$("#mxP",md)&&$("#mxP",md).checked,base=$("#mxB",md)&&$("#mxB",md).checked;
+      if(usaP)for(const u of V.filter(u=>u.p>0)){await chk(O.from("orc_precos").upsert({orcamento_id:ORC.id,material_codigo:u.c,preco_unit:u.p,manual:true,fonte:null,enviado_base:null}));OP[u.c]={v:u.p,manual:true}}
+      if(base){const hoje=new Date().toISOString().slice(0,10);const B=V.filter(u=>u.p>0).map(u=>({material_codigo:u.c,valor:u.p,data:hoje,origem:"importacao",fornecedor:null,documento:"Excel",criado_por:perfil.id}));if(B.length)await chk(O.from("precos").insert(B))}
+      toast(`${V.length} material(is) importado(s).`);renderHead();if($("#full"))telaMateriais()},"Importar");
+    md.querySelector(".mbox").style.width="min(1150px,96vw)";
+    L.forEach((x,i)=>acMat(md.querySelector(`[data-mc="${i}"]`),md.querySelector(`[data-ma="${i}"]`)))}
   function rankMat(q,lim){const t=norm(q).split(/\s+/).filter(Boolean);if(!t.length)return[];const NM=rankMat.N||(rankMat.N=MATS.map(m=>{const n=norm(m.codigo+" "+m.nome);return[m,n,new Set(n.split(/[^A-Z0-9,]+/).filter(Boolean))]}));
     const num=w=>/\d/.test(w);const R=[];for(const [m,n,W] of NM){let sc=0,ok=true;for(const w of t){if(W.has(w))sc+=num(w)?5:3;else if(n.includes(w)){if(num(w)){const re=new RegExp("(^|[^0-9])"+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?![0-9])");if(re.test(n))sc+=4;else{sc+=0.2}}else sc+=1}else{ok=false;break}}if(ok)R.push([m,sc-n.length/400])}
     return R.sort((x,y)=>y[1]-x[1]).slice(0,lim||60).map(x=>x[0])}
@@ -2095,7 +2147,7 @@ async function editor(id){
         <div class="tools"><button class="btn sm" id="xComp">⬇ Exportar lista…</button><button class="btn sm" id="xForn" title="Excel com logo e cabeçalho da empresa, sem preço e sem nome da obra">⬇ Lista para fornecedores</button></div></div>
        <div class="row"><div class="tools"><button class="btn sm ${ORC.modo_preco==="base"?"on":""}" data-mp="base">Acompanhar base</button><button class="btn sm ${ORC.modo_preco==="travado"?"on":""}" data-mp="travado">Preços travados</button>
          <span class="note">${ORC.modo_preco==="travado"?`congelados${ORC.travado_em?" em "+fdata(ORC.travado_em):""}`:"seguem o preço vigente da base"}${nManual?` · ${nManual} editado(s) só neste orçamento`:""}</span></div>
-        <div class="tools"><label class="btn sm" style="position:relative;overflow:hidden" title="Importar a cotação de um fornecedor (PDF ou Excel) só para esta obra">⬆ Cotação da obra<input type="file" id="mCot" accept=".pdf,.xlsx,.xls,.csv,image/*" multiple style="position:absolute;inset:0;opacity:0"></label><button class="btn sm" id="mCotMan" title="Cotação recebida por mensagem ou digitada">✍ Cotação manual</button><button class="btn sm" id="mCmp" title="Comparar as cotações desta obra lado a lado">📊 Comparar cotações</button><button class="btn sm" id="mBase" title="Levar os preços das cotações desta obra para a base">⇪ Enviar para a base</button><button class="btn sm pri" id="mAdd">+ Material avulso</button><span id="mSP" hidden></span><select class="inp sm" id="mOrd" aria-label="Ordenar">${[["alfa","A–Z"],["sub","Subgrupo"],["subtot","Maior subtotal"],["preco","Maior preço unit."],["qtd","Maior quantidade"]].map(([k,t])=>`<option value="${k}" ${ordMat===k?"selected":""}>Ordenar: ${t}</option>`).join("")}</select><input class="inp" id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="width:220px"></div></div>
+        <div class="tools"><label class="btn sm" style="position:relative;overflow:hidden" title="Importar a cotação de um fornecedor (PDF ou Excel) só para esta obra">⬆ Cotação da obra<input type="file" id="mCot" accept=".pdf,.xlsx,.xls,.csv,image/*" multiple style="position:absolute;inset:0;opacity:0"></label><button class="btn sm" id="mCotMan" title="Cotação recebida por mensagem ou digitada">✍ Cotação manual</button><button class="btn sm" id="mCmp" title="Comparar as cotações desta obra lado a lado">📊 Comparar cotações</button><button class="btn sm" id="mBase" title="Levar os preços das cotações desta obra para a base">⇪ Enviar para a base</button><button class="btn sm" id="mXl" title="Importar lista de materiais (ou de pontos) do Excel">⬆ Importar Excel</button><button class="btn sm pri" id="mAdd">+ Material avulso</button><span id="mSP" hidden></span><select class="inp sm" id="mOrd" aria-label="Ordenar">${[["alfa","A–Z"],["sub","Subgrupo"],["subtot","Maior subtotal"],["preco","Maior preço unit."],["qtd","Maior quantidade"]].map(([k,t])=>`<option value="${k}" ${ordMat===k?"selected":""}>Ordenar: ${t}</option>`).join("")}</select><input class="inp" id="mF" placeholder="Filtrar materiais" value="${esc(fMat)}" style="width:220px"></div></div>
        ${(()=>{const cf=conflitos();return cf.length?`<div class="warnbar" style="background:var(--danger-soft);color:var(--danger)">⚠ ${cf.length} material(is) de outra classe de tensão nesta rede de ${ORC.tensao_kv} kV: ${cf.map(x=>esc((MAT[x.c]||{}).nome)).join(" · ")}</div>`:""})()}
        ${EXT.length?`<div class="extra"><div class="lbl">Avulsos do orçamento (fora dos pontos)</div><table class="its">${EXT.map(x=>{const m=MAT[x.material_codigo]||{nome:x.material_codigo};return `<tr><td class="m">${esc(m.nome)}<small>${esc(x.material_codigo)} · ${esc(m.unidade||"")}</small></td><td class="q"><input data-xq="${x.id}" value="${num(x.quantidade,3)}" inputmode="decimal" aria-label="Quantidade"></td><td class="v mono">${num((preco(x.material_codigo)||0)*x.quantidade)}</td><td class="x"><button class="xb" data-xd="${x.id}" title="Remover">×</button></td></tr>`}).join("")}</table></div>`:""}
        ${COTS.length?`<div class="cotbar"><span class="note">Cotações desta obra:</span>${COTS.map(c=>`<span class="chip">${esc(c.fornecedor_nome)}${c.documento?" · "+esc(c.documento):""} <span class="sm">(${CPR.filter(p=>p.cotacao_id===c.id).length})</span>${/^storage:/.test(c.arquivo||"")?` <button class="xb" data-vorig="${c.id}" title="Ver a cotação original">📄</button>`:""} <button class="xb" data-dct="${c.id}" title="Excluir cotação">×</button></span>`).join("")}</div>`:""}
@@ -2156,6 +2208,7 @@ async function editor(id){
         if(its.length)await chk(O.from("orc_ponto_itens").delete().in("id",its.map(i=>i.id)));
         const xs=EXT.filter(x=>x.material_codigo===c);if(xs.length){await chk(O.from("orc_itens_extra").delete().in("id",xs.map(x=>x.id)));xs.forEach(x=>EXT.splice(EXT.indexOf(x),1))}for(let i=IT.length-1;i>=0;i--)if(IT[i].material_codigo===c)IT.splice(i,1);renderHead();telaMateriais()},"Remover")});
     $("#xComp").onclick=exportarDialog;$("#xForn").onclick=()=>exportarFornecedor().catch(e=>{console.error(e);toast("Não foi possível gerar o Excel.")});
+    $("#mXl").onclick=importarExcel;
     $("#mAdd").onclick=()=>modal(`<h2>Material avulso do orçamento</h2><p class="note">Entra na lista completa sem estar ligado a um ponto (ex.: frete, sobressalentes, itens de canteiro).</p>
       <label class="fld">Material<input name="m" list="dlMat2" required placeholder="Digite parte do nome ou o código"></label><datalist id="dlMat2">${MATS.map(m=>`<option value="${esc(m.codigo)} · ${esc(m.nome)}">`).join("")}</datalist>
       <div class="grid2"><label class="fld">Quantidade<input name="q" value="1" inputmode="decimal" required></label><label class="fld">Segmento<select name="s">${segOpts("")}</select></label></div>`,async f=>{
