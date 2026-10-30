@@ -215,12 +215,25 @@ img.logo{width:auto;height:38px;border-radius:0;object-fit:contain;background:no
 #etqL{display:grid;gap:2px;max-height:240px;overflow:auto}.etqi{display:flex;gap:8px;align-items:center;font-size:13px;padding:4px;border-radius:6px;cursor:pointer}.etqi:hover{background:var(--bg)}.etqi i{width:11px;height:11px;border-radius:50%}
 .motl{display:grid;gap:6px;margin:6px 0}.motl label{display:flex;gap:8px;align-items:center;font-size:13.5px}#ordS{padding:4px 8px}
 .hub{margin:8px 0;padding:10px;border:1px solid var(--line,#d5dde5);border-radius:10px}.hubt{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;opacity:.7;margin-bottom:6px}.hubg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.hb{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:8px;border:1px solid var(--line,#d5dde5);background:transparent;color:inherit;text-decoration:none;cursor:pointer;font:inherit;text-align:left}.hb:hover{border-color:var(--pri,#2b6cb0)}.hb small{opacity:.7;font-size:11px}.hb.pri{border-color:var(--ok,#2f855a)}.hb.off{opacity:.45;cursor:default}
+.ibw{display:flex;align-items:stretch;gap:4px}.ibw .ib{flex:1}.ibx{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:0 8px;border-radius:6px}.ibx:hover{color:var(--bad,#c53030);background:rgba(197,48,48,.1)}
+.gvp.win{flex-direction:row}.gvmain{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
+.gvp.win.cheia{left:0!important;top:0!important;width:100vw!important;height:100vh!important;border-radius:0;resize:none}
+.gvp.semtopo .topo{display:none}
+.fxside{width:300px;flex:0 0 300px;border-left:1px solid var(--line);overflow:auto;background:var(--panel)}.gvp.semfx .fxside{display:none}
+.fxsh{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:1}
+.fxmini{padding:6px;cursor:zoom-in}.fxmini svg{width:100%;height:auto;display:block}
+.tl.mini{padding:4px 10px 12px;border:0}.tl.mini h3{font-size:13px;margin:6px 0}
+.acoes{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}.acoes .sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+.hb2{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:transparent;color:inherit;text-decoration:none;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}.hb2:hover{border-color:var(--pri,#2b6cb0)}.hb2.ok{border-color:var(--ok,#2f855a)}.hb2.off{opacity:.45;cursor:default}
+@media (max-width:900px){.fxside{display:none}}
+.col{position:relative}.colrz{position:absolute;top:0;right:-6px;width:10px;height:100%;cursor:col-resize;z-index:3}.colrz:hover{background:linear-gradient(90deg,transparent 4px,var(--accent,#5aa9e6) 4px,var(--accent,#5aa9e6) 6px,transparent 6px)}
+@keyframes chg{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px var(--accent,#5aa9e6)}}.card.chegou{animation:chg .7s ease 3}
 </style>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
 <script src="js/atalhos.js"></script>
-<script src="js/global.js?v=10" defer></script>
+<script src="js/global.js?v=11" defer></script>
 </head>
 <body>
 <div class="app" id="app"><p class="note" style="padding:20px">Carregando…</p></div>
@@ -293,7 +306,7 @@ async function carregarTudo(){
   U=(rp.data||[]).filter(u=>u.papel!=="pendente").map(u=>({...u,nome:u.nome||u.email,sig:sigla(u.nome||u.email),cor:corDe(u.id)}));
   QUADROS={};(rq.data||[]).forEach(q=>QUADROS[q.id]=q);
   COLS=rc.data||[];ETQ=re.data||[];
-  LISTAS={tipo:[],origem:[],pagto:[],conc:[]};(rl.data||[]).forEach(l=>(LISTAS[l.lista]||(LISTAS[l.lista]=[])).push(l.valor));
+  LISTAS={tipo:[],origem:[],pagto:[],conc:[],parceiro:[]};(rl.data||[]).forEach(l=>(LISTAS[l.lista]||(LISTAS[l.lista]=[])).push(l.valor));
   CARDS=rn.data||[];
   {const {data}=await sb.from("neg_lembretes").select("id,negocio_id,para,quando,texto,feito").eq("feito",false);LEMB=data||[]}
   PERM={};(rpe.data||[]).forEach(p=>{(PERM[p.user_id]||(PERM[p.user_id]={}))[p.coluna_id]=p.nivel});
@@ -314,7 +327,21 @@ async function salvarCampos(c,campos){
 
 /* ---------- tela ---------- */
 function navHtml(){return `<nav class="areas"><a href="index.html#painel"><b>🏠 Início</b><small>Painel geral</small></a><a class="on" href="negocios.html"><b>💼 Negócios</b><small>Elétrica e Solar · do comercial às compras</small></a><a href="index.html#kanban" data-aba="kanban"><b>🏗️ Obras</b><small>Obras elétricas · postes, rede, fotos, diário</small></a><a href="index.html#inicio" data-aba="inicio"><b>📍 Mapa</b><small>Todas as obras e instalações</small></a>${ADM?'<a href="orcarede.html"><b>🧮 OrçaRede</b><small>Orçamentos de rede por ponto</small></a>':""}${COMPRAS?'<a href="compras.html"><b>🛒 Compras</b><small>Previsto × realizado</small></a>':""}</nav>`}
+let COLW=(()=>{try{return JSON.parse(localStorage.getItem("neg.colW")||"{}")}catch(e){return{}}})();
+function salvaColW(){try{localStorage.setItem("neg.colW",JSON.stringify(COLW))}catch(e){}}
 function render(){
+  const b0=document.querySelector(".board"),sv={x:b0?b0.scrollLeft:0,y:scrollY,l:{}};document.querySelectorAll(".list[data-col]").forEach(l=>sv.l[l.dataset.col]=l.scrollTop);
+  _render();
+  const b1=document.querySelector(".board");if(b1)b1.scrollLeft=sv.x;document.querySelectorAll(".list[data-col]").forEach(l=>{if(sv.l[l.dataset.col]!=null)l.scrollTop=sv.l[l.dataset.col]});if(sv.y)scrollTo(0,sv.y);
+  document.querySelectorAll(".colrz").forEach(h=>{const sec=h.closest(".col"),id=h.dataset.rz;
+    h.onpointerdown=e=>{e.preventDefault();e.stopPropagation();const x0=e.clientX,w0=sec.offsetWidth;h.setPointerCapture(e.pointerId);
+      h.onpointermove=ev=>{const w=Math.max(200,Math.min(700,w0+ev.clientX-x0));sec.style.flexBasis=w+"px";COLW[id]=w};
+      h.onpointerup=()=>{h.onpointermove=null;salvaColW()}};
+    h.ondblclick=()=>{delete COLW[id];salvaColW();sec.style.flexBasis=""}});
+  if(window.__flash){const k=document.querySelector(`.card[data-id="${window.__flash}"]`);window.__flash=null;if(k){k.classList.add("chegou");setTimeout(()=>k.classList.remove("chegou"),2200)}}
+  const bw=document.getElementById("bColW");if(bw)bw.onclick=()=>{COLW={};salvaColW();render()};
+}
+function _render(){
   const Q=QUADROS[quadro]||{nome:"",cor:"#999"},todas=colsDe(quadro),cols=todas.filter(c=>veCol(c.id)&&(!fArea||c.area===fArea));
   const mAreas=minhasAreas().filter(a=>todas.some(c=>c.area===a.id));
   const f=busca.toLowerCase();
@@ -326,6 +353,7 @@ function render(){
   <header><img class="logo" src="assets/on-logo.png" alt="ON Engenharia"><h1><small>Negócios</small>Fluxo comercial e administrativo</h1>
    <div class="seg">${Object.values(QUADROS).sort((a,b)=>a.ordem-b.ordem).map(v=>`<button class="${quadro===v.id?"on":""}" data-q="${v.id}"><i style="background:${v.cor}"></i>${esc(v.nome)}</button>`).join("")}</div>
    <span class="who">${esc(perfil.nome||perfil.email)}${perfil.setor?" · "+esc(perfil.setor):""}</span>
+   ${Object.keys(COLW).length?'<button class="btn" id="bColW" title="Voltar todas as colunas à largura padrão">↔ Larguras padrão</button>':""}
    <button class="btn sino" id="bIn" title="Caixa de entrada">🔔 Caixa de entrada${nl?`<b class="badge ${INBOX.some(n=>!n.lido&&n.tipo==="mencao")?"pisca":""}">${nl}</b>`:""}</button>
    ${ADM?'<button class="btn" id="bCols">Colunas e etiquetas</button><button class="btn" id="bPerm">Permissões</button>':""}
    <button class="btn pri" id="bNovo" ${podeCriar(quadro)?"":"disabled title='Você não tem permissão para criar negócios neste quadro'"}>+ Novo negócio</button></header>
@@ -338,7 +366,7 @@ function render(){
    ${(()=>{const nv=vis.filter(c=>!fantasma(c));return `<span class="note" style="margin-left:auto">${nv.length} negócio${nv.length===1?"":"s"} · ${brl(nv.reduce((a,c)=>a+(+c.valor||0),0))} em carteira</span>`})()}</div></div>
   <div class="board">${cols.map(col=>{const L=vis.filter(c=>c.coluna===col.id);const nv=nivel(col.id);
     const G=verSaidos?vis.filter(c=>fantasma(c)&&c.ultima_col&&c.ultima_col[col.area]===col.id):[];
-    return `<section class="col" style="--c:${col.cor}"><div class="colh"><div class="t"><b>${col.area&&areaDe(col.area)?`<span class="atag" style="--a:${areaDe(col.area).cor}">${esc(areaDe(col.area).nome)}</span>`:""}${esc(col.nome)}${col.gatilho?' <span title="Ao entrar aqui, o negócio vai para o Gerenciador de obras (Elétrica) ou para o mapa (Solar)">⚡</span>':""}</b><span class="n">${L.length}</span></div>
+    return `<section class="col" style="--c:${col.cor}${COLW[col.id]?`;flex-basis:${COLW[col.id]}px`:""}"><div class="colrz" data-rz="${col.id}" title="Arraste para ajustar a largura · duplo clique volta ao padrão"></div><div class="colh"><div class="t"><b>${col.area&&areaDe(col.area)?`<span class="atag" style="--a:${areaDe(col.area).cor}">${esc(areaDe(col.area).nome)}</span>`:""}${esc(col.nome)}${col.gatilho?' <span title="Ao entrar aqui, o negócio vai para o Gerenciador de obras (Elétrica) ou para o mapa (Solar)">⚡</span>':""}</b><span class="n">${L.length}</span></div>
      <div class="resp">${brl(L.reduce((a,c)=>a+(+c.valor||0),0))}${nv==="ver"?' · <span class="lock">só leitura</span>':nv==="mover"?' · <span class="lock" style="color:var(--accent)">pode mover</span>':""}</div></div>
      <div class="list" data-col="${col.id}">${L.map(cardHtml).join("")}${G.map(cardHtml).join("")}</div></section>`}).join("")||(ADM?'<p class="note">Nenhuma coluna neste quadro. Crie em "Colunas e etiquetas".</p>':'<p class="note">Você ainda não tem acesso a nenhuma área deste quadro. Peça ao administrador para liberar.</p>')}</div>`;
   document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{quadro=b.dataset.q;fEtq="";try{localStorage.setItem("neg.quadro",quadro)}catch(e){}render()});
@@ -468,7 +496,7 @@ function etapaDaColuna(nome){const n=String(nome||"").normalize("NFD").replace(/
   if(/orc|orcar|orcando|orcamento/.test(n))return{at:"orcamento"};
   if(/proposta|negocia/.test(n))return{at:"proposta"};
   return{at:"comercial"}}
-async function fluxograma(c){
+async function fluxograma(c,alvo){
   const col=COLS.find(x=>x.id===c.coluna);const E=etapaDaColuna(col&&col.nome);
   const info={};
   try{const O2=sb.schema("orcarede");const [o,cp]=await Promise.all([O2.from("orcamentos").select("id,titulo,status,vigente,versao").eq("negocio_id",c.id),O2.from("compras").select("id").eq("negocio_id",c.id).limit(1)]);
@@ -500,6 +528,8 @@ async function fluxograma(c){
   const nos=FX_NOS.map(n=>{const st=n.id===E.at?"aqui":feito.has(n.id)?"feito":"";const sub=info[n.id]||n.s||"";
     const forma=n.d?`<polygon points="${n.x},${n.y-H*.85} ${n.x+W*.62},${n.y} ${n.x},${n.y+H*.85} ${n.x-W*.62},${n.y}"/>`:`<rect x="${n.x-W/2}" y="${n.y-H/2}" width="${W}" height="${H}" rx="${n.fim?26:10}"/>`;
     return `<g class="fn ${st} ${n.d?"dec":""} ${n.id==="perdido"?"perd":""}" data-n="${n.id}">${forma}<text x="${n.x}" y="${n.y+(n.d||!sub?4:-3)}" class="ft">${st==="feito"?"✓ ":""}${esc(n.t)}</text>${!n.d&&sub?`<text x="${n.x}" y="${n.y+13}" class="fs">${esc(sub)}</text>`:""}${st==="aqui"?`${n.x>=500?`<text x="${n.x}" y="${n.y-(n.d?H*.85:H/2)-7}" class="fh" text-anchor="middle">▼ VOCÊ ESTÁ AQUI</text>`:`<text x="${n.x-(n.d?W*.62:W/2)-10}" y="${n.y+4}" class="fh" text-anchor="end">VOCÊ ESTÁ AQUI ▸</text>`}`:""}</g>`}).join("");
+  if(alvo){if(!alvo.isConnected)return;alvo.innerHTML=`<div class="fxsh"><b>Fluxo do processo</b><button class="btn sm" data-fxr title="Recolher">▸</button></div><div class="fxmini" title="Clique para ampliar"><svg viewBox="-40 0 840 1035" role="img" aria-label="Fluxograma"><defs><marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--muted)"/></marker><marker id="seta2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--ok)"/></marker></defs>${ares}${nos}</svg></div><div class="tl mini"><h3>Linha do tempo</h3>${total?`<p class="note">${total} desde a criação</p>`:""}<ol>${linha||'<li class="atual"><span class="tl-dt">Sem movimentações.</span></li>'}</ol></div>`;
+    alvo.querySelector(".fxmini").onclick=()=>fluxograma(c);return}
   const m=document.createElement("div");m.className="modal fxm";
   m.innerHTML=`<div class="mbox wide" ><div class="row fxh"><div style="display:flex;align-items:center;gap:14px"><img src="assets/on-logo.png" alt="ON Engenharia" style="height:46px;border-radius:6px"><div><div class="note" style="text-transform:uppercase;letter-spacing:.06em">Fluxo do processo</div><h2 style="font-size:20px">${esc(c.titulo)}</h2>${c.cliente||c.cidade?`<div class="note">${esc([c.cliente,c.cidade].filter(Boolean).join(" · "))}</div>`:""}</div></div><button class="btn" data-fx>Fechar</button></div>
    <p class="note">Etapa atual pela coluna do card: <b>${esc(col?col.nome:"—")}</b>${E.reprov?" (projeto reprovado: volta para revisão)":""}. Etapas com ✓ já passaram.</p>
@@ -518,20 +548,26 @@ async function abrir(id,manter){
   document.querySelectorAll(".gv").forEach(x=>x.remove());
   const g=document.createElement("div");g.className="gv";
   const prox=cols[i+1],ant=cols[i-1];
-  g.innerHTML=`<div class="gvf"></div><aside class="gvp win" role="dialog" aria-label="${esc(c.titulo)}">
-   <div class="gvh"><div class="grab">⠿ arraste para mover · puxe o canto inferior direito para redimensionar</div><div class="row"><div><span class="tipo ${c.quadro}">${esc(QUADROS[c.quadro].nome)}</span>${c.obra_id?' <span class="tipo eletrica">⚡ No Gerenciador de obras</span>':c.no_mapa?' <span class="tipo solar">📍 No mapa</span>':""}<h2>${esc(c.titulo)}</h2><span class="note">${esc(c.cliente||"Sem cliente")}${c.cidade?" · "+esc(c.cidade):""} · ${brl(c.valor)}</span></div><span style="display:flex;gap:6px">${ADM?'<button class="btn" id="del" style="color:var(--bad)">Excluir</button>':""}<button class="btn" id="x">Fechar</button></span></div>
-    <div class="flow">${cols.map((x,j)=>`<span class="${j<i?"feito":j===i?"aqui":""}" title="${esc((areaDe(x.area)||{}).nome||"")}">${esc(x.nome)}</span>`).join("")}</div><button class="btn sm" id="bFluxo" style="margin:6px 0">🧭 Ver fluxograma do processo</button>
+  g.innerHTML=`<div class="gvf"></div><aside class="gvp win ${prefN("cheia","1")==="1"?"cheia":""} ${prefN("topo","1")==="0"?"semtopo":""} ${prefN("fx","1")==="0"||innerWidth<1000?"semfx":""}" role="dialog" aria-label="${esc(c.titulo)}"><div class="gvmain">
+   <div class="gvh"><div class="grab">⠿ arraste para mover · puxe o canto inferior direito para redimensionar</div><div class="row"><div><span class="tipo ${c.quadro}">${esc(QUADROS[c.quadro].nome)}</span>${c.obra_id?' <span class="tipo eletrica">⚡ No Gerenciador de obras</span>':c.no_mapa?' <span class="tipo solar">📍 No mapa</span>':""}<h2>${esc(c.titulo)}</h2><span class="note">${esc(c.cliente||"Sem cliente")}${c.cidade?" · "+esc(c.cidade):""} · ${brl(c.valor)}</span></div><span style="display:flex;gap:6px">${ADM?'<button class="btn" id="del" style="color:var(--bad)">Excluir</button>':""}<button class="btn" id="bTopo" title="Mostrar/recolher etapas e avisos">▾ Etapas</button><button class="btn" id="bFx" title="Mostrar/recolher fluxograma ao lado">🧭</button><button class="btn" id="bCheia" title="Tela cheia / janela">⤢</button><button class="btn" id="x">Fechar</button></span></div>
+    <div class="topo">
+    <div class="flow">${cols.map((x,j)=>`<span class="${j<i?"feito":j===i?"aqui":""}" title="${esc((areaDe(x.area)||{}).nome||"")}">${esc(x.nome)}</span>`).join("")}</div>
     ${c.motivo_tipo?`<div class="banner" style="background:var(--warn-soft,#fbf0dc)">📝 <b>${esc(c.motivo_tipo)}</b>${c.motivo?" · "+esc(c.motivo):""}</div>`:""}
     ${fantasma(c)?`<div class="banner ro">🔒 Este negócio já saiu da sua área e está agora em <b>${esc((()=>{const col=COLS.find(x=>x.id===c.coluna);const a=col&&areaDe(col.area);return(a?a.nome+" · ":"")+(col?col.nome:"")})())}</b>. Você acompanha e pode conversar, mas não pode alterar. <button class="btn sm" id="bPuxar" style="margin-left:6px" title="Esqueceu algum ajuste? Traz o card de volta para a última etapa dele na sua área">↩ Trazer de volta para minha área</button></div>`:ed?"":`<div class="banner ro">🔒 ${podeMover(c)?"Nesta etapa você pode mover o card e conversar, mas não editar os dados.":"Nesta etapa seu acesso é só leitura, mas pode conversar no chat."}</div>`}
-    ${c.quadro!=="solar"?`<div class="hub"><span class="hubt">Direcionar este negócio</span><div class="hubg">${ORCN?`<a class="hb" href="orcarede.html?neg=${c.id}"><b>📐 Orçamento</b><small>OrçaRede${ORCN==="ver"?" · só ver":""}</small></a>`:""}${COMPRAS?`<a class="hb" href="compras.html?neg=${c.id}"><b>🛒 Compras</b><small>cotações e pedidos</small></a>`:""}${c.obra_id?`<a class="hb pri" href="obra.html?id=${c.obra_id}"><b>⚡ Obra</b><small>abrir no Gerenciador</small></a>`:podeMover(c)&&cols.find(x=>x.gatilho)?`<button class="hb" id="hubObra"><b>⚡ Obras</b><small>enviar ao Gerenciador</small></button>`:`<span class="hb off"><b>⚡ Obras</b><small>ainda não enviada</small></span>`}</div></div>`:""}
-    ${podeMover(c)&&(prox||ant)?`<div class="next"><span class="note">Mover para:</span>${prox?`<button class="btn pri" id="go">${esc(prox.nome)}${!veCol(prox.id)&&areaDe(prox.area)?" · "+esc(areaDe(prox.area).nome):""} →</button>`:""}${ant?`<button class="btn" id="back">← ${esc(ant.nome)}</button>`:""}<select id="mv" class="btn"><option value="">Outra etapa…</option>${cols.filter(x=>x.id!==c.coluna).map(x=>`<option value="${x.id}">${esc(x.nome)}${areaDe(x.area)?" ("+esc(areaDe(x.area).nome)+")":""}</option>`).join("")}</select></div>`:""}
+    </div>
+    <div class="acoes">${c.quadro!=="solar"?`${ORCN?`<a class="hb2" href="orcarede.html?neg=${c.id}" title="Orçamento no OrçaRede${ORCN==="ver"?" (só ver)":""}">📐 Orçamento</a>`:""}${COMPRAS?`<a class="hb2" href="compras.html?neg=${c.id}" title="Cotações e pedidos">🛒 Compras</a>`:""}${c.obra_id?`<a class="hb2 ok" href="obra.html?id=${c.obra_id}" title="Abrir no Gerenciador de obras">⚡ Obra</a>`:podeMover(c)&&cols.find(x=>x.gatilho)?`<button class="hb2" id="hubObra" title="Enviar ao Gerenciador de obras">⚡ Obras</button>`:`<span class="hb2 off" title="Ainda não enviada ao Gerenciador">⚡ Obras</span>`}<span class="sep"></span>`:""}${podeMover(c)&&(prox||ant)?`<span class="note">Mover:</span>${prox?`<button class="btn sm pri" id="go">${esc(prox.nome)}${!veCol(prox.id)&&areaDe(prox.area)?" · "+esc(areaDe(prox.area).nome):""} →</button>`:""}${ant?`<button class="btn sm" id="back">← ${esc(ant.nome)}</button>`:""}<select id="mv" class="btn sm"><option value="">Outra etapa…</option>${cols.filter(x=>x.id!==c.coluna).map(x=>`<option value="${x.id}">${esc(x.nome)}${areaDe(x.area)?" ("+esc(areaDe(x.area).nome)+")":""}</option>`).join("")}</select>`:`<span class="note">Etapa: <b>${esc(cols[i]?cols[i].nome:"")}</b></span>`}</div>
    </div>
    <div class="tabs">${[["resumo","Resumo"+(extras.lemb&&extras.lemb.some(l=>!l.feito)?" ⏰":"")],["chat","Conversa ("+extras.msgs.length+")"+(naoLidasCard(c.id).n?` <b class="tdot">${naoLidasCard(c.id).n}</b>`:"")],["anx","Anexos ("+extras.anx.length+")"],["hist","Histórico"]].map(([k,l])=>`<button class="${abaCard===k?"on":""}" data-t="${k}">${l}</button>`).join("")}</div>
    <div class="gvb" id="gb"></div>
    ${abaCard==="chat"?`<div class="comp"><div class="mwrap"><div class="ment" id="ment" hidden></div><textarea id="tx" placeholder="Escreva para a equipe… digite @ para chamar alguém"></textarea></div><button class="btn pri" id="env">Enviar</button></div>`:""}
-  </aside>`;
+  </div><div class="fxside" id="fxs"><p class="note" style="padding:10px">Carregando fluxo…</p></div></aside>`;
   document.body.appendChild(g);
   janela($(".gvp",g));
+  {const P=$(".gvp",g);const tg=(cls,k,inv)=>()=>{const on=P.classList.toggle(cls);setPrefN(k,(inv?!on:on)?"1":"0");if(cls==="cheia"&&!on)janela(P)};
+   $("#bCheia",g).onclick=tg("cheia","cheia");$("#bTopo",g).onclick=tg("semtopo","topo",true);$("#bFx",g).onclick=tg("semfx","fx",true);
+   const fxs=$("#fxs",g),ck=c.id+"|"+c.coluna,FC=window.__fxC||(window.__fxC={});const liga=()=>{const r=g.querySelector("[data-fxr]");if(r)r.onclick=()=>{P.classList.add("semfx");setPrefN("fx","0")};const mi=g.querySelector(".fxmini");if(mi)mi.onclick=()=>fluxograma(c)};
+   if(FC[ck]&&Date.now()-FC[ck].t<90e3){fxs.innerHTML=FC[ck].h;liga()}else if(!P.classList.contains("semfx"))fluxograma(c,fxs).then(()=>{FC[ck]={t:Date.now(),h:fxs.innerHTML};liga()}).catch(()=>{});
+   $("#bFx",g).addEventListener("click",()=>{if(!P.classList.contains("semfx")&&!FC[ck])fluxograma(c,fxs).then(()=>{FC[ck]={t:Date.now(),h:fxs.innerHTML};liga()})})}
   $(".gvf",g).onclick=$("#x",g).onclick=fechar;
   if($("#del",g))$("#del",g).onclick=async e=>{const b=e.target;if(!b.dataset.c){b.dataset.c=1;b.textContent="Confirmar exclusão";return}const {error}=await sb.from("negocios").delete().eq("id",c.id);if(error){toast(error.message);return}fechar();await recarregar();toast("Negócio excluído.")};
   g.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{abaCard=b.dataset.t;abrir(id,true)});
@@ -553,6 +589,8 @@ async function abrir(id,manter){
       <label class="fld">Cidade<input value="${esc(c.cidade)}" ${dis} data-f="cidade"></label>
       <label class="fld">Concessionária<select ${dis} data-f="conc"><option value="">—</option>${opts(LISTAS.conc,c.conc)}<option value="__conc">+ Adicionar outra…</option></select></label>
       <label class="fld">Origem do contato<select ${dis} data-f="origem"><option value="">—</option>${opts(LISTAS.origem,c.origem)}${ADM?'<option value="__origem">+ Nova origem…</option>':""}</select></label>
+      <label class="fld">Parceiro de negócio<select ${dis} data-f="parceiro">${opts([...new Set(["ON",...(LISTAS.parceiro||[])])],c.parceiro||"ON")}<option value="__parceiro">+ Novo parceiro…</option></select></label>
+      ${ADM||ed?`<label class="fld">Comissão <small class="note">(só adm e consultores)</small><span style="display:flex;gap:6px"><input style="width:90px" value="${c.comissao_pct!=null?String(c.comissao_pct).replace(".",","):""}" ${dis} data-f="comissao_pct" inputmode="decimal" placeholder="%"><input style="flex:1;min-width:0" value="${c.comissao_valor!=null?brlTxt(c.comissao_valor):""}" ${dis} data-f="comissao_valor" inputmode="decimal" placeholder="R$ 0,00"></span><span class="note">${c.comissao_pct!=null&&+c.valor?"= "+brlTxt(c.valor*c.comissao_pct/100)+" sobre o valor estimado":c.comissao_valor!=null&&+c.valor?"= "+(c.comissao_valor/c.valor*100).toFixed(2).replace(".",",")+"% do valor estimado":""}</span></label>`:""}
       <label class="fld">Potência<span style="display:flex;gap:6px"><input type="number" step="any" style="flex:1;min-width:0" value="${esc(c.pot)}" ${dis} data-f="pot"><select ${dis} data-f="un">${opts(c.quadro==="solar"?["kWp","kW"]:["kVA","kW","kWp"],c.un||(c.quadro==="solar"?"kWp":"kVA"))}</select></span></label>
       <label class="fld">Forma de pagamento<select ${dis} data-f="pagto"><option value="">—</option>${opts(LISTAS.pagto,c.pagto)}${ADM?'<option value="__pagto">+ Nova forma…</option>':""}</select></label>
       <label class="fld">Valor estimado (R$)<input value="${+c.valor?brlTxt(c.valor):""}" ${dis} data-f="valor" inputmode="decimal" placeholder="R$ 0,00"></label>
@@ -567,24 +605,26 @@ async function abrir(id,manter){
      ${ADM||(c.editores||[]).length?`<div class="sec"><h4>Consultores com edição <span class="note" style="font-weight:400">· editam este negócio em qualquer etapa${ADM?"":" (definido pelo admin)"}</span></h4><div class="pick">${U.filter(u=>u.papel!=="admin").map(u=>`<button data-ed="${u.id}" class="${(c.editores||[]).includes(u.id)?"on":""}" ${ADM?"":"disabled"}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")||'<span class="note">Nenhum usuário além dos admins.</span>'}</div></div>`:""}
      <div class="sec"><h4>Pessoas no card</h4><div class="pick">${U.map(u=>`<button data-m="${u.id}" class="${c.membros.includes(u.id)?"on":""}" ${dis}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")}</div></div>
      <div class="sec"><h4>Etiquetas</h4><div class="pick etqsel">${ETQ.filter(e=>e.quadro===c.quadro&&c.etiquetas.includes(e.id)).map(e=>`<button class="lb on" style="background:${e.cor}" data-l="${e.id}" ${dis} title="Clique para tirar">${esc(e.nome)} ✕</button>`).join("")||'<span class="note">Nenhuma etiqueta.</span>'}
-      </div>${dis?"":`<div class="etqw"><input id="etqQ" placeholder="＋ Etiqueta: buscar, marcar ou criar…" autocomplete="off"><div class="etqdd" id="etqDd" hidden><div id="etqL"></div><button class="btn sm" id="etqOk" type="button">Pronto</button></div></div>`}</div>
+      </div>${dis?"":`<div class="etqw"><input id="etqQ" placeholder="＋ Etiqueta: buscar, marcar ou criar…" autocomplete="off"><div class="etqdd" id="etqDd" hidden><div id="etqL"></div></div></div>`}</div>
      <div class="sec"><h4>Ao chegar em ${esc((cols.find(x=>x.gatilho)||{nome:"(coluna ⚡ não definida)"}).nome)}</h4><p class="note" style="margin:0">${c.quadro==="solar"?"O card vira um ponto no mapa de obras (sem acompanhamento de postes e rede).":"Com o negócio fechado, o card é enviado ao Gerenciador de obras (com confirmação), com planta, postes, rede, fotos, diário e link do cliente."}</p></div>`;
-    {const bf=g.querySelector("#bFluxo");if(bf)bf.onclick=()=>fluxograma(c)}
+
     {const bp=g.querySelector("#bPuxar");if(bp)bp.onclick=()=>{const m=document.createElement("div");m.className="modal fxm";
       m.innerHTML=`<div class="mbox" style="width:min(460px,100%)"><h2>Trazer “${esc(c.titulo)}” de volta?</h2><p class="note">O card volta para a última etapa em que esteve na sua área. Quem estava com ele recebe o aviso no histórico e na caixa de entrada.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-x3>Cancelar</button><button class="btn pri" data-ok3>↩ Trazer de volta</button></div></div>`;
       document.body.appendChild(m);m.querySelector("[data-x3]").onclick=()=>m.remove();
       m.querySelector("[data-ok3]").onclick=async()=>{const r=await sb.rpc("neg_puxar_de_volta",{p_id:c.id});m.remove();if(r.error){toast(r.error.message);return}toast("Card de volta em "+r.data+".");await recarregar();abrir(c.id)}}}
     gb.querySelectorAll("[data-f]").forEach(el=>el.onchange=async()=>{
       const f=el.dataset.f;let v=el.value;
-      const novaLista={"__tipo":["tipo","Novo tipo de obra","Ex.: Iluminação pública"],"__conc":["conc","Nova concessionária","Ex.: Cooperluz"],"__origem":["origem","Nova origem","Ex.: Feira"],"__pagto":["pagto","Nova forma de pagamento","Ex.: Consórcio"]}[v];
-      if(novaLista){pedirNome(novaLista[1],novaLista[2],async n=>{const {error}=await sb.from("neg_listas").insert({lista:novaLista[0],valor:n});if(error&&!/duplicate/.test(error.message)){toast(error.message);abrir(id,true);return}if(!LISTAS[novaLista[0]].includes(n))LISTAS[novaLista[0]].push(n);await salvarCampos(c,{[f]:n});render();abrir(id,true);toast("Adicionado para todos.")},()=>abrir(id,true));return}
+      const novaLista={"__tipo":["tipo","Novo tipo de obra","Ex.: Iluminação pública"],"__conc":["conc","Nova concessionária","Ex.: Cooperluz"],"__origem":["origem","Nova origem","Ex.: Feira"],"__pagto":["pagto","Nova forma de pagamento","Ex.: Consórcio"],"__parceiro":["parceiro","Novo parceiro de negócio","Ex.: Escritório XYZ"]}[v];
+      if(novaLista){pedirNome(novaLista[1],novaLista[2],async n=>{const nn=x=>String(x).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/\s+/g," ").trim().replace(/S$/,"");const pa=(LISTAS[novaLista[0]]||[]).find(x=>nn(x)===nn(n));if(pa&&!confirm(`Já existe “${pa}”. Criar “${n}” mesmo assim?`)){await salvarCampos(c,{[f]:pa});render();abrir(id,true);return}if(!LISTAS[novaLista[0]])LISTAS[novaLista[0]]=[];const {error}=await sb.from("neg_listas").insert({lista:novaLista[0],valor:n});if(error&&!/duplicate/.test(error.message)){toast(error.message);abrir(id,true);return}if(!LISTAS[novaLista[0]].includes(n))LISTAS[novaLista[0]].push(n);await salvarCampos(c,{[f]:n});render();abrir(id,true);toast("Adicionado para todos.")},()=>abrir(id,true));return}
       const campos={};
       if(f==="valor"){v=lerBrl(v);el.value=v?brlTxt(v):""}if(f==="fone"){v=fmtFone(v);el.value=v}if(f==="prazo"||f==="resp")v=v||null;
+      if(f==="comissao_pct"){v=String(v).trim()===""?null:parseFloat(String(v).replace("%","").replace(",","."));if(v!=null&&isNaN(v))v=null}
+      if(f==="comissao_valor"){v=String(v).trim()===""?null:lerBrl(v);el.value=v!=null?brlTxt(v):""}
       campos[f]=v;
       if(f==="maps"){campos.lat=null;campos.lng=null;const p=coordsDe(v)||(/^https:/i.test(v)?await resolverLink(v):null);if(p){campos.lat=p.lat;campos.lng=p.lng}}
       if(await salvarCampos(c,campos)){render();
         if(f==="titulo"){const h=document.querySelector(".gv .gvh h2");if(h)h.textContent=c.titulo}
-        if(["maps"].includes(f)){
+        if(["maps","comissao_pct","comissao_valor"].includes(f)){
         const box=el.closest(".gv")||document;const keep={};box.querySelectorAll("[data-f]").forEach(x=>{if(x!==el&&x.dataset.f!==f)keep[x.dataset.f]=x.value});
         const ae=document.activeElement,af=ae&&ae.dataset&&ae.dataset.f,ss=af&&ae.selectionStart!=null?[ae.selectionStart,ae.selectionEnd]:null;
         await abrir(id,true);
@@ -600,7 +640,7 @@ async function abrir(id,manter){
         L.innerHTML=E.map(e=>`<label class="etqi"><input type="checkbox" data-le="${e.id}" ${c.etiquetas.includes(e.id)?"checked":""}><i style="background:${e.cor}"></i>${esc(e.nome)}</label>`).join("")+(t&&!E.some(e=>e.nome.toLowerCase()===t)?`<button class="nlb" id="etqNova" type="button">+ Criar “${esc(q.value.trim())}”</button>`:"")||'<span class="note">Nenhuma etiqueta. Digite para criar.</span>';
         L.querySelectorAll("[data-le]").forEach(x=>x.onchange=async()=>{const k=x.dataset.le;const et=x.checked?[...new Set([...c.etiquetas,k])]:c.etiquetas.filter(y=>y!==k);if(await salvarCampos(c,{etiquetas:et})){chips.innerHTML=chipsHtml();bindChips();render()}});
         const nb=$("#etqNova",L);if(nb)nb.onclick=async()=>{const {data,error}=await sb.from("neg_etiquetas").insert({quadro:c.quadro,nome:q.value.trim(),cor:PAL[ETQ.length%PAL.length]}).select().single();if(error){toast(error.message);return}ETQ.push(data);await salvarCampos(c,{etiquetas:[...c.etiquetas,data.id]});q.value="";chips.innerHTML=chipsHtml();bindChips();render();lista()}};
-      q.onfocus=()=>{dd.hidden=false;lista()};q.oninput=()=>{dd.hidden=false;lista()};$("#etqOk",gb).onclick=()=>{dd.hidden=true;q.value=""};bindChips()}
+      q.onfocus=()=>{dd.hidden=false;lista()};q.oninput=()=>{dd.hidden=false;lista()};if(window.__etqH)document.removeEventListener("pointerdown",window.__etqH);window.__etqH=e=>{if(!dd.hidden&&!e.target.closest(".etqw")){dd.hidden=true;q.value=""}};document.addEventListener("pointerdown",window.__etqH);bindChips()}
     if($("#nlb",gb))$("#nlb",gb).onclick=()=>pedirNome("Nova etiqueta","Ex.: Aguardando ART",async n=>{const {data,error}=await sb.from("neg_etiquetas").insert({quadro:c.quadro,nome:n,cor:PAL[ETQ.length%PAL.length]}).select().single();if(error){toast(error.message);return}ETQ.push(data);await salvarCampos(c,{etiquetas:[...c.etiquetas,data.id]});render();abrir(id,true)},()=>abrir(id,true));
     bindAnexos(c,gb);
     bindLembretes(c,gb);
@@ -705,6 +745,8 @@ function pedirNome(titulo,ph,ok,cancel){
   $("#p0",m).onclick=()=>{m.remove();cancel&&cancel()};
   const go=()=>{const n=$("#pn",m).value.trim();m.remove();if(n)ok(n);else cancel&&cancel()};$("#p1",m).onclick=go;$("#pn",m).onkeydown=e=>{if(e.key==="Enter")go()};
 }
+function prefN(k,d){try{const v=localStorage.getItem("neg.card."+k);return v==null?d:v}catch(e){return d}}
+function setPrefN(k,v){try{localStorage.setItem("neg.card."+k,v)}catch(e){}}
 function janela(el){
   const vw=innerWidth,vh=innerHeight;
   if(!win){const w=Math.min(820,vw-16),h=Math.min(Math.round(vh*.9),vh-16);win={w,h,x:Math.round((vw-w)/2),y:Math.round((vh-h)/2)}}
@@ -856,12 +898,14 @@ function caixa(){
   fechar();
   const g=document.createElement("div");g.className="gv lado";
   const draw=()=>{const nl=INBOX.filter(n=>!n.lido).length;
-    g.innerHTML=`<div class="gvf"></div><aside class="gvp" style="width:min(460px,100%)"><div class="gvh" style="cursor:default"><div class="row"><div><h2>Caixa de entrada</h2><span class="note">${nl} não lida${nl===1?"":"s"}</span></div><button class="btn" id="x">Fechar</button></div><label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="ibT" ${inboxTudo?"checked":""}> mostrar também avisos de negócios que não são meus</label>${nl?'<button class="btn" id="todas" style="justify-self:start">Marcar todas como lidas</button>':""}</div>
-     <div class="gvb">${INBOX.length?INBOX.map(n=>`<button class="ib ${n.lido?"":"nl"}" data-n="${n.id}"><span class="ii">${ic[n.tipo]||"•"}</span><span><span class="it">${esc(n.texto)}</span><small>${fdt(n.criado_em)}</small></span></button>`).join(""):'<p class="note">Nada por aqui. Quando um negócio chegar numa etapa sua, alguém te mencionar com @ ou te adicionar num card, aparece aqui.</p>'}</div></aside>`;
+    g.innerHTML=`<div class="gvf"></div><aside class="gvp" style="width:min(460px,100%)"><div class="gvh" style="cursor:default"><div class="row"><div><h2>Caixa de entrada</h2><span class="note">${nl} não lida${nl===1?"":"s"}</span></div><button class="btn" id="x">Fechar</button></div><label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="ibT" ${inboxTudo?"checked":""}> mostrar também avisos de negócios que não são meus</label><div style="display:flex;gap:6px;flex-wrap:wrap">${nl?'<button class="btn" id="todas">Marcar todas como lidas</button>':""}${INBOX.some(n=>n.lido)?'<button class="btn" id="limpa">Limpar lidos</button>':""}</div></div>
+     <div class="gvb">${INBOX.length?INBOX.map(n=>`<div class="ibw"><button class="ib ${n.lido?"":"nl"}" data-n="${n.id}"><span class="ii">${ic[n.tipo]||"•"}</span><span><span class="it">${esc(n.texto)}</span><small>${fdt(n.criado_em)}</small></span></button><button class="ibx" data-del="${n.id}" title="Excluir aviso">✕</button></div>`).join(""):'<p class="note">Nada por aqui. Quando um negócio chegar numa etapa sua, alguém te mencionar com @ ou te adicionar num card, aparece aqui.</p>'}</div></aside>`;
     $(".gvf",g).onclick=$("#x",g).onclick=()=>{g.remove();render()};
     $("#ibT",g).onchange=async e=>{inboxTudo=e.target.checked;try{localStorage.setItem("neg.inboxTudo",inboxTudo?"1":"0")}catch(x){}await carregarAvisos();draw()};
     if($("#todas",g))$("#todas",g).onclick=async()=>{await sb.from("notificacoes").update({lido:true}).eq("lido",false);INBOX.forEach(n=>n.lido=true);draw()};
-    g.querySelectorAll("[data-n]").forEach(b=>b.onclick=async()=>{const n=INBOX.find(x=>x.id===b.dataset.n);if(!n.lido){n.lido=true;sb.from("notificacoes").update({lido:true}).eq("id",n.id)}
+    if($("#limpa",g))$("#limpa",g).onclick=async()=>{const ids=INBOX.filter(n=>n.lido).map(n=>n.id);await sb.from("notificacoes").delete().in("id",ids);INBOX=INBOX.filter(n=>!n.lido);draw()};
+    g.querySelectorAll("[data-del]").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.dataset.del;const r=await sb.from("notificacoes").delete().eq("id",id);if(r.error){toast("Não consegui excluir.");return}INBOX=INBOX.filter(n=>n.id!==id);draw()});
+    g.querySelectorAll("[data-n]").forEach(b=>b.onclick=async()=>{const n=INBOX.find(x=>x.id===b.dataset.n);if(!n.lido){n.lido=true;await sb.from("notificacoes").update({lido:true}).eq("id",n.id)}
       const c=CARDS.find(k=>k.id===n.negocio_id);g.remove();if(c){quadro=c.quadro;abaCard=n.tipo==="mencao"||n.tipo==="msg"?"chat":"resumo";render();abrir(c.id)}else{render();toast("Este negócio não existe mais.")}});
   };
   draw();document.body.appendChild(g);

@@ -214,12 +214,16 @@
       <div class="card">💼 ${esc((l.negocios || {}).titulo || "Negócio")}${(l.negocios || {}).cliente ? " · " + esc(l.negocios.cliente) : ""}<br>Marcado para ${fdt(l.quando)}${l.criado_por && l.criado_por !== eu ? " por " + esc(l.criado_nome) : ""}</div>
       ${atraso > 3600e3 ? `<div class="qt">Atrasado há ${Math.round(atraso / 3600e3) >= 24 ? Math.round(atraso / 86400e3) + " dia(s)" : Math.round(atraso / 3600e3) + " hora(s)"}</div>` : ""}
       <div class="lb-acts"><a class="pri" href="negocios.html?n=${l.negocio_id}">Abrir card</a><button data-a="1h">Adiar 1 hora</button><button data-a="am">Amanhã 8h</button><button class="ok" data-a="ok">Concluído ✓</button></div>
+      <div class="lb-acts" style="margin-top:8px;align-items:center"><span style="font-size:13px;opacity:.8">ou adiar para</span><input type="datetime-local" id="lbDt" style="padding:6px 8px;border-radius:8px;border:1px solid #9aa9b8;font:inherit"><button data-a="dt">Adiar</button></div>
       ${L.length > 1 ? `<div class="lb-mais">+ ${L.length - 1} outro(s) lembrete(s) na fila</div>` : ""}</div>`;
     document.body.appendChild(ov);
     const fim = () => { ov.remove(); mostrando = false; setTimeout(checarLembretes, 400); };
     ov.querySelector('[data-a="ok"]').onclick = async () => { await sb.from("neg_lembretes").update({ feito: true }).eq("id", l.id); fim(); };
     ov.querySelector('[data-a="1h"]').onclick = async () => { const q = new Date(Date.now() + 3600e3); await sb.from("neg_lembretes").update({ quando: q.toISOString() }).eq("id", l.id); fim(); };
     ov.querySelector('[data-a="am"]').onclick = async () => { const q = new Date(); q.setDate(q.getDate() + 1); q.setHours(8, 0, 0, 0); await sb.from("neg_lembretes").update({ quando: q.toISOString() }).eq("id", l.id); fim(); };
+    { const d = new Date(Date.now() + 864e5); d.setHours(8, 0, 0, 0); const p = n => String(n).padStart(2, "0"); ov.querySelector("#lbDt").value = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T08:00`; }
+    ov.querySelector('[data-a="dt"]').onclick = async () => { const v = ov.querySelector("#lbDt").value; if (!v) return; const q = new Date(v); if (!(q > new Date())) { alert0(); return; } await sb.from("neg_lembretes").update({ quando: q.toISOString() }).eq("id", l.id); fim(); };
+    function alert0() { const i = ov.querySelector("#lbDt"); i.style.borderColor = "#c53030"; i.title = "Escolha uma data/hora no futuro"; }
     ov.querySelector(".pri").addEventListener("click", () => { adiados.set(l.id, Date.now() + 10 * 60e3); });
   }
   window.ON_LEMBRETES = { checar: checarLembretes };
