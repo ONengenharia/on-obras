@@ -227,6 +227,13 @@ svg.net line.hit{stroke:transparent}
 .app.mob .rz.l,.app.mob .rz.c{display:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .andm{color:#e0a100;font-weight:600;font-size:.85em;margin-left:4px;white-space:nowrap}
+.aprc{display:flex;justify-content:space-between;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:6px}.aprc small{display:block;color:var(--muted)}
+.aprm{position:fixed;inset:0;z-index:900;background:rgba(10,18,28,.55);display:flex;justify-content:center;align-items:flex-start;overflow:auto;padding:12px}.aprb{background:var(--panel);color:var(--ink);border-radius:14px;padding:16px;width:min(900px,100%);display:grid;gap:8px}
+.aprb h4{margin:8px 0 2px}.aprb .row{display:flex;justify-content:space-between;align-items:center;gap:8px}.aprg{display:grid;grid-template-columns:150px 1fr 1.4fr;gap:8px;align-items:end}.aprg label{display:grid;gap:2px;font-size:12px}.aprg input{padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit}
+.aprck{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 12px;font-size:13px}.aprck label{display:flex;gap:6px;align-items:flex-start}.aprck .inp{grid-column:1/-1;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.aprtm{display:flex;flex-wrap:wrap;gap:6px}.chipx{background:var(--accent-soft,#e3eef8);border-radius:999px;padding:3px 6px 3px 10px;font-size:12.5px}.chipx button{border:0;background:transparent;cursor:pointer}
+.aprsg{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}.sg{display:grid;gap:4px;font-size:12px}.sg canvas,.sg img{border:1px dashed var(--line);border-radius:8px;width:100%;max-width:320px;background:#fff;touch-action:none}
+@media (max-width:640px){.aprg{grid-template-columns:1fr}}
 </style>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
@@ -391,9 +398,92 @@ async function enableSort(){
   }catch(e){toast("Não consegui ativar o arrastar das etapas.")}
 }
 /* ---------- abas ---------- */
+/* ---------- APR (Análise Preliminar de Risco) ---------- */
+const APR_MOD=[
+ {a:"Locação e abertura de cavas",r:["Queda no mesmo nível","Esforço físico / postura","Interferências subterrâneas (cabos, água, gás)","Projeção de partículas"],m:["Sinalizar e isolar a área","Consultar a concessionária sobre redes enterradas","Usar ferramentas adequadas e em bom estado","Revezar a equipe no esforço"]},
+ {a:"Implantação de postes (caminhão guindauto)",r:["Queda do poste / carga suspensa","Tombamento do equipamento","Prensamento de membros","Rede energizada próxima"],m:["Isolar o raio de giro do guindauto","Patolas/sapatas niveladas em solo firme","Sinaleiro dedicado à manobra","Manter distância segura da rede energizada"]},
+ {a:"Lançamento de rede MT/BT",r:["Choque elétrico","Queda de altura","Tráfego de veículos","Rompimento de cabo sob tração"],m:["Desenergizar com bloqueio e etiquetagem","Testar ausência de tensão","Instalar aterramento temporário","Cinto paraquedista com talabarte duplo","Sinalização viária"]},
+ {a:"Instalação de transformador",r:["Carga suspensa","Choque elétrico","Queda de altura"],m:["Plano de içamento","Área isolada sob a carga","Desenergizar o circuito"]},
+ {a:"Iluminação pública",r:["Queda de altura","Choque elétrico"],m:["Cesto aéreo ou escada amarrada","Desenergizar o circuito de IP"]}];
+const APR_EPI=["Capacete com jugular","Luva isolante (classe adequada)","Luva de vaqueta","Botina de segurança","Óculos de proteção","Cinto paraquedista","Talabarte duplo","Vestimenta antichama","Protetor auricular","Protetor solar","Colete refletivo"];
+const APR_CHK=["Equipe com NR-10 em dia","Equipe com NR-35 em dia","Ferramentas e EPIs inspecionados","Previsão do tempo verificada (sem chuva/raios para trabalho em altura)","Área sinalizada e isolada","Procedimento de bloqueio disponível","Kit de primeiros socorros no local"];
+let APRS=null,COLAB=null,APR_OK=null;
+async function aprCarregar(){const sb=DB.sb,oid=new URLSearchParams(location.search).get("id");
+  const r=await sb.from("obra_aprs").select("*").eq("obra_id",oid).order("data",{ascending:false});APR_OK=!r.error;APRS=r.data||[];
+  try{const pf=await DB.meuPerfil();window.__perfilNome=pf&&(pf.nome||pf.email)||""}catch(e){}
+  if(APR_OK){const c=await sb.from("colaboradores").select("*").eq("ativo",true).order("nome");COLAB=c.data||[]}}
+function renderApr(pane){
+  if(APRS===null){pane.innerHTML='<p class="note">Carregando…</p>';aprCarregar().then(()=>renderApr(pane));return}
+  if(!APR_OK){pane.innerHTML='<p class="empty">A APR está sendo ativada no banco de dados. Assim que estiver pronta, aparece aqui.</p>';return}
+  pane.innerHTML=`<div class="row"><span class="note">APR da equipe antes de começar o serviço. Só a equipe interna vê.</span><button class="btn pri" id="aprNova">+ Nova APR</button></div>
+   ${APRS.map(a=>`<div class="aprc"><div><b>${fdate(a.data)}</b> · ${esc((a.atividades||[]).join(", ")||"—")}<small>${esc(a.responsavel||"")} · ${(a.equipe||[]).length} pessoa(s) · ${Object.keys(a.assinaturas||{}).length} assinatura(s)</small></div><span style="display:flex;gap:6px"><button class="btn sm" data-apdf="${a.id}">⬇ PDF</button><button class="btn sm" data-aed="${a.id}">Abrir</button></span></div>`).join("")||'<p class="empty">Nenhuma APR ainda.</p>'}`;
+  $("#aprNova",pane).onclick=()=>aprForm(null);
+  pane.querySelectorAll("[data-aed]").forEach(b=>b.onclick=()=>aprForm(APRS.find(x=>x.id===b.dataset.aed)));
+  pane.querySelectorAll("[data-apdf]").forEach(b=>b.onclick=()=>aprPdf(APRS.find(x=>x.id===b.dataset.apdf)));
+}
+function aprForm(A){
+  const sb=DB.sb,oid=new URLSearchParams(location.search).get("id");
+  const st=A?JSON.parse(JSON.stringify(A)):{data:today(),atividades:[],riscos:[],medidas:[],epis:["Capacete com jugular","Botina de segurança","Luva de vaqueta","Óculos de proteção"],checklist:[],equipe:[],assinaturas:{},responsavel:perfilNome(),obs:""};
+  const m=document.createElement("div");m.className="aprm";document.body.appendChild(m);
+  const sigs={};
+  const draw=()=>{const ativ=APR_MOD.filter(x=>st.atividades.includes(x.a));const R=[...new Set([...ativ.flatMap(x=>x.r),...st.riscos])],M=[...new Set([...ativ.flatMap(x=>x.m),...st.medidas])];
+    const pessoas=[["resp","Responsável pela atividade: "+(st.responsavel||"")],...st.equipe.map((p,i)=>["e"+i,p.nome+(p.funcao?" · "+p.funcao:"")])];
+    m.innerHTML=`<div class="aprb"><div class="row"><div style="display:flex;gap:10px;align-items:center"><img src="assets/on-logo.png" alt="ON" style="height:38px"><div><b style="font-size:17px">APR · Análise Preliminar de Risco</b><div class="note">${esc(S.obra.titulo)} · ${esc(S.obra.cliente||"")}</div></div></div><button class="btn" id="apX">Fechar</button></div>
+     <div class="aprg"><label>Data<input type="date" id="apD" value="${st.data}"></label><label>Responsável<input id="apR" value="${esc(st.responsavel||"")}"></label><div class="note">Local: ${esc(S.obra.local||"—")}<br>Projeto: ${esc(S.obra.projeto||"—")} · Tensão: ${esc(S.obra.tensao||"25 kV / BT")}</div></div>
+     <h4>1. Atividades</h4><div class="aprck">${APR_MOD.map(x=>`<label><input type="checkbox" data-at="${esc(x.a)}" ${st.atividades.includes(x.a)?"checked":""}> ${esc(x.a)}</label>`).join("")}</div>
+     <h4>2. Riscos</h4><div class="aprck">${R.map(r=>`<label><input type="checkbox" checked data-rr="${esc(r)}"> ${esc(r)}</label>`).join("")||'<span class="note">Marque as atividades.</span>'}<input class="inp" id="apRn" placeholder="+ outro risco (Enter)"></div>
+     <h4>3. Medidas de controle</h4><div class="aprck">${M.map(r=>`<label><input type="checkbox" checked data-mm="${esc(r)}"> ${esc(r)}</label>`).join("")}<input class="inp" id="apMn" placeholder="+ outra medida (Enter)"></div>
+     <h4>4. EPIs</h4><div class="aprck">${APR_EPI.map(x=>`<label><input type="checkbox" data-ep="${esc(x)}" ${st.epis.includes(x)?"checked":""}> ${esc(x)}</label>`).join("")}</div>
+     <h4>5. Liberação</h4><div class="aprck">${APR_CHK.map(x=>`<label><input type="checkbox" data-ck="${esc(x)}" ${st.checklist.includes(x)?"checked":""}> ${esc(x)}</label>`).join("")}</div>
+     <h4>6. Equipe</h4><div class="aprtm">${st.equipe.map((p,i)=>`<span class="chipx">${esc(p.nome)}${p.funcao?` <small>${esc(p.funcao)}</small>`:""} <button data-tx="${i}">✕</button></span>`).join("")}</div>
+      <div style="display:flex;gap:6px"><input class="inp" id="apP" list="dlColab" placeholder="Nome do colaborador (novo fica salvo)" style="flex:1"><input class="inp" id="apF" placeholder="Função" style="width:140px"><button class="btn" id="apPa">+ Incluir</button><datalist id="dlColab">${(COLAB||[]).map(c=>`<option value="${esc(c.nome)}">${esc(c.funcao||"")}</option>`).join("")}</datalist></div>
+     <h4>7. Observações</h4><textarea id="apO" rows="2" style="width:100%">${esc(st.obs||"")}</textarea>
+     <h4>8. Assinaturas</h4><p class="note">Cada um assina com o dedo na tela.</p><div class="aprsg">${pessoas.map(([k,n])=>`<div class="sg"><span>${esc(n)}</span>${st.assinaturas[k]?`<img src="${st.assinaturas[k]}" alt=""><button class="lnk" data-sx="${k}">refazer</button>`:`<canvas data-sg="${k}" width="320" height="110"></canvas><button class="lnk" data-sc="${k}">limpar</button>`}</div>`).join("")}</div>
+     <div class="row" style="position:sticky;bottom:0;background:var(--panel);padding:8px 0"><span></span><span style="display:flex;gap:8px">${A?'<button class="btn" id="apPdf">⬇ PDF</button>':""}<button class="btn pri" id="apS">Salvar APR</button></span></div></div>`;
+    const ler=()=>{st.data=$("#apD",m).value;st.responsavel=$("#apR",m).value.trim();st.obs=$("#apO",m).value;
+      st.riscos=[...m.querySelectorAll("[data-rr]")].filter(x=>x.checked).map(x=>x.dataset.rr);st.medidas=[...m.querySelectorAll("[data-mm]")].filter(x=>x.checked).map(x=>x.dataset.mm);
+      st.epis=[...m.querySelectorAll("[data-ep]")].filter(x=>x.checked).map(x=>x.dataset.ep);st.checklist=[...m.querySelectorAll("[data-ck]")].filter(x=>x.checked).map(x=>x.dataset.ck);
+      m.querySelectorAll("canvas[data-sg]").forEach(c=>{if(sigs[c.dataset.sg])st.assinaturas[c.dataset.sg]=c.toDataURL("image/png")})};
+    $("#apX",m).onclick=()=>m.remove();
+    m.querySelectorAll("[data-at]").forEach(c=>c.onchange=()=>{ler();const a=c.dataset.at;if(c.checked)st.atividades.push(a);else st.atividades=st.atividades.filter(x=>x!==a);st.riscos=[];st.medidas=[];draw()});
+    $("#apRn",m).onkeydown=e=>{if(e.key==="Enter"&&e.target.value.trim()){e.preventDefault();ler();st.riscos.push(e.target.value.trim());draw()}};
+    $("#apMn",m).onkeydown=e=>{if(e.key==="Enter"&&e.target.value.trim()){e.preventDefault();ler();st.medidas.push(e.target.value.trim());draw()}};
+    m.querySelectorAll("[data-tx]").forEach(b=>b.onclick=()=>{ler();st.equipe.splice(+b.dataset.tx,1);draw()});
+    $("#apP",m).oninput=e=>{const c=(COLAB||[]).find(x=>x.nome===e.target.value);if(c&&c.funcao)$("#apF",m).value=c.funcao};
+    $("#apPa",m).onclick=async()=>{const nome=$("#apP",m).value.trim();if(!nome)return;const fun=$("#apF",m).value.trim();ler();
+      if(!(COLAB||[]).some(c=>c.nome.toLowerCase()===nome.toLowerCase())){const r=await sb.from("colaboradores").insert({nome,funcao:fun||null}).select("*").single();if(!r.error)COLAB.push(r.data)}
+      st.equipe.push({nome,funcao:fun||null});draw()};
+    m.querySelectorAll("[data-sx]").forEach(b=>b.onclick=()=>{ler();delete st.assinaturas[b.dataset.sx];draw()});
+    m.querySelectorAll("canvas[data-sg]").forEach(c=>{const g=c.getContext("2d");g.lineWidth=2.2;g.lineCap="round";g.strokeStyle="#111";g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);let on=false;
+      const pt=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+      c.onpointerdown=e=>{on=true;c.setPointerCapture(e.pointerId);const [x,y]=pt(e);g.beginPath();g.moveTo(x,y);sigs[c.dataset.sg]=1};c.onpointermove=e=>{if(!on)return;const [x,y]=pt(e);g.lineTo(x,y);g.stroke()};c.onpointerup=()=>on=false});
+    m.querySelectorAll("[data-sc]").forEach(b=>b.onclick=()=>{const c=m.querySelector(`canvas[data-sg="${b.dataset.sc}"]`);const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);delete sigs[b.dataset.sc]});
+    if($("#apPdf",m))$("#apPdf",m).onclick=()=>{ler();aprPdf({...st})};
+    $("#apS",m).onclick=async()=>{ler();if(!st.atividades.length){toast("Marque ao menos uma atividade.");return}
+      const row={obra_id:oid,data:st.data,atividades:st.atividades,riscos:st.riscos,medidas:st.medidas,epis:st.epis,checklist:st.checklist,equipe:st.equipe,assinaturas:st.assinaturas,responsavel:st.responsavel,obs:st.obs};
+      const r=A?await sb.from("obra_aprs").update(row).eq("id",A.id).select("*").single():await sb.from("obra_aprs").insert(row).select("*").single();
+      if(r.error){toast("Não foi possível salvar: "+r.error.message);return}if(A)Object.assign(A,r.data);else APRS.unshift(r.data);m.remove();toast("APR salva.");renderSide()}};
+  draw()}
+function perfilNome(){try{return (window.__perfilNome)||""}catch(e){return""}}
+async function aprPdf(a){
+  if(!window.jspdf)await loadScript("vendor/jspdf.umd.min.js");const {jsPDF}=window.jspdf;const d=new jsPDF({unit:"mm",format:"a4"});
+  let y=12;const W=210,mg=12;
+  try{const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src="assets/on-logo.png"});const c=document.createElement("canvas");c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext("2d").drawImage(im,0,0);d.addImage(c.toDataURL("image/png"),"PNG",mg,y,30,30*im.naturalHeight/im.naturalWidth)}catch(e){}
+  d.setFont("helvetica","bold");d.setFontSize(14);d.text("APR - Análise Preliminar de Risco",W-mg,y+6,{align:"right"});d.setFont("helvetica","normal");d.setFontSize(9);
+  d.text(`Data: ${fdate(a.data)}   Responsável: ${a.responsavel||""}`,W-mg,y+12,{align:"right"});y+=24;
+  const linha=(t,b)=>{d.setFont("helvetica","bold");d.text(t,mg,y);d.setFont("helvetica","normal");const L=d.splitTextToSize(b||"—",W-2*mg-38);d.text(L,mg+38,y);y+=Math.max(5,L.length*4.2)};
+  linha("Obra",S.obra.titulo);linha("Cliente",S.obra.cliente||"");linha("Local",S.obra.local||"");linha("Projeto / tensão",(S.obra.projeto||"")+" · "+(S.obra.tensao||"25 kV / BT"));
+  const sec=(t,L)=>{if(y>260){d.addPage();y=14}y+=2;d.setFillColor(30,47,64);d.setTextColor(255);d.setFont("helvetica","bold");d.rect(mg,y-4,W-2*mg,6,"F");d.text(t,mg+2,y);d.setTextColor(0);d.setFont("helvetica","normal");y+=5;
+    (L.length?L:["—"]).forEach(x=>{const T=d.splitTextToSize("• "+x,W-2*mg-4);if(y+T.length*4.2>285){d.addPage();y=14}d.text(T,mg+2,y);y+=T.length*4.2})};
+  sec("1. Atividades",a.atividades||[]);sec("2. Riscos identificados",a.riscos||[]);sec("3. Medidas de controle",a.medidas||[]);sec("4. EPIs",a.epis||[]);sec("5. Liberação",a.checklist||[]);
+  sec("6. Equipe",(a.equipe||[]).map(p=>p.nome+(p.funcao?" - "+p.funcao:"")));if(a.obs)sec("7. Observações",[a.obs]);
+  if(y>230){d.addPage();y=14}y+=4;d.setFont("helvetica","bold");d.text("Assinaturas",mg,y);y+=4;d.setFont("helvetica","normal");
+  const ps=[["resp",a.responsavel||"Responsável"],...(a.equipe||[]).map((p,i)=>["e"+i,p.nome])];let x=mg;
+  ps.forEach(([k,n])=>{if(x+60>W-mg){x=mg;y+=30}if(y>265){d.addPage();y=14;x=mg}const s=(a.assinaturas||{})[k];if(s)try{d.addImage(s,"PNG",x,y,58,20)}catch(e){}d.line(x,y+21,x+58,y+21);d.setFontSize(8);d.text(n,x,y+25);d.setFontSize(9);x+=63});
+  d.save(`APR ${S.obra.titulo} ${a.data}.pdf`)}
 function renderSide(){
   const n=allPhotos().length;
-  $("#tabs").innerHTML=[["quant","Quantitativos"],["mat","Materiais"],["proj","Projeto"+((S.anexos||[]).length?` (${S.anexos.length})`:"")],["diario","Diário"],["fotos","Fotos"+(n?` (${n})`:"")],["obra","Obra"]].map(([k,l])=>`<button class="${tab===k?"on":""}" data-tab="${k}">${l}</button>`).join("");
+  $("#tabs").innerHTML=[["quant","Quantitativos"],["mat","Materiais"],["proj","Projeto"+((S.anexos||[]).length?` (${S.anexos.length})`:"")],["diario","Diário"],["fotos","Fotos"+(n?` (${n})`:"")],["obra","Obra"],...(role!=="cliente"?[["apr","APR"]]:[])].map(([k,l])=>`<button class="${tab===k?"on":""}" data-tab="${k}">${l}</button>`).join("");
   $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;renderSide()});
   const pane=$("#pane");
   if(tab==="quant"){const edit=admEd();
@@ -421,6 +511,7 @@ function renderSide(){
       pane.querySelectorAll("[data-ldel]").forEach(b=>b.onclick=()=>confirmBox("Excluir este registro e suas fotos?",()=>{(window.__logDel||(window.__logDel=new Set())).add(b.dataset.ldel);S.log=S.log.filter(l=>l.id!==b.dataset.ldel);touch();renderSide()}))}
   }else if(tab==="proj"){
     pane.innerHTML=anexosHtml();bindAnexos(pane,"anexos");
+  }else if(tab==="apr"){renderApr(pane);
   }else if(tab==="fotos"){
     const A=allPhotos();
     pane.innerHTML=A.length?`<div class="gal">${A.map((f,i)=>`<button data-gi="${i}"><img src="${esc(f.u)}" alt="${esc(f.cap)}" onerror="this.style.opacity=.25"></button>`).join("")}</div>`:`<p class="empty">Nenhuma foto ainda.${edit?" Use Galeria ou Câmera acima, ou anexe no cartão de cada ponto do mapa.":""}</p>`;
