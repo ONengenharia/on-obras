@@ -1424,7 +1424,7 @@ async function editor(id){
   function sidePonto(a,pt){
     const pes=PE.filter(e=>e.ponto_id===pt.id).sort((x,y)=>x.ordem-y.ordem);
     const avulsos=IT.filter(i=>i.ponto_id===pt.id&&!i.ponto_estrutura_id&&!i.auto);const ps=POM[pt.poste_id];
-    a.innerHTML=`<div class="ah"><div class="row"><span class="lbl">Poste ${pt.numero} · ${brl(soma(linhasPonto(pt)))}</span><button class="x" id="pBack" aria-label="Fechar" title="Fechar">×</button></div>
+    a.innerHTML=`<div class="ah"><div class="row"><span class="lbl">Poste ${pt.numero} · ${brl(soma(linhasPonto(pt)))}${(()=>{const g=latLngDe(pt);return g?` · <a href="https://www.google.com/maps?q=${g.lat.toFixed(6)},${g.lng.toFixed(6)}" target="_blank" rel="noopener" title="${g.lat.toFixed(6)}, ${g.lng.toFixed(6)}">📍 GPS</a>`:""})()}</span><button class="x" id="pBack" aria-label="Fechar" title="Fechar">×</button></div>
       <div style="font-weight:700;font-size:15px;overflow-wrap:anywhere">${esc(nomePonto(pt))}${ps?` <span class="note">· ${esc(ps.codigo)}</span>`:""}</div></div>
      <div class="pane">
       ${(()=>{const t=etiquetaPerto(pt);return t&&!PE.some(e=>e.ponto_id===pt.id)?`<div class="sug"><span>📄 Lido na planta, perto deste ponto:</span><code>${esc(t)}</code><div class="row"><span class="note">Confira item por item antes de lançar.</span><button class="btn sm pri" id="sugOk">Verificar e aplicar</button></div></div>`:""})()}
@@ -1834,7 +1834,7 @@ async function editor(id){
       let n=PTS.reduce((m,p)=>Math.max(m,p.numero),0);const cols=Math.max(5,Math.floor((D.w-80)/90));const nok=new Set();
       try{for(let k=0;k<sel.length;k++){const x=sel[k];const num=x.num&&!PTS.some(p=>p.numero===x.num)?x.num:++n;n=Math.max(n,num);
           const seg=x.seg?SEGS.find(s=>norm(s.nome)===norm(x.seg)):null;
-          const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:num,x:60+(k%cols)*90,y:60+Math.floor(k/cols)*90,segmento_id:seg?seg.id:null}).select("*").single());PTS.push(pt);
+          const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:num,...(()=>{const g=satGeo();if(g&&x.lat&&x.lng){const n=256*2**g.z,sn=Math.sin(x.lat*Math.PI/180);return{x:(x.lng+180)/360*n-g.x0,y:(.5-Math.log((1+sn)/(1-sn))/(4*Math.PI))*n-g.y0}}return{x:60+(k%cols)*90,y:60+Math.floor(k/cols)*90}})(),segmento_id:seg?seg.id:null}).select("*").single());PTS.push(pt);
           const r=await aplicarSequencia(pt,x.seq);r.nok.forEach(t=>nok.add(t));$("#xp",ov).textContent=`${k+1} de ${sel.length}`}}
       finally{ov.remove()}
       D=dims();toast(`${sel.length} ponto(s) criado(s).`+(nok.size?` Não encontrados: ${[...nok].slice(0,8).join(", ")}`:""));renderHead();if(typeof renderPins==="function"&&$("#pins"))renderPins();renderSide()},"Criar pontos");
@@ -1868,11 +1868,49 @@ async function editor(id){
       else if(e.key==="Enter"){e.preventDefault();e.stopImmediatePropagation();pick(h)}else if(e.key==="Escape"){e.stopPropagation();L=[];show()}},true);
     box.addEventListener("pointerdown",e=>{const d=e.target.closest("[data-i]");if(!d)return;e.preventDefault();pick(+d.dataset.i);inp.focus()});
     inp.addEventListener("blur",()=>setTimeout(()=>{L=[];show()},150))}
+  /* ---- base de satélite (sem planta) ---- */
+  const SAT_URL={sat:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",rua:"https://tile.openstreetmap.org/{z}/{x}/{y}.png"};
+  function satGeo(){const m=String(ORC.planta_tipo||"").match(/^satelite\|(\d+)\|(-?[\d.]+)\|(-?[\d.]+)/);return m?{z:+m[1],x0:+m[2],y0:+m[3]}:null}
+  function latLngDe(pt){const g=satGeo();if(!g||pt.x==null)return null;const n=256*2**g.z,gx=g.x0+pt.x,gy=g.y0+pt.y;const lng=gx/n*360-180;const lat=Math.atan(Math.sinh(Math.PI*(1-2*gy/n)))*180/Math.PI;return{lat,lng}}
+  async function satDialog(){
+    if(!window.L){const l=document.createElement("link");l.rel="stylesheet";l.href="vendor/leaflet/leaflet.css";document.head.appendChild(l);await loadScript("vendor/leaflet/leaflet.js")}
+    let centro=[-28.65,-53.6],zoom=15;
+    try{const nid=ORC.negocio_id||(PASTA&&PASTA.negocio_id);if(nid){const r=await sb.from("negocios").select("lat,lng").eq("id",nid).single();if(r.data&&r.data.lat!=null){centro=[+r.data.lat,+r.data.lng];zoom=17}}}catch(e){}
+    const m=document.createElement("div");m.className="modal";
+    m.innerHTML=`<div class="mbox" style="width:calc(100vw - 24px);height:calc(100vh - 24px);max-width:none;display:flex;flex-direction:column;gap:8px"><div class="row"><h2>Mapa de satélite como base</h2><span style="display:flex;gap:6px"><button class="btn" data-ly="sat">🛰 Satélite</button><button class="btn" data-ly="rua">🗺 Ruas</button><button class="btn" id="sX">Cancelar</button></span></div>
+      <div style="display:flex;gap:8px"><input class="inp" id="sQ" style="flex:1" placeholder="Endereço, cidade, link do Google Maps ou coordenadas (-28.65, -53.60)"><button class="btn" id="sGo">Ir</button></div>
+      <div id="sMap" style="flex:1;min-height:300px;border-radius:8px"></div>
+      <div class="row"><span class="note" id="sMsg">Enquadre a área da obra (de preferência bem de perto) e clique em “Usar esta área”. As distâncias saem em metros reais.</span><button class="btn pri" id="sOk">Usar esta área</button></div></div>`;
+    document.body.appendChild(m);$("#sX",m).onclick=()=>m.remove();
+    const map=L.map($("#sMap",m),{maxZoom:19}).setView(centro,zoom);let camada="sat";
+    const T={sat:L.tileLayer(SAT_URL.sat,{maxZoom:19,attribution:"Esri World Imagery"}),rua:L.tileLayer(SAT_URL.rua,{maxZoom:19,attribution:"© OpenStreetMap"})};T.sat.addTo(map);
+    m.querySelectorAll("[data-ly]").forEach(b=>b.onclick=()=>{T[camada].remove();camada=b.dataset.ly;T[camada].addTo(map)});
+    const ir=async()=>{const q=$("#sQ",m).value.trim();if(!q)return;const c=q.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)||q.match(/(-?\d{1,2}\.\d+)\s*[,; ]\s*(-?\d{1,3}\.\d+)/);
+      if(c){map.setView([+c[1],+c[2]],18);return}
+      try{const r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q="+encodeURIComponent(q));const j=await r.json();if(j[0])map.setView([+j[0].lat,+j[0].lon],17);else toast("Endereço não encontrado.")}catch(e){toast("Não consegui buscar o endereço. Cole as coordenadas ou o link do Google Maps.")}};
+    $("#sGo",m).onclick=ir;$("#sQ",m).onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();ir()}};
+    setTimeout(()=>map.invalidateSize(),50);
+    $("#sOk",m).onclick=async()=>{const b=$("#sOk",m),msg=$("#sMsg",m);b.disabled=true;
+      try{const bd=map.getBounds();let z=Math.min(19,map.getZoom()+1);const proj=(lat,lng,zz)=>{const n=256*2**zz;const x=(lng+180)/360*n;const s=Math.sin(lat*Math.PI/180);const y=(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n;return{x,y}};
+        let a,c;for(;;){a=proj(bd.getNorth(),bd.getWest(),z);c=proj(bd.getSouth(),bd.getEast(),z);if((c.x-a.x)*(c.y-a.y)<=6000*6000||z<=10)break;z--}
+        const x0=Math.floor(a.x),y0=Math.floor(a.y),W=Math.ceil(c.x-a.x),H=Math.ceil(c.y-a.y);const cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,W,H);
+        const tx0=Math.floor(x0/256),ty0=Math.floor(y0/256),tx1=Math.floor((x0+W)/256),ty1=Math.floor((y0+H)/256);const tot=(tx1-tx0+1)*(ty1-ty0+1);let feitos=0;
+        const url=(x,y)=>SAT_URL[camada].replace("{z}",z).replace("{x}",x).replace("{y}",y);
+        await Promise.all([...Array(tot)].map((_,k)=>{const tx=tx0+k%(tx1-tx0+1),ty=ty0+Math.floor(k/(tx1-tx0+1));return new Promise(res=>{const im=new Image();im.crossOrigin="anonymous";im.onload=()=>{g.drawImage(im,tx*256-x0,ty*256-y0);feitos++;msg.textContent=`Baixando imagem… ${feitos}/${tot}`;res()};im.onerror=()=>res();im.src=url(tx,ty)})}));
+        let blob;try{blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",.9))}catch(e){throw new Error("O servidor de mapas não permitiu copiar a imagem.")}
+        const stamp=Date.now().toString(36),path=`orcarede/${ORC.id}/${stamp}-sat.jpg`;msg.textContent="Enviando…";
+        const {error}=await sb.storage.from("negocios").upload(path,blob,{contentType:"image/jpeg",upsert:false});if(error)throw error;
+        const latc=(bd.getNorth()+bd.getSouth())/2,mpp=156543.03392*Math.cos(latc*Math.PI/180)/2**z;
+        const upd={planta_url:"storage:"+path,planta_w:W,planta_h:H,planta_tipo:`satelite|${z}|${x0}|${y0}`,planta_textos:[],planta_pdf:null,planta_pdf_pag:null,planta_pdf_k:null,planta_off_x:null,planta_off_y:null,escala_m_por_unid:mpp};
+        await chk(O.from("orcamentos").update(upd).eq("id",ORC.id));Object.assign(ORC,upd);escala=mpp;
+        for(const v of VAOS.filter(v=>!v.manual)){v.comprimento_m=+(lenPx(v)*escala).toFixed(2);await chk(O.from("orc_vaos").update({comprimento_m:v.comprimento_m}).eq("id",v.id))}
+        setPlanta();fit();renderHead();renderPins();m.remove();document.querySelectorAll(".modal").forEach(x=>{if(x.querySelector("#pFile"))x.remove()});toast("Base de satélite aplicada. Distâncias em metros reais.")}
+      catch(e){console.error(e);msg.textContent="Não consegui gerar a imagem: "+(e.message||e);b.disabled=false}}}
   function plantaDialog(){
     const m=document.createElement("div");m.className="modal";
     m.innerHTML=`<div class="mbox wide"><h2>Planta do projeto</h2>
      <p class="note">Escolha o PDF do projeto, uma imagem ou um <b>DXF</b> do AutoCAD e arraste sobre o desenho para recortar a área da rede. Em PDF, informe a escala do desenho e a metragem sai direto; em imagem, use o botão <b>Escala</b> depois.</p>
-     <div class="row" style="justify-content:flex-start"><label class="btn pri" style="position:relative;overflow:hidden">Escolher arquivo<input type="file" accept="application/pdf,image/*,.dxf,.dwg" id="pFile" style="position:absolute;inset:0;opacity:0"></label>
+     <div class="row" style="justify-content:flex-start"><label class="btn pri" style="position:relative;overflow:hidden">Escolher arquivo<input type="file" accept="application/pdf,image/*,.dxf,.dwg" id="pFile" style="position:absolute;inset:0;opacity:0"></label><button class="btn" id="pSat" type="button" title="Sem planta? Desenhe sobre a imagem de satélite">🛰 Usar mapa de satélite</button>
      <label class="fld" id="pPageW" hidden>Página <select id="pPage"></select></label>
      <label class="fld">Escala do desenho 1:<input type="number" id="pEsc" value="1000" min="1" style="width:100px"></label></div>
      <div id="pDxf" hidden class="dxfbox"><div class="row"><b>DXF</b><label class="fld" style="margin:0">Unidade do desenho<select id="pUn"><option value="1">metro</option><option value="0.001">milímetro</option><option value="0.01">centímetro</option></select></label></div><div class="note">Camadas (layers):</div><div id="pLay" class="laygrid"></div></div>
@@ -1880,7 +1918,7 @@ async function editor(id){
      <div class="row"><span></span><span style="display:flex;gap:8px"><button class="btn" id="pCancel">Cancelar</button><button class="btn pri" id="pOk" disabled>Usar seleção</button></span></div></div>`;
     document.body.appendChild(m);
     const cv=$("#pCv",m),sel=$("#pSel",m),msg=$("#pMsg",m);let k=1,isPdf=false,pdf=null,R=null,txt=[],pdfFile=null,pag=1,isDxf=false,DX=null,dxfK=null;
-    $("#pCancel",m).onclick=()=>m.remove();
+    $("#pCancel",m).onclick=()=>m.remove();$("#pSat",m).onclick=()=>satDialog();
     async function renderPage(n){msg.textContent="Gerando a imagem da página…";const page=await pdf.getPage(n);const vp1=page.getViewport({scale:1});
       pag=n;let px=40e6,vp,ok=false,t0=Date.now();const tick=setInterval(()=>{msg.textContent="Gerando a imagem da página… "+Math.round((Date.now()-t0)/1000)+" s (plantas grandes do CAD podem levar até 1 min)"},1000);
       try{for(let tent=0;tent<4&&!ok;tent++){k=Math.min(300/72,10000/Math.max(vp1.width,vp1.height),Math.sqrt(px/(vp1.width*vp1.height)));vp=page.getViewport({scale:k});
