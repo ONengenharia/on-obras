@@ -226,6 +226,7 @@ svg.net line.hit{stroke:transparent}
 .app.mob .card{right:10px;top:auto;bottom:48px;width:calc(100% - 20px);max-height:60%}
 .app.mob .rz.l,.app.mob .rz.c{display:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.andm{color:#e0a100;font-weight:600;font-size:.85em;margin-left:4px;white-space:nowrap}
 </style>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
@@ -278,14 +279,18 @@ const hasLum=p=>p.lum||p.tipo==="Luminária";
 const hasTr=p=>p.trafo||p.tipo==="Transformador";
 // executado conta 100%, em andamento conta 50%
 const peso=x=>x.status==="executado"?1:x.status==="andamento"?.5:0;
-function mapCount(key,all){
-  const w=x=>all?1:peso(x),soma=L=>L.reduce((t,x)=>t+w(x),0);
+function mapCount(key,all,modo){
+  const w=x=>all?1:modo==="exec"?(x.status==="executado"?1:0):modo==="and"?(x.status==="andamento"?1:0):peso(x),soma=L=>L.reduce((t,x)=>t+w(x),0);
   if(key==="postes")return soma(S.pontos.filter(isPoste));
   if(key==="lum")return soma(S.pontos.filter(hasLum));
   if(key==="trafo")return soma(S.pontos.filter(hasTr));
   return S.redes.filter(g=>netKey(g)===key).reduce((t,g)=>t+segLen(g)*w(g),0);
 }
 const qExec=q=>q.auto?mapCount(q.auto):(+q.exec||0);
+/* contadores mostram só o executado (inteiro); o andamento aparece à parte e só pesa 50% no avanço */
+const qConta=q=>q.auto?mapCount(q.auto,false,"exec"):(+q.exec||0);
+const qAnd=q=>q.auto?mapCount(q.auto,false,"and"):0;
+const andTxt=(n,un)=>n>0?` <span class="andm" title="Em andamento (conta 50% no avanço)">+${un==="m"?fmt0(n):fmt(n)} em andamento</span>`:"";
 const qPct=q=>q.prev>0?Math.min(100,qExec(q)/q.prev*100):0;
 const overall=()=>S.quant.length?S.quant.reduce((a,q)=>a+qPct(q),0)/S.quant.length:0;
 function linkPct(l){
@@ -357,9 +362,10 @@ function renderKpis(){
   const p=overall();
   const card=c=>{const cat=KPI_CAT[c],Q=kpiItens(c);
     const v=Q.length?Q.reduce((a,q)=>a+qExec(q),0):cat.autos.reduce((a,k)=>a+mapCount(k),0);
+    const vc=Q.length?Q.reduce((a,q)=>a+qConta(q),0):cat.autos.reduce((a,k)=>a+mapCount(k,false,"exec"),0),va=Q.length?Q.reduce((a,q)=>a+qAnd(q),0):cat.autos.reduce((a,k)=>a+mapCount(k,false,"and"),0);
     const prev=Q.reduce((a,q)=>a+(+q.prev||0),0);
     const pc=prev?Math.min(100,v/prev*100):0;
-    return `<div class="kpi"><span class="k">${cat.nome}</span><span class="v">${cat.un==="m"?fmt0(v):fmt(v)}<small> / ${fmt0(prev)} ${cat.un}</small><span class="pc">${Math.round(pc)}%</span></span><div class="bar ${pc>=100?"full":""}"><b style="width:${pc}%"></b></div></div>`};
+    return `<div class="kpi"><span class="k">${cat.nome}</span><span class="v">${cat.un==="m"?fmt0(vc):fmt(vc)}<small> / ${fmt0(prev)} ${cat.un}${andTxt(va,cat.un)}</small><span class="pc">${Math.round(pc)}%</span></span><div class="bar ${pc>=100?"full":""}"><b style="width:${pc}%"></b></div></div>`};
   $("#kpis").innerHTML=`<div class="kpi main"><span class="k">Avanço físico</span><span class="v">${Math.round(p)}<small>%</small></span><div class="bar"><b style="width:${p}%"></b></div></div>`
     +["postes","lum","trafo","MT","BT"].map(card).join("");
 }
@@ -392,7 +398,7 @@ function renderSide(){
   const pane=$("#pane");
   if(tab==="quant"){const edit=admEd();
     pane.innerHTML=(edit?'<div class="row"><span class="note">Itens com “mapa” são contados sozinhos a partir dos pontos e da rede executados.</span><button class="lnk" id="qAdd">+ Item</button></div>':"")
-    +S.quant.map(q=>{const p=qPct(q),v=qExec(q);return `<div class="q"><div class="r1"><span class="nm">${esc(q.nome)}${q.auto?'<span class="tag">mapa</span>':""}</span><span class="val">${q.un==="m"?fmt0(v):fmt(v)} / ${fmt(q.prev)} ${esc(q.un)} · <b>${Math.round(p)}%</b></span></div><div class="spec">${esc(q.spec)}</div><div class="bar ${p>=100?"full":""}"><b style="width:${p}%"></b></div>${edit?`<div class="qe">${q.auto?"":`<label>Exec. <input type="number" step="any" min="0" id="qe-${q.id}" data-q="${q.id}" value="${q.exec}"></label>`}<button class="lnk" data-qedit="${q.id}">Editar</button><button class="lnk del" data-qdel="${q.id}">Remover</button></div>`:""}</div>`}).join("")
+    +S.quant.map(q=>{const p=qPct(q),v=qConta(q);return `<div class="q"><div class="r1"><span class="nm">${esc(q.nome)}${q.auto?'<span class="tag">mapa</span>':""}</span><span class="val">${q.un==="m"?fmt0(v):fmt(v)} / ${fmt(q.prev)} ${esc(q.un)} · <b>${Math.round(p)}%</b>${andTxt(qAnd(q),q.un)}</span></div><div class="spec">${esc(q.spec)}</div><div class="bar ${p>=100?"full":""}"><b style="width:${p}%"></b></div>${edit?`<div class="qe">${q.auto?"":`<label>Exec. <input type="number" step="any" min="0" id="qe-${q.id}" data-q="${q.id}" value="${q.exec}"></label>`}<button class="lnk" data-qedit="${q.id}">Editar</button><button class="lnk del" data-qdel="${q.id}">Remover</button></div>`:""}</div>`}).join("")
     +(S.quant.some(q=>q.auto==="MT"||q.auto==="BT50"||q.auto==="BT70")?'<p class="note">Metragem de rede medida sobre a planta, pela escala do desenho. Valor aproximado.</p>':"");
     if(edit){pane.querySelectorAll("input[data-q]").forEach(i=>i.onchange=()=>{S.quant.find(x=>x.id===i.dataset.q).exec=Math.max(0,parseFloat(i.value)||0);touch();renderStats()});
       pane.querySelectorAll("[data-qedit]").forEach(b=>b.onclick=()=>editQuant(b.dataset.qedit));
