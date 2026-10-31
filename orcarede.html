@@ -314,6 +314,7 @@ tr.org-base td:first-child{box-shadow:inset 3px 0 #4a90d9}tr.org-cotacao td:firs
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
+<script src="js/proposta-padrao.js"></script>
 <script src="js/atalhos.js?v=3"></script>
 <script>
 (async()=>{
@@ -1254,7 +1255,7 @@ async function editor(id){
     if(mt&&(bt||ip))return"MT + BT/IP";if(mt)return"Só MT";if(bt&&ip)return"BT + IP";if(bt)return"Só BT";if(ip)return"Só IP";return"Outros"}
   const fixIP=p=>{const ps=POM[p.poste_id];if(!ps)return null;const c=`FIX_IP_${+ps.altura_m}(${+ps.esforco_kn})`.toUpperCase();return EST.find(e=>e.codigo.toUpperCase()===c)||null};
   let P=(PRC.data&&PRC.data[0])||{orcamento_id:id,metodo:"A",pct_materiais:50,valor_servico:null,lucro_pct:15,custos:[],materiais_ref:null};
-  let etapa=["projeto","materiais","precificacao"].includes(Q.get("etapa"))?Q.get("etapa"):"materiais";
+  let etapa=["projeto","materiais","precificacao","proposta"].includes(Q.get("etapa"))?Q.get("etapa"):"materiais";
   let selP=null,selV=null,placing=false,tracing=null,anchor=null,calib=null,fMat="",fPt="",soSemPreco=false,fOrg=new Set(),fForn="",fCat="",fSub="",cardModo=(()=>{try{const v=localStorage.getItem("orc_cardModo");return v==="seg"?"seg":"org"}catch(e){return"org"}})(),SUBL=null,ordMat=(()=>{try{return localStorage.getItem("orc_ordMat")||"alfa"}catch(e){return"alfa"}})();const marcados=new Set();
 
   const preco=c=>{const o=OP[c];return (o&&(o.manual||ORC.modo_preco==="travado"))?(o?o.v:VIG[c]):(VIG[c]??(o&&o.v))};
@@ -1297,7 +1298,7 @@ async function editor(id){
       <div class="mapwrap" id="map"><div class="stage" id="stage"><img id="img" alt="" hidden><div class="blank" id="blank"></div><svg class="net" id="lbls"></svg><svg class="net" id="net"></svg><div id="pins"></div></div>
        <div class="mapbar" id="mapbar"></div><div class="mapui"><button id="zmax" aria-label="Expandir mapa" title="Expandir o mapa (Esc volta)" style="font-size:15px">⛶</button><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Enquadrar" style="font-size:13px">⤢</button></div>
        <div class="hint" id="hint" hidden></div><div class="leg" id="leg" hidden></div><div class="esc" id="esc"></div></div><div class="split" id="split2" hidden title="Arraste para ajustar a largura · duplo clique volta ao padrão"><button class="spbtn" id="sp2b" title="Recolher/expandir o painel">»</button></div><aside id="ptpanel" hidden></aside></div>`:`<div class="full-pane" id="full"></div>`}</div>`;
-    $$("[data-e]").forEach(b=>b.onclick=()=>{if(b.dataset.e===etapa)return;if(typeof sujoP!=="undefined"&&sujoP&&!confirm("Há alterações não salvas na precificação. Sair mesmo assim?"))return;etapa=b.dataset.e;history.pushState(null,"","?id="+ORC.id+(etapa==="projeto"?"":"&etapa="+etapa));shell()});
+    $$("[data-e]").forEach(b=>b.onclick=()=>{if(b.dataset.e===etapa)return;if(typeof sujoP!=="undefined"&&sujoP&&!confirm("Há alterações não salvas na precificação. Sair mesmo assim?"))return;if(etapa==="proposta"&&propSujo&&!confirm("Há alterações não salvas na proposta. Sair mesmo assim?"))return;propSujo=false;etapa=b.dataset.e;history.pushState(null,"","?id="+ORC.id+(etapa==="projeto"?"":"&etapa="+etapa));shell()});
     $("#hVer")&&($("#hVer").onchange=e=>location.href="orcarede.html?id="+e.target.value+(etapa==="projeto"?"":"&etapa="+etapa));
     $("#bVer").onclick=()=>modal(`<h2>Nova versão</h2><p class="note">Cria a v${Math.max(0,...IRMAS.map(v=>v.versao),ORC.versao||1)+1} como cópia completa desta: pontos, estruturas, vãos, segmentos, preços e precificação. A versão atual fica guardada como está.</p><label class="fld" style="display:flex;gap:8px;align-items:center;color:var(--ink)"><input type="checkbox" name="vig" checked style="width:18px;height:18px"> Tornar a nova versão vigente</label>`,async f=>{
       const nid=await chk(O.rpc("duplicar_orcamento",{p_orc:ORC.id,p_vigente:!!f.vig}));location.href="orcarede.html?id="+nid},"Criar versão");
@@ -2214,10 +2215,217 @@ async function editor(id){
       async f=>{const up={nome:f.nome.trim(),unidade:(f.unidade||"").trim()||null,subgrupo:f.sub||null,atualizado_em:new Date().toISOString()};
         await chk(O.from("materiais").update(up).eq("codigo",cod));Object.assign(m,up);const mm=MATS.find(x=>x.codigo===cod);mm&&Object.assign(mm,up);toast("Material atualizado na base.");renderHead();telaMateriais()},"Salvar")}
   const ORIG={orcamento:"Orçamento importado",manual:"Manual",compra:"Ordem de compra",proposta:"Proposta de fornecedor",importacao:"Importação"};
-  function telaProposta(){
-    const el=$("#full");
-    el.innerHTML=`<div style="display:flex;flex-direction:column;height:100%;min-height:80vh"><div style="padding:10px 16px;font-size:13px;background:#fff7e0;border-bottom:1px solid #ecd9a0;color:#6b5600"><b>Prévia do modelo de proposta em revista.</b> Os dados ainda são do exemplo (Caminhos do Sol); a ligação com este orçamento, a edição das páginas, o link com rastreio e o PDF vêm nas próximas etapas.</div><iframe src="proposta-revista.html" title="Proposta em revista" style="flex:1;border:0;width:100%;min-height:80vh"></iframe></div>`;
+  // ===== Proposta em revista =====
+  let PROP=null,PROPOK=true,PEV=[],propTimer=null,propSujo=false;
+  const gp=(o,p)=>p.split(".").reduce((a,k)=>a==null?a:a[k],o);
+  const sp=(o,p,v)=>{const ks=p.split(".");let a=o;ks.slice(0,-1).forEach(k=>{if(typeof a[k]!=="object"||a[k]===null)a[k]={};a=a[k]});a[ks[ks.length-1]]=v};
+  const loadJs=src=>new Promise((ok,er)=>{if(document.querySelector(`script[data-l="${src}"]`))return ok();const s=document.createElement("script");s.src=src;s.dataset.l=src;s.onload=ok;s.onerror=()=>er(new Error("Não carregou "+src));document.head.appendChild(s)});
+  const urlPub=p=>`${window.ON_CONFIG.url}/storage/v1/object/public/negocios/${p}`;
+  const pad2=n=>String(n).padStart(2,"0"),fdt=d=>`${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}`;
+  const dtHora=s=>{const d=new Date(s);return `${fdt(d)} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`};
+  const rndHex=()=>[...crypto.getRandomValues(new Uint8Array(7))].map(b=>b.toString(16).padStart(2,"0")).join("");
+
+  function propBase(){ // preenche a proposta com os dados deste orçamento
+    const A=agregado(),M=totalMat(),S=servicoA(M),T=M+S,L=ORC.lotes||0;
+    const NV=v=>Math.round(v);const fm=n=>num(n,0);
+    const sum=re=>A.filter(l=>re.test(nm(l.c))).reduce((s,l)=>s+l.q,0);
+    const nP=PTS.filter(p=>p.poste_id).length,SG_=SEGM();
+    const mt=VAOS.filter(v=>{const s=SG_[segVao(v)];return s&&/^MT/i.test(s.nome)}).reduce((s,v)=>s+(+v.comprimento_m||0),0);
+    const bt=VAOS.filter(v=>{const s=SG_[segVao(v)];return s&&/^BT/i.test(s.nome)}).reduce((s,v)=>s+(+v.comprimento_m||0),0);
+    const stats=[[nP,"postes de concreto"],[NV(sum(/^TRANSFORMADOR/i)),"transformadores"],[NV(sum(/LUMIN[ÁA]RIA/i)),"luminárias LED"],[NV(mt),"metros de rede MT"],[NV(bt),"metros de rede BT"],[L,"lotes atendidos"]].filter(x=>x[0]>0).map(([n,l])=>({n:fm(n),l}));
+    // subgrupos
+    const G={};A.forEach(l=>{const k=sg(l.c)||"OUTROS";const v=l.q*(preco(l.c)||0);(G[k]=G[k]||{k,v:0,its:[]}).v+=v;G[k].its.push({n:nm(l.c),q:l.q,u:un(l.c),v})});
+    const gs=Object.values(G).filter(g=>g.v>0).sort((a,b)=>b.v-a.v);
+    const cap=s=>s.charAt(0)+s.slice(1).toLowerCase();
+    const itens=gs.slice(0,6).map(g=>({t:cap(g.k),d:g.its.sort((a,b)=>b.v-a.v).slice(0,4).map(i=>`${fm(i.q)} ${i.u?i.u.toLowerCase()+" ":""}${i.n.toLowerCase()}`).join("; ")+"."}));
+    let ac=0;const linhas=gs.map(g=>{const p=M?g.v/M*100:0;const c=ac<80?"A":ac<95?"B":"C";ac+=p;return{n:cap(g.k),v:+g.v.toFixed(2),p:+p.toFixed(2),c}});
+    const hoje=new Date(),val=new Date(Date.now()+30*864e5);
+    const tt=String(ORC.titulo||"");const mnum=tt.match(/^\s*0*(\d{1,6})(?=\D|$)/);
+    const parc=Array.from({length:10},(_,i)=>({pct:"10",valor:+(S*0.1).toFixed(2),quando:i===0?"Assinatura do contrato":`${i*30} dias após`}));
+    const tp=String(ORC.planta_tipo||"");const pu=ORC.planta_url&&/^storage:/.test(ORC.planta_url)?urlPub(ORC.planta_url.slice(8)):"";
+    const d=propMerge(PROP_PADRAO,{
+      cliente:{nome:ORC.cliente||"",projeto:tt.replace(/^\s*\d+[\s_-]+/,"").replace(/_/g," ")||tt,cidade:ORC.cidade||""},
+      orc:{numero:mnum?`${pad2(mnum[1]).padStart(5,"0")}/${hoje.getFullYear()}`:`${hoje.getFullYear()}`,versao:pad2(ORC.versao||1),data:fdt(hoje),validade:fdt(val)},
+      projeto:{planta:/^satelite/.test(tp)?"":pu,sat:/^satelite/.test(tp)?pu:""},
+      resumo:{stats},materiais:{itens},valores:{material:+M.toFixed(2),mao:+S.toFixed(2),total:+T.toFixed(2),lotes:L||0,porLote:L?+(T/L).toFixed(2):0},
+      curva:{linhas},cron:{fin:"Cronograma financeiro · mão de obra, 10 parcelas de 10%",parcelas:parc}});
+    return d;
   }
+  const MODELO_FORA=["cliente","orc","resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas","projeto.planta","projeto.sat","paginas","obs"];
+  const paraModelo=d=>{const c=JSON.parse(JSON.stringify(d));MODELO_FORA.forEach(p=>{const ks=p.split(".");let a=c;for(const k of ks.slice(0,-1)){a=a&&a[k]}if(a)delete a[ks[ks.length-1]]});return c};
+
+  const FIELDS=[
+   ["capa","Capa",[["cliente.nome","Cliente"],["cliente.projeto","Projeto"],["cliente.cidade","Cidade / UF"],["orc.numero","Nº do orçamento"],["orc.versao","Versão"],["orc.data","Data"],["orc.validade","Validade"],["capa.chip","Selo"],["capa.titulo","Texto da capa","area"]]],
+   ["projeto","Projeto",[["projeto.kicker","Chamada"],["projeto.titulo","Título"],["projeto.sub","Legenda da planta"],["projeto.planta","Planta do projeto","foto"],["projeto.legSat","Legenda do satélite"],["projeto.sat","Foto de satélite / localização","foto"]]],
+   ["resumo","Resumo da obra",[["resumo.titulo","Título"],["resumo.stats","Números","rep",[["n","Número",90],["l","Descrição",0]]],["resumo.texto","Texto","area"]]],
+   ["materiais","Materiais",[["materiais.chip","Selo"],["materiais.titulo","Título"],["materiais.itens","Itens","rep",[["t","Título",160],["d","Descrição",0,"area"]]]]],
+   ["mao","Mão de obra",[["mao.chip","Selo"],["mao.titulo","Título"],["mao.itens","Itens","rep",[["t","Título",160],["d","Descrição",0,"area"]]]]],
+   ["escopo","Escopo e responsabilidades",[["escopo.titulo","Título"],["escopo.texto","Texto","area"],["escopo.resp","A contratada será responsável por (um por linha)","lista"],["escopo.nao","Não inclusos (um por linha)","lista"],["escopo.rodape","Observação final","area"]]],
+   ["valores","Valores globais",[["valores.titulo","Título"],["valores.material","Material global (R$)","money"],["valores.mao","Mão de obra global (R$)","money"],["valores.total","Total geral (R$)","money"],["valores.lotes","Lotes","int"],["valores.porLote","Valor por lote (R$)","money"],["valores.p1","Faturamento","area"],["valores.p2","Flexibilidade de negociação","area"]]],
+   ["curva","Curva de preços",[["curva.titulo","Título"],["curva.texto","Frase de destaque (vazio = automática)","area"],["curva.linhas","Grupos de materiais","rep",[["n","Grupo",150],["v","Valor R$",110,"money"],["p","%",70,"money"],["c","Curva",60]]]]],
+   ["cron","Cronogramas",[["cron.titulo","Título"],["cron.fin","Texto do cronograma financeiro"],["cron.parcelas","Parcelas","rep",[["pct","%",60],["valor","Valor R$",120,"money"],["quando","Quando",0]]],["cron.rows","Cronograma executivo","gantt"]]],
+   ["fotos","Fotos executivas",[["fotos.titulo","Título"],["fotos.sub1","Legenda 1"],["fotos.eletricas.0","Foto elétrica 1","foto"],["fotos.eletricas.1","Foto elétrica 2","foto"],["fotos.eletricas.2","Foto elétrica 3","foto"],["fotos.eletricas.3","Foto elétrica 4","foto"],["fotos.sub2","Legenda 2"],["fotos.civis.0","Foto civil 1","foto"],["fotos.civis.1","Foto civil 2","foto"],["fotos.civis.2","Foto civil 3","foto"]]],
+   ["acomp","Acompanhamento da obra",[["acomp.titulo","Título"],["acomp.texto","Texto","area"],["acomp.foto","Foto do acompanhamento da obra","foto"],["acomp.demo","Link da demonstração"]]],
+   ["clientes","Nossos clientes (fixa)",[]],
+   ["aceite","Termo de aceite",[["aceite.titulo","Título"],["aceite.texto","Texto ({projeto} vira o nome da obra)","area"],["aceite.resp","Responsável técnico"],["aceite.local","Local"],["aceite.fone","Telefone"],["aceite.email","E-mail"],["aceite.whats","WhatsApp do representante (só números, com 55)"]]]];
+  const getv=(d,p)=>{const v=gp(d,p);return v==null?"":v};
+  const setv=(d,p,v)=>{const ks=p.split(".");let a=d;ks.slice(0,-1).forEach((k,i)=>{if(a[k]==null)a[k]=/^\d+$/.test(ks[i+1])?[]:{};a=a[k]});a[ks[ks.length-1]]=v};
+  const pnumP=s=>{const t=String(s).replace(/[^\d,.-]/g,"");const n=t.includes(",")?t.replace(/\./g,"").replace(",","."):t;return n===""?0:+n};
+
+  function propFormHtml(d,ro){
+    const dis=ro?"disabled":"";
+    const campo=(f)=>{const [p,l,t,cols]=f;const v=getv(d,p),id="pf_"+p.replace(/\./g,"_");
+      if(t==="area")return `<label class="fld">${l}<textarea data-p="${p}" rows="3" ${dis}>${esc(v)}</textarea></label>`;
+      if(t==="lista")return `<label class="fld">${l}<textarea data-p="${p}" data-t="lista" rows="5" ${dis}>${esc((v||[]).join("\n"))}</textarea></label>`;
+      if(t==="money")return `<label class="fld">${l}<input data-p="${p}" data-t="money" value="${esc(num(v,2))}" inputmode="decimal" ${dis}></label>`;
+      if(t==="int")return `<label class="fld">${l}<input data-p="${p}" data-t="int" value="${esc(v||"")}" inputmode="numeric" ${dis}></label>`;
+      if(t==="foto")return `<div class="fld"><span>${l}</span><div class="pfoto">${v?`<img src="${esc(v)}" alt="">`:`<span class="pf0">sem foto</span>`}<span>${ro?"":`<label class="btn sm">Escolher<input type="file" accept="image/*" data-foto="${p}" hidden></label>${v?` <button type="button" class="btn sm" data-fx="${p}">Remover</button>`:""}`}</span></div></div>`;
+      if(t==="rep"){const arr=v||[];return `<div class="fld"><span>${l}</span><div class="prep" data-rep="${p}">${arr.map((r,i)=>`<div class="prow" data-i="${i}">${cols.map(([k,cl,w,tp])=>tp==="area"?`<textarea data-rk="${k}" placeholder="${cl}" rows="2" ${dis}>${esc(r[k]??"")}</textarea>`:`<input data-rk="${k}" ${tp==="money"?'data-t="money"':""} placeholder="${cl}" value="${esc(tp==="money"?num(r[k],2):(r[k]??""))}" style="${w?`width:${w}px`:"flex:1"}" ${dis}>`).join("")}${ro?"":`<button type="button" class="btn sm" data-rm="${p}|${i}" title="Remover">×</button>`}</div>`).join("")}</div>${ro?"":`<button type="button" class="btn sm" data-add="${p}">+ Adicionar</button>`}</div>`}
+      if(t==="gantt"){const cols=gp(d,"cron.cols")||[],rows=v||[];return `<div class="fld"><span>${l} <small>(colunas = dias)</small></span><input data-p="cron.cols" data-t="cols" value="${esc(cols.join(", "))}" ${dis}><div class="prep">${rows.map((r,i)=>`<div class="prow" data-gi="${i}"><input data-gk="a" value="${esc(r.a)}" style="flex:1" ${dis}>${cols.map((_,j)=>`<label class="gk"><input type="checkbox" data-gx="${j}" ${r.x&&r.x[j]?"checked":""} ${dis}></label>`).join("")}${ro?"":`<button type="button" class="btn sm" data-gr="${i}">×</button>`}</div>`).join("")}</div>${ro?"":`<button type="button" class="btn sm" data-gadd>+ Linha</button>`}</div>`}
+      return `<label class="fld">${l}<input data-p="${p}" value="${esc(v)}" ${dis}></label>`};
+    return FIELDS.map(([id,tt,fs])=>{const on=!(d.paginas&&d.paginas[id]===false);
+      return `<details class="psec" data-sec="${id}"><summary><span>${tt}</span>${id==="capa"||id==="aceite"?"":`<label class="pon" title="Mostrar esta página na proposta"><input type="checkbox" data-pg="${id}" ${on?"checked":""} ${dis}> mostrar</label>`}</summary>
+      <div class="pbody">${fs.map(campo).join("")}<label class="fld"><span>Observação interna <small>(não aparece para o cliente)</small></span><textarea data-obs="${id}" rows="2" ${dis}>${esc((d.obs||{})[id]||"")}</textarea></label></div></details>`}).join("");
+  }
+
+  async function propCarregar(){
+    try{
+      const r=await O.from("propostas").select("*").eq("orcamento_id",ORC.id).maybeSingle();
+      if(r.error)throw r.error;PROP=r.data;PROPOK=true;
+    }catch(e){console.error(e);PROPOK=false;PROP=null}
+    if(PROP&&PROP.id){try{const ev=await O.from("proposta_eventos").select("tipo,info,criado_em").eq("proposta_id",PROP.id).order("criado_em",{ascending:false}).limit(60);PEV=ev.data||[]}catch(e){PEV=[]}}else PEV=[];
+  }
+  async function propSalvar(extra={}){
+    const row={orcamento_id:ORC.id,dados:PROP.dados,versao:PROP.versao||1,status:PROP.status||"rascunho",atualizado_em:new Date().toISOString(),...extra};
+    if(PROP.id)row.id=PROP.id;
+    const r=await chk(O.from("propostas").upsert(row,{onConflict:"orcamento_id"}).select("*").single());
+    PROP=r;propSujo=false;return r;
+  }
+  const linkProp=()=>new URL("proposta.html?c="+PROP.codigo,location.href).href;
+
+  async function telaProposta(){
+    const el=$("#full");el.innerHTML=`<div class="pload">Carregando a proposta…</div>`;
+    await propCarregar();
+    if(!PROPOK){el.innerHTML=`<div class="pload"><b>A proposta em revista ainda não foi liberada no banco de dados.</b><br>Assim que a estrutura for criada, esta aba abre aqui, já preenchida com os dados do orçamento.</div>`;return}
+    if(!PROP)PROP={orcamento_id:ORC.id,dados:propBase(),versao:1,status:"rascunho"};
+    else PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});
+    desenhaProp();
+  }
+  function desenhaProp(){
+    const el=$("#full"),d=PROP.dados,st=PROP.status||"rascunho",ro=st!=="rascunho";
+    const abriu=PEV.filter(e=>e.tipo==="abriu"),ult=abriu[0];
+    const ROT={abriu:"👁 Abriu a proposta",pdf:"⬇ Baixou o PDF",whats:"💬 Pediu contato (WhatsApp)",aceite:"✅ Aceitou a proposta"};
+    const stChip=st==="aceita"?`<span class="chip finalizado">Aceita por ${esc((PROP.aceite||{}).nome||"")}</span>`:st==="enviada"?`<span class="chip finalizado">Enviada ${PROP.enviada_em?dtHora(PROP.enviada_em):""}</span>`:`<span class="chip">Rascunho</span>`;
+    el.innerHTML=`<style>
+      .pw{display:grid;grid-template-columns:minmax(340px,440px) 1fr;gap:16px;padding:14px 18px;align-items:start}
+      .pw .col1{display:grid;gap:10px;min-width:0}.pw .col2{position:sticky;top:8px}
+      .psec{background:var(--panel);border:1px solid var(--line);border-radius:12px}.psec>summary{padding:10px 12px;cursor:pointer;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px}
+      .psec .pbody{padding:4px 12px 12px;display:grid;gap:10px}.psec textarea,.psec input:not([type=checkbox]){width:100%;box-sizing:border-box}
+      .pon{font-weight:500;font-size:12.5px;display:flex;gap:5px;align-items:center}.pfoto{display:flex;gap:10px;align-items:center}.pfoto img{width:84px;height:56px;object-fit:cover;border-radius:8px}.pf0{font-size:12px;color:#8a99a6}
+      .prep{display:grid;gap:6px;margin:4px 0}.prow{display:flex;gap:6px;align-items:flex-start}.prow textarea{flex:1}.gk{padding:0 4px}
+      .pbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.pprev{width:100%;height:calc(100vh - 150px);min-height:560px;border:1px solid var(--line);border-radius:12px;background:#0f1a26}
+      .ptrk{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px}.ptrk ul{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:3px;max-height:150px;overflow:auto}
+      .pload{padding:40px;text-align:center;color:#5b6b7a}
+      @media(max-width:900px){.pw{grid-template-columns:1fr}.pw .col2{position:static}.pprev{height:70vh}}
+    </style>
+    <div class="pw"><div class="col1">
+      <div class="pbar">${stChip}<span style="flex:1"></span>
+        ${ro?`<button class="btn" id="pNova">Nova versão</button>`:`<button class="btn" id="pSalv">Salvar</button><button class="btn pri" id="pEnv">Enviar ao cliente</button>`}
+      </div>
+      <div class="pbar"><button class="btn sm" id="pMod">Usar modelo…</button><button class="btn sm" id="pSM">Salvar como modelo</button><button class="btn sm" id="pRef">Refazer a partir do orçamento</button>${PROP.id&&st!=="rascunho"?`<button class="btn sm" id="pLink">Copiar link</button>`:""}${PROP.pdf_path?`<a class="btn sm" href="${urlPub(PROP.pdf_path)}" target="_blank" rel="noopener">PDF enviado</a>`:""}<button class="btn sm" id="pPdf">Prévia em PDF</button></div>
+      ${PROP.id&&st!=="rascunho"?`<div class="ptrk"><b>Acompanhamento do cliente</b> · <a href="#" id="pAtu">atualizar</a><br>${abriu.length?`👁 Aberta <b>${abriu.length}×</b> · última ${dtHora(ult.criado_em)}`:"Ainda não foi aberta."}<br><small>Link: <a href="${esc(linkProp())}" target="_blank" rel="noopener">${esc(linkProp())}</a></small>
+        <ul>${PEV.slice(0,40).map(e=>`<li>${dtHora(e.criado_em)} · ${ROT[e.tipo]||esc(e.tipo)}${e.tipo==="aceite"&&e.info?` · ${esc(e.info.nome||"")}`:""}</li>`).join("")}</ul></div>`:""}
+      ${ro?`<p class="note">Esta versão foi enviada e está congelada. Para alterar, crie uma nova versão (gera um novo link).</p>`:""}
+      <p class="note" style="margin:0">Dica: use <b>&lt;b&gt;texto&lt;/b&gt;</b> para destacar em negrito nos títulos e textos.</p><div id="pForm">${propFormHtml(d,ro)}</div>
+    </div><div class="col2"><iframe class="pprev" id="pPrev" src="proposta.html?prev=1" title="Prévia da proposta"></iframe></div></div>`;
+    ligaProp(ro);
+  }
+  function ligaProp(ro){
+    const fr=$("#pPrev"),d=()=>PROP.dados;let pronto=false,ir=null;
+    const envia=()=>{if(pronto&&fr.contentWindow)fr.contentWindow.postMessage({tipo:"dados",dados:PROP.dados},"*")};
+    const irPara=id=>{ir=id;setTimeout(()=>fr.contentWindow&&fr.contentWindow.postMessage({tipo:"ir",id},"*"),250)};
+    const mudou=(id)=>{propSujo=true;clearTimeout(propTimer);propTimer=setTimeout(()=>{envia();if(id)irPara(id)},350)};
+    window.addEventListener("message",function h(e){if(!$("#pPrev")){window.removeEventListener("message",h);return}if(e.data&&e.data.tipo==="pronto"){pronto=true;envia()}});
+    const _n=$("#pNova");if(_n)_n.onclick=propNovaVersao;
+    const _l=$("#pLink");if(_l)_l.onclick=async()=>{try{await navigator.clipboard.writeText(linkProp());toast("Link copiado.")}catch(_){prompt("Link da proposta:",linkProp())}};
+    const _a=$("#pAtu");if(_a)_a.onclick=async ev=>{ev.preventDefault();await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp()};
+    $("#pPdf").onclick=()=>propPdf().then(b=>{if(b){const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="proposta-previa.pdf";a.click()}});
+    $("#pMod")&&($("#pMod").onclick=propModelos);$("#pSM")&&($("#pSM").onclick=propSalvarModelo);
+    if(ro){return}
+    const F=$("#pForm");
+    const secDe=n=>(n.closest("[data-sec]")||{dataset:{}}).dataset.sec;
+    F.addEventListener("input",e=>{const n=e.target,D=d();
+      if(n.dataset.p&&!n.dataset.foto){let v=n.value;if(n.dataset.t==="lista")v=v.split("\n").map(s=>s.trim()).filter(Boolean);else if(n.dataset.t==="money")v=pnumP(v);else if(n.dataset.t==="int")v=parseInt(v)||0;else if(n.dataset.t==="cols")v=v.split(",").map(s=>s.trim()).filter(Boolean);setv(D,n.dataset.p,v);mudou(secDe(n));return}
+      if(n.dataset.obs){D.obs=D.obs||{};D.obs[n.dataset.obs]=n.value;propSujo=true;return}
+      const row=n.closest(".prow"),rep=n.closest("[data-rep]");
+      if(rep&&n.dataset.rk){const arr=gp(D,rep.dataset.rep);const r=arr[+row.dataset.i];r[n.dataset.rk]=n.dataset.t==="money"?pnumP(n.value):n.value;mudou(secDe(n));return}
+      if(row&&row.dataset.gi!==undefined){const r=D.cron.rows[+row.dataset.gi];if(n.dataset.gk)r.a=n.value;if(n.dataset.gx!==undefined){r.x=(r.x||[]);r.x[+n.dataset.gx]=n.checked?1:0}mudou("cron")}});
+    F.addEventListener("change",async e=>{const n=e.target,D=d();
+      if(n.dataset.pg){D.paginas=D.paginas||{};if(n.checked)delete D.paginas[n.dataset.pg];else D.paginas[n.dataset.pg]=false;mudou(n.dataset.pg);return}
+      if(n.dataset.t==="cols"||(n.dataset.p==="cron.cols")){desenhaProp();return}
+      if(n.dataset.foto){const f=n.files[0];if(!f)return;try{toast("Enviando foto…");const u=await propUpFoto(f);setv(D,n.dataset.foto,u);desenhaProp();setTimeout(()=>{const s=$(`[data-sec="${secDe(n)}"]`);s&&(s.open=true);envia();irPara(secDe(n))},200)}catch(er){console.error(er);toast("Não foi possível enviar a foto.")}}
+      if(n.dataset.rk&&n.dataset.t==="money")n.value=num(pnumP(n.value),2);
+      if(n.dataset.p&&n.dataset.t==="money")n.value=num(pnumP(n.value),2)});
+    F.addEventListener("click",e=>{const b=e.target.closest("button");const D=d();
+      const keep=()=>[...F.querySelectorAll("details[open]")].map(x=>x.dataset.sec);
+      const redraw=op=>{const ab=keep();desenhaProp();ab.concat(op?[op]:[]).forEach(s=>{const x=$(`[data-sec="${s}"]`);x&&(x.open=true)});mudou(op)};
+      if(!b)return;
+      if(b.dataset.fx){setv(D,b.dataset.fx,"");redraw(secDe(b));return}
+      if(b.dataset.add){const arr=gp(D,b.dataset.add)||[];const mod={"resumo.stats":{n:"",l:""},"materiais.itens":{t:"",d:""},"mao.itens":{t:"",d:""},"curva.linhas":{n:"",v:0,p:0,c:"C"},"cron.parcelas":{pct:"10",valor:0,quando:""}}[b.dataset.add];arr.push({...mod});setv(D,b.dataset.add,arr);redraw(secDe(b));return}
+      if(b.dataset.rm){const [p,i]=b.dataset.rm.split("|");gp(D,p).splice(+i,1);redraw(secDe(b));return}
+      if(b.dataset.gadd!==undefined){D.cron.rows.push({a:"",x:D.cron.cols.map(()=>0)});redraw("cron");return}
+      if(b.dataset.gr!==undefined){D.cron.rows.splice(+b.dataset.gr,1);redraw("cron");return}});
+    F.addEventListener("toggle",e=>{const s=e.target;if(s.open&&s.dataset&&s.dataset.sec)irPara(s.dataset.sec)},true);
+    $("#pSalv").onclick=async()=>{try{await propSalvar();toast("Proposta salva.");desenhaProp()}catch(e){}};
+    $("#pEnv").onclick=()=>propEnviar();
+    $("#pRef").onclick=()=>{if(!confirm("Refazer os números, itens e curva a partir do orçamento atual? Os textos que você editou nessas partes serão substituídos."))return;const b=propBase(),D=d();["resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas"].forEach(p=>setv(D,p,gp(b,p)));desenhaProp();setTimeout(envia,300);propSujo=true};
+  }
+  async function propUpFoto(file){
+    const bmp=await createImageBitmap(file),k=Math.min(1,1600/Math.max(bmp.width,bmp.height));const cv=document.createElement("canvas");cv.width=Math.round(bmp.width*k);cv.height=Math.round(bmp.height*k);cv.getContext("2d").drawImage(bmp,0,0,cv.width,cv.height);
+    const blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",.86));const path=`orcarede/propostas/${ORC.id}/${Date.now()}_${Math.random().toString(36).slice(2,7)}.jpg`;
+    const up=await sb.storage.from("negocios").upload(path,blob,{contentType:"image/jpeg",upsert:false});if(up.error)throw up.error;return urlPub(path);
+  }
+  async function propPdf(){ // gera o PDF no navegador a partir da própria revista (sem animações)
+    toast("Gerando o PDF… pode levar alguns segundos.");
+    await Promise.all([loadJs("vendor/html2canvas.min.js"),loadJs("vendor/jspdf.umd.min.js")]);
+    const fr=document.createElement("iframe");fr.style.cssText="position:fixed;left:-9999px;top:0;width:800px;height:1200px;border:0";fr.src="proposta.html?pdf=1";document.body.appendChild(fr);
+    try{
+      await new Promise((ok,er)=>{const t=setTimeout(()=>er(new Error("tempo esgotado")),20000);window.addEventListener("message",function h(e){if(e.source===fr.contentWindow&&e.data&&e.data.tipo==="pronto"){clearTimeout(t);window.removeEventListener("message",h);ok()}})});
+      const rend=new Promise((ok,er)=>{const t=setTimeout(()=>er(new Error("tempo esgotado")),40000);window.addEventListener("message",function h(e){if(e.source===fr.contentWindow&&e.data&&e.data.tipo==="renderizado"){clearTimeout(t);window.removeEventListener("message",h);ok()}})});
+      fr.contentWindow.postMessage({tipo:"dados",dados:PROP.dados},"*");await rend;
+      const pgs=[...fr.contentDocument.querySelectorAll("#pdfwrap .page")];const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:"px",format:[760,1076],orientation:"portrait",hotfixes:["px_scaling"],compress:true});
+      for(let i=0;i<pgs.length;i++){const c=await window.html2canvas(pgs[i],{scale:1.5,width:760,height:1076,backgroundColor:null,useCORS:true,logging:false});if(i)pdf.addPage([760,1076],"portrait");pdf.addImage(c.toDataURL("image/jpeg",.82),"JPEG",0,0,760,1076,undefined,"FAST")}
+      return pdf.output("blob");
+    }catch(e){console.error(e);toast("Não foi possível gerar o PDF: "+e.message);return null}
+    finally{fr.remove()}
+  }
+  async function propEnviar(){
+    const D=PROP.dados;if(!D.cliente.nome&&!D.cliente.projeto){toast("Preencha o cliente e o projeto na capa.");return}
+    if(!confirm("Enviar a proposta? Será gerado o link para o cliente e o PDF desta versão. Depois de enviada, a versão fica congelada."))return;
+    try{
+      const salvo=await propSalvar();
+      const pdf=await propPdf();let pdfPath=null;
+      if(pdf){pdfPath=`propostas/${PROP.codigo}_v${PROP.versao||1}.pdf`;const up=await sb.storage.from("negocios").upload(pdfPath,pdf,{contentType:"application/pdf",upsert:true});if(up.error){console.error(up.error);toast("O PDF não foi guardado; o link foi gerado mesmo assim.");pdfPath=null}}
+      const {data:u}=await sb.auth.getUser();
+      await propSalvar({status:"enviada",enviada_em:new Date().toISOString(),enviada_por:u&&u.user?u.user.id:null,pdf_path:pdfPath});
+      await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp();
+      try{await navigator.clipboard.writeText(linkProp());toast("Proposta enviada. Link copiado.")}catch(_){toast("Proposta enviada.")}
+    }catch(e){console.error(e);toast("Não foi possível enviar a proposta.")}
+  }
+  async function propNovaVersao(){
+    if(!confirm("Criar uma nova versão? Ela volta para rascunho e terá um novo link; o link anterior deixa de abrir."))return;
+    try{await propSalvar({versao:(PROP.versao||1)+1,status:"rascunho",codigo:rndHex(),pdf_path:null,aceite:null,enviada_em:null});PROP.dados.orc.versao=pad2(PROP.versao);await propSalvar();await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp()}catch(e){console.error(e)}
+  }
+  async function propModelos(){
+    let L=[];try{const r=await O.from("proposta_modelos").select("id,nome,tipo,dados,criado_em").order("criado_em",{ascending:false});L=r.data||[]}catch(e){}
+    modal(`<h2>Usar modelo de proposta</h2><p class="note">O modelo traz os textos, a estrutura e as fotos. Os números continuam vindo deste orçamento.</p>${L.length?`<div class="trl">${L.map(m=>`<label><input type="radio" name="mod" value="${m.id}"><span></span><span>${esc(m.nome)}<small>${esc(m.tipo||"")}</small></span><span></span></label>`).join("")}</div>`:`<p>Ainda não há modelos salvos. Use "Salvar como modelo" nesta proposta (loteamento, subestação…) para criar o primeiro.</p>`}`,async f=>{
+      const m=L.find(x=>x.id===f.mod);if(!m)return false;PROP.dados=propMerge(PROP.dados,m.dados);desenhaProp();propSujo=true},"Aplicar");
+  }
+  function propSalvarModelo(){
+    modal(`<h2>Salvar como modelo</h2><p class="note">Guarda os textos, a estrutura das páginas e as fotos desta proposta (sem cliente, números e itens).</p><label class="fld">Nome do modelo<input name="nome" required placeholder="Ex.: Loteamento — rede 15 kV"></label><label class="fld">Tipo<input name="tipo" placeholder="loteamento, subestação…"></label>`,async f=>{
+      if(!(f.nome||"").trim())return false;await chk(O.from("proposta_modelos").insert({nome:f.nome.trim(),tipo:(f.tipo||"").trim()||null,dados:paraModelo(PROP.dados)}));toast("Modelo salvo.")},"Salvar");
+  }
+
   function telaMateriais(){
     const el=$("#full");if(!cotOk){cotOk=true;cotCarregar().then(()=>telaMateriais()).catch(e=>console.error(e))}
     const A=agregado().map(l=>({...l,m:MAT[l.c]||{nome:l.c,subgrupo:""}}));
