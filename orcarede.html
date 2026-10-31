@@ -2240,11 +2240,11 @@ async function editor(id){
     const itens=gs.slice(0,6).map(g=>({t:cap(g.k),d:g.its.sort((a,b)=>b.v-a.v).slice(0,4).map(i=>`${fm(i.q)} ${i.u?i.u.toLowerCase()+" ":""}${i.n.toLowerCase()}`).join("; ")+"."}));
     let ac=0;const linhas=gs.map(g=>{const p=M?g.v/M*100:0;const c=ac<80?"A":ac<95?"B":"C";ac+=p;return{n:cap(g.k),v:+g.v.toFixed(2),p:+p.toFixed(2),c}});
     const hoje=new Date(),val=new Date(Date.now()+30*864e5);
-    const tt=String(ORC.titulo||"");const mnum=tt.match(/^\s*0*(\d{1,6})(?=\D|$)/);
+    const tt=String(ORC.titulo||""),cl0=String(ORC.cliente||"");const mnum=tt.match(/^\s*0*(\d{1,6})(?=\D|$)/)||cl0.match(/^\s*0*(\d{1,6})(?=\D|$)/);const limpa=s=>s.replace(/_/g," ").replace(/^\s*\d+\s+/,"").replace(/\s+/g," ").trim();
     const parc=Array.from({length:10},(_,i)=>({pct:"10",valor:+(S*0.1).toFixed(2),quando:i===0?"Assinatura do contrato":`${i*30} dias após`}));
     const tp=String(ORC.planta_tipo||"");const pu=ORC.planta_url&&/^storage:/.test(ORC.planta_url)?urlPub(ORC.planta_url.slice(8)):"";
     const d=propMerge(PROP_PADRAO,{
-      cliente:{nome:ORC.cliente||"",projeto:tt.replace(/^\s*\d+[\s_-]+/,"").replace(/_/g," ")||tt,cidade:ORC.cidade||""},
+      cliente:{nome:limpa(cl0),projeto:tt.replace(/^\s*\d+[\s_-]+/,"").replace(/_/g," ")||tt,cidade:ORC.cidade||""},
       orc:{numero:mnum?`${pad2(mnum[1]).padStart(5,"0")}/${hoje.getFullYear()}`:`${hoje.getFullYear()}`,versao:pad2(ORC.versao||1),data:fdt(hoje),validade:fdt(val)},
       projeto:{planta:/^satelite/.test(tp)?"":pu,sat:/^satelite/.test(tp)?pu:""},
       resumo:{stats},materiais:{itens},valores:{material:+M.toFixed(2),mao:+S.toFixed(2),total:+T.toFixed(2),lotes:L||0,porLote:L?+(T/L).toFixed(2):0},
@@ -2309,6 +2309,7 @@ async function editor(id){
     if(!PROPOK){el.innerHTML=`<div class="pload"><b>A proposta em revista ainda não foi liberada no banco de dados.</b><br>Assim que a estrutura for criada, esta aba abre aqui, já preenchida com os dados do orçamento.</div>`;return}
     if(!PROP)PROP={orcamento_id:ORC.id,dados:propBase(),versao:1,status:"rascunho"};
     else{PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});
+      if((PROP.status||"rascunho")==="rascunho"&&/_/.test(PROP.dados.cliente.nome||"")){PROP.dados.cliente.nome=String(PROP.dados.cliente.nome).replace(/_/g," ").replace(/^\s*\d+\s+/,"").replace(/\s+/g," ").trim();propSujo=true}
       if((PROP.status||"rascunho")==="rascunho"){const b=propBase(),r0=PROP.dados._ref||{};
         if(Math.abs((r0.M||0)-b._ref.M)>0.01||Math.abs((r0.S||0)-b._ref.S)>0.01){["resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas","_ref"].forEach(p=>setv(PROP.dados,p,gp(b,p)));propSujo=true;toast("Valores atualizados conforme a precificação.")}}}
     desenhaProp();

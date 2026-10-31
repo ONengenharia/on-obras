@@ -260,6 +260,7 @@ button.demo.alt,.acts button.demo.alt{background:transparent!important;color:#ff
 .cp-f{position:absolute;left:0;bottom:0;width:100%;height:96px;background:#62a8dc;display:flex;align-items:center;justify-content:center;gap:46px;color:#10222f;font-size:15px}.cp-f span{display:flex;align-items:center;gap:12px}.cp-f i{font-style:normal;width:40px;height:40px;border-radius:50%;background:#1e3248;color:#fff;display:grid;place-items:center;font-size:20px}
 .clinicial{position:absolute;left:8cqw;top:9cqh;max-width:60cqw;background:#0b1620b3;border-left:.8cqw solid #62a8dc;border-radius:0 3cqw 3cqw 0;padding:3cqw 4cqw;color:#fff;display:grid;gap:1cqw;backdrop-filter:blur(3px)}.clinicial small{font-size:2.3cqw;letter-spacing:.22em;text-transform:uppercase;color:#62a8dc;font-weight:700}.clinicial b{font-size:4.4cqw;line-height:1.15}.clinicial span{font-size:2.8cqw;color:#cfe0ee}.clinicial em{font-style:normal;font-size:2.4cqw;color:#9fb8cc;margin-top:.6cqw}
 body.pdf .planwipe img,body.pdf .satwipe img{clip-path:none!important;transform:none!important}body.pdf .cr .tr i{transform:none!important}body.pdf *{animation:none!important}
+.cp-card .c1,.cp-card .c2{overflow-wrap:anywhere}
 
 html,body{height:100%}body:not(.pdf){justify-content:flex-start}body:not(.pdf) #book{width:100%;height:calc(100vh - 66px);height:calc(100dvh - 66px);margin:0 auto}.bar{padding:8px 16px;min-height:50px;box-sizing:border-box}
 .dlg p,.dlg b,.dlg label,.dlg button{font-size:14px!important;line-height:1.45}.dlg h3{font-size:20px!important}
@@ -364,7 +365,7 @@ capa:d=>`<video class="cvvid" src="${vidUrl()}" poster="${DEF.pos}" muted loop p
 <div class="pad" style="padding-top:38cqw"><div class="chip">${esc(d.capa.chip)}</div>
 <h2 class="big" style="font-size:5.2cqw;line-height:1.1;margin-bottom:3.5cqw">${rich(d.capa.titulo)}</h2>
 <div class="card" style="flex-direction:column;gap:1.4cqw"><p style="font-size:2.6cqw;letter-spacing:.2em;text-transform:uppercase;font-weight:600">Cliente</p>
-<p style="font-size:5cqw;font-weight:800;line-height:1.15">${esc(d.cliente.nome)}</p><p style="font-size:3.4cqw">${esc(d.cliente.projeto)}</p><p style="font-size:3.4cqw">${esc(d.cliente.cidade)}</p></div>
+<p style="font-size:${(d.cliente.nome||'').length>46?3.3:(d.cliente.nome||'').length>32?4:5}cqw;font-weight:800;line-height:1.15;overflow-wrap:anywhere">${esc(d.cliente.nome)}</p><p style="font-size:3.4cqw;overflow-wrap:anywhere">${esc(d.cliente.projeto)}</p><p style="font-size:3.4cqw">${esc(d.cliente.cidade)}</p></div>
 <div class="stats"><div><b style="font-size:3.6cqw;white-space:nowrap">${esc(d.orc.numero)}</b>Orçamento Nº</div><div><b style="font-size:3.6cqw;white-space:nowrap">Versão ${esc(d.orc.versao)}</b>${esc(d.orc.data)}</div><div><b style="font-size:3.6cqw;white-space:nowrap">${esc(d.orc.validade)}</b>Validade</div></div></div>`,
 projeto:d=>{const p=d.projeto;return `<div class="pad" style="padding-top:6cqw"><div class="kicker">${esc(p.kicker)}</div><h2 style="margin-bottom:3cqw">${rich(p.titulo)}</h2>
 ${p.planta?`<p style="font-size:2.8cqw;margin-bottom:2.5cqw">${esc(p.sub)}</p><div class="ph contain planwipe" style="height:${p.sat?40:78}cqw;border-radius:2.5cqw;background:#fff"><img src="${esc(p.planta)}" alt="Planta do projeto"></div>`:''}
