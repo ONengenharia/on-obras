@@ -2317,8 +2317,8 @@ async function editor(id){
     const el=$("#full"),d=PROP.dados,st=PROP.status||"rascunho",ro=st!=="rascunho";
     const abriu=PEV.filter(e=>e.tipo==="abriu"),ult=abriu[0];
     const TP={};PEV.filter(e=>e.tipo==="pagina"&&e.info&&e.info.t).forEach(e=>Object.entries(e.info.t).forEach(([k,s])=>TP[k]=(TP[k]||0)+(+s||0)));
-    const NOMES=Object.fromEntries(PROP_PAGINAS.concat([["fim","Contracapa"]]));const nmP=k=>NOMES[k]||(/^base(\d+)$/.test(k)?`Apresentação ON · página ${k.slice(4)}`:k);
-    const ordK=k=>{const i=PROP_PAGINAS.findIndex(x=>x[0]===k);return /^base/.test(k)?+k.slice(4)-100:i<0?999:i};
+    const NOMES=Object.fromEntries(PROP_PAGINAS.concat([["fim","Contracapa"]]));const nmP=k=>NOMES[k]||(/^base(\d+)$/.test(k)?`Apresentação ON · página ${+k.slice(4)+1}`:k);
+    const ordK=k=>{if(k==="capa")return -200;const i=PROP_PAGINAS.findIndex(x=>x[0]===k);return /^base/.test(k)?+k.slice(4)-100:i<0?999:i};
     const fmtS=s=>s>=3600?`${Math.floor(s/3600)}h ${Math.round(s%3600/60)}min`:s>=60?`${Math.floor(s/60)}min ${s%60}s`:`${s}s`;
     const TPk=Object.keys(TP).sort((a,b)=>ordK(a)-ordK(b)),TPtot=TPk.reduce((s,k)=>s+TP[k],0),TPmax=Math.max(1,...TPk.map(k=>TP[k]));
     const ROT={abriu:"👁 Abriu a proposta",pdf:"⬇ Baixou o PDF",whats:"💬 Pediu contato (WhatsApp)",aceite:"✅ Aceitou a proposta"};

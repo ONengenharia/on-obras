@@ -464,10 +464,11 @@ function aplicar(dados){
   const ids=list.map(p=>p.dataset.id).join(',');
   const stat1=started?window.__api.base:[...book.querySelectorAll('.page:not([data-gen])')];
   if(!started){window.__baseAll=stat1;book.querySelectorAll('.page[data-gen]').forEach(e=>e.remove())}
-  const all=[...(window.__baseAll),...list];numera(all);
-  capaCliente(D);document.title='Proposta · '+(D.cliente.projeto||D.cliente.nome||'ON Engenharia');
+  const capaEl=list.find(p=>p.dataset.id==='capa'),resto=list.filter(p=>p!==capaEl);
+  const all=[capaEl,...(window.__baseAll),...resto];numera(all);
+  document.title='Proposta · '+(D.cliente.projeto||D.cliente.nome||'ON Engenharia');
   const wb=document.getElementById('waBar');if(wb)wb.href=`https://wa.me/${D.aceite.whats}`;
-  if(!started){stat1.forEach(e=>e.remove&&0);list.forEach(e=>book.appendChild(e));list.forEach(decor);started=true;window.__iniciar();window.__api.sig=ids;wire();return}
+  if(!started){book.insertBefore(capaEl,stat1[0]);resto.forEach(e=>book.appendChild(e));list.forEach(decor);started=true;window.__iniciar();window.__api.sig=ids;wire();return}
   if(ids===window.__api.sig){ // mesma estrutura: troca só o conteúdo das páginas
     const atuais=window.__api.PG();list.forEach(n=>{const a=atuais.find(x=>x.dataset.id===n.dataset.id);if(a){a.querySelector('.in').innerHTML=n.querySelector('.in').innerHTML;a.classList.remove('show');decor(a)}});
     numera(atuais);window.__api.reshow();wire()
@@ -495,12 +496,13 @@ function flat(dados){
   w.querySelectorAll('.page[data-gen]').forEach(e=>e.remove());
   const list=paginas(D).filter(p=>p.dataset.id!=='capa');
   const cp=elDe(`<div class="page light" data-gen="1" data-id="capaPdf"><div class="in" style="background:#fff">${G.capaPdf(D)}</div></div>`);
-  const base=[cp,...window.__baseFlat.slice(1)];w.insertBefore(cp,w.firstChild);window.__baseFlat[0].remove();
+  const base=[cp,...window.__baseFlat];w.insertBefore(cp,w.firstChild);
   const all=[...base,...list];list.forEach(e=>w.appendChild(e));numera(all);
   const imgs=[...w.querySelectorAll('img')];Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))).then(()=>{
     imgs.forEach(i=>{const of=getComputedStyle(i).objectFit;if(!/cover|contain/.test(of)||!i.parentNode)return;const dv=document.createElement('div');dv.style.cssText='width:100%;height:100%;background:url("'+i.src+'") center/'+of+' no-repeat;position:'+(getComputedStyle(i).position==='absolute'?'absolute;inset:0':'relative');i.replaceWith(dv)});
     setTimeout(()=>parent.postMessage({tipo:'renderizado',paginas:all.length},'*'),500)})}
 async function boot(){
+  const p1=document.querySelector('#book .page');if(p1&&!p1.dataset.gen)p1.remove(); // a capa do portfólio sai: a capa da proposta é a inicial
   if(PDFM){window.addEventListener('message',e=>{if(e.data&&e.data.tipo==='dados')flat(e.data.dados)});parent.postMessage({tipo:'pronto'},'*');return}
   if(PREV){window.addEventListener('message',e=>{if(e.data&&e.data.tipo==='dados')aplicar(e.data.dados);else if(e.data&&e.data.tipo==='ir'&&window.__api)window.__api.ir(e.data.id)});aplicar({});parent.postMessage({tipo:'pronto'},'*');return}
   if(!CODE){document.body.innerHTML='<p style="color:#fff;font:600 18px Montserrat,sans-serif;padding:40px;text-align:center">Link de proposta inválido.</p>';return}
