@@ -1292,7 +1292,7 @@ async function editor(id){
       <div class="hmix" id="hMix"></div>
       <div class="tot"><div class="eye">Material</div><div class="v" id="hTot"></div></div>
       <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><button class="btn" id="bVer">+ Nova versão</button>${ORC.vigente?"":'<button class="btn" id="bVig">Tornar vigente</button>'}<button class="btn" id="bFin"></button><button class="btn" id="bDados">Dados</button><button class="btn" id="bCompras" title="Abrir o painel de compras desta obra com o previsto deste orçamento">🛒 Compras</button></div>
-      <nav class="steps">${[["projeto","1","Projeto"],["materiais","2","Materiais"],["precificacao","3","Precificação"],["proposta","4","Proposta"]].map(([k,n,l])=>`<button data-e="${k}" class="${etapa===k?"on":""}" ${k==="proposta"?'disabled title="Em breve"':""}><b>${n}</b>${l}</button>`).join("")}</nav></header>
+      <nav class="steps">${[["projeto","1","Projeto"],["materiais","2","Materiais"],["precificacao","3","Precificação"],["proposta","4","Proposta"]].map(([k,n,l])=>`<button data-e="${k}" class="${etapa===k?"on":""}" ><b>${n}</b>${l}</button>`).join("")}</nav></header>
      ${etapa==="projeto"?`<div class="proj" id="proj"><aside id="side"></aside><div class="split" id="split" title="Arraste para ajustar a largura · duplo clique volta ao padrão"><button class="spbtn" id="sp1b" title="Recolher/expandir a lista">«</button></div>
       <div class="mapwrap" id="map"><div class="stage" id="stage"><img id="img" alt="" hidden><div class="blank" id="blank"></div><svg class="net" id="lbls"></svg><svg class="net" id="net"></svg><div id="pins"></div></div>
        <div class="mapbar" id="mapbar"></div><div class="mapui"><button id="zmax" aria-label="Expandir mapa" title="Expandir o mapa (Esc volta)" style="font-size:15px">⛶</button><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Enquadrar" style="font-size:13px">⤢</button></div>
@@ -1304,7 +1304,7 @@ async function editor(id){
     $("#bVig")&&($("#bVig").onclick=async()=>{await chk(O.from("orcamentos").update({vigente:false}).eq("pasta_id",ORC.pasta_id));await chk(O.from("orcamentos").update({vigente:true}).eq("id",ORC.id));location.reload()});
     $("#bFin").onclick=async()=>{const s=ORC.status==="finalizado"?"andamento":"finalizado";await chk(O.from("orcamentos").update({status:s}).eq("id",ORC.id));ORC.status=s;renderHead()};
     $("#bDados").onclick=dadosDialog;$("#bCompras").onclick=abrirCompras;if(window.__abrirCompras){window.__abrirCompras=0;setTimeout(abrirCompras,300)}
-    if(etapa==="projeto")montarProjeto();else if(etapa==="materiais")telaMateriais();else telaPreco();
+    if(etapa==="projeto")montarProjeto();else if(etapa==="materiais")telaMateriais();else if(etapa==="proposta")telaProposta();else telaPreco();
     renderHead();
   }
   function renderHead(){
@@ -2214,6 +2214,10 @@ async function editor(id){
       async f=>{const up={nome:f.nome.trim(),unidade:(f.unidade||"").trim()||null,subgrupo:f.sub||null,atualizado_em:new Date().toISOString()};
         await chk(O.from("materiais").update(up).eq("codigo",cod));Object.assign(m,up);const mm=MATS.find(x=>x.codigo===cod);mm&&Object.assign(mm,up);toast("Material atualizado na base.");renderHead();telaMateriais()},"Salvar")}
   const ORIG={orcamento:"Orçamento importado",manual:"Manual",compra:"Ordem de compra",proposta:"Proposta de fornecedor",importacao:"Importação"};
+  function telaProposta(){
+    const el=$("#full");
+    el.innerHTML=`<div style="display:flex;flex-direction:column;height:100%;min-height:80vh"><div style="padding:10px 16px;font-size:13px;background:#fff7e0;border-bottom:1px solid #ecd9a0;color:#6b5600"><b>Prévia do modelo de proposta em revista.</b> Os dados ainda são do exemplo (Caminhos do Sol); a ligação com este orçamento, a edição das páginas, o link com rastreio e o PDF vêm nas próximas etapas.</div><iframe src="proposta-revista.html" title="Proposta em revista" style="flex:1;border:0;width:100%;min-height:80vh"></iframe></div>`;
+  }
   function telaMateriais(){
     const el=$("#full");if(!cotOk){cotOk=true;cotCarregar().then(()=>telaMateriais()).catch(e=>console.error(e))}
     const A=agregado().map(l=>({...l,m:MAT[l.c]||{nome:l.c,subgrupo:""}}));
