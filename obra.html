@@ -224,7 +224,7 @@ svg.net line.hit{stroke:transparent}
 .app.mob .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
 .app.mob .ttl h1{font-size:16.5px} .app.mob .logos img{height:36px} .app.mob .slot{height:36px}
 .app.mob .card{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-height:40%}.app.mob .mapwrap:has(.card:not([hidden])) .legend{display:none}.app.mob .mapbar{flex-wrap:nowrap;overflow-x:auto;right:52px}.app.mob .mapbar .btn{white-space:nowrap;flex:none;padding:6px 9px;font-size:12px}
-.app.mob .rz.l,.app.mob .rz.c{display:none}
+.app.mob .rz.l,.app.mob .rz.c{display:none}.app.mob .mapwrap:not(.full){touch-action:pan-y}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .andm{color:#e0a100;font-weight:600;font-size:.85em;margin-left:4px;white-space:nowrap}
 .aprc{display:flex;justify-content:space-between;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:6px}.aprc small{display:block;color:var(--muted)}
@@ -235,9 +235,9 @@ svg.net line.hit{stroke:transparent}
 .aprsg{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}.sg{display:grid;gap:4px;font-size:12px}.sg canvas,.sg img{border:1px dashed var(--line);border-radius:8px;width:100%;max-width:320px;background:#fff;touch-action:none}
 @media (max-width:640px){.aprg{grid-template-columns:1fr}}
 #zfull{display:none}.app.mob #zfull{display:block}@media (max-width:760px){#zfull{display:block}}
-.mapwrap.full{position:fixed!important;inset:0!important;z-index:850;height:100dvh!important;width:100vw!important;border-radius:0;margin:0}body.mapfull{overflow:hidden}body.mapfull .atl,body.mapfull .gc-fab,body.mapfull #gcBtn{display:none!important}
+.mapwrap.full{position:fixed!important;inset:0!important;z-index:850;height:100dvh!important;width:100vw!important;border-radius:0;margin:0}html.mapfull,body.mapfull{overflow:hidden;overscroll-behavior:none}body.mapfull{position:fixed;left:0;right:0;width:100%}.mapwrap.full .rz{display:none}body.mapfull .atl,body.mapfull .gc-fab,body.mapfull #gcBtn{display:none!important}
 .legt{display:none;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;padding:0}.legend.min{gap:0}.legend.min>span{display:none}.legend.min .legt{display:block}
-@media (max-width:760px){.legt{display:block}.mapbar{flex-wrap:nowrap;overflow-x:auto;right:52px;gap:5px;scrollbar-width:none}.mapbar::-webkit-scrollbar{display:none}.mapbar .btn{padding:6px 9px!important;font-size:12px!important;white-space:nowrap;flex:none}
+@media (max-width:760px){.mapwrap:not(.full){touch-action:pan-y}.legt{display:block}.mapbar{flex-wrap:nowrap;overflow-x:auto;right:52px;gap:5px;scrollbar-width:none}.mapbar::-webkit-scrollbar{display:none}.mapbar .btn{padding:6px 9px!important;font-size:12px!important;white-space:nowrap;flex:none}
  .mapui button{width:36px;height:36px}.card{left:8px!important;right:8px!important;top:auto!important;bottom:8px!important;width:auto!important;max-height:40%!important;padding:10px!important}.mapwrap:has(.card:not([hidden])) .legend{display:none}.legend{font-size:10.5px;padding:4px 8px}}
 </style>
 <script src="vendor/supabase.js"></script>
@@ -872,7 +872,8 @@ function zoomAt(f,cx,cy){const r=wrap.getBoundingClientRect();const minS=Math.mi
 $("#zin").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1.5,r.width/2,r.height/2)};
 $("#zout").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1/1.5,r.width/2,r.height/2)};
 $("#zfit").onclick=fit;
-{const mw=$("#map"),fb=$("#zfull");const tog=on=>{mw.classList.toggle("full",on);document.body.classList.toggle("mapfull",on);fb.textContent=on?"✕":"⛶";fb.title=on?"Sair da tela cheia":"Mapa em tela cheia";setTimeout(fit,60)};
+{const mw=$("#map"),fb=$("#zfull");let sy=0;const tog=on=>{const h=document.documentElement;if(on){sy=window.scrollY;document.body.style.top=-sy+"px"}mw.classList.toggle("full",on);document.body.classList.toggle("mapfull",on);h.classList.toggle("mapfull",on);if(!on){document.body.style.top="";window.scrollTo(0,sy)}fb.textContent=on?"✕":"⛶";fb.title=on?"Sair da tela cheia":"Mapa em tela cheia";setTimeout(fit,60);setTimeout(fit,350)};
+ window.addEventListener("resize",()=>{if(mw.classList.contains("full")){clearTimeout(mw._rz);mw._rz=setTimeout(fit,120)}});
  fb.onclick=()=>tog(!mw.classList.contains("full"));document.addEventListener("keydown",e=>{if(e.key==="Escape"&&mw.classList.contains("full"))tog(false)});
  const lg=$("#leg");if(innerWidth<760)lg.classList.add("min");$("#legT").onclick=e=>{e.stopPropagation();lg.classList.toggle("min")};lg.onpointerdown=e=>e.stopPropagation();}
 ["zin","zout","zfit","zfull"].forEach(i=>$("#"+i).onpointerdown=e=>e.stopPropagation());
