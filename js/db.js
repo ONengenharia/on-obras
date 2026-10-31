@@ -116,6 +116,8 @@
     } else {
       chk(await sb.rpc("registrar_avanco", { o, pct: avanco }));
     }
+    try { const h = new Date(), dia = h.getFullYear() + "-" + String(h.getMonth() + 1).padStart(2, "0") + "-" + String(h.getDate()).padStart(2, "0");
+      await sb.from("obra_avanco_dia").upsert({ obra_id: o, data: dia, pct: avanco, atualizado_em: new Date().toISOString() }); } catch (e) {}
     ctx.snap = ids;
   }
 
