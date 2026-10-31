@@ -2255,7 +2255,7 @@ async function editor(id){
   const paraModelo=d=>{const c=JSON.parse(JSON.stringify(d));MODELO_FORA.forEach(p=>{const ks=p.split(".");let a=c;for(const k of ks.slice(0,-1)){a=a&&a[k]}if(a)delete a[ks[ks.length-1]]});return c};
 
   const FIELDS=[
-   ["capa","Capa",[["cliente.nome","Cliente"],["cliente.projeto","Projeto"],["cliente.cidade","Cidade / UF"],["orc.numero","Nº do orçamento"],["orc.versao","Versão"],["orc.data","Data"],["orc.validade","Validade"],["capa.chip","Selo"],["capa.titulo","Texto da capa","area"]]],
+   ["capa","Capa",[["cliente.nome","Cliente"],["cliente.projeto","Projeto"],["cliente.cidade","Cidade / UF"],["orc.numero","Número da proposta (edição livre)"],["orc.versao","Versão"],["orc.data","Data"],["orc.validade","Validade"],["capa.chip","Selo"],["capa.titulo","Texto da capa","area"]]],
    ["projeto","Projeto",[["projeto.kicker","Chamada"],["projeto.titulo","Título"],["projeto.sub","Legenda da planta"],["projeto.planta","Planta do projeto","foto"],["projeto.legSat","Legenda do satélite"],["projeto.sat","Foto de satélite / localização","foto"]]],
    ["resumo","Resumo da obra",[["resumo.titulo","Título"],["resumo.stats","Números","rep",[["n","Número",90],["l","Descrição",0]]],["resumo.texto","Texto","area"]]],
    ["materiais","Materiais",[["materiais.chip","Selo"],["materiais.titulo","Título"],["materiais.itens","Itens","rep",[["t","Título",160],["d","Descrição",0,"area"]]]]],
