@@ -223,7 +223,7 @@ svg.net line.hit{stroke:transparent}
 .app.mob .mapwrap{height:var(--maphm,64vh);grid-row:4} .app.mob aside{grid-row:5;max-height:none} .app.mob .pane{overflow:visible}
 .app.mob .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
 .app.mob .ttl h1{font-size:16.5px} .app.mob .logos img{height:36px} .app.mob .slot{height:36px}
-.app.mob .card{right:10px;top:auto;bottom:48px;width:calc(100% - 20px);max-height:60%}
+.app.mob .card{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-height:40%}.app.mob .mapwrap:has(.card:not([hidden])) .legend{display:none}.app.mob .mapbar{flex-wrap:nowrap;overflow-x:auto;right:52px}.app.mob .mapbar .btn{white-space:nowrap;flex:none;padding:6px 9px;font-size:12px}
 .app.mob .rz.l,.app.mob .rz.c{display:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .andm{color:#e0a100;font-weight:600;font-size:.85em;margin-left:4px;white-space:nowrap}
@@ -234,6 +234,11 @@ svg.net line.hit{stroke:transparent}
 .aprtm{display:flex;flex-wrap:wrap;gap:6px}.chipx{background:var(--accent-soft,#e3eef8);border-radius:999px;padding:3px 6px 3px 10px;font-size:12.5px}.chipx button{border:0;background:transparent;cursor:pointer}
 .aprsg{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}.sg{display:grid;gap:4px;font-size:12px}.sg canvas,.sg img{border:1px dashed var(--line);border-radius:8px;width:100%;max-width:320px;background:#fff;touch-action:none}
 @media (max-width:640px){.aprg{grid-template-columns:1fr}}
+#zfull{display:none}.app.mob #zfull{display:block}@media (max-width:760px){#zfull{display:block}}
+.mapwrap.full{position:fixed!important;inset:0!important;z-index:850;height:100dvh!important;width:100vw!important;border-radius:0;margin:0}body.mapfull{overflow:hidden}body.mapfull .atl,body.mapfull .gc-fab,body.mapfull #gcBtn{display:none!important}
+.legt{display:none;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;padding:0}.legend.min{gap:0}.legend.min>span{display:none}.legend.min .legt{display:block}
+@media (max-width:760px){.legt{display:block}.mapbar{flex-wrap:nowrap;overflow-x:auto;right:52px;gap:5px;scrollbar-width:none}.mapbar::-webkit-scrollbar{display:none}.mapbar .btn{padding:6px 9px!important;font-size:12px!important;white-space:nowrap;flex:none}
+ .mapui button{width:36px;height:36px}.card{left:8px!important;right:8px!important;top:auto!important;bottom:8px!important;width:auto!important;max-height:40%!important;padding:10px!important}.mapwrap:has(.card:not([hidden])) .legend{display:none}.legend{font-size:10.5px;padding:4px 8px}}
 </style>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
@@ -317,8 +322,8 @@ root.innerHTML=`<div class="app">
 <div class="mapwrap" id="map"><div class="clip"><div class="stage" id="stage"><img id="img" alt="Planta do loteamento"><svg class="net" id="net"></svg><div id="pins"></div></div></div>
  <div class="rz l" id="rzL" title="Arraste para ajustar a largura"></div><div class="rz b" id="rzB" title="Arraste para ajustar a altura"></div><div class="rz c" id="rzC" title="Arraste para ajustar"></div>
  <div class="mapbar" id="mapbar"></div>
- <div class="mapui"><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Ajustar à tela" style="font-size:14px">⤢</button></div>
- <div class="legend"><span><i style="background:#1f8a4c"></i>Executado</span><span><i style="background:#d18b16"></i>Em andamento</span><span><i style="background:#7b8794"></i>Previsto</span><span><b class="seg" style="border-color:#c2185b"></b>MT</span><span><b class="seg" style="border-color:#1565c0"></b>BT 3×50</span><span><b class="seg" style="border-color:#00897b"></b>BT 3×70</span></div>
+ <div class="mapui"><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Ajustar à tela" style="font-size:14px">⤢</button><button id="zfull" aria-label="Mapa em tela cheia" title="Mapa em tela cheia" style="font-size:15px">⛶</button></div>
+ <div class="legend" id="leg"><button class="legt" id="legT" type="button">Legenda ▾</button><span><i style="background:#1f8a4c"></i>Executado</span><span><i style="background:#d18b16"></i>Em andamento</span><span><i style="background:#7b8794"></i>Previsto</span><span><b class="seg" style="border-color:#c2185b"></b>MT</span><span><b class="seg" style="border-color:#1565c0"></b>BT 3×50</span><span><b class="seg" style="border-color:#00897b"></b>BT 3×70</span></div>
  <div class="hint" id="hint" hidden></div>
  <div class="card" id="card" hidden></div>
 </div></div>`;
@@ -867,7 +872,10 @@ function zoomAt(f,cx,cy){const r=wrap.getBoundingClientRect();const minS=Math.mi
 $("#zin").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1.5,r.width/2,r.height/2)};
 $("#zout").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1/1.5,r.width/2,r.height/2)};
 $("#zfit").onclick=fit;
-["zin","zout","zfit"].forEach(i=>$("#"+i).onpointerdown=e=>e.stopPropagation());
+{const mw=$("#map"),fb=$("#zfull");const tog=on=>{mw.classList.toggle("full",on);document.body.classList.toggle("mapfull",on);fb.textContent=on?"✕":"⛶";fb.title=on?"Sair da tela cheia":"Mapa em tela cheia";setTimeout(fit,60)};
+ fb.onclick=()=>tog(!mw.classList.contains("full"));document.addEventListener("keydown",e=>{if(e.key==="Escape"&&mw.classList.contains("full"))tog(false)});
+ const lg=$("#leg");if(innerWidth<760)lg.classList.add("min");$("#legT").onclick=e=>{e.stopPropagation();lg.classList.toggle("min")};lg.onpointerdown=e=>e.stopPropagation();}
+["zin","zout","zfit","zfull"].forEach(i=>$("#"+i).onpointerdown=e=>e.stopPropagation());
 wrap.addEventListener("wheel",e=>{e.preventDefault();const r=wrap.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
 const ptrs=new Map();let moved=0,pinch=null;
 wrap.addEventListener("pointerdown",e=>{wrap.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}}wrap.classList.add("drag")});
