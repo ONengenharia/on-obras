@@ -2226,7 +2226,7 @@ async function editor(id){
   const rndHex=()=>[...crypto.getRandomValues(new Uint8Array(7))].map(b=>b.toString(16).padStart(2,"0")).join("");
 
   function propBase(){ // preenche a proposta com os dados deste orçamento
-    const A=agregado(),M=totalMat(),S=servicoA(M),T=M+S,L=ORC.lotes||0;
+    const A=agregado(),M=totalMat(),SB=servicoPorLucro(M,+P.lucro_pct||0),S=P.metodo==="B"?(isFinite(SB)?SB:0):servicoA(M),T=M+S,L=ORC.lotes||0;
     const NV=v=>Math.round(v);const fm=n=>num(n,0);
     const sum=re=>A.filter(l=>re.test(nm(l.c))).reduce((s,l)=>s+l.q,0);
     const nP=PTS.filter(p=>p.poste_id).length,SG_=SEGM();
@@ -2248,10 +2248,10 @@ async function editor(id){
       orc:{numero:mnum?`${pad2(mnum[1]).padStart(5,"0")}/${hoje.getFullYear()}`:`${hoje.getFullYear()}`,versao:pad2(ORC.versao||1),data:fdt(hoje),validade:fdt(val)},
       projeto:{planta:/^satelite/.test(tp)?"":pu,sat:/^satelite/.test(tp)?pu:""},
       resumo:{stats},materiais:{itens},valores:{material:+M.toFixed(2),mao:+S.toFixed(2),total:+T.toFixed(2),lotes:L||0,porLote:L?+(T/L).toFixed(2):0},
-      curva:{linhas},cron:{fin:"Cronograma financeiro · mão de obra, 10 parcelas de 10%",parcelas:parc}});
+      _ref:{M:+M.toFixed(2),S:+S.toFixed(2)},curva:{linhas},cron:{fin:"Cronograma financeiro · mão de obra, 10 parcelas de 10%",parcelas:parc}});
     return d;
   }
-  const MODELO_FORA=["cliente","orc","resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas","projeto.planta","projeto.sat","paginas","obs"];
+  const MODELO_FORA=["_ref","cliente","orc","resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas","projeto.planta","projeto.sat","paginas","obs"];
   const paraModelo=d=>{const c=JSON.parse(JSON.stringify(d));MODELO_FORA.forEach(p=>{const ks=p.split(".");let a=c;for(const k of ks.slice(0,-1)){a=a&&a[k]}if(a)delete a[ks[ks.length-1]]});return c};
 
   const FIELDS=[
@@ -2308,7 +2308,9 @@ async function editor(id){
     await propCarregar();
     if(!PROPOK){el.innerHTML=`<div class="pload"><b>A proposta em revista ainda não foi liberada no banco de dados.</b><br>Assim que a estrutura for criada, esta aba abre aqui, já preenchida com os dados do orçamento.</div>`;return}
     if(!PROP)PROP={orcamento_id:ORC.id,dados:propBase(),versao:1,status:"rascunho"};
-    else PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});
+    else{PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});
+      if((PROP.status||"rascunho")==="rascunho"){const b=propBase(),r0=PROP.dados._ref||{};
+        if(Math.abs((r0.M||0)-b._ref.M)>0.01||Math.abs((r0.S||0)-b._ref.S)>0.01){["resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas","_ref"].forEach(p=>setv(PROP.dados,p,gp(b,p)));propSujo=true;toast("Valores atualizados conforme a precificação.")}}}
     desenhaProp();
   }
   function desenhaProp(){
@@ -2378,7 +2380,7 @@ async function editor(id){
     F.addEventListener("toggle",e=>{const s=e.target;if(s.open&&s.dataset&&s.dataset.sec)irPara(s.dataset.sec)},true);
     $("#pSalv").onclick=async()=>{try{await propSalvar();toast("Proposta salva.");desenhaProp()}catch(e){}};
     $("#pEnv").onclick=()=>propEnviar();
-    $("#pRef").onclick=()=>{if(!confirm("Refazer os números, itens e curva a partir do orçamento atual? Os textos que você editou nessas partes serão substituídos."))return;const b=propBase(),D=d();["resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas"].forEach(p=>setv(D,p,gp(b,p)));desenhaProp();setTimeout(envia,300);propSujo=true};
+    $("#pRef").onclick=()=>{if(!confirm("Refazer os números, itens e curva a partir do orçamento atual? Os textos que você editou nessas partes serão substituídos."))return;const b=propBase(),D=d();["resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas","_ref"].forEach(p=>setv(D,p,gp(b,p)));desenhaProp();setTimeout(envia,300);propSujo=true};
   }
   async function propUpFoto(file){
     const bmp=await createImageBitmap(file),k=Math.min(1,1600/Math.max(bmp.width,bmp.height));const cv=document.createElement("canvas");cv.width=Math.round(bmp.width*k);cv.height=Math.round(bmp.height*k);cv.getContext("2d").drawImage(bmp,0,0,cv.width,cv.height);
