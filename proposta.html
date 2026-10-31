@@ -440,6 +440,16 @@ function decor(p){p.querySelectorAll('.pad,.cvtxt').forEach(c=>[...c.children].f
 const msg=t=>{let m=document.getElementById('msgv');if(!m){m=document.createElement('div');m.id='msgv';m.style.cssText='position:fixed;left:50%;top:18px;transform:translateX(-50%);background:#12202e;color:#fff;border:1px solid #62a8dc;border-radius:12px;padding:10px 16px;z-index:20000;font:600 14px Montserrat,sans-serif';document.body.appendChild(m)}m.textContent=t;m.style.display='block';clearTimeout(m._t);m._t=setTimeout(()=>m.style.display='none',3500)};
 const rpc=async(fn,args)=>{const r=await fetch(ON_CONFIG.url+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:ON_CONFIG.key,Authorization:'Bearer '+ON_CONFIG.key,'Content-Type':'application/json'},body:JSON.stringify(args)});if(!r.ok){let e={};try{e=await r.json()}catch(_){}throw new Error(e.message||('Erro '+r.status))}return r.json()};
 
+
+let trkOn=false;
+function rastrear(){
+  if(trkOn||PREV||!CODE)return;trkOn=true;const acc={};let ult=Date.now();
+  const flush=()=>{const t={};let n=0;Object.keys(acc).forEach(k=>{const s=Math.round(acc[k]);if(s>0){t[k]=s;n+=s}acc[k]=0});if(!n)return;
+    try{fetch(ON_CONFIG.url+'/rest/v1/rpc/proposta_evento',{method:'POST',keepalive:true,headers:{apikey:ON_CONFIG.key,Authorization:'Bearer '+ON_CONFIG.key,'Content-Type':'application/json'},body:JSON.stringify({p_codigo:CODE,p_tipo:'pagina',p_info:{t}})}).catch(()=>{})}catch(_){}};
+  setInterval(()=>{const now=Date.now(),dt=Math.min(3,(now-ult)/1000);ult=now;if(document.visibilityState!=='visible'||!document.hasFocus())return;
+    document.querySelectorAll('.page.show').forEach(p=>{let id=p.dataset.id;if(!id){const i=(window.__baseAll||[]).indexOf(p);id='base'+(i+1)}acc[id]=(acc[id]||0)+dt})},1000);
+  setInterval(flush,20000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush()});window.addEventListener('pagehide',flush);
+}
 let started=false,sig='';
 function aplicar(dados){
   D=propMerge(PROP_PADRAO,dados||{});
@@ -490,7 +500,7 @@ async function boot(){
   if(!CODE){document.body.innerHTML='<p style="color:#fff;font:600 18px Montserrat,sans-serif;padding:40px;text-align:center">Link de proposta inválido.</p>';return}
   try{const r=await rpc('proposta_publica',{p_codigo:CODE,p_ua:navigator.userAgent});
     if(!r){document.body.innerHTML='<p style="color:#fff;font:600 18px Montserrat,sans-serif;padding:40px;text-align:center">Esta proposta não está disponível. Fale com a ON Engenharia.</p>';return}
-    STATE.status=r.status;STATE.pdf=r.pdf_path;aplicar(r.dados)}
+    STATE.status=r.status;STATE.pdf=r.pdf_path;aplicar(r.dados);rastrear()}
   catch(e){document.body.innerHTML='<p style="color:#fff;font:600 18px Montserrat,sans-serif;padding:40px;text-align:center">Não foi possível abrir a proposta agora. Tente novamente em instantes.</p>'}
 }
 window.__prop={aplicar,get dados(){return D}};
