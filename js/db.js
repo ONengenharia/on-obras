@@ -16,12 +16,12 @@
     clienteLogo: "",
     obra: { projeto: "", lotes: "", tensao: "", concessionaria: "", rt: "", mapsLink: "", coord: "" },
     quant: [
-      { id: "q1", nome: "Rede MT", spec: "", un: "m", prev: 0, exec: 0, auto: "MT" },
-      { id: "q2", nome: "Rede BT 3×50", spec: "", un: "m", prev: 0, exec: 0, auto: "BT50" },
-      { id: "q3", nome: "Rede BT 3×70", spec: "", un: "m", prev: 0, exec: 0, auto: "BT70" },
-      { id: "q4", nome: "Postes", spec: "", un: "un", prev: 0, exec: 0, auto: "postes" },
-      { id: "q5", nome: "Transformadores", spec: "", un: "un", prev: 0, exec: 0, auto: "trafo" },
-      { id: "q6", nome: "Luminárias", spec: "", un: "un", prev: 0, exec: 0, auto: "lum" }
+      { id: "q1", nome: "Rede MT", spec: "", un: "m", prev: 0, exec: 0, auto: "MT", peso: 20 },
+      { id: "q2", nome: "Rede BT 3×50", spec: "", un: "m", prev: 0, exec: 0, auto: "BT50", peso: 20 },
+      { id: "q3", nome: "Rede BT 3×70", spec: "", un: "m", prev: 0, exec: 0, auto: "BT70", peso: 20 },
+      { id: "q4", nome: "Postes", spec: "", un: "un", prev: 0, exec: 0, auto: "postes", peso: 30 },
+      { id: "q5", nome: "Transformadores", spec: "", un: "un", prev: 0, exec: 0, auto: "trafo", peso: 12 },
+      { id: "q6", nome: "Luminárias", spec: "", un: "un", prev: 0, exec: 0, auto: "lum", peso: 18 }
     ],
     marcos: [
       { id: "m1", nome: "Emissão do projeto", data: "", pct: 0, link: "" },

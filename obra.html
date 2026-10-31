@@ -304,7 +304,12 @@ const qConta=q=>q.auto?mapCount(q.auto,false,"exec"):(+q.exec||0);
 const qAnd=q=>q.auto?mapCount(q.auto,false,"and"):0;
 const andTxt=(n,un)=>n>0?` <span class="andm" title="Em andamento (conta 50% no avanço)">+${un==="m"?fmt0(n):fmt(n)} em andamento</span>`:"";
 const qPct=q=>q.prev>0?Math.min(100,qExec(q)/q.prev*100):0;
-const overall=()=>S.quant.length?S.quant.reduce((a,q)=>a+qPct(q),0)/S.quant.length:0;
+const PESO0={postes:30,MT:20,BT50:20,BT70:20,lum:18,trafo:12};
+/* avanço físico: média ponderada pelos pesos (só itens com previsto). Sem pesos definidos, média simples como antes */
+const pesoOn=()=>S.quant.some(q=>q.peso!=null&&q.peso!=="");
+const pesoTot=()=>S.quant.reduce((a,q)=>a+pesoEf(q),0);
+const pesoEf=q=>pesoOn()?(+(q.prev>0?q.peso:0)||0):1;
+const overall=()=>{if(!S.quant.length)return 0;if(!pesoOn())return S.quant.reduce((a,q)=>a+qPct(q),0)/S.quant.length;const W=S.quant.reduce((a,q)=>a+pesoEf(q),0);return W?S.quant.reduce((a,q)=>a+qPct(q)*pesoEf(q),0)/W:0};
 function linkPct(l){
   const Q=l==="BT"?kpiItens("BT"):S.quant.filter(q=>q.id===l);
   const prev=Q.reduce((s,q)=>s+(+q.prev||0),0);return prev?Math.min(100,Q.reduce((s,q)=>s+qExec(q),0)/prev*100):0}
@@ -494,13 +499,13 @@ function renderSide(){
   $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;renderSide()});
   const pane=$("#pane");
   if(tab==="quant"){const edit=admEd();
-    pane.innerHTML=(edit?'<div class="row"><span class="note">Itens com “mapa” são contados sozinhos a partir dos pontos e da rede executados.</span><button class="lnk" id="qAdd">+ Item</button></div>':"")
-    +S.quant.map(q=>{const p=qPct(q),v=qConta(q);return `<div class="q"><div class="r1"><span class="nm">${esc(q.nome)}${q.auto?'<span class="tag">mapa</span>':""}</span><span class="val">${q.un==="m"?fmt0(v):fmt(v)} / ${fmt(q.prev)} ${esc(q.un)} · <b>${Math.round(p)}%</b>${andTxt(qAnd(q),q.un)}</span></div><div class="spec">${esc(q.spec)}</div><div class="bar ${p>=100?"full":""}"><b style="width:${p}%"></b></div>${edit?`<div class="qe">${q.auto?"":`<label>Exec. <input type="number" step="any" min="0" id="qe-${q.id}" data-q="${q.id}" value="${q.exec}"></label>`}<button class="lnk" data-qedit="${q.id}">Editar</button><button class="lnk del" data-qdel="${q.id}">Remover</button></div>`:""}</div>`}).join("")
+    pane.innerHTML=(edit?'<div class="row"><span class="note">Itens com “mapa” são contados sozinhos a partir dos pontos e da rede executados.</span><span><button class="lnk" id="qPeso" title="Define pesos: postes 30, MT 20, BT 20, luminárias 18, transformadores 12">Pesos sugeridos</button> <button class="lnk" id="qAdd">+ Item</button></span></div>':"")
+    +S.quant.map(q=>{const p=qPct(q),v=qConta(q);return `<div class="q"><div class="r1"><span class="nm">${esc(q.nome)}${q.auto?'<span class="tag">mapa</span>':""}</span><span class="val">${q.un==="m"?fmt0(v):fmt(v)} / ${fmt(q.prev)} ${esc(q.un)} · <b>${Math.round(p)}%</b>${andTxt(qAnd(q),q.un)}</span></div><div class="spec">${esc(q.spec)}${pesoOn()?`${q.spec?" · ":""}<b title="Peso no avanço da obra (considera só itens com previsto)">${Math.round(pesoTot()?pesoEf(q)/pesoTot()*100:0)}% do avanço da obra</b>`:""}</div><div class="bar ${p>=100?"full":""}"><b style="width:${p}%"></b></div>${edit?`<div class="qe">${q.auto?"":`<label>Exec. <input type="number" step="any" min="0" id="qe-${q.id}" data-q="${q.id}" value="${q.exec}"></label>`}<button class="lnk" data-qedit="${q.id}">Editar</button><button class="lnk del" data-qdel="${q.id}">Remover</button></div>`:""}</div>`}).join("")
     +(S.quant.some(q=>q.auto==="MT"||q.auto==="BT50"||q.auto==="BT70")?'<p class="note">Metragem de rede medida sobre a planta, pela escala do desenho. Valor aproximado.</p>':"");
     if(edit){pane.querySelectorAll("input[data-q]").forEach(i=>i.onchange=()=>{S.quant.find(x=>x.id===i.dataset.q).exec=Math.max(0,parseFloat(i.value)||0);touch();renderStats()});
       pane.querySelectorAll("[data-qedit]").forEach(b=>b.onclick=()=>editQuant(b.dataset.qedit));
       pane.querySelectorAll("[data-qdel]").forEach(b=>b.onclick=()=>confirmBox("Remover este item?",()=>{S.quant=S.quant.filter(q=>q.id!==b.dataset.qdel);touch();renderStats()}));
-      $("#qAdd").onclick=()=>editQuant(null)}
+      $("#qAdd").onclick=()=>editQuant(null);$("#qPeso").onclick=()=>confirmBox("Aplicar os pesos sugeridos ao avanço da obra? (postes 30 · rede MT 20 · rede BT 20 · luminárias 18 · transformadores 12; itens sem previsto ficam de fora)",()=>{S.quant.forEach(q=>{q.peso=PESO0[q.auto]!=null?PESO0[q.auto]:0});touch();renderStats()})}
   }else if(tab==="mat"){renderMat(pane);pane.insertAdjacentHTML("beforeend",anexosHtml("matAnexos","Anexos de materiais",admEd()?"Anexe orçamentos, notas fiscais, romaneios, fotos de entrega e outros documentos de materiais.":"Nenhum anexo de materiais."));bindAnexos(pane,"matAnexos")
   }else if(tab==="diario"){
     const logs=[...S.log].sort((a,b)=>((b.data||"")+(b.ts||"")).localeCompare((a.data||"")+(a.ts||"")));
@@ -786,7 +791,7 @@ function editMarco(id){
 }
 function editQuant(id){
   const q=id?S.quant.find(x=>x.id===id):{nome:"",spec:"",un:"un",prev:0,exec:0,auto:""};
-  modal(id?"Editar item":"Novo item",[{k:"nome",label:"Item",v:q.nome},{k:"spec",label:"Especificação",v:q.spec},{k:"un",label:"Unidade",v:q.un},{k:"prev",label:"Previsto",type:"number",v:q.prev},{k:"auto",label:"Como contar o executado",type:"select",v:q.auto||"",opts:Object.entries(AUTON)},{k:"exec",label:"Executado (só para lançamento manual)",type:"number",v:q.exec}],v=>{if(!v.nome.trim())return;Object.assign(q,{nome:v.nome.trim(),spec:v.spec,un:v.un,prev:parseFloat(v.prev)||0,exec:parseFloat(v.exec)||0,auto:v.auto});if(!id){q.id=uid();S.quant.push(q)}touch();renderStats()});
+  modal(id?"Editar item":"Novo item",[{k:"nome",label:"Item",v:q.nome},{k:"spec",label:"Especificação",v:q.spec},{k:"un",label:"Unidade",v:q.un},{k:"prev",label:"Previsto",type:"number",v:q.prev},{k:"auto",label:"Como contar o executado",type:"select",v:q.auto||"",opts:Object.entries(AUTON)},{k:"peso",label:"Peso no avanço da obra (%) — vazio = sem peso",type:"number",v:q.peso==null?"":q.peso},{k:"exec",label:"Executado (só para lançamento manual)",type:"number",v:q.exec}],v=>{if(!v.nome.trim())return;Object.assign(q,{nome:v.nome.trim(),spec:v.spec,un:v.un,prev:parseFloat(v.prev)||0,exec:parseFloat(v.exec)||0,auto:v.auto,peso:v.peso===""||isNaN(parseFloat(v.peso))?null:parseFloat(v.peso)});if(!id){q.id=uid();S.quant.push(q)}touch();renderStats()});
 }
 function addLog(){modal("Novo registro",[{k:"data",label:"Data",type:"date",v:today()},{k:"texto",label:"O que foi executado",type:"area",v:""},{k:"n",type:"note",label:"Depois de criar, anexe as fotos no próprio registro."}],v=>{if(!v.texto.trim())return;S.log.push({id:uid(),data:v.data,texto:v.texto.trim(),fotos:[]});touch();tab="diario";renderSide()})}
 function editObra(){
