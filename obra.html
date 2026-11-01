@@ -169,7 +169,7 @@ dl.info dt{color:var(--muted)} dl.info dd{margin:0;min-width:0}
 .mapwrap{position:relative;border:1px solid var(--line);border-radius:10px;overflow:visible;background:var(--map);min-height:0;touch-action:none;cursor:grab}
 .mapwrap.drag{cursor:grabbing} .mapwrap.place,.mapwrap.trace .pin{cursor:crosshair}
 .clip{position:absolute;inset:0;overflow:hidden;border-radius:10px}
-.stage{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.stage{position:absolute;left:0;top:0;transform-origin:0 0;backface-visibility:hidden}
 .stage img{display:block;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
 .pin{position:absolute;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);background:#7b8794;padding:0;transform:scale(var(--inv,1))}
 .pin.executado{background:#1f8a4c}.pin.andamento{background:#d18b16}
@@ -862,13 +862,15 @@ function plantaDialog(){
       S.mapUrl=r.url;S.mapW=out.width;S.mapH=out.height;
       if(isPdf&&k)S.pxm=(k*72/25.4)/(esc1/1000);
       const clr=$("#pClear",m);if(clr&&clr.checked){S.pontos=[];S.redes=[];selId=null;selSeg=null}
-      img.src=S.mapUrl;img.width=S.mapW;img.height=S.mapH;fit();touch();renderAll();m.remove();toast("Planta trocada. Clique em Salvar para publicar.");
+      setMapImg(S.mapUrl);fit();touch();renderAll();m.remove();toast("Planta trocada. Clique em Salvar para publicar.");
     }catch(err){ok.disabled=false;ok.textContent="Usar seleção";msg.textContent="Não foi possível enviar a planta"+(err&&err.code?" ("+err.code+")":"")+". Tente de novo."}
   };
 }
 
 /* ---------- navegação no mapa ---------- */
 const wrap=$("#map"),stage=$("#stage"),img=$("#img");
+function setMapImg(url){img.width=S.mapW;img.height=S.mapH;img.src=url;
+  const t=new Image();t.crossOrigin="anonymous";t.onload=()=>{try{const m=Math.max(t.naturalWidth,t.naturalHeight),L=2600;if(m<=L)return;const k=L/m,c=document.createElement("canvas");c.width=Math.round(t.naturalWidth*k);c.height=Math.round(t.naturalHeight*k);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(t,0,0,c.width,c.height);c.toBlob(b=>{if(!b)return;const u=URL.createObjectURL(b);const i2=new Image();i2.onload=()=>{if(S.mapUrl===url){img.src=u;img.width=S.mapW;img.height=S.mapH}};i2.src=u},"image/jpeg",.88)}catch(e){}};t.src=url}
 let T={x:0,y:0,s:.2};
 function apply(){stage.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`;applyInv()}
 let netRaf=0;function applyInv(){$("#pins").style.setProperty("--inv",Math.min(1/T.s,40));if(!netRaf)netRaf=requestAnimationFrame(()=>{netRaf=0;renderNet()})}
@@ -914,7 +916,7 @@ function resizer(el,mode){
   el.addEventListener("dblclick",()=>{["sidew","maph","maphm"].forEach(k=>{appEl.style.removeProperty("--"+k);lsSet(k,"")});setTimeout(fit,30)});
 }
 resizer($("#rzL"),"l");resizer($("#rzB"),"b");resizer($("#rzC"),"c");
-if(S.mapUrl)img.src=S.mapUrl;img.width=S.mapW;img.height=S.mapH;
+if(S.mapUrl)setMapImg(S.mapUrl);img.width=S.mapW;img.height=S.mapH;
 
 /* ---------- salvar ---------- */
 function toast(t){document.querySelectorAll(".toast").forEach(x=>x.remove());const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),3800)}
