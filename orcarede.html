@@ -2342,7 +2342,7 @@ async function editor(id){
       <div class="pbar">${stChip}<span style="flex:1"></span>
         ${ro?`<button class="btn" id="pNova">Nova versão</button>`:`<button class="btn" id="pSalv">Salvar</button><button class="btn pri" id="pEnv">Enviar ao cliente</button>`}
       </div>
-      <div class="pbar"><button class="btn sm" id="pMod">Usar modelo…</button><button class="btn sm" id="pSM">Salvar como modelo</button><button class="btn sm" id="pRef">Refazer a partir do orçamento</button>${PROP.id&&st!=="rascunho"?`<button class="btn sm" id="pLink">Copiar link</button>`:""}${PROP.pdf_path?`<a class="btn sm" href="${urlPub(PROP.pdf_path)}" target="_blank" rel="noopener">PDF enviado</a>`:""}<button class="btn sm" id="pPdf">Prévia em PDF</button></div>
+      <div class="pbar"><button class="btn sm" id="pMod">Usar modelo…</button><button class="btn sm" id="pSM">Salvar como modelo</button><button class="btn sm" id="pRef">Refazer a partir do orçamento</button>${PROP.id&&st!=="rascunho"?`<button class="btn sm" id="pLink">Copiar link</button>`:""}${PROP.pdf_path?`<a class="btn sm" href="${urlPub(PROP.pdf_path)}" target="_blank" rel="noopener">PDF enviado</a>`:""}${PROP.id&&st!=="rascunho"&&!PROP.pdf_path?`<button class="btn sm" id="pGPdf">Gerar PDF desta versão</button>`:""}<button class="btn sm" id="pPdf">Prévia em PDF</button></div>
       ${PROP.id&&st!=="rascunho"?`<div class="ptrk"><b>Acompanhamento do cliente</b> · <a href="#" id="pAtu">atualizar</a><br>${abriu.length?`👁 Aberta <b>${abriu.length}×</b> · última ${dtHora(ult.criado_em)}`:"Ainda não foi aberta."}<br><small>Link: <a href="${esc(linkProp())}" target="_blank" rel="noopener">${esc(linkProp())}</a></small>
         ${TPk.length?`<div style="margin-top:8px"><b>Tempo em cada página</b> · total ${fmtS(TPtot)}${TPk.map(k=>`<div style="display:grid;grid-template-columns:150px 1fr 56px;gap:6px;align-items:center;font-size:12px"><span>${esc(nmP(k))}</span><span style="background:var(--line);border-radius:4px;height:8px"><i style="display:block;height:100%;width:${Math.round(TP[k]/TPmax*100)}%;background:var(--accent);border-radius:4px"></i></span><span style="text-align:right">${fmtS(TP[k])}</span></div>`).join("")}</div>`:`<div style="margin-top:6px"><small>O tempo por página aparece aqui depois que o cliente navegar.</small></div>`}
         <ul>${PEV.filter(e=>e.tipo!=="pagina").slice(0,40).map(e=>`<li>${dtHora(e.criado_em)} · ${ROT[e.tipo]||esc(e.tipo)}${e.tipo==="aceite"&&e.info?` · ${esc(e.info.nome||"")}`:""}</li>`).join("")}</ul></div>`:""}
@@ -2360,6 +2360,7 @@ async function editor(id){
     const _n=$("#pNova");if(_n)_n.onclick=propNovaVersao;
     const _l=$("#pLink");if(_l)_l.onclick=async()=>{try{await navigator.clipboard.writeText(linkProp());toast("Link copiado.")}catch(_){prompt("Link da proposta:",linkProp())}};
     const _a=$("#pAtu");if(_a)_a.onclick=async ev=>{ev.preventDefault();await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp()};
+    const _g=$("#pGPdf");if(_g)_g.onclick=async()=>{_g.disabled=true;const path=await propGuardaPdf();if(path){await propSalvar({pdf_path:path});await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp();toast("PDF gerado e disponível para o cliente.")}else _g.disabled=false};
     $("#pPdf").onclick=()=>propPdf().then(b=>{if(b){const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="proposta-previa.pdf";a.click()}});
     $("#pMod")&&($("#pMod").onclick=propModelos);$("#pSM")&&($("#pSM").onclick=propSalvarModelo);
     if(ro){return}
@@ -2410,13 +2411,17 @@ async function editor(id){
     }catch(e){console.error(e);toast("Não foi possível gerar o PDF: "+e.message);return null}
     finally{fr.remove()}
   }
+  async function propGuardaPdf(){const pdf=await propPdf();if(!pdf)return null;
+    const path=`propostas/${PROP.codigo}_v${PROP.versao||1}_${Date.now().toString(36)}.pdf`;
+    const up=await sb.storage.from("negocios").upload(path,pdf,{contentType:"application/pdf"});
+    if(up.error){console.error(up.error);toast("O PDF não foi guardado: "+(up.error.message||"erro no envio")+". O link continua valendo.");return null}
+    return path}
   async function propEnviar(){
     const D=PROP.dados;if(!D.cliente.nome&&!D.cliente.projeto){toast("Preencha o cliente e o projeto na capa.");return}
     if(!confirm("Enviar a proposta? Será gerado o link para o cliente e o PDF desta versão. Depois de enviada, a versão fica congelada."))return;
     try{
       const salvo=await propSalvar();
-      const pdf=await propPdf();let pdfPath=null;
-      if(pdf){pdfPath=`propostas/${PROP.codigo}_v${PROP.versao||1}.pdf`;const up=await sb.storage.from("negocios").upload(pdfPath,pdf,{contentType:"application/pdf",upsert:true});if(up.error){console.error(up.error);toast("O PDF não foi guardado; o link foi gerado mesmo assim.");pdfPath=null}}
+      const pdfPath=await propGuardaPdf();
       const {data:u}=await sb.auth.getUser();
       await propSalvar({status:"enviada",enviada_em:new Date().toISOString(),enviada_por:u&&u.user?u.user.id:null,pdf_path:pdfPath});
       await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp();
