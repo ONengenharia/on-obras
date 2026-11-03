@@ -532,6 +532,7 @@ function ajustaGen(list){const st=document.createElement('div');st.style.cssText
   list.forEach(p=>{if(p.dataset.id==='capa'||p.querySelector('.fitw'))return;const c=p.cloneNode(true);c.style.cssText='position:relative;width:760px;height:1076px;display:block;opacity:1;visibility:visible';c.classList.remove('show');st.appendChild(c);
     try{ajusta([c])}catch(e){}const w=c.querySelector('.fitw');if(w){const inn=p.querySelector('.in')||p,ft=inn.querySelector('.foot'),nw=document.createElement('div');nw.className='fitw';[...inn.children].forEach(x=>{if(x!==ft)nw.appendChild(x)});inn.insertBefore(nw,ft);nw.style.cssText=w.style.cssText}st.removeChild(c)});
   st.remove()}
+function tweakBase(l){l.forEach(pg=>{const h=[...pg.querySelectorAll('h2')].find(x=>/nasceu para entregar/.test(x.textContent));if(h){h.style.fontSize='5cqw';h.style.marginBottom='2cqw';const ph=pg.querySelector('.ph');if(ph&&ph.style.height==='17cqh')ph.style.height='13cqh'}});}
 let started=false,sig='';
 function aplicar(dados){
   D=propMerge(PROP_PADRAO,dados||{});
@@ -539,7 +540,7 @@ function aplicar(dados){
   const list=paginas(D);ajustaGen(list);
   const ids=list.map(p=>p.dataset.id).join(',');
   const stat1=started?window.__api.base:[...book.querySelectorAll('.page:not([data-gen])')];
-  if(!started){window.__baseAll=stat1;ajustaGen(stat1);book.querySelectorAll('.page[data-gen]').forEach(e=>e.remove())}
+  if(!started){window.__baseAll=stat1;tweakBase(stat1);ajustaGen(stat1);book.querySelectorAll('.page[data-gen]').forEach(e=>e.remove())}
   const capaEl=list.find(p=>p.dataset.id==='capa'),resto=list.filter(p=>p!==capaEl);
   const all=[capaEl,...(window.__baseAll),...resto];numera(all);
   document.title='Proposta · '+(D.cliente.projeto||D.cliente.nome||'ON Engenharia');
@@ -572,7 +573,7 @@ function flat(dados){
   w.querySelectorAll('.page[data-gen]').forEach(e=>e.remove());
   const list=paginas(D).filter(p=>p.dataset.id!=='capa');
   const cp=elDe(`<div class="page light" data-gen="1" data-id="capaPdf"><div class="in" style="background:#fff">${G.capaPdf(D)}</div></div>`);
-  const base=[cp,...window.__baseFlat];w.insertBefore(cp,w.firstChild);
+  tweakBase(window.__baseFlat);const base=[cp,...window.__baseFlat];w.insertBefore(cp,w.firstChild);
   const all=[...base,...list];list.forEach(e=>w.appendChild(e));all.forEach(e=>{if(e.dataset.id!=='capaPdf'){e.classList.remove('navy');e.classList.add('light','print');e.querySelectorAll('img.logo.big').forEach(im=>{im.src=LOGO;im.style.background='none'})}});numera(all);
   const imgs=[...w.querySelectorAll('img')];Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))).then(()=>{
     imgs.forEach(i=>{const of=getComputedStyle(i).objectFit;if(!/cover|contain/.test(of)||!i.parentNode)return;const dv=document.createElement('div');dv.style.cssText='width:100%;height:100%;background:url("'+i.src+'") center/'+of+' no-repeat;position:'+(getComputedStyle(i).position==='absolute'?'absolute;inset:0':'relative');i.replaceWith(dv)});
