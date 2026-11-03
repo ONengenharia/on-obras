@@ -469,11 +469,15 @@ function rastrear(){
 function capaCliente(d){const pg1=(window.__baseAll||[])[0];if(!pg1)return;const inn=pg1.querySelector('.in');if(!inn)return;let b=inn.querySelector('.clinicial');if(!b){b=document.createElement('div');b.className='clinicial';inn.appendChild(b)}
   const n=d.cliente.nome||'',pj=d.cliente.projeto||'',ci=d.cliente.cidade||'';if(!n&&!pj){b.style.display='none';return}b.style.display='';
   b.innerHTML='<small>Proposta para</small><b>'+esc(n)+'</b>'+(pj?'<span>'+esc(pj)+'</span>':'')+(ci?'<span>'+esc(ci)+'</span>':'')+(d.orc.numero?'<em>Proposta nº '+esc(d.orc.numero)+'</em>':'')}
+function ajustaGen(list){const st=document.createElement('div');st.style.cssText='position:fixed;left:-20000px;top:0;width:760px;height:1076px;pointer-events:none';document.body.appendChild(st);
+  list.forEach(p=>{if(p.dataset.id==='capa'||p.querySelector('.fitw'))return;const c=p.cloneNode(true);c.style.cssText='position:relative;width:760px;height:1076px;display:block;opacity:1;visibility:visible';c.classList.remove('show');st.appendChild(c);
+    try{ajusta([c])}catch(e){}const w=c.querySelector('.fitw');if(w){const inn=p.querySelector('.in')||p,ft=inn.querySelector('.foot'),nw=document.createElement('div');nw.className='fitw';[...inn.children].forEach(x=>{if(x!==ft)nw.appendChild(x)});inn.insertBefore(nw,ft);nw.style.cssText=w.style.cssText}st.removeChild(c)});
+  st.remove()}
 let started=false,sig='';
 function aplicar(dados){
   D=propMerge(PROP_PADRAO,dados||{});
   const book=document.getElementById('book');
-  const list=paginas(D);
+  const list=paginas(D);ajustaGen(list);
   const ids=list.map(p=>p.dataset.id).join(',');
   const stat1=started?window.__api.base:[...book.querySelectorAll('.page:not([data-gen])')];
   if(!started){window.__baseAll=stat1;book.querySelectorAll('.page[data-gen]').forEach(e=>e.remove())}
