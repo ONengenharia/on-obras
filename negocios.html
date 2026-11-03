@@ -266,6 +266,13 @@ let quadro=(()=>{try{return localStorage.getItem("neg.quadro")||"eletrica"}catch
 {const qq=new URLSearchParams(location.search).get("q");if(qq==="eletrica"||qq==="solar")quadro=qq;}
 let busca="",fEtq="",soMeus=false,aberto=null,abaCard="resumo",win=null,gravando=null;
 const uById=id=>U.find(u=>u.id===id)||{id,nome:"(removido)",sig:"?",cor:"#999",setor:""};
+const fmtDoc=v=>{const d=String(v||"").replace(/\D/g,"").slice(0,14);if(d.length<=11)return d.replace(/^(\d{3})(\d)/,"$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/\.(\d{3})(\d)/,".$1-$2");return d.replace(/^(\d{2})(\d)/,"$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/,"$1.$2.$3").replace(/\.(\d{3})(\d)/,".$1/$2").replace(/(\d{4})(\d)/,"$1-$2")};
+const fmtCep=v=>{const d=String(v||"").replace(/\D/g,"").slice(0,8);return d.length>5?d.slice(0,5)+"-"+d.slice(5):d};
+const docOk=v=>{const d=String(v||"").replace(/\D/g,"");if(!d)return true;if(/^(\d)\1+$/.test(d))return false;const dv=(n,w)=>{let t=0;for(let i=0;i<n;i++)t+=+d[i]*w[i];t=t*10%11;return t===10?0:t};
+  if(d.length===11){const p=[10,9,8,7,6,5,4,3,2],q=[11,10,9,8,7,6,5,4,3,2];return dv(9,p)===+d[9]&&dv(10,q)===+d[10]}
+  if(d.length===14){const w1=[5,4,3,2,9,8,7,6,5,4,3,2],w2=[6,5,4,3,2,9,8,7,6,5,4,3,2];const f=(n,w)=>{let t=0;for(let i=0;i<n;i++)t+=+d[i]*w[i];const r=t%11;return r<2?0:11-r};return f(12,w1)===+d[12]&&f(13,w2)===+d[13]}
+  return false};
+function mascara(el,fn){if(!el||el._m)return;el._m=1;const ap=()=>{const ini=el.selectionStart,len=el.value.length,fim=ini>=len;el.value=fn(el.value);if(fim)el.setSelectionRange(el.value.length,el.value.length);if(el.dataset.cad==="doc"||el.dataset.mdoc){const ok=docOk(el.value);el.style.outline=ok?"":"2px solid #e0556b";el.title=ok?"":"CPF/CNPJ inválido (confira os dígitos)"}};el.addEventListener("input",ap);if(el.value)ap()}
 const fmtFone=v=>{const d=String(v||"").replace(/\D/g,"").slice(0,11);if(d.length<=2)return d?"("+d:"";if(d.length<=6)return `(${d.slice(0,2)}) ${d.slice(2)}`;if(d.length<=10)return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`};
 const brlTxt=n=>n==null||n===""?"":"R$ "+Number(n).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 const lerBrl=t=>{const d=String(t||"").replace(/[^\d,]/g,"").replace(",",".");return d?+d:0};
@@ -606,10 +613,10 @@ async function abrir(id,manter){
      <div class="sec"><h4>Cadastro do cliente <small class="note">(opcional · usado no Gestão Click)</small></h4>
       <div class="grid2">
        <label class="fld">Tipo de pessoa<select ${dis} data-cad="tipo_pessoa"><option value="">—</option><option value="PF" ${(c.cadastro||{}).tipo_pessoa==="PF"?"selected":""}>Pessoa física</option><option value="PJ" ${(c.cadastro||{}).tipo_pessoa==="PJ"?"selected":""}>Pessoa jurídica</option></select></label>
-       <label class="fld">CPF ou CNPJ<input value="${esc((c.cadastro||{}).doc||"")}" ${dis} data-cad="doc" inputmode="numeric" placeholder="somente números"></label>
+       <label class="fld">CPF ou CNPJ<input value="${esc(fmtDoc((c.cadastro||{}).doc))}" ${dis} data-cad="doc" inputmode="numeric" maxlength="18" placeholder="000.000.000-00 ou 00.000.000/0000-00"></label>
        <label class="fld">Razão social <small class="note">(PJ)</small><input value="${esc((c.cadastro||{}).razao||"")}" ${dis} data-cad="razao"></label>
        <label class="fld">E-mail<input type="email" value="${esc((c.cadastro||{}).email||"")}" ${dis} data-cad="email"></label>
-       <label class="fld">CEP<input value="${esc((c.cadastro||{}).cep||"")}" ${dis} data-cad="cep" inputmode="numeric"></label>
+       <label class="fld">CEP<input value="${esc(fmtCep((c.cadastro||{}).cep))}" ${dis} data-cad="cep" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
        <label class="fld">Endereço<input value="${esc((c.cadastro||{}).endereco||"")}" ${dis} data-cad="endereco"></label>
        <label class="fld">Número<input value="${esc((c.cadastro||{}).numero||"")}" ${dis} data-cad="numero"></label>
        <label class="fld">Bairro<input value="${esc((c.cadastro||{}).bairro||"")}" ${dis} data-cad="bairro"></label>
@@ -652,7 +659,13 @@ async function abrir(id,manter){
         await abrir(id,true);
         const box2=document.querySelector(".gv")||document;Object.entries(keep).forEach(([k,v])=>{const x=box2.querySelector(`[data-f="${k}"]`);if(x&&x.value!==v)x.value=v});
         if(af){const x=box2.querySelector(`[data-f="${af}"]`);if(x){x.focus();if(ss)try{x.setSelectionRange(ss[0],ss[1])}catch(e){}}}}}});
-    gb.querySelectorAll("[data-cad]").forEach(el=>el.onchange=async()=>{const k=el.dataset.cad;let v=el.value.trim();if(k==="doc")v=v.replace(/\D/g,"");if(k==="uf")v=v.toUpperCase();if(k==="cep")v=v.replace(/\D/g,"");el.value=v;await salvarCampos(c,{cadastro:{...(c.cadastro||{}),[k]:v}})});
+    const cepEl=gb.querySelector('[data-cad="cep"]');
+    if(cepEl&&!cepEl.disabled)cepEl.addEventListener("input",async()=>{const d=cepEl.value.replace(/\D/g,"");if(d.length!==8)return;
+      try{const r=await fetch("https://viacep.com.br/ws/"+d+"/json/");const j=await r.json();if(j.erro)return toast("CEP não encontrado.");
+        const set=(sel,v)=>{const e=gb.querySelector(sel);if(e&&v&&!e.value.trim()&&!e.disabled){e.value=v;e.dispatchEvent(new Event("change"))}};
+        set('[data-cad="endereco"]',j.logradouro);set('[data-cad="bairro"]',j.bairro);set('[data-cad="uf"]',j.uf);set('[data-f="cidade"]',j.localidade);cepEl.dispatchEvent(new Event("change"))}catch(e){}});
+    mascara(gb.querySelector('[data-cad="doc"]'),fmtDoc);mascara(gb.querySelector('[data-cad="cep"]'),fmtCep);mascara(gb.querySelector('[data-f="fone"]'),fmtFone);
+    gb.querySelectorAll("[data-cad]").forEach(el=>el.onchange=async()=>{const k=el.dataset.cad;let v=el.value.trim();if(k==="doc")v=v.replace(/\D/g,"");if(k==="uf")v=v.toUpperCase();if(k==="cep")v=v.replace(/\D/g,"");el.value=k==="doc"?fmtDoc(v):k==="cep"?fmtCep(v):v;await salvarCampos(c,{cadastro:{...(c.cadastro||{}),[k]:v}})});
     const gcB=$("#gcEnviar",gb);if(gcB)gcB.onclick=async()=>{const cd=c.cadastro||{};if(!String(c.cliente||"").trim()){toast("Preencha o nome do cliente.");return}
       gcB.disabled=true;const st=$("#gcSt",gb);st.textContent="Enviando…";const upd=!!cd.gc_id;
       const {data,error}=await sb.functions.invoke("gestaoclick",{body:{empresa:c.quadro==="solar"?"solar":"eletrica",acao:upd?"cliente_atualizar":"cliente_enviar",gc_id:cd.gc_id,cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});
@@ -790,7 +803,7 @@ async function novo(){
       <label class="note" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ngo"> Criar o orçamento no Gestão Click (precisa de cliente e valor)</label>
       <label class="note">Etapa inicial</label><select id="netapa" class="btn" style="text-align:left">${cols0.map(x=>`<option value="${x.id}" ${x.id===padrao.id?"selected":""}>${esc(x.nome)}</option>`).join("")}</select>
       <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" id="nx">Cancelar</button><button class="btn pri" id="nok">Criar</button></div></div>`;
-    document.body.appendChild(m);m.querySelector("#nx").onclick=()=>{m.remove();res(null)};m.querySelector("#nok").onclick=()=>{const v=m.querySelector("#ndono").value;etapa0=m.querySelector("#netapa").value;const g=i=>m.querySelector(i);ini={cliente:g("#ncli").value.trim(),fone:fmtFone(g("#nfone").value),cidade:g("#ncid").value.trim(),valor:lerBrl(g("#nval").value)||0,gc:g("#ngc").checked||g("#ngo").checked,orc:g("#ngo").checked};m.remove();res(v)}});
+    document.body.appendChild(m);mascara(m.querySelector("#nfone"),fmtFone);m.querySelector("#nx").onclick=()=>{m.remove();res(null)};m.querySelector("#nok").onclick=()=>{const v=m.querySelector("#ndono").value;etapa0=m.querySelector("#netapa").value;const g=i=>m.querySelector(i);ini={cliente:g("#ncli").value.trim(),fone:fmtFone(g("#nfone").value),cidade:g("#ncid").value.trim(),valor:lerBrl(g("#nval").value)||0,gc:g("#ngc").checked||g("#ngo").checked,orc:g("#ngo").checked};m.remove();res(v)}});
     if(!dono)return}
   const mem=[...new Set([dono,...(ADM||dono===eu?[]:[eu])])];
   const {data,error}=await sb.from("negocios").insert({quadro,ordem:Math.max(0,...CARDS.filter(k=>k.coluna===(etapa0||primeira.id)).map(k=>+k.ordem||0))+1,coluna:etapa0||primeira.id,titulo:"Novo negócio "+(quadro==="solar"?"solar":"elétrico"),un:quadro==="solar"?"kWp":"kVA",membros:mem,resp:dono,...(ini.cliente?{cliente:ini.cliente,titulo:ini.cliente}:{}),...(ini.fone?{fone:ini.fone}:{}),...(ini.cidade?{cidade:ini.cidade}:{}),...(ini.valor>0?{valor:ini.valor}:{})}).select().single();
