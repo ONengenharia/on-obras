@@ -249,6 +249,8 @@ button.demo.alt,.acts button.demo.alt{background:transparent!important;color:#ff
 .dlg .row2{display:flex;gap:8px;flex-wrap:wrap}
 .dlg button.g{background:transparent;border:1.5px solid #1e2f40;color:#1e2f40}
 
+.foot{font-size:1.5cqw!important;letter-spacing:.06em!important;opacity:.5!important;text-transform:none!important}.foot span:last-child{font-size:1.5cqw}
+
 .capapdf{position:absolute;inset:0;background:#fff;font-family:Montserrat,system-ui,sans-serif;overflow:hidden}
 .cp-h{position:absolute;left:0;top:0;width:100%;height:250px;background:#1e3248;border-bottom-right-radius:70px}.cp-h img{position:absolute;left:44px;top:34px;width:230px}
 .cp-t{position:absolute;right:46px;top:62px;text-align:left;color:#62a8dc;line-height:1.05}.cp-t span{display:block;font-size:56px;font-weight:300}.cp-t b{display:block;font-size:60px;font-weight:800}
@@ -436,7 +438,17 @@ function paginas(d){
     out.push(el)});
   return out;
 }
-function numera(list){list.forEach((p,i)=>{const sp=p.querySelectorAll('.foot span');if(sp.length>1)sp[sp.length-1].textContent=i<9?'0'+(i+1):String(i+1)})}
+function numera(list){const o=(D&&D.orc)||{},t=(o.numero?'Orçamento '+o.numero:'')+(o.versao?(o.numero?' · ':'')+'v'+String(o.versao).replace(/^v/i,''):'');
+  list.forEach((p,i)=>{const sp=p.querySelectorAll('.foot span');if(sp.length>1){sp[0].textContent=t;sp[sp.length-1].textContent=i<9?'0'+(i+1):String(i+1)}})}
+function ajusta(list){list.forEach(p=>{if(p.dataset.id==='capaPdf'||p.dataset.id==='capa')return;const inn=p.querySelector('.in')||p,ft=inn.querySelector('.foot');if(!ft||inn.querySelector(':scope>.fitw'))return;
+  const pr=p.getBoundingClientRect();if(!pr.height)return;const lim=ft.getBoundingClientRect().top-pr.height*.012;let bot=0;
+  inn.querySelectorAll('*').forEach(e=>{if(ft.contains(e)||e===ft)return;const r=e.getBoundingClientRect();if(r.height>0&&r.width>0)bot=Math.max(bot,r.bottom)});
+  const top=Math.min(...[...inn.children].filter(c=>c!==ft).map(c=>c.getBoundingClientRect().top));
+  if(bot<=lim||!isFinite(top))return;
+  const w=document.createElement('div');w.className='fitw';[...inn.children].forEach(c=>{if(c!==ft)w.appendChild(c)});inn.insertBefore(w,ft);
+  const set=k=>{w.style.cssText='position:absolute;left:0;top:0;width:'+(100/k)+'%;height:'+(100/k)+'%;transform:scale('+k+');transform-origin:0 0'};
+  const fits=k=>{set(k);let m=0;w.querySelectorAll('*').forEach(e=>{const r=e.getBoundingClientRect();if(r.height>0&&r.width>0)m=Math.max(m,r.bottom)});return m<=lim};
+  let lo=.5,hi=1;for(let i=0;i<9;i++){const mid=(lo+hi)/2;if(fits(mid))lo=mid;else hi=mid}set(lo)})}
 function decor(p){p.querySelectorAll('.pad,.cvtxt').forEach(c=>[...c.children].forEach((e,k)=>e.style.setProperty('--i',k)));
   p.querySelectorAll('.stats,.steps,.ct').forEach(c=>{c.classList.add('stg');[...c.children].forEach((e,k)=>e.style.setProperty('--j',k))});
   p.querySelectorAll('.vals,.logos').forEach(c=>{c.classList.add('pop');[...c.children].forEach((e,k)=>e.style.setProperty('--j',k))});
@@ -501,7 +513,7 @@ function flat(dados){
   const all=[...base,...list];list.forEach(e=>w.appendChild(e));numera(all);
   const imgs=[...w.querySelectorAll('img')];Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))).then(()=>{
     imgs.forEach(i=>{const of=getComputedStyle(i).objectFit;if(!/cover|contain/.test(of)||!i.parentNode)return;const dv=document.createElement('div');dv.style.cssText='width:100%;height:100%;background:url("'+i.src+'") center/'+of+' no-repeat;position:'+(getComputedStyle(i).position==='absolute'?'absolute;inset:0':'relative');i.replaceWith(dv)});
-    setTimeout(()=>parent.postMessage({tipo:'renderizado',paginas:all.length},'*'),500)})}
+    setTimeout(()=>{ajusta(all);parent.postMessage({tipo:'renderizado',paginas:all.length},'*')},500)})}
 async function boot(){
   const p1=document.querySelector('#book .page');if(p1&&!p1.dataset.gen)p1.remove(); // a capa do portfólio sai: a capa da proposta é a inicial
   if(PDFM){window.addEventListener('message',e=>{if(e.data&&e.data.tipo==='dados')flat(e.data.dados)});parent.postMessage({tipo:'pronto'},'*');return}
