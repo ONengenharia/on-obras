@@ -554,6 +554,7 @@ async function abrir(id,manter){
    <div class="gvh"><div class="grab">⠿ arraste para mover · puxe o canto inferior direito para redimensionar</div><div class="row"><div><span class="tipo ${c.quadro}">${esc(QUADROS[c.quadro].nome)}</span>${c.obra_id?' <span class="tipo eletrica">⚡ No Gerenciador de obras</span>':c.no_mapa?' <span class="tipo solar">📍 No mapa</span>':""}<h2>${esc(c.titulo)}</h2><span class="note">${esc(c.cliente||"Sem cliente")}${c.cidade?" · "+esc(c.cidade):""} · ${brl(c.valor)}</span></div><span style="display:flex;gap:6px">${ADM?'<button class="btn" id="del" style="color:var(--bad)">Excluir</button>':""}<button class="btn" id="bTopo" title="Mostrar/recolher etapas e avisos">▾ Etapas</button><button class="btn" id="bFx" title="Mostrar/recolher fluxograma ao lado">🧭</button><button class="btn" id="bCheia" title="Tela cheia / janela">⤢</button><button class="btn" id="x">Fechar</button></span></div>
     <div class="topo">
     <div class="flow">${cols.map((x,j)=>`<span class="${j<i?"feito":j===i?"aqui":""}" title="${esc((areaDe(x.area)||{}).nome||"")}">${esc(x.nome)}</span>`).join("")}</div>
+    ${((c.cadastro||{}).vendido||{}).sim?`<div class="banner" style="background:#e4f6ec;color:#0d7a45">✅ <b>Vendido</b>${((c.cadastro||{}).vendido||{}).em?" em "+esc(String(c.cadastro.vendido.em).split("-").reverse().join("/")):""}</div>`:""}
     ${c.motivo_tipo?`<div class="banner" style="background:var(--warn-soft,#fbf0dc)">📝 <b>${esc(c.motivo_tipo)}</b>${c.motivo?" · "+esc(c.motivo):""}</div>`:""}
     ${fantasma(c)?`<div class="banner ro">🔒 Este negócio já saiu da sua área e está agora em <b>${esc((()=>{const col=COLS.find(x=>x.id===c.coluna);const a=col&&areaDe(col.area);return(a?a.nome+" · ":"")+(col?col.nome:"")})())}</b>. Você acompanha e pode conversar, mas não pode alterar. <button class="btn sm" id="bPuxar" style="margin-left:6px" title="Esqueceu algum ajuste? Traz o card de volta para a última etapa dele na sua área">↩ Trazer de volta para minha área</button></div>`:ed?"":`<div class="banner ro">🔒 ${podeMover(c)?"Nesta etapa você pode mover o card e conversar, mas não editar os dados.":"Nesta etapa seu acesso é só leitura, mas pode conversar no chat."}</div>`}
     </div>
@@ -587,6 +588,8 @@ async function abrir(id,manter){
       <label class="fld">Título do negócio<input value="${esc(c.titulo)}" ${dis} data-f="titulo"></label>
       <label class="fld">Tipo de obra<select ${dis} data-f="tipo"><option value="">—</option>${opts(LISTAS.tipo,c.tipo)}<option value="__tipo">+ Adicionar outro…</option></select></label>
       <label class="fld">Nº do orçamento <small class="note">(Gestão Click)</small><input value="${esc(((c.cadastro||{}).gc_orc||{}).codigo||"")}" ${dis} data-gcnum placeholder="vem do Gestão Click"></label>
+      <label class="fld">Vendido<select ${dis} data-vend="sim"><option value="">Não</option><option value="1" ${((c.cadastro||{}).vendido||{}).sim?"selected":""}>Sim · vendido</option></select></label>
+      <label class="fld">Data da venda<input type="date" value="${esc(((c.cadastro||{}).vendido||{}).em||"")}" ${dis} data-vend="em"></label>
       <label class="fld">Cliente<input value="${esc(c.cliente)}" ${dis} data-f="cliente"></label>
       <label class="fld">Telefone / WhatsApp<input value="${esc(fmtFone(c.fone))}" ${dis} data-f="fone" inputmode="tel" placeholder="(54) 00000-0000"></label>
       <label class="fld">Cidade<input value="${esc(c.cidade)}" ${dis} data-f="cidade"></label>
@@ -674,6 +677,10 @@ async function abrir(id,manter){
         toast(upd?"Valor atualizado no Gestão Click.":"Orçamento "+(d.codigo||"")+" criado no Gestão Click.")
       }catch(e){console.error(e);st.textContent="Erro: "+(e.message||e)}finally{gcO.disabled=false}};
     const gcN=gb.querySelector("[data-gcnum]");if(gcN)gcN.onchange=async()=>{const cd=c.cadastro||{};const v=gcN.value.trim();await salvarCampos(c,{cadastro:{...cd,gc_orc:{...(cd.gc_orc||{}),codigo:v}}});const st=$("#gcOrcSt",gb);if(st)st.innerHTML=v?"✓ Orçamento nº <b>"+esc(v)+"</b> no Gestão Click":"Usa o valor estimado do negócio, em uma linha só."};
+    gb.querySelectorAll("[data-vend]").forEach(el=>el.onchange=async()=>{const cd=c.cadastro||{};const vd={...(cd.vendido||{})};
+      if(el.dataset.vend==="sim"){vd.sim=el.value==="1";if(vd.sim&&!vd.em){const d=new Date();vd.em=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}if(!vd.sim)vd.em=""}
+      else{vd.em=el.value;if(vd.em)vd.sim=true}
+      if(await salvarCampos(c,{cadastro:{...cd,vendido:vd}})){render();abrir(id,true);toast(vd.sim?"Marcado como vendido.":"Venda desmarcada.")}});
     gb.querySelectorAll("[data-ed]").forEach(b=>b.onclick=async()=>{if(!ADM)return;const k=b.dataset.ed;const ed=(c.editores||[]).includes(k)?c.editores.filter(x=>x!==k):[...(c.editores||[]),k];const campos={editores:ed};if(ed.includes(k)&&!c.membros.includes(k))campos.membros=[...c.membros,k];
       if(await salvarCampos(c,campos)){render();abrir(id,true);toast(ed.includes(k)?"Agora pode editar este negócio.":"Edição removida.")}});
     gb.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{const k=b.dataset.m;const mem=c.membros.includes(k)?c.membros.filter(x=>x!==k):[...c.membros,k];if(await salvarCampos(c,{membros:mem})){render();abrir(id,true)}});
