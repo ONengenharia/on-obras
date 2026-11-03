@@ -539,7 +539,7 @@ function aplicar(dados){
   const list=paginas(D);ajustaGen(list);
   const ids=list.map(p=>p.dataset.id).join(',');
   const stat1=started?window.__api.base:[...book.querySelectorAll('.page:not([data-gen])')];
-  if(!started){window.__baseAll=stat1;book.querySelectorAll('.page[data-gen]').forEach(e=>e.remove())}
+  if(!started){window.__baseAll=stat1;ajustaGen(stat1);book.querySelectorAll('.page[data-gen]').forEach(e=>e.remove())}
   const capaEl=list.find(p=>p.dataset.id==='capa'),resto=list.filter(p=>p!==capaEl);
   const all=[capaEl,...(window.__baseAll),...resto];numera(all);
   document.title='Proposta · '+(D.cliente.projeto||D.cliente.nome||'ON Engenharia');
