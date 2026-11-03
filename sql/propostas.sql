@@ -85,3 +85,25 @@ begin
 end $$;
 revoke all on function public.proposta_publica(text,text), public.proposta_evento(text,text,jsonb), public.proposta_aceitar(text,text,text) from public;
 grant execute on function public.proposta_publica(text,text), public.proposta_evento(text,text,jsonb), public.proposta_aceitar(text,text,text) to anon, authenticated;
+
+-- Localização aproximada (cidade por IP) anexada ao último "abriu" (aplicar manualmente)
+create or replace function public.proposta_evento(p_codigo text, p_tipo text, p_info jsonb default null)
+returns void language plpgsql security definer set search_path=public,orcarede as $$
+declare r orcarede.propostas; neg uuid; cli text;
+begin
+  if p_tipo not in ('pdf','whats','pagina','local') then return; end if;
+  select * into r from orcarede.propostas where codigo=p_codigo and status in ('enviada','aceita');
+  if not found then return; end if;
+  if p_tipo='local' then
+    update orcarede.proposta_eventos set info=coalesce(info,'{}'::jsonb)||jsonb_build_object('local',jsonb_build_object('cidade',left(coalesce(p_info->>'cidade',''),80),'regiao',left(coalesce(p_info->>'regiao',''),60),'pais',left(coalesce(p_info->>'pais',''),60)))
+    where id=(select id from orcarede.proposta_eventos where proposta_id=r.id and tipo='abriu' and criado_em>now()-interval '10 minutes' order by criado_em desc limit 1);
+    return;
+  end if;
+  insert into orcarede.proposta_eventos(proposta_id,tipo,info) values(r.id,p_tipo,p_info);
+  if p_tipo in ('pdf','whats') then
+    select o.negocio_id, o.cliente into neg, cli from orcarede.orcamentos o where o.id=r.orcamento_id;
+    perform privado.avisar(array[r.enviada_por,r.criado_por],'proposta',case p_tipo when 'pdf' then 'Cliente baixou o PDF da proposta' else 'Cliente clicou para falar com o representante' end||coalesce(' · '||cli,''),neg);
+  end if;
+end $$;
+revoke all on function public.proposta_evento(text,text,jsonb) from public;
+grant execute on function public.proposta_evento(text,text,jsonb) to anon, authenticated;

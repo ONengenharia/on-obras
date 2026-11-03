@@ -558,6 +558,10 @@ function aplicar(dados){
     numera(atuais);window.__api.reshow();wire()
   }else{window.__api.update(all,list);window.__api.sig=ids;wire()}
 }
+function local(){ // cidade aproximada pelo IP (só no link do cliente); falha em silêncio
+  try{const ac=new AbortController();setTimeout(()=>ac.abort(),5000);
+    fetch('https://get.geojs.io/v1/ip/geo.json',{signal:ac.signal}).then(x=>x.json()).then(g=>{if(!g||!(g.city||g.region))return;
+      rpc('proposta_evento',{p_codigo:CODE,p_tipo:'local',p_info:{cidade:g.city||'',regiao:(g.region||'').replace(/^State of /,''),pais:g.country||''}}).catch(()=>{})}).catch(()=>{})}catch(_){}}
 function wire(){
   ['#btnAceite','#btnPdf','#waRep'].forEach(q=>{const el=document.querySelector(q);if(!el)return;['mousedown','touchstart','pointerdown','pointerup'].forEach(ev=>el.addEventListener(ev,e=>e.stopPropagation(),true))});
   const A=document.getElementById('btnAceite');if(A)A.onclick=e=>{e.stopPropagation();if(STATE.status==='aceita')return msg('Esta proposta já foi aceita.');document.getElementById('dlgA').classList.add('on')};
@@ -593,7 +597,7 @@ async function boot(){
   if(!CODE){document.body.innerHTML='<p style="color:#fff;font:600 18px Montserrat,sans-serif;padding:40px;text-align:center">Link de proposta inválido.</p>';return}
   try{const r=await rpc('proposta_publica',{p_codigo:CODE,p_ua:navigator.userAgent});
     if(!r){document.body.innerHTML='<p style="color:#fff;font:600 18px Montserrat,sans-serif;padding:40px;text-align:center">Esta proposta não está disponível. Fale com a ON Engenharia.</p>';return}
-    STATE.status=r.status;STATE.pdf=r.pdf_path;aplicar(r.dados);rastrear()}
+    STATE.status=r.status;STATE.pdf=r.pdf_path;aplicar(r.dados);rastrear();local()}
   catch(e){document.body.innerHTML='<p style="color:#fff;font:600 18px Montserrat,sans-serif;padding:40px;text-align:center">Não foi possível abrir a proposta agora. Tente novamente em instantes.</p>'}
 }
 window.__prop={aplicar,get dados(){return D}};
