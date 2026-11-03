@@ -55,6 +55,19 @@ Deno.serve(async (req) => {
     const t = await r.text(); let j: unknown = t; try { j = JSON.parse(t) } catch (_) {}
     return out({ status: r.status, dados: j });
   }
+  if (b.acao === "produto_criar") {
+    const p = b.produto || {};
+    const cod = String(p.codigo || "").trim(), nome = String(p.nome || "").trim();
+    if (!cod || !nome) return out({ erro: "Informe código e nome do produto" }, 400);
+    const bj = await (await fetch(`${BASE}/produtos?codigo=${encodeURIComponent(cod)}&limit=5`, { headers: h })).json().catch(() => null);
+    const ja = ((bj?.data || []) as Record<string, string>[]).find((x) => String(x.codigo_interno || x.codigo || "").toUpperCase() === cod.toUpperCase());
+    if (ja) return out({ ok: true, novo: false, id: ja.id });
+    const r = await fetch(`${BASE}/produtos`, { method: "POST", headers: h, body: JSON.stringify({ codigo_interno: cod, nome, valor_custo: "0.00", valor_venda: "0.00", movimenta_estoque: "0" }) });
+    const j = await r.json().catch(() => null);
+    const id = j?.data?.id ?? j?.id;
+    if (!r.ok || !id) return out({ ok: false, status: r.status, resposta: j });
+    return out({ ok: true, novo: true, id: String(id) });
+  }
   if (b.acao === "cliente_enviar") {
     const c = b.cliente || {};
     const nome = String(c.nome || "").trim();

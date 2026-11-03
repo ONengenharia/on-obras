@@ -1570,7 +1570,7 @@ async function editor(id){
   function addMaterial(pt,peId){
     const fila=[];
     const md=modal(`<h2>Adicionar materiais${peId?" na estrutura":" avulsos"}</h2>
-     <div class="addm"><label class="fld acw">Material<input id="amM" autocomplete="off" placeholder="Digite parte do nome ou o código"><div class="acl" id="amAc" hidden></div></label><label class="fld">Qtd<input id="amQ" value="1" inputmode="decimal"></label><button type="button" class="btn" id="amAdd">+ Incluir</button></div>
+     <div class="addm"><label class="fld acw">Material<input id="amM" autocomplete="off" placeholder="Digite parte do nome ou o código"><div class="acl" id="amAc" hidden></div></label><label class="fld">Qtd<input id="amQ" value="1" inputmode="decimal"></label><button type="button" class="btn" id="amAdd">+ Incluir</button><button type="button" class="btn" id="amNew" title="Cadastrar um material que ainda não existe na base">Material novo</button></div>
      <div id="amL"></div><p class="note">Enter inclui na lista e volta para o material. No fim, grave tudo de uma vez.</p>`,async()=>{
       const m=$("#amM",md).value.trim();if(m)incluir();
       if(!fila.length){toast("Inclua pelo menos um material.");return false}
@@ -1584,6 +1584,22 @@ async function editor(id){
     function incluir(){const cod=$("#amM",md).value.split(" · ")[0].trim();if(!MAT[cod]){toast("Escolha um material da lista.");return}const q=pnum($("#amQ",md).value)||1;
       const ja=fila.find(x=>x.c===cod);if(ja)ja.q+=q;else fila.push({c:cod,q});$("#amM",md).value="";$("#amQ",md).value="1";draw();$("#amM",md).focus()}
     $("#amAdd",md).onclick=incluir;
+    $("#amNew",md).onclick=()=>{
+      let n=0;MATS.forEach(m=>{const x=/^ON-(\d+)$/.exec(m.codigo);if(x)n=Math.max(n,+x[1])});const sug="ON-"+String(n+1).padStart(4,"0");
+      const txt=$("#amM",md).value.trim();const nm0=/ · /.test(txt)?"":txt;
+      modal(`<h2>Material novo</h2><div class="grid2"><label class="fld">Código<input name="codigo" value="${sug}" required></label><label class="fld">Unidade${unSel("UN")}</label></div>
+        <label class="fld">Nome<input name="nome" value="${esc(nm0)}" required></label>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" name="gc" value="1" checked style="width:auto"> Cadastrar também como produto no Gestão Click</label>
+        <p class="note">O material entra na base do OrçaRede e já é incluído na lista. O preço você lança depois, na cotação.</p>`,async f=>{
+        const cod=f.codigo.trim().toUpperCase(),nome=f.nome.trim();
+        if(!cod||!nome){toast("Informe código e nome.");return false}
+        if(MAT[cod]||MATS.some(m=>m.codigo===cod)){toast("Já existe um material com esse código.");return false}
+        const r=await chk(O.from("materiais").insert({codigo:cod,nome,unidade:(f.unidade||"").trim()||null}).select("codigo,nome,unidade,subgrupo").single());
+        MATS.push(r);MAT[r.codigo]=r;rankMat.N=null;
+        if(f.gc){try{const {data,error}=await sb.functions.invoke("gestaoclick",{body:{acao:"produto_criar",produto:{codigo:cod,nome,unidade:r.unidade||""}}});
+          if(error||!data||!data.ok)toast("Material criado aqui, mas não consegui criar no Gestão Click: "+((data&&(data.erro||JSON.stringify(data.resposta||"")))||(error&&error.message)||"erro"));else toast(data.novo===false?"Material criado. Produto já existia no Gestão Click.":"Material criado e cadastrado no Gestão Click.")}catch(e){toast("Material criado aqui; falhou o Gestão Click.")}}
+        else toast("Material criado.");
+        const ja=fila.find(x=>x.c===cod);if(!ja)fila.push({c:cod,q:pnum($("#amQ",md).value)||1});draw()},"Criar e incluir")};
     [$("#amM",md),$("#amQ",md)].forEach(i=>i.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();if(e.target.id==="amM"&&$("#amM",md).value.trim()){$("#amQ",md).focus();$("#amQ",md).select()}else incluir()}});
     draw();
   }
