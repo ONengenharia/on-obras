@@ -1,0 +1,14 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Teste Gestão Click</title>
+<style>:root{color-scheme:light dark}body{font:15px system-ui,sans-serif;margin:0;padding:16px;max-width:760px;margin-inline:auto;background:#101b26;color:#e8f1f9}
+input,button{font:inherit;padding:9px 12px;border-radius:8px;border:1px solid #3b5368;background:#1b2b3a;color:inherit}button{background:#62a8dc;color:#10222f;font-weight:700;cursor:pointer;border:0}
+pre{background:#0b131b;padding:12px;border-radius:8px;overflow:auto;max-height:60vh;white-space:pre-wrap;word-break:break-word}.r{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}</style></head><body>
+<h2>Teste de conexão · Gestão Click (só leitura)</h2><p id="u">Verificando login…</p>
+<div class="r"><input id="n" placeholder="Nome do cliente (opcional)"><button id="b">Listar clientes</button></div><pre id="o">—</pre>
+<script src="vendor/supabase.js"></script><script src="js/config.js"></script><script src="js/db.js"></script>
+<script>(async()=>{const s=await DB.sessao();const u=document.getElementById("u"),o=document.getElementById("o");
+if(!s){u.innerHTML='Você precisa entrar no painel primeiro (<a href="orcarede.html" style="color:#62a8dc">abrir o OrçaRede</a>) e voltar aqui.';return}
+u.textContent="Logado como "+s.user.email;
+document.getElementById("b").onclick=async()=>{o.textContent="Consultando…";
+ const {data,error}=await DB.sb.functions.invoke("gestaoclick",{body:{acao:"clientes_listar",limite:3,nome:document.getElementById("n").value.trim()||undefined}});
+ let d=data;if(error&&error.context&&error.context.json){try{d=await error.context.json()}catch(_){}}
+ o.textContent=JSON.stringify(error&&!d?{erro:String(error.message||error)}:d,null,2)}})()</script></body></html>
