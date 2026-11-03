@@ -769,19 +769,39 @@ function bindAnexos(c,root){
 async function novo(){
   if(!podeCriar(quadro))return;
   const primeira=colsDe(quadro)[0];if(!primeira){toast("Crie as colunas deste quadro primeiro.");return}
-  const cand=U.filter(u=>u.papel!=="pendente");let dono=eu;
+  const cand=U.filter(u=>u.papel!=="pendente");let dono=eu;let ini={};
   const cols0=colsDe(quadro);const meuCom=ADM||veArea(eu,cols0[0]&&cols0[0].area);const padrao=meuCom?cols0[0]:(cols0.find(x=>/em andamento/i.test(x.nome))||cols0[0]);let etapa0=padrao.id;
   {dono=await new Promise(res=>{const m=document.createElement("div");m.className="modal";
     m.innerHTML=`<div class="mbox" style="background:var(--panel);border-radius:12px;padding:18px;width:min(420px,100%);display:grid;gap:12px"><h2 style="margin:0">Novo negócio</h2><label class="note">De quem é este card? (responsável / consultor)</label>
       <select id="ndono" class="btn" style="text-align:left">${cand.map(u=>`<option value="${u.id}" ${u.id===eu?"selected":""}>${esc(u.nome)}${u.id===eu?" (eu)":""}</option>`).join("")}</select>
+      <label class="note">Cliente (opcional)</label><input id="ncli" class="btn" style="text-align:left" placeholder="Nome do cliente">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input id="nfone" class="btn" style="text-align:left" inputmode="tel" placeholder="Telefone / WhatsApp"><input id="ncid" class="btn" style="text-align:left" placeholder="Cidade"></div>
+      <input id="nval" class="btn" style="text-align:left" inputmode="decimal" placeholder="Valor estimado (R$) · opcional">
+      <label class="note" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ngc"> Cadastrar o cliente no Gestão Click</label>
+      <label class="note" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ngo"> Criar o orçamento no Gestão Click (precisa de cliente e valor)</label>
       <label class="note">Etapa inicial</label><select id="netapa" class="btn" style="text-align:left">${cols0.map(x=>`<option value="${x.id}" ${x.id===padrao.id?"selected":""}>${esc(x.nome)}</option>`).join("")}</select>
       <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" id="nx">Cancelar</button><button class="btn pri" id="nok">Criar</button></div></div>`;
-    document.body.appendChild(m);m.querySelector("#nx").onclick=()=>{m.remove();res(null)};m.querySelector("#nok").onclick=()=>{const v=m.querySelector("#ndono").value;etapa0=m.querySelector("#netapa").value;m.remove();res(v)}});
+    document.body.appendChild(m);m.querySelector("#nx").onclick=()=>{m.remove();res(null)};m.querySelector("#nok").onclick=()=>{const v=m.querySelector("#ndono").value;etapa0=m.querySelector("#netapa").value;const g=i=>m.querySelector(i);ini={cliente:g("#ncli").value.trim(),fone:fmtFone(g("#nfone").value),cidade:g("#ncid").value.trim(),valor:lerBrl(g("#nval").value)||0,gc:g("#ngc").checked||g("#ngo").checked,orc:g("#ngo").checked};m.remove();res(v)}});
     if(!dono)return}
   const mem=[...new Set([dono,...(ADM||dono===eu?[]:[eu])])];
-  const {data,error}=await sb.from("negocios").insert({quadro,ordem:Math.max(0,...CARDS.filter(k=>k.coluna===(etapa0||primeira.id)).map(k=>+k.ordem||0))+1,coluna:etapa0||primeira.id,titulo:"Novo negócio "+(quadro==="solar"?"solar":"elétrico"),un:quadro==="solar"?"kWp":"kVA",membros:mem,resp:dono}).select().single();
+  const {data,error}=await sb.from("negocios").insert({quadro,ordem:Math.max(0,...CARDS.filter(k=>k.coluna===(etapa0||primeira.id)).map(k=>+k.ordem||0))+1,coluna:etapa0||primeira.id,titulo:"Novo negócio "+(quadro==="solar"?"solar":"elétrico"),un:quadro==="solar"?"kWp":"kVA",membros:mem,resp:dono,...(ini.cliente?{cliente:ini.cliente,titulo:ini.cliente}:{}),...(ini.fone?{fone:ini.fone}:{}),...(ini.cidade?{cidade:ini.cidade}:{}),...(ini.valor>0?{valor:ini.valor}:{})}).select().single();
   if(error){toast("Não foi possível criar: "+error.message);return}
   CARDS.unshift(data);abaCard="resumo";render();abrir(data.id);
+  if(ini.gc){if(!ini.cliente){toast("Negócio criado. Para cadastrar no Gestão Click, preencha o nome do cliente no card.");return}
+    const msg=await gcCriar(data,ini.orc);toast(msg);abrir(data.id,true)}
+}
+async function gcCriar(c,comOrc){ // cadastra o cliente (ou vincula) e, se pedido, cria o orçamento no Gestão Click
+  try{const cd=c.cadastro||{};let cid=cd.gc_id;
+    if(!cid){const r=await sb.functions.invoke("gestaoclick",{body:{acao:"cliente_enviar",cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});const d=r.data;
+      if(!d||!d.ok)return "Negócio criado, mas o Gestão Click não aceitou o cliente: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(r.error&&r.error.message)||"erro");
+      cid=String(d.id);await salvarCampos(c,{cadastro:{...(c.cadastro||{}),gc_id:cid}})}
+    if(!comOrc)return "Negócio criado e cliente cadastrado no Gestão Click.";
+    if(!(+c.valor>0))return "Cliente cadastrado no Gestão Click. Para criar o orçamento, preencha o valor estimado no card.";
+    const r=await sb.functions.invoke("gestaoclick",{body:{acao:"orcamento_criar",orc:{cliente_gc_id:cid,total:+c.valor,tipo:c.tipo||"Obra",titulo:c.titulo||"",ref:"Negócio · "+(c.titulo||c.cliente)}}});const d=r.data;
+    if(!d||!d.ok)return "Cliente cadastrado, mas o orçamento não foi criado: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(r.error&&r.error.message)||"erro");
+    await salvarCampos(c,{cadastro:{...(c.cadastro||{}),gc_id:cid,gc_orc:{id:d.id,codigo:d.codigo||"",em:new Date().toISOString()}}});
+    return "Negócio criado. Orçamento "+(d.codigo||"")+" criado no Gestão Click."
+  }catch(e){console.error(e);return "Negócio criado, mas houve erro com o Gestão Click: "+(e.message||e)}
 }
 
 /* ---------- utilidades ---------- */
