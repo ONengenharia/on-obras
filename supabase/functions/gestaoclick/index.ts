@@ -28,6 +28,32 @@ Deno.serve(async (req) => {
     const t = await r.text(); let j: unknown = t; try { j = JSON.parse(t) } catch (_) {}
     return out({ status: r.status, dados: j });
   }
+  const montar = (c: Record<string, string>) => {
+    const doc = String(c.doc || "").replace(/\D/g, "");
+    const tipo = c.tipo_pessoa || (doc.length === 14 ? "PJ" : "PF");
+    const corpo: Record<string, unknown> = { tipo_pessoa: tipo, nome: String(c.nome || "").trim() };
+    if (tipo === "PJ") { corpo.razao_social = c.razao || corpo.nome; if (doc) corpo.cnpj = doc; } else if (doc) corpo.cpf = doc;
+    if (c.email) corpo.email = c.email;
+    const fone = String(c.fone || "").replace(/\D/g, "");
+    if (fone) corpo.celular = fone;
+    if (c.endereco || c.cep || c.cidade) corpo.enderecos = [{ endereco: { cep: c.cep || "", logradouro: c.endereco || "", numero: c.numero || "", bairro: c.bairro || "", nome_cidade: c.cidade || "", estado: c.uf || "" } }];
+    return corpo;
+  };
+  if (b.acao === "cliente_atualizar") {
+    const gid = String(b.gc_id || "").replace(/\D/g, "");
+    if (!gid || !String(b.cliente?.nome || "").trim()) return out({ erro: "Dados incompletos" }, 400);
+    const r = await fetch(`${BASE}/clientes/${gid}`, { method: "PUT", headers: h, body: JSON.stringify(montar(b.cliente)) });
+    const j = await r.json().catch(() => null);
+    if (!r.ok) return out({ ok: false, status: r.status, resposta: j }, 200);
+    return out({ ok: true, id: gid });
+  }
+  if (b.acao === "ler") { // diagnóstico: só GET em recursos conhecidos
+    const rec = String(b.recurso || "");
+    if (!/^(clientes|orcamentos|situacoes_orcamentos|produtos|servicos|vendedores|formas_pagamentos|centros_custos|contas_bancarias|situacoes_vendas|vendas)(\/\d+)?$/.test(rec)) return out({ erro: "Recurso não permitido" }, 400);
+    const r = await fetch(`${BASE}/${rec}?limite=${Math.min(+b.limite || 1, 5)}`, { headers: h });
+    const t = await r.text(); let j: unknown = t; try { j = JSON.parse(t) } catch (_) {}
+    return out({ status: r.status, dados: j });
+  }
   if (b.acao === "cliente_enviar") {
     const c = b.cliente || {};
     const nome = String(c.nome || "").trim();
@@ -45,16 +71,7 @@ Deno.serve(async (req) => {
     if (doc) ja = (await achar({ cpf_cnpj: doc })).find((x) => String(x.cpf || x.cnpj || "").replace(/\D/g, "") === doc);
     else ja = (await achar({ nome })).find((x) => norm(x.nome) === norm(nome));
     if (ja) return out({ ok: true, novo: false, id: ja.id });
-    // 2) cria
-    const corpo: Record<string, unknown> = { tipo_pessoa: tipo, nome };
-    if (tipo === "PJ") { corpo.razao_social = c.razao || nome; if (doc) corpo.cnpj = doc; } else if (doc) corpo.cpf = doc;
-    if (c.email) corpo.email = c.email;
-    const fone = String(c.fone || "").replace(/\D/g, "");
-    if (fone) corpo.celular = fone;
-    if (c.endereco || c.cep || c.cidade) {
-      corpo.enderecos = [{ endereco: { cep: c.cep || "", logradouro: c.endereco || "", numero: c.numero || "", bairro: c.bairro || "", nome_cidade: c.cidade || "", estado: c.uf || "" } }];
-    }
-    const r = await fetch(`${BASE}/clientes`, { method: "POST", headers: h, body: JSON.stringify(corpo) });
+    const r = await fetch(`${BASE}/clientes`, { method: "POST", headers: h, body: JSON.stringify(montar(c)) });
     const j = await r.json().catch(() => null);
     const id = j?.data?.id ?? j?.id;
     if (!r.ok || !id) return out({ ok: false, status: r.status, resposta: j }, 200);

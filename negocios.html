@@ -611,8 +611,8 @@ async function abrir(id,manter){
        <label class="fld">Bairro<input value="${esc((c.cadastro||{}).bairro||"")}" ${dis} data-cad="bairro"></label>
        <label class="fld">UF<input maxlength="2" value="${esc((c.cadastro||{}).uf||"")}" ${dis} data-cad="uf" style="text-transform:uppercase"></label>
       </div>
-      <div class="note" style="margin:6px 0">Nome, telefone e cidade vêm dos campos acima. Tudo aqui é opcional; para enviar ao Gestão Click basta o nome${""}.</div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" type="button" id="gcEnviar" ${dis}>${(c.cadastro||{}).gc_id?"Atualizar vínculo no Gestão Click":"Enviar para o Gestão Click"}</button><span class="note" id="gcSt">${(c.cadastro||{}).gc_id?"Vinculado · código "+esc((c.cadastro||{}).gc_id):""}</span></div>
+      <div class="note" style="margin:6px 0">Nome, telefone e cidade vêm dos campos acima. Tudo aqui é opcional; para cadastrar no Gestão Click basta o nome. Depois de cadastrado, se você mudar algum dado, clique em “Atualizar no Gestão Click”.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" type="button" id="gcEnviar" ${dis}>${(c.cadastro||{}).gc_id?"Atualizar no Gestão Click":"Cadastrar no Gestão Click"}</button><span class="note" id="gcSt">${(c.cadastro||{}).gc_id?"✓ Cadastrado no Gestão Click · código "+esc((c.cadastro||{}).gc_id):"⚠ Ainda não cadastrado no Gestão Click"}</span></div>
      </div>
      <div class="sec"><h4>Arquivos e áudio</h4>
       <div class="aviso">📁 Para não sobrecarregar o sistema, salve os arquivos grandes (projetos, fotos em quantidade, documentos) <b>direto na pasta do cliente</b> e cole o link abaixo. Anexe aqui só o essencial.</div>
@@ -649,11 +649,13 @@ async function abrir(id,manter){
         if(af){const x=box2.querySelector(`[data-f="${af}"]`);if(x){x.focus();if(ss)try{x.setSelectionRange(ss[0],ss[1])}catch(e){}}}}}});
     gb.querySelectorAll("[data-cad]").forEach(el=>el.onchange=async()=>{const k=el.dataset.cad;let v=el.value.trim();if(k==="doc")v=v.replace(/\D/g,"");if(k==="uf")v=v.toUpperCase();if(k==="cep")v=v.replace(/\D/g,"");el.value=v;await salvarCampos(c,{cadastro:{...(c.cadastro||{}),[k]:v}})});
     const gcB=$("#gcEnviar",gb);if(gcB)gcB.onclick=async()=>{const cd=c.cadastro||{};if(!String(c.cliente||"").trim()){toast("Preencha o nome do cliente.");return}
-      gcB.disabled=true;const st=$("#gcSt",gb);st.textContent="Enviando…";
-      const {data,error}=await sb.functions.invoke("gestaoclick",{body:{acao:"cliente_enviar",cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});
+      gcB.disabled=true;const st=$("#gcSt",gb);st.textContent="Enviando…";const upd=!!cd.gc_id;
+      const {data,error}=await sb.functions.invoke("gestaoclick",{body:{acao:upd?"cliente_atualizar":"cliente_enviar",gc_id:cd.gc_id,cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});
       let d=data;if(error&&error.context&&error.context.json){try{d=await error.context.json()}catch(_){}}
       gcB.disabled=false;if(!d||d.erro||!d.ok){st.textContent="Não foi possível: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(error&&error.message)||"erro");return}
-      await salvarCampos(c,{cadastro:{...cd,gc_id:String(d.id)}});st.textContent=(d.novo?"Criado no Gestão Click":"Já existia · vinculado")+" · código "+d.id;toast(d.novo?"Cliente criado no Gestão Click.":"Cliente já existia no Gestão Click; vinculado.")};
+      if(!upd)await salvarCampos(c,{cadastro:{...cd,gc_id:String(d.id)}});
+      st.textContent="✓ "+(upd?"Atualizado":d.novo?"Cadastrado":"Já existia · vinculado")+" no Gestão Click · código "+(d.id||cd.gc_id);gcB.textContent="Atualizar no Gestão Click";toast(upd?"Cliente atualizado no Gestão Click.":d.novo?"Cliente cadastrado no Gestão Click.":"Cliente já existia no Gestão Click; vinculado.")};
+    if(gcB)gb.querySelectorAll('[data-f="cliente"],[data-f="fone"],[data-f="cidade"],[data-cad]').forEach(el=>el.addEventListener("change",()=>{if((c.cadastro||{}).gc_id){const st=$("#gcSt",gb);if(st)st.textContent="● Alterado · clique em “Atualizar no Gestão Click”"}}));
     gb.querySelectorAll("[data-ed]").forEach(b=>b.onclick=async()=>{if(!ADM)return;const k=b.dataset.ed;const ed=(c.editores||[]).includes(k)?c.editores.filter(x=>x!==k):[...(c.editores||[]),k];const campos={editores:ed};if(ed.includes(k)&&!c.membros.includes(k))campos.membros=[...c.membros,k];
       if(await salvarCampos(c,campos)){render();abrir(id,true);toast(ed.includes(k)?"Agora pode editar este negócio.":"Edição removida.")}});
     gb.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{const k=b.dataset.m;const mem=c.membros.includes(k)?c.membros.filter(x=>x!==k):[...c.membros,k];if(await salvarCampos(c,{membros:mem})){render();abrir(id,true)}});
