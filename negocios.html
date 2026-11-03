@@ -655,7 +655,7 @@ async function abrir(id,manter){
     gb.querySelectorAll("[data-cad]").forEach(el=>el.onchange=async()=>{const k=el.dataset.cad;let v=el.value.trim();if(k==="doc")v=v.replace(/\D/g,"");if(k==="uf")v=v.toUpperCase();if(k==="cep")v=v.replace(/\D/g,"");el.value=v;await salvarCampos(c,{cadastro:{...(c.cadastro||{}),[k]:v}})});
     const gcB=$("#gcEnviar",gb);if(gcB)gcB.onclick=async()=>{const cd=c.cadastro||{};if(!String(c.cliente||"").trim()){toast("Preencha o nome do cliente.");return}
       gcB.disabled=true;const st=$("#gcSt",gb);st.textContent="Enviando…";const upd=!!cd.gc_id;
-      const {data,error}=await sb.functions.invoke("gestaoclick",{body:{acao:upd?"cliente_atualizar":"cliente_enviar",gc_id:cd.gc_id,cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});
+      const {data,error}=await sb.functions.invoke("gestaoclick",{body:{empresa:c.quadro==="solar"?"solar":"eletrica",acao:upd?"cliente_atualizar":"cliente_enviar",gc_id:cd.gc_id,cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});
       let d=data;if(error&&error.context&&error.context.json){try{d=await error.context.json()}catch(_){}}
       gcB.disabled=false;if(!d||d.erro||!d.ok){st.textContent="Não foi possível: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(error&&error.message)||"erro");return}
       if(!upd)await salvarCampos(c,{cadastro:{...cd,gc_id:String(d.id)}});
@@ -667,10 +667,10 @@ async function abrir(id,manter){
       if(!upd&&!confirm(`Criar o orçamento no Gestão Click?\n\nCliente: ${c.cliente}\nValor: ${brlTxt(c.valor)}`))return;
       gcO.disabled=true;st.textContent="Enviando…";
       try{let cid=cd.gc_id;
-        if(!cid){const r=await sb.functions.invoke("gestaoclick",{body:{acao:"cliente_enviar",cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});const d=r.data;
+        if(!cid){const r=await sb.functions.invoke("gestaoclick",{body:{empresa:c.quadro==="solar"?"solar":"eletrica",acao:"cliente_enviar",cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});const d=r.data;
           if(!d||!d.ok){st.textContent="Não foi possível cadastrar o cliente: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(r.error&&r.error.message)||"erro");return}
           cid=String(d.id);await salvarCampos(c,{cadastro:{...(c.cadastro||{}),gc_id:cid}})}
-        const r=await sb.functions.invoke("gestaoclick",{body:{acao:upd?"orcamento_atualizar":"orcamento_criar",orc:{cliente_gc_id:cid,gc_id:go.id,total:+c.valor,tipo:c.tipo||"Obra",titulo:c.titulo||"",ref:"Negócio · "+(c.titulo||c.cliente)}}});
+        const r=await sb.functions.invoke("gestaoclick",{body:{empresa:c.quadro==="solar"?"solar":"eletrica",acao:upd?"orcamento_atualizar":"orcamento_criar",orc:{cliente_gc_id:cid,gc_id:go.id,total:+c.valor,tipo:c.tipo||"Obra",titulo:c.titulo||"",ref:"Negócio · "+(c.titulo||c.cliente)}}});
         const d=r.data;if(!d||!d.ok){st.textContent="O Gestão Click não aceitou: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(r.error&&r.error.message)||"erro");return}
         await salvarCampos(c,{cadastro:{...(c.cadastro||{}),gc_id:cid,gc_orc:{id:d.id,codigo:d.codigo||go.codigo||"",em:new Date().toISOString()}}});
         st.innerHTML="✓ Orçamento nº <b>"+esc(d.codigo||go.codigo||"")+"</b> no Gestão Click";if(gcN)gcN.value=d.codigo||go.codigo||"";gcO.textContent="Atualizar valor do orçamento no Gestão Click";
@@ -801,12 +801,12 @@ async function novo(){
 }
 async function gcCriar(c,comOrc){ // cadastra o cliente (ou vincula) e, se pedido, cria o orçamento no Gestão Click
   try{const cd=c.cadastro||{};let cid=cd.gc_id;
-    if(!cid){const r=await sb.functions.invoke("gestaoclick",{body:{acao:"cliente_enviar",cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});const d=r.data;
+    if(!cid){const r=await sb.functions.invoke("gestaoclick",{body:{empresa:c.quadro==="solar"?"solar":"eletrica",acao:"cliente_enviar",cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});const d=r.data;
       if(!d||!d.ok)return "Negócio criado, mas o Gestão Click não aceitou o cliente: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(r.error&&r.error.message)||"erro");
       cid=String(d.id);await salvarCampos(c,{cadastro:{...(c.cadastro||{}),gc_id:cid}})}
     if(!comOrc)return "Negócio criado e cliente cadastrado no Gestão Click.";
     if(!(+c.valor>0))return "Cliente cadastrado no Gestão Click. Para criar o orçamento, preencha o valor estimado no card.";
-    const r=await sb.functions.invoke("gestaoclick",{body:{acao:"orcamento_criar",orc:{cliente_gc_id:cid,total:+c.valor,tipo:c.tipo||"Obra",titulo:c.titulo||"",ref:"Negócio · "+(c.titulo||c.cliente)}}});const d=r.data;
+    const r=await sb.functions.invoke("gestaoclick",{body:{empresa:c.quadro==="solar"?"solar":"eletrica",acao:"orcamento_criar",orc:{cliente_gc_id:cid,total:+c.valor,tipo:c.tipo||"Obra",titulo:c.titulo||"",ref:"Negócio · "+(c.titulo||c.cliente)}}});const d=r.data;
     if(!d||!d.ok)return "Cliente cadastrado, mas o orçamento não foi criado: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(r.error&&r.error.message)||"erro");
     await salvarCampos(c,{cadastro:{...(c.cadastro||{}),gc_id:cid,gc_orc:{id:d.id,codigo:d.codigo||"",em:new Date().toISOString()}}});
     return "Negócio criado. Orçamento "+(d.codigo||"")+" criado no Gestão Click."
