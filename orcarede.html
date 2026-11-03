@@ -2302,7 +2302,7 @@ async function editor(id){
     const r=await chk(O.from("propostas").upsert(row,{onConflict:"orcamento_id"}).select("*").single());
     PROP=r;propSujo=false;return r;
   }
-  const linkProp=()=>{const d=PROP.dados||{},c=d.cliente||{},o=d.orc||{};const sl=[c.nome||c.projeto,o.numero,PROP.versao?"v"+PROP.versao:""].filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,60);
+  const linkProp=()=>{const d=PROP.dados||{},c=d.cliente||{},o=d.orc||{};const sl=[((c.nome||c.projeto||"").trim().split(/\s+/)[0]||"").slice(0,14),o.numero,PROP.versao?"v"+PROP.versao:""].filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40);
     return new URL("proposta.html?c="+PROP.codigo+(sl?"&n="+sl:""),location.href).href};
 
   async function telaProposta(){
