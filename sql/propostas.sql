@@ -110,3 +110,8 @@ grant execute on function public.proposta_evento(text,text,jsonb) to anon, authe
 
 -- Cadastro completo opcional do cliente (Gestão Click)
 alter table public.negocios add column if not exists cadastro jsonb not null default '{}'::jsonb;
+
+-- Consultores podem excluir os negócios que criaram (adm exclui qualquer um)
+drop policy if exists apagar on public.negocios;
+create policy apagar on public.negocios for delete to authenticated
+using (privado.is_admin() or (privado.ativo() and criado_por = auth.uid()));
