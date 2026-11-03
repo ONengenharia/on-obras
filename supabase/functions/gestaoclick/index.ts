@@ -77,5 +77,44 @@ Deno.serve(async (req) => {
     if (!r.ok || !id) return out({ ok: false, status: r.status, resposta: j }, 200);
     return out({ ok: true, novo: true, id });
   }
+  if (b.acao === "orcamento_criar" || b.acao === "orcamento_atualizar") {
+    const o = b.orc || {};
+    const norm = (x: unknown) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+    const gj = async (path: string) => { const r = await fetch(`${BASE}/${path}`, { headers: h }); return await r.json().catch(() => null); };
+    // vendedor = usuário logado (casa pelo nome)
+    const { data: us } = await sb.from("usuarios").select("nome,email").eq("id", u.user.id).maybeSingle();
+    const vj = await gj("vendedores?limite=100");
+    const vend = (vj?.data || []) as Record<string, string>[];
+    const meu = norm(us?.nome);
+    const v = vend.find((x) => norm(x.nome) === meu) || vend.find((x) => meu && (norm(x.nome).includes(meu) || meu.includes(norm(x.nome))));
+    if (!v) return out({ ok: false, erro: `Não achei um vendedor no Gestão Click com o nome “${us?.nome || ""}”. Vendedores lá: ${vend.map((x) => x.nome).join(", ")}` });
+    // serviço de mão de obra com código padrão ON-
+    let srv: Record<string, string> | undefined;
+    if (+o.mao > 0) {
+      srv = ((await gj(`servicos?codigo=ON-MAO-DE-OBRA`))?.data || []).find((x: Record<string, string>) => x.codigo === "ON-MAO-DE-OBRA");
+      if (!srv) {
+        const r = await fetch(`${BASE}/servicos`, { method: "POST", headers: h, body: JSON.stringify({ codigo: "ON-MAO-DE-OBRA", nome: "MÃO DE OBRA", valor_venda: "0.00" }) });
+        const j = await r.json().catch(() => null);
+        if (!r.ok || !(j?.data?.id ?? j?.id)) return out({ ok: false, etapa: "servico", status: r.status, resposta: j });
+        srv = { id: String(j?.data?.id ?? j?.id), nome: "MÃO DE OBRA" };
+      }
+    }
+    const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+    const money = (n: number) => (Math.round((+n || 0) * 100) / 100).toFixed(2);
+    const corpo: Record<string, unknown> = {
+      cliente_id: String(o.cliente_gc_id), vendedor_id: v.id, situacao_id: "7221156", centro_custo_id: "513555",
+      data: hoje, previsao_entrega: hoje, validade: "30 DIAS", introducao: String(o.ref || ""),
+      produtos: +o.material > 0 ? [{ produto: { produto_id: "72926677", variacao_id: "123633552", nome_produto: "MATERIAIS GERAIS", detalhes: String(o.titulo || ""), quantidade: "1", tipo_valor_id: "519224", valor_venda: money(o.material), tipo_desconto: "R$", desconto_valor: "" } }] : [],
+      servicos: srv ? [{ servico: { servico_id: srv.id, nome_servico: "MÃO DE OBRA", detalhes: String(o.titulo || ""), quantidade: "1", valor_venda: money(o.mao), tipo_desconto: "R$", desconto_valor: "" } }] : [],
+    };
+    const atualizar = b.acao === "orcamento_atualizar";
+    const gid = String(o.gc_id || "").replace(/\D/g, "");
+    if (atualizar && !gid) return out({ erro: "Sem código do orçamento" }, 400);
+    const r = await fetch(atualizar ? `${BASE}/orcamentos/${gid}` : `${BASE}/orcamentos`, { method: atualizar ? "PUT" : "POST", headers: h, body: JSON.stringify(corpo) });
+    const j = await r.json().catch(() => null);
+    const id = j?.data?.id ?? j?.id ?? (atualizar ? gid : undefined);
+    if (!r.ok || !id) return out({ ok: false, status: r.status, resposta: j, enviado: corpo });
+    return out({ ok: true, id: String(id), codigo: String(j?.data?.codigo ?? j?.codigo ?? ""), vendedor: v.nome });
+  }
   return out({ erro: "Ação desconhecida" }, 400);
 });

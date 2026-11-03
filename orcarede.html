@@ -2342,7 +2342,7 @@ async function editor(id){
       <div class="pbar">${stChip}<span style="flex:1"></span>
         ${ro?`<button class="btn" id="pNova">Nova versão</button>`:`<button class="btn" id="pSalv">Salvar</button><button class="btn pri" id="pEnv">Enviar ao cliente</button>`}
       </div>
-      <div class="pbar"><button class="btn sm" id="pMod">Usar modelo…</button><button class="btn sm" id="pSM">Salvar como modelo</button><button class="btn sm" id="pRef">Refazer a partir do orçamento</button>${PROP.id&&st!=="rascunho"?`<button class="btn sm" id="pLink">Copiar link</button>`:""}${PROP.pdf_path?`<a class="btn sm" href="${urlPub(PROP.pdf_path)}" target="_blank" rel="noopener">PDF enviado</a>`:""}${PROP.id&&st!=="rascunho"&&!PROP.pdf_path?`<button class="btn sm" id="pGPdf">Gerar PDF desta versão</button>`:""}<button class="btn sm" id="pPdf">Prévia em PDF</button></div>
+      <div class="pbar"><button class="btn sm" id="pMod">Usar modelo…</button><button class="btn sm" id="pSM">Salvar como modelo</button><button class="btn sm" id="pRef">Refazer a partir do orçamento</button>${PROP.id&&st!=="rascunho"?`<button class="btn sm" id="pLink">Copiar link</button>`:""}${PROP.pdf_path?`<a class="btn sm" href="${urlPub(PROP.pdf_path)}" target="_blank" rel="noopener">PDF enviado</a>`:""}<button class="btn sm" id="pGC" title="Cria (ou atualiza) o orçamento no Gestão Click e traz o número para cá">${((PROP.dados||{}).gc||{}).id?"Atualizar valores no Gestão Click":"Criar orçamento no Gestão Click"}</button>${((PROP.dados||{}).gc||{}).codigo?`<span class="note">Gestão Click nº <b>${esc(PROP.dados.gc.codigo)}</b></span>`:""}${PROP.id&&st!=="rascunho"&&!PROP.pdf_path?`<button class="btn sm" id="pGPdf">Gerar PDF desta versão</button>`:""}<button class="btn sm" id="pPdf">Prévia em PDF</button></div>
       ${PROP.id&&st!=="rascunho"?`<div class="ptrk"><b>Acompanhamento do cliente</b> · <a href="#" id="pAtu">atualizar</a><br>${abriu.length?`👁 Aberta <b>${abriu.length}×</b> · última ${dtHora(ult.criado_em)}`:"Ainda não foi aberta."}<br><small>Link: <a href="${esc(linkProp())}" target="_blank" rel="noopener">${esc(linkProp())}</a></small>
         ${TPk.length?`<div style="margin-top:8px"><b>Tempo em cada página</b> · total ${fmtS(TPtot)}${TPk.map(k=>`<div style="display:grid;grid-template-columns:150px 1fr 56px;gap:6px;align-items:center;font-size:12px"><span>${esc(nmP(k))}</span><span style="background:var(--line);border-radius:4px;height:8px"><i style="display:block;height:100%;width:${Math.round(TP[k]/TPmax*100)}%;background:var(--accent);border-radius:4px"></i></span><span style="text-align:right">${fmtS(TP[k])}</span></div>`).join("")}</div>`:`<div style="margin-top:6px"><small>O tempo por página aparece aqui depois que o cliente navegar.</small></div>`}
         <ul>${PEV.filter(e=>e.tipo!=="pagina").slice(0,40).map(e=>`<li>${dtHora(e.criado_em)} · ${ROT[e.tipo]||esc(e.tipo)}${e.tipo==="aceite"&&e.info?` · ${esc(e.info.nome||"")}`:""}${e.tipo==="abriu"&&e.info&&e.info.local&&e.info.local.cidade?` · 📍 ${esc(e.info.local.cidade)}${e.info.local.regiao?"/"+esc(e.info.local.regiao):""} <small>(aprox.)</small>`:""}</li>`).join("")}</ul></div>`:""}
@@ -2360,6 +2360,7 @@ async function editor(id){
     const _n=$("#pNova");if(_n)_n.onclick=propNovaVersao;
     const _l=$("#pLink");if(_l)_l.onclick=async()=>{try{await navigator.clipboard.writeText(linkProp());toast("Link copiado.")}catch(_){prompt("Link da proposta:",linkProp())}};
     const _a=$("#pAtu");if(_a)_a.onclick=async ev=>{ev.preventDefault();await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp()};
+    const _gc=$("#pGC");if(_gc)_gc.onclick=propGC;
     const _g=$("#pGPdf");if(_g)_g.onclick=async()=>{_g.disabled=true;const path=await propGuardaPdf();if(path){await propSalvar({pdf_path:path});await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp();toast("PDF gerado e disponível para o cliente.")}else _g.disabled=false};
     $("#pPdf").onclick=()=>propPdf().then(b=>{if(b){const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="proposta-previa.pdf";a.click()}});
     $("#pMod")&&($("#pMod").onclick=propModelos);$("#pSM")&&($("#pSM").onclick=propSalvarModelo);
@@ -2410,6 +2411,29 @@ async function editor(id){
       return pdf.output("blob");
     }catch(e){console.error(e);toast("Não foi possível gerar o PDF: "+e.message);return null}
     finally{fr.remove()}
+  }
+  async function propGC(){ // cria/atualiza o orçamento no Gestão Click (valor total da obra, sem itens) e traz o número
+    const D=PROP.dados||(PROP.dados={});const g=D.gc||{};const upd=!!g.id;
+    const mat=Math.round(+(D.valores||{}).material||0),mao=Math.round(+(D.valores||{}).mao||0);
+    if(!(mat>0||mao>0)){toast("Os valores da proposta estão zerados.");return}
+    if(!upd&&!confirm(`Criar o orçamento no Gestão Click?\n\nMateriais: ${brl(mat)}\nMão de obra: ${brl(mao)}`))return;
+    const b=$("#pGC");b.disabled=true;b.textContent="Enviando…";
+    try{
+      let neg=ORC.negocio_id;if(!neg&&ORC.pasta_id){const pr=await O.from("pastas").select("negocio_id").eq("id",ORC.pasta_id).maybeSingle();neg=pr.data&&pr.data.negocio_id}
+      if(!neg){toast("Este orçamento não está ligado a um negócio. Ligue-o a um negócio para vincular o cliente.");return}
+      const nr=await sb.from("negocios").select("id,cliente,fone,cidade,cadastro").eq("id",neg).single();if(nr.error)throw nr.error;const N=nr.data,cd=N.cadastro||{};
+      let cid=cd.gc_id;
+      if(!cid){const r=await sb.functions.invoke("gestaoclick",{body:{acao:"cliente_enviar",cliente:{nome:N.cliente||D.cliente.nome,fone:N.fone,cidade:N.cidade,...cd}}});
+        const d=r.data;if(!d||!d.ok){toast("Não foi possível cadastrar o cliente no Gestão Click: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(r.error&&r.error.message)||"erro"));return}
+        cid=String(d.id);await sb.from("negocios").update({cadastro:{...cd,gc_id:cid}}).eq("id",neg)}
+      const ref=`OrçaRede · ${D.cliente.projeto||ORC.titulo||""} · versão ${PROP.versao||1}`;
+      const r=await sb.functions.invoke("gestaoclick",{body:{acao:upd?"orcamento_atualizar":"orcamento_criar",orc:{cliente_gc_id:cid,gc_id:g.id,material:mat,mao:mao,titulo:D.cliente.projeto||ORC.titulo||"",ref}}});
+      const d=r.data;if(!d||!d.ok){console.error(d);toast("O Gestão Click não aceitou: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(r.error&&r.error.message)||"erro"));return}
+      D.gc={id:d.id,codigo:d.codigo||g.codigo||"",em:new Date().toISOString()};if(!upd&&d.codigo)D.orc.numero=d.codigo;
+      await propSalvar();await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp();
+      toast(upd?"Valores atualizados no Gestão Click.":`Orçamento ${d.codigo||""} criado no Gestão Click (vendedor ${d.vendedor||""}).`);
+    }catch(e){console.error(e);toast("Não foi possível falar com o Gestão Click: "+(e.message||e))}
+    finally{const bb=$("#pGC");if(bb){bb.disabled=false}}
   }
   async function propGuardaPdf(){const pdf=await propPdf();if(!pdf)return null;
     const path=`propostas/${PROP.codigo}_v${PROP.versao||1}_${Date.now().toString(36)}.pdf`;
