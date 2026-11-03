@@ -90,9 +90,7 @@ Deno.serve(async (req) => {
     // sem vendedor correspondente: segue sem vendedor (opcional)
     // serviço de mão de obra com código padrão ON-
     const slug = (x: string) => norm(x).toUpperCase().replace(/ /g, "-").slice(0, 40) || "OBRA";
-    const alvo = +o.total > 0
-      ? { codigo: "ON-" + slug(String(o.tipo || "OBRA")), nome: (String(o.tipo || "OBRA")).toUpperCase(), valor: +o.total }
-      : (+o.mao > 0 ? { codigo: "ON-MAO-DE-OBRA", nome: "MÃO DE OBRA", valor: +o.mao } : null);
+    const alvo = (+o.total > 0 || !(+o.mao > 0)) ? null : { codigo: "ON-MAO-DE-OBRA", nome: "MÃO DE OBRA", valor: +o.mao };
     let srv: Record<string, string> | undefined;
     if (alvo) {
       srv = ((await gj(`servicos?codigo=${encodeURIComponent(alvo.codigo)}`))?.data || []).find((x: Record<string, string>) => x.codigo === alvo.codigo);
@@ -108,7 +106,7 @@ Deno.serve(async (req) => {
     const corpo: Record<string, unknown> = {
       cliente_id: String(o.cliente_gc_id), ...(v ? { vendedor_id: v.id } : {}), situacao_id: "7221156", centro_custo_id: "513555",
       data: hoje, previsao_entrega: hoje, validade: "30 DIAS", introducao: String(o.ref || ""),
-      produtos: !(+o.total > 0) && +o.material > 0 ? [{ produto: { produto_id: "72926677", variacao_id: "123633552", nome_produto: "MATERIAIS GERAIS", detalhes: String(o.titulo || ""), quantidade: "1", tipo_valor_id: "519224", valor_venda: money(o.material), tipo_desconto: "R$", desconto_valor: "" } }] : [],
+      produtos: (+o.total > 0 || +o.material > 0) ? [{ produto: { produto_id: "72926677", variacao_id: "123633552", nome_produto: "MATERIAIS GERAIS", detalhes: +o.total > 0 ? [String(o.tipo || "").toUpperCase(), String(o.titulo || "")].filter(Boolean).join(" · ") : String(o.titulo || ""), quantidade: "1", tipo_valor_id: "519224", valor_venda: money(+o.total > 0 ? +o.total : +o.material), tipo_desconto: "R$", desconto_valor: "" } }] : [],
       servicos: srv ? [{ servico: { servico_id: srv.id, nome_servico: alvo!.nome, detalhes: String(o.titulo || ""), quantidade: "1", valor_venda: money(alvo!.valor), tipo_desconto: "R$", desconto_valor: "" } }] : [],
     };
     const atualizar = b.acao === "orcamento_atualizar";

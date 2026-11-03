@@ -586,6 +586,7 @@ async function abrir(id,manter){
      <div class="grid2">
       <label class="fld">Título do negócio<input value="${esc(c.titulo)}" ${dis} data-f="titulo"></label>
       <label class="fld">Tipo de obra<select ${dis} data-f="tipo"><option value="">—</option>${opts(LISTAS.tipo,c.tipo)}<option value="__tipo">+ Adicionar outro…</option></select></label>
+      <label class="fld">Nº do orçamento <small class="note">(Gestão Click)</small><input value="${esc(((c.cadastro||{}).gc_orc||{}).codigo||"")}" ${dis} data-gcnum placeholder="vem do Gestão Click"></label>
       <label class="fld">Cliente<input value="${esc(c.cliente)}" ${dis} data-f="cliente"></label>
       <label class="fld">Telefone / WhatsApp<input value="${esc(fmtFone(c.fone))}" ${dis} data-f="fone" inputmode="tel" placeholder="(54) 00000-0000"></label>
       <label class="fld">Cidade<input value="${esc(c.cidade)}" ${dis} data-f="cidade"></label>
@@ -669,9 +670,10 @@ async function abrir(id,manter){
         const r=await sb.functions.invoke("gestaoclick",{body:{acao:upd?"orcamento_atualizar":"orcamento_criar",orc:{cliente_gc_id:cid,gc_id:go.id,total:+c.valor,tipo:c.tipo||"Obra",titulo:c.titulo||"",ref:"Negócio · "+(c.titulo||c.cliente)}}});
         const d=r.data;if(!d||!d.ok){st.textContent="O Gestão Click não aceitou: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(r.error&&r.error.message)||"erro");return}
         await salvarCampos(c,{cadastro:{...(c.cadastro||{}),gc_id:cid,gc_orc:{id:d.id,codigo:d.codigo||go.codigo||"",em:new Date().toISOString()}}});
-        st.innerHTML="✓ Orçamento nº <b>"+esc(d.codigo||go.codigo||"")+"</b> no Gestão Click";gcO.textContent="Atualizar valor do orçamento no Gestão Click";
+        st.innerHTML="✓ Orçamento nº <b>"+esc(d.codigo||go.codigo||"")+"</b> no Gestão Click";if(gcN)gcN.value=d.codigo||go.codigo||"";gcO.textContent="Atualizar valor do orçamento no Gestão Click";
         toast(upd?"Valor atualizado no Gestão Click.":"Orçamento "+(d.codigo||"")+" criado no Gestão Click.")
       }catch(e){console.error(e);st.textContent="Erro: "+(e.message||e)}finally{gcO.disabled=false}};
+    const gcN=gb.querySelector("[data-gcnum]");if(gcN)gcN.onchange=async()=>{const cd=c.cadastro||{};const v=gcN.value.trim();await salvarCampos(c,{cadastro:{...cd,gc_orc:{...(cd.gc_orc||{}),codigo:v}}});const st=$("#gcOrcSt",gb);if(st)st.innerHTML=v?"✓ Orçamento nº <b>"+esc(v)+"</b> no Gestão Click":"Usa o valor estimado do negócio, em uma linha só."};
     gb.querySelectorAll("[data-ed]").forEach(b=>b.onclick=async()=>{if(!ADM)return;const k=b.dataset.ed;const ed=(c.editores||[]).includes(k)?c.editores.filter(x=>x!==k):[...(c.editores||[]),k];const campos={editores:ed};if(ed.includes(k)&&!c.membros.includes(k))campos.membros=[...c.membros,k];
       if(await salvarCampos(c,campos)){render();abrir(id,true);toast(ed.includes(k)?"Agora pode editar este negócio.":"Edição removida.")}});
     gb.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{const k=b.dataset.m;const mem=c.membros.includes(k)?c.membros.filter(x=>x!==k):[...c.membros,k];if(await salvarCampos(c,{membros:mem})){render();abrir(id,true)}});
