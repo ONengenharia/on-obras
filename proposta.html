@@ -251,15 +251,67 @@ button.demo.alt,.acts button.demo.alt{background:transparent!important;color:#ff
 
 .foot{font-size:1.5cqw!important;letter-spacing:.06em!important;opacity:.5!important;text-transform:none!important}.foot span:last-child{font-size:1.5cqw}
 
+/* ===== PDF para impressão: tema claro, pouca tinta ===== */
+body.pdf .page.print .in{background:#fff!important;color:#1e2f40!important}
+body.pdf .page.print .ring,body.pdf .page.print .wmveil{display:none!important}
+body.pdf .page.print .cvshade{background:linear-gradient(#fff0 35%,#fffffff0 68%)!important}
+body.pdf .page.print .cvshade~*{color:#1e2f40}
+body.pdf .page.print h1,body.pdf .page.print h2,body.pdf .page.print h3,body.pdf .page.print h4{color:#1e2f40!important}
+body.pdf .page.print h2 b,body.pdf .page.print p b,body.pdf .page.print .kicker,body.pdf .page.print h3 b{color:#2f6f9f!important}
+body.pdf .page.print .kicker{color:#2f6f9f!important}
+body.pdf .page.print .foot{color:#1e2f40!important;opacity:.55!important}
+body.pdf .page.print p,body.pdf .page.print li,body.pdf .page.print span,body.pdf .page.print em,body.pdf .page.print small{color:inherit}
+body.pdf .page.print .hero,body.pdf .page.print .card,body.pdf .page.print .chip,body.pdf .page.print .vals span,body.pdf .page.print .gh,body.pdf .page.print .gl .r.h,body.pdf .page.print .obn,body.pdf .page.print .cvs .b,body.pdf .page.print .cvs .c,body.pdf .page.print .cvs div{background:#e3eef8!important;color:#1e2f40!important;border:1px solid #9cc3e3}
+body.pdf .page.print .card p b,body.pdf .page.print .hero b{color:#1e2f40!important}
+body.pdf .page.print .steps li,body.pdf .page.print .toc li,body.pdf .page.print .ct li,body.pdf .page.print .svl li,body.pdf .page.print .cr,body.pdf .page.print .row,body.pdf .page.print .plan li{border-top-color:#1e2f4026!important}
+body.pdf .page.print .steps li:before,body.pdf .page.print .pin{background:#fff!important;color:#2f6f9f!important;border:2px solid #62a8dc}
+body.pdf .page.print .pillars div,body.pdf .page.print .plan{background:#f3f8fc!important;border:1px solid #9cc3e3!important;color:#1e2f40!important}
+body.pdf .page.print .plan li,body.pdf .page.print .plan li b,body.pdf .page.print .obs h3,body.pdf .page.print .obs p b,body.pdf .page.print .cr .nm,body.pdf .page.print .cr .vl,body.pdf .page.print .pr span,body.pdf .page.print .ga,body.pdf .page.print .box .sm{color:#1e2f40!important}
+body.pdf .page.print .cr .tr{background:#e3eef8!important}
+body.pdf .page.print .cr .tr i{background:#62a8dc!important}
+body.pdf .page.print .ga{background:#e3eef8!important}
+body.pdf .page.print .gx{background:#f3f8fc!important;border:1px solid #1e2f4022}
+body.pdf .page.print .gx[class*="on"],body.pdf .page.print .gx.x,body.pdf .page.print .gx b{background:#62a8dc!important;color:#1e2f40!important}
+body.pdf .page.print .gl .r{background:#f3f8fc!important;color:#1e2f40!important;border-top:1px solid #1e2f4022!important}
+body.pdf .page.print .gl .r.t{background:#e4f6ec!important;color:#0d7a45!important;border:1px solid #12b566}
+body.pdf .page.print .box{background:#fff!important;border:2px solid #62a8dc;border-bottom-width:2cqw}
+body.pdf .page.print .box,body.pdf .page.print .box *{color:#2f6f9f!important}
+body.pdf .page.print .sedecard span{background:#ffffffe6!important;color:#1e2f40!important}
+body.pdf .page.print .shade{background:linear-gradient(#fff0 50%,#fffffff2 78%)!important}
+body.pdf .page.print .in>p[style*="text-shadow"]{color:#1e2f40!important;text-shadow:none!important}
+body.pdf .page.print .cap{background:#ffffffe6!important;color:#1e2f40!important;border-color:#62a8dc}
+body.pdf .page.print .est,body.pdf .page.print [class*="resp"],body.pdf .page.print [class*="nao"]{color:#1e2f40}
+body.pdf .page.print .logos .lg{box-shadow:none!important;border:1px solid #1e2f4022!important}
+body.pdf .page.print .clinicial{background:#fff!important;color:#1e2f40!important}
+body.pdf .page.print .acts,body.pdf .page.print #btnAceite{display:none!important}
+body.pdf .page.print .stats b,body.pdf .page.print .stats>div b{color:#2f6f9f!important}
+body.pdf .page.print .stats>div,body.pdf .page.print .stats div{color:#1e2f40!important;border-color:#1e2f4033!important}
+body.pdf .page.print img.logo{filter:none}
+body.pdf .page.print .ph.ph-empty{background:#f3f8fc!important}
+.pdfsign{margin-top:7cqw;display:grid;gap:7cqw}
+.pdfsign .f{display:flex;align-items:flex-end;gap:3cqw;font-size:3.2cqw;font-weight:700;color:#1e2f40}
+.pdfsign .f i{flex:1;border-bottom:1.5px solid #1e2f40;height:6cqw}
+.pdfsign .f.d i{flex:0 0 38cqw}
+.pdfsign small{display:block;font-size:2.3cqw;font-weight:500;opacity:.7;margin-top:1.2cqw}
+.pdfsign .sg{margin-top:10cqw}
+.pdfsign .sg i{display:block;border-bottom:1.5px solid #1e2f40;height:9cqw}
+
+body.pdf .page.print .pill{background:#f3f8fc!important;border:1px solid #9cc3e3!important;color:#1e2f40!important}
+body.pdf .page.print .pill b{color:#2f6f9f!important}
+body.pdf .page.print .pill.no{background:#fdf3f3!important;border-color:#e0a8a8!important}
+body.pdf .page.print .pill.no b{color:#b04a4a!important}
+body.pdf .page.print .pill li,body.pdf .page.print .ls li{color:#1e2f40!important}
+body.pdf .page.print [style*="#9fb8cc"],body.pdf .page.print [style*="#cfe0ee"]{color:#1e2f40!important;opacity:.75}
+
 .capapdf{position:absolute;inset:0;background:#fff;font-family:Montserrat,system-ui,sans-serif;overflow:hidden}
-.cp-h{position:absolute;left:0;top:0;width:100%;height:250px;background:#1e3248;border-bottom-right-radius:70px}.cp-h img{position:absolute;left:44px;top:34px;width:230px}
-.cp-t{position:absolute;right:46px;top:62px;text-align:left;color:#62a8dc;line-height:1.05}.cp-t span{display:block;font-size:56px;font-weight:300}.cp-t b{display:block;font-size:60px;font-weight:800}
+.cp-h{position:absolute;left:0;top:0;width:100%;height:250px;background:#fff;border-bottom:4px solid #62a8dc}.cp-h img{position:absolute;left:44px;top:34px;width:230px}
+.cp-t{position:absolute;right:46px;top:62px;text-align:left;color:#2f6f9f;line-height:1.05}.cp-t span{display:block;font-size:56px;font-weight:300}.cp-t b{display:block;font-size:60px;font-weight:800}
 .cp-chip{position:absolute;left:18px;top:305px;background:#62a8dc;color:#1e3248;font-weight:700;letter-spacing:.2em;font-size:14px;padding:12px 38px;border-radius:30px;text-transform:uppercase}
 .cp-title{position:absolute;left:18px;top:405px;width:724px;margin:0;font-size:37px;line-height:1.05;font-weight:800;color:#1e3248;text-transform:uppercase;letter-spacing:-.03em}
 .cp-card{position:absolute;left:18px;top:705px;width:722px;height:228px;background:#9cccee;border-radius:36px;box-sizing:border-box;padding:24px 30px;color:#10222f}
 .cp-card p{margin:0}.cp-card .c1{font-size:23px}.cp-card .c2{font-size:16px;margin-top:4px}.cp-card .c3{font-size:19px;line-height:1.35;margin-top:30px}
 .cp-date{position:absolute;right:20px;top:942px;font-size:20px;color:#10222f}
-.cp-f{position:absolute;left:0;bottom:0;width:100%;height:96px;background:#62a8dc;display:flex;align-items:center;justify-content:center;gap:46px;color:#10222f;font-size:15px}.cp-f span{display:flex;align-items:center;gap:12px}.cp-f i{font-style:normal;width:40px;height:40px;border-radius:50%;background:#1e3248;color:#fff;display:grid;place-items:center;font-size:20px}
+.cp-f{position:absolute;left:0;bottom:0;width:100%;height:96px;background:#e3eef8;display:flex;align-items:center;justify-content:center;gap:46px;color:#10222f;font-size:15px}.cp-f span{display:flex;align-items:center;gap:12px}.cp-f i{font-style:normal;width:40px;height:40px;border-radius:50%;background:#2f6f9f;color:#fff;display:grid;place-items:center;font-size:20px}
 .clinicial{position:absolute;left:8cqw;top:9cqh;max-width:60cqw;background:#0b1620b3;border-left:.8cqw solid #62a8dc;border-radius:0 3cqw 3cqw 0;padding:3cqw 4cqw;color:#fff;display:grid;gap:1cqw;backdrop-filter:blur(3px)}.clinicial small{font-size:2.3cqw;letter-spacing:.22em;text-transform:uppercase;color:#62a8dc;font-weight:700}.clinicial b{font-size:4.4cqw;line-height:1.15}.clinicial span{font-size:2.8cqw;color:#cfe0ee}.clinicial em{font-style:normal;font-size:2.4cqw;color:#9fb8cc;margin-top:.6cqw}
 body.pdf .planwipe img,body.pdf .satwipe img{clip-path:none!important;transform:none!important}body.pdf .cr .tr i{transform:none!important}body.pdf *{animation:none!important}
 .cp-card .c1,.cp-card .c2{overflow-wrap:anywhere}
@@ -424,6 +476,13 @@ return `<div class="capapdf"><div class="cp-h"><img src="${LOGO}" alt="ON Engenh
 <div class="cp-card"><p class="c1">Cliente:&nbsp; ${esc(d.cliente.nome)}</p><p class="c2">Empreendimento: ${esc(d.cliente.projeto)}</p><p class="c3">Cidade: ${esc(d.cliente.cidade)}<br>Orçamento N°: ${esc(d.orc.numero)}<br>Versão ${esc(d.orc.versao)}</p></div>
 <div class="cp-date">${esc(d.orc.data)}</div>
 <div class="cp-f"><span><i>✆</i>${esc(d.aceite.fone)}</span><span><i>✉</i>${esc(d.aceite.email)}</span></div></div>`};
+G.aceitePdf=d=>{const a=d.aceite,proj=d.cliente.projeto+(d.cliente.cidade?', em '+d.cliente.cidade:'');
+return `<div class="pad" style="padding-top:8cqw"><div class="kicker">${esc(a.kicker)}</div><h2 class="big" style="font-size:8cqw">${rich(a.titulo)}</h2>
+<p>${rich(a.texto).replace('{projeto}',esc(proj))}</p>${d.orc.validade?`<div class="chip" style="margin-top:5cqw">Validade da proposta: ${esc(d.orc.validade)}</div>`:''}
+<p style="font-size:3cqw">${esc(a.resp)}<br>${esc(a.local)}</p>
+<div class="pdfsign"><div class="f"><span>Valor acordado: R$</span><i></i></div><div class="f d"><span>Data:</span><i></i><span>/</span><i style="flex:0 0 14cqw"></i><span>/</span><i style="flex:0 0 20cqw"></i></div>
+<div class="sg"><i></i><small>Assinatura do cliente${d.cliente.nome?' · '+esc(d.cliente.nome):''}</small></div></div>
+<p style="text-align:center;font-size:2.3cqw;margin-top:8cqw;opacity:.7">${esc(a.fone)} · ${esc(a.email)}</p></div>`};
 const ORDEM=['capa','projeto','resumo','materiais','mao','escopo','valores','curva','cron','fotos','acomp','clientes','aceite','fim'];
 window.__ORDEM=ORDEM;
 function elDe(html){const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild}
@@ -434,7 +493,7 @@ function paginas(d){
     let el;
     if(id==='clientes')el=elDe(document.getElementById('tCli').innerHTML.replace(/^<div class="page /,'<div data-gen="1" data-id="clientes" class="page '));
     else if(id==='fim')el=elDe(document.getElementById('tFim').innerHTML.replace(/^<div class="page /,'<div data-gen="1" data-id="fim" class="page '));
-    else el=elDe(pg(id,G[id](d),id==='capa'?'':''));
+    else el=elDe(pg(id,(PDFM&&id==='aceite'?G.aceitePdf:G[id])(d),''));
     out.push(el)});
   return out;
 }
@@ -514,7 +573,7 @@ function flat(dados){
   const list=paginas(D).filter(p=>p.dataset.id!=='capa');
   const cp=elDe(`<div class="page light" data-gen="1" data-id="capaPdf"><div class="in" style="background:#fff">${G.capaPdf(D)}</div></div>`);
   const base=[cp,...window.__baseFlat];w.insertBefore(cp,w.firstChild);
-  const all=[...base,...list];list.forEach(e=>w.appendChild(e));numera(all);
+  const all=[...base,...list];list.forEach(e=>w.appendChild(e));all.forEach(e=>{if(e.dataset.id!=='capaPdf'){e.classList.remove('navy');e.classList.add('light','print');e.querySelectorAll('img.logo.big').forEach(im=>{im.src=LOGO;im.style.background='none'})}});numera(all);
   const imgs=[...w.querySelectorAll('img')];Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))).then(()=>{
     imgs.forEach(i=>{const of=getComputedStyle(i).objectFit;if(!/cover|contain/.test(of)||!i.parentNode)return;const dv=document.createElement('div');dv.style.cssText='width:100%;height:100%;background:url("'+i.src+'") center/'+of+' no-repeat;position:'+(getComputedStyle(i).position==='absolute'?'absolute;inset:0':'relative');i.replaceWith(dv)});
     setTimeout(()=>{ajusta(all);parent.postMessage({tipo:'renderizado',paginas:all.length},'*')},500)})}
