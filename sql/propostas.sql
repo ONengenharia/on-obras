@@ -115,3 +115,11 @@ alter table public.negocios add column if not exists cadastro jsonb not null def
 drop policy if exists apagar on public.negocios;
 create policy apagar on public.negocios for delete to authenticated
 using (privado.is_admin() or (privado.ativo() and criado_por = auth.uid()));
+
+-- Quem edita orçamentos (orcarede.acesso nivel 'editar') também edita propostas; quem só vê, só lê.
+create policy acesso_editar on orcarede.propostas for all to authenticated using ((select orcarede.orc_pode_editar())) with check ((select orcarede.orc_pode_editar()));
+create policy acesso_ler on orcarede.propostas for select to authenticated using ((select orcarede.orc_pode_ver()));
+create policy acesso_editar on orcarede.proposta_eventos for all to authenticated using ((select orcarede.orc_pode_editar())) with check ((select orcarede.orc_pode_editar()));
+create policy acesso_ler on orcarede.proposta_eventos for select to authenticated using ((select orcarede.orc_pode_ver()));
+create policy acesso_editar on orcarede.proposta_modelos for all to authenticated using ((select orcarede.orc_pode_editar())) with check ((select orcarede.orc_pode_editar()));
+create policy acesso_ler on orcarede.proposta_modelos for select to authenticated using ((select orcarede.orc_pode_ver()));
