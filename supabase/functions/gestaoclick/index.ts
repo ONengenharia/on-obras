@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     const vend = (vj?.data || []) as Record<string, string>[];
     const meu = norm(us?.nome);
     const v = vend.find((x) => norm(x.nome) === meu) || vend.find((x) => meu && (norm(x.nome).includes(meu) || meu.includes(norm(x.nome))));
-    if (!v) return out({ ok: false, erro: `Não achei um vendedor no Gestão Click com o nome “${us?.nome || ""}”. Vendedores lá: ${vend.map((x) => x.nome).join(", ")}` });
+    // sem vendedor correspondente: segue sem vendedor (opcional)
     // serviço de mão de obra com código padrão ON-
     const slug = (x: string) => norm(x).toUpperCase().replace(/ /g, "-").slice(0, 40) || "OBRA";
     const alvo = +o.total > 0
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
     const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
     const money = (n: number) => (Math.round((+n || 0) * 100) / 100).toFixed(2);
     const corpo: Record<string, unknown> = {
-      cliente_id: String(o.cliente_gc_id), vendedor_id: v.id, situacao_id: "7221156", centro_custo_id: "513555",
+      cliente_id: String(o.cliente_gc_id), ...(v ? { vendedor_id: v.id } : {}), situacao_id: "7221156", centro_custo_id: "513555",
       data: hoje, previsao_entrega: hoje, validade: "30 DIAS", introducao: String(o.ref || ""),
       produtos: !(+o.total > 0) && +o.material > 0 ? [{ produto: { produto_id: "72926677", variacao_id: "123633552", nome_produto: "MATERIAIS GERAIS", detalhes: String(o.titulo || ""), quantidade: "1", tipo_valor_id: "519224", valor_venda: money(o.material), tipo_desconto: "R$", desconto_valor: "" } }] : [],
       servicos: srv ? [{ servico: { servico_id: srv.id, nome_servico: alvo!.nome, detalhes: String(o.titulo || ""), quantidade: "1", valor_venda: money(alvo!.valor), tipo_desconto: "R$", desconto_valor: "" } }] : [],
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
     const j = await r.json().catch(() => null);
     const id = j?.data?.id ?? j?.id ?? (atualizar ? gid : undefined);
     if (!r.ok || !id) return out({ ok: false, status: r.status, resposta: j, enviado: corpo });
-    return out({ ok: true, id: String(id), codigo: String(j?.data?.codigo ?? j?.codigo ?? ""), vendedor: v.nome });
+    return out({ ok: true, id: String(id), codigo: String(j?.data?.codigo ?? j?.codigo ?? ""), vendedor: v?.nome || "" });
   }
   return out({ erro: "Ação desconhecida" }, 400);
 });
