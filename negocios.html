@@ -599,6 +599,21 @@ async function abrir(id,manter){
       <label class="fld">Prazo desta etapa<input type="date" value="${c.prazo||""}" ${dis} data-f="prazo"></label>
       <label class="fld">Responsável<select ${dis} data-f="resp"><option value="">—</option>${U.map(u=>`<option value="${u.id}" ${u.id===c.resp?"selected":""}>${esc(u.nome)}</option>`).join("")}</select></label>
       <label class="fld" style="grid-column:1/-1">Localização (link do Google Maps)<span style="display:flex;gap:6px"><input style="flex:1;min-width:0" value="${esc(c.maps)}" ${dis} data-f="maps" placeholder="https://maps.app.goo.gl/…">${c.maps?`<a class="btn" href="${esc(c.maps)}" target="_blank" rel="noopener">Abrir ↗</a>`:""}</span><span class="note">${c.lat!=null?`Ponto: ${(+c.lat).toFixed(5)}, ${(+c.lng).toFixed(5)}`:c.maps?"Ponto ainda não identificado no link.":""}</span></label></div>
+     <div class="sec"><h4>Cadastro do cliente <small class="note">(opcional · usado no Gestão Click)</small></h4>
+      <div class="grid2">
+       <label class="fld">Tipo de pessoa<select ${dis} data-cad="tipo_pessoa"><option value="">—</option><option value="PF" ${(c.cadastro||{}).tipo_pessoa==="PF"?"selected":""}>Pessoa física</option><option value="PJ" ${(c.cadastro||{}).tipo_pessoa==="PJ"?"selected":""}>Pessoa jurídica</option></select></label>
+       <label class="fld">CPF ou CNPJ<input value="${esc((c.cadastro||{}).doc||"")}" ${dis} data-cad="doc" inputmode="numeric" placeholder="somente números"></label>
+       <label class="fld">Razão social <small class="note">(PJ)</small><input value="${esc((c.cadastro||{}).razao||"")}" ${dis} data-cad="razao"></label>
+       <label class="fld">E-mail<input type="email" value="${esc((c.cadastro||{}).email||"")}" ${dis} data-cad="email"></label>
+       <label class="fld">CEP<input value="${esc((c.cadastro||{}).cep||"")}" ${dis} data-cad="cep" inputmode="numeric"></label>
+       <label class="fld">Endereço<input value="${esc((c.cadastro||{}).endereco||"")}" ${dis} data-cad="endereco"></label>
+       <label class="fld">Número<input value="${esc((c.cadastro||{}).numero||"")}" ${dis} data-cad="numero"></label>
+       <label class="fld">Bairro<input value="${esc((c.cadastro||{}).bairro||"")}" ${dis} data-cad="bairro"></label>
+       <label class="fld">UF<input maxlength="2" value="${esc((c.cadastro||{}).uf||"")}" ${dis} data-cad="uf" style="text-transform:uppercase"></label>
+      </div>
+      <div class="note" style="margin:6px 0">Nome, telefone e cidade vêm dos campos acima. Tudo aqui é opcional; para enviar ao Gestão Click basta o nome${""}.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" type="button" id="gcEnviar" ${dis}>${(c.cadastro||{}).gc_id?"Atualizar vínculo no Gestão Click":"Enviar para o Gestão Click"}</button><span class="note" id="gcSt">${(c.cadastro||{}).gc_id?"Vinculado · código "+esc((c.cadastro||{}).gc_id):""}</span></div>
+     </div>
      <div class="sec"><h4>Arquivos e áudio</h4>
       <div class="aviso">📁 Para não sobrecarregar o sistema, salve os arquivos grandes (projetos, fotos em quantidade, documentos) <b>direto na pasta do cliente</b> e cole o link abaixo. Anexe aqui só o essencial.</div>
       <label class="fld">Link da pasta do cliente (Google Drive, OneDrive…)<span style="display:flex;gap:6px"><input style="flex:1;min-width:0" value="${esc(c.pasta)}" ${dis} data-f="pasta" placeholder="https://drive.google.com/…">${c.pasta?`<a class="btn" href="${esc(c.pasta)}" target="_blank" rel="noopener">Abrir pasta ↗</a>`:""}</span></label>
@@ -632,6 +647,13 @@ async function abrir(id,manter){
         await abrir(id,true);
         const box2=document.querySelector(".gv")||document;Object.entries(keep).forEach(([k,v])=>{const x=box2.querySelector(`[data-f="${k}"]`);if(x&&x.value!==v)x.value=v});
         if(af){const x=box2.querySelector(`[data-f="${af}"]`);if(x){x.focus();if(ss)try{x.setSelectionRange(ss[0],ss[1])}catch(e){}}}}}});
+    gb.querySelectorAll("[data-cad]").forEach(el=>el.onchange=async()=>{const k=el.dataset.cad;let v=el.value.trim();if(k==="doc")v=v.replace(/\D/g,"");if(k==="uf")v=v.toUpperCase();if(k==="cep")v=v.replace(/\D/g,"");el.value=v;await salvarCampos(c,{cadastro:{...(c.cadastro||{}),[k]:v}})});
+    const gcB=$("#gcEnviar",gb);if(gcB)gcB.onclick=async()=>{const cd=c.cadastro||{};if(!String(c.cliente||"").trim()){toast("Preencha o nome do cliente.");return}
+      gcB.disabled=true;const st=$("#gcSt",gb);st.textContent="Enviando…";
+      const {data,error}=await sb.functions.invoke("gestaoclick",{body:{acao:"cliente_enviar",cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});
+      let d=data;if(error&&error.context&&error.context.json){try{d=await error.context.json()}catch(_){}}
+      gcB.disabled=false;if(!d||d.erro||!d.ok){st.textContent="Não foi possível: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(error&&error.message)||"erro");return}
+      await salvarCampos(c,{cadastro:{...cd,gc_id:String(d.id)}});st.textContent=(d.novo?"Criado no Gestão Click":"Já existia · vinculado")+" · código "+d.id;toast(d.novo?"Cliente criado no Gestão Click.":"Cliente já existia no Gestão Click; vinculado.")};
     gb.querySelectorAll("[data-ed]").forEach(b=>b.onclick=async()=>{if(!ADM)return;const k=b.dataset.ed;const ed=(c.editores||[]).includes(k)?c.editores.filter(x=>x!==k):[...(c.editores||[]),k];const campos={editores:ed};if(ed.includes(k)&&!c.membros.includes(k))campos.membros=[...c.membros,k];
       if(await salvarCampos(c,campos)){render();abrir(id,true);toast(ed.includes(k)?"Agora pode editar este negócio.":"Edição removida.")}});
     gb.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{const k=b.dataset.m;const mem=c.membros.includes(k)?c.membros.filter(x=>x!==k):[...c.membros,k];if(await salvarCampos(c,{membros:mem})){render();abrir(id,true)}});

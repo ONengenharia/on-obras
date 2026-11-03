@@ -107,3 +107,6 @@ begin
 end $$;
 revoke all on function public.proposta_evento(text,text,jsonb) from public;
 grant execute on function public.proposta_evento(text,text,jsonb) to anon, authenticated;
+
+-- Cadastro completo opcional do cliente (Gestão Click)
+alter table public.negocios add column if not exists cadastro jsonb not null default '{}'::jsonb;

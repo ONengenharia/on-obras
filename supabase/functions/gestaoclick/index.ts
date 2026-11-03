@@ -28,5 +28,37 @@ Deno.serve(async (req) => {
     const t = await r.text(); let j: unknown = t; try { j = JSON.parse(t) } catch (_) {}
     return out({ status: r.status, dados: j });
   }
+  if (b.acao === "cliente_enviar") {
+    const c = b.cliente || {};
+    const nome = String(c.nome || "").trim();
+    if (!nome) return out({ erro: "Informe o nome do cliente" }, 400);
+    const doc = String(c.doc || "").replace(/\D/g, "");
+    const tipo = c.tipo_pessoa || (doc.length === 14 ? "PJ" : "PF");
+    const norm = (x: unknown) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const achar = async (qs: Record<string, string>) => {
+      const r = await fetch(`${BASE}/clientes?${new URLSearchParams({ ...qs, limit: "10" })}`, { headers: h });
+      const j = await r.json().catch(() => null);
+      return (j?.data || []) as Record<string, string>[];
+    };
+    // 1) já existe? (por CPF/CNPJ; sem documento, por nome idêntico)
+    let ja: Record<string, string> | undefined;
+    if (doc) ja = (await achar({ cpf_cnpj: doc })).find((x) => String(x.cpf || x.cnpj || "").replace(/\D/g, "") === doc);
+    else ja = (await achar({ nome })).find((x) => norm(x.nome) === norm(nome));
+    if (ja) return out({ ok: true, novo: false, id: ja.id });
+    // 2) cria
+    const corpo: Record<string, unknown> = { tipo_pessoa: tipo, nome };
+    if (tipo === "PJ") { corpo.razao_social = c.razao || nome; if (doc) corpo.cnpj = doc; } else if (doc) corpo.cpf = doc;
+    if (c.email) corpo.email = c.email;
+    const fone = String(c.fone || "").replace(/\D/g, "");
+    if (fone) corpo.celular = fone;
+    if (c.endereco || c.cep || c.cidade) {
+      corpo.enderecos = [{ endereco: { cep: c.cep || "", logradouro: c.endereco || "", numero: c.numero || "", bairro: c.bairro || "", nome_cidade: c.cidade || "", estado: c.uf || "" } }];
+    }
+    const r = await fetch(`${BASE}/clientes`, { method: "POST", headers: h, body: JSON.stringify(corpo) });
+    const j = await r.json().catch(() => null);
+    const id = j?.data?.id ?? j?.id;
+    if (!r.ok || !id) return out({ ok: false, status: r.status, resposta: j }, 200);
+    return out({ ok: true, novo: true, id });
+  }
   return out({ erro: "Ação desconhecida" }, 400);
 });
