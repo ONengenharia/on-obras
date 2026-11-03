@@ -89,14 +89,18 @@ Deno.serve(async (req) => {
     const v = vend.find((x) => norm(x.nome) === meu) || vend.find((x) => meu && (norm(x.nome).includes(meu) || meu.includes(norm(x.nome))));
     if (!v) return out({ ok: false, erro: `Não achei um vendedor no Gestão Click com o nome “${us?.nome || ""}”. Vendedores lá: ${vend.map((x) => x.nome).join(", ")}` });
     // serviço de mão de obra com código padrão ON-
+    const slug = (x: string) => norm(x).toUpperCase().replace(/ /g, "-").slice(0, 40) || "OBRA";
+    const alvo = +o.total > 0
+      ? { codigo: "ON-" + slug(String(o.tipo || "OBRA")), nome: (String(o.tipo || "OBRA")).toUpperCase(), valor: +o.total }
+      : (+o.mao > 0 ? { codigo: "ON-MAO-DE-OBRA", nome: "MÃO DE OBRA", valor: +o.mao } : null);
     let srv: Record<string, string> | undefined;
-    if (+o.mao > 0) {
-      srv = ((await gj(`servicos?codigo=ON-MAO-DE-OBRA`))?.data || []).find((x: Record<string, string>) => x.codigo === "ON-MAO-DE-OBRA");
+    if (alvo) {
+      srv = ((await gj(`servicos?codigo=${encodeURIComponent(alvo.codigo)}`))?.data || []).find((x: Record<string, string>) => x.codigo === alvo.codigo);
       if (!srv) {
-        const r = await fetch(`${BASE}/servicos`, { method: "POST", headers: h, body: JSON.stringify({ codigo: "ON-MAO-DE-OBRA", nome: "MÃO DE OBRA", valor_venda: "0.00" }) });
+        const r = await fetch(`${BASE}/servicos`, { method: "POST", headers: h, body: JSON.stringify({ codigo: alvo.codigo, nome: alvo.nome, valor_venda: "0.00" }) });
         const j = await r.json().catch(() => null);
         if (!r.ok || !(j?.data?.id ?? j?.id)) return out({ ok: false, etapa: "servico", status: r.status, resposta: j });
-        srv = { id: String(j?.data?.id ?? j?.id), nome: "MÃO DE OBRA" };
+        srv = { id: String(j?.data?.id ?? j?.id), nome: alvo.nome };
       }
     }
     const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
@@ -104,8 +108,8 @@ Deno.serve(async (req) => {
     const corpo: Record<string, unknown> = {
       cliente_id: String(o.cliente_gc_id), vendedor_id: v.id, situacao_id: "7221156", centro_custo_id: "513555",
       data: hoje, previsao_entrega: hoje, validade: "30 DIAS", introducao: String(o.ref || ""),
-      produtos: +o.material > 0 ? [{ produto: { produto_id: "72926677", variacao_id: "123633552", nome_produto: "MATERIAIS GERAIS", detalhes: String(o.titulo || ""), quantidade: "1", tipo_valor_id: "519224", valor_venda: money(o.material), tipo_desconto: "R$", desconto_valor: "" } }] : [],
-      servicos: srv ? [{ servico: { servico_id: srv.id, nome_servico: "MÃO DE OBRA", detalhes: String(o.titulo || ""), quantidade: "1", valor_venda: money(o.mao), tipo_desconto: "R$", desconto_valor: "" } }] : [],
+      produtos: !(+o.total > 0) && +o.material > 0 ? [{ produto: { produto_id: "72926677", variacao_id: "123633552", nome_produto: "MATERIAIS GERAIS", detalhes: String(o.titulo || ""), quantidade: "1", tipo_valor_id: "519224", valor_venda: money(o.material), tipo_desconto: "R$", desconto_valor: "" } }] : [],
+      servicos: srv ? [{ servico: { servico_id: srv.id, nome_servico: alvo!.nome, detalhes: String(o.titulo || ""), quantidade: "1", valor_venda: money(alvo!.valor), tipo_desconto: "R$", desconto_valor: "" } }] : [],
     };
     const atualizar = b.acao === "orcamento_atualizar";
     const gid = String(o.gc_id || "").replace(/\D/g, "");

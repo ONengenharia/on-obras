@@ -613,6 +613,7 @@ async function abrir(id,manter){
       </div>
       <div class="note" style="margin:6px 0">Nome, telefone e cidade vêm dos campos acima. Tudo aqui é opcional; para cadastrar no Gestão Click basta o nome. Depois de cadastrado, se você mudar algum dado, clique em “Atualizar no Gestão Click”.</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" type="button" id="gcEnviar" ${dis}>${(c.cadastro||{}).gc_id?"Atualizar no Gestão Click":"Cadastrar no Gestão Click"}</button><span class="note" id="gcSt">${(c.cadastro||{}).gc_id?"✓ Cadastrado no Gestão Click · código "+esc((c.cadastro||{}).gc_id):"⚠ Ainda não cadastrado no Gestão Click"}</span></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="btn" type="button" id="gcOrc" ${dis}>${((c.cadastro||{}).gc_orc||{}).id?"Atualizar valor do orçamento no Gestão Click":"Criar orçamento no Gestão Click"}</button><span class="note" id="gcOrcSt">${((c.cadastro||{}).gc_orc||{}).codigo?"✓ Orçamento nº <b>"+esc((c.cadastro||{}).gc_orc.codigo)+"</b> no Gestão Click":"Usa o valor estimado do negócio, em uma linha só."}</span></div>
      </div>
      <div class="sec"><h4>Arquivos e áudio</h4>
       <div class="aviso">📁 Para não sobrecarregar o sistema, salve os arquivos grandes (projetos, fotos em quantidade, documentos) <b>direto na pasta do cliente</b> e cole o link abaixo. Anexe aqui só o essencial.</div>
@@ -656,6 +657,21 @@ async function abrir(id,manter){
       if(!upd)await salvarCampos(c,{cadastro:{...cd,gc_id:String(d.id)}});
       st.textContent="✓ "+(upd?"Atualizado":d.novo?"Cadastrado":"Já existia · vinculado")+" no Gestão Click · código "+(d.id||cd.gc_id);gcB.textContent="Atualizar no Gestão Click";toast(upd?"Cliente atualizado no Gestão Click.":d.novo?"Cliente cadastrado no Gestão Click.":"Cliente já existia no Gestão Click; vinculado.")};
     if(gcB)gb.querySelectorAll('[data-f="cliente"],[data-f="fone"],[data-f="cidade"],[data-cad]').forEach(el=>el.addEventListener("change",()=>{if((c.cadastro||{}).gc_id){const st=$("#gcSt",gb);if(st)st.textContent="● Alterado · clique em “Atualizar no Gestão Click”"}}));
+    const gcO=$("#gcOrc",gb);if(gcO)gcO.onclick=async()=>{const cd=c.cadastro||{};const go=cd.gc_orc||{};const upd=!!go.id;const st=$("#gcOrcSt",gb);
+      if(!String(c.cliente||"").trim()){toast("Preencha o nome do cliente.");return}
+      if(!(+c.valor>0)){toast("Preencha o valor estimado do negócio.");return}
+      if(!upd&&!confirm(`Criar o orçamento no Gestão Click?\n\nCliente: ${c.cliente}\nValor: ${brlTxt(c.valor)}`))return;
+      gcO.disabled=true;st.textContent="Enviando…";
+      try{let cid=cd.gc_id;
+        if(!cid){const r=await sb.functions.invoke("gestaoclick",{body:{acao:"cliente_enviar",cliente:{nome:c.cliente,fone:c.fone,cidade:c.cidade,...cd}}});const d=r.data;
+          if(!d||!d.ok){st.textContent="Não foi possível cadastrar o cliente: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(r.error&&r.error.message)||"erro");return}
+          cid=String(d.id);await salvarCampos(c,{cadastro:{...(c.cadastro||{}),gc_id:cid}})}
+        const r=await sb.functions.invoke("gestaoclick",{body:{acao:upd?"orcamento_atualizar":"orcamento_criar",orc:{cliente_gc_id:cid,gc_id:go.id,total:+c.valor,tipo:c.tipo||"Obra",titulo:c.titulo||"",ref:"Negócio · "+(c.titulo||c.cliente)}}});
+        const d=r.data;if(!d||!d.ok){st.textContent="O Gestão Click não aceitou: "+((d&&(d.erro||JSON.stringify(d.resposta)))||(r.error&&r.error.message)||"erro");return}
+        await salvarCampos(c,{cadastro:{...(c.cadastro||{}),gc_id:cid,gc_orc:{id:d.id,codigo:d.codigo||go.codigo||"",em:new Date().toISOString()}}});
+        st.innerHTML="✓ Orçamento nº <b>"+esc(d.codigo||go.codigo||"")+"</b> no Gestão Click";gcO.textContent="Atualizar valor do orçamento no Gestão Click";
+        toast(upd?"Valor atualizado no Gestão Click.":"Orçamento "+(d.codigo||"")+" criado no Gestão Click.")
+      }catch(e){console.error(e);st.textContent="Erro: "+(e.message||e)}finally{gcO.disabled=false}};
     gb.querySelectorAll("[data-ed]").forEach(b=>b.onclick=async()=>{if(!ADM)return;const k=b.dataset.ed;const ed=(c.editores||[]).includes(k)?c.editores.filter(x=>x!==k):[...(c.editores||[]),k];const campos={editores:ed};if(ed.includes(k)&&!c.membros.includes(k))campos.membros=[...c.membros,k];
       if(await salvarCampos(c,campos)){render();abrir(id,true);toast(ed.includes(k)?"Agora pode editar este negócio.":"Edição removida.")}});
     gb.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{const k=b.dataset.m;const mem=c.membros.includes(k)?c.membros.filter(x=>x!==k):[...c.membros,k];if(await salvarCampos(c,{membros:mem})){render();abrir(id,true)}});
