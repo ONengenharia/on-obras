@@ -15,9 +15,9 @@ Deno.serve(async (req) => {
   if (!ok) return out({ erro: "Sem permissão" }, 403);
 
   const b = await req.json().catch(() => ({}));
-  const solar = b.empresa === "solar"; // ON Solar e ON Elétrica são contas separadas no Gestão Click
-  const tok = Deno.env.get(solar ? "GC_ACCESS_TOKEN_SOLAR" : "GC_ACCESS_TOKEN"), sec = Deno.env.get(solar ? "GC_SECRET_TOKEN_SOLAR" : "GC_SECRET_TOKEN");
-  if (!tok) return out({ erro: (solar ? "GC_ACCESS_TOKEN_SOLAR" : "GC_ACCESS_TOKEN") + " não configurado" }, 500);
+  const solar = b.empresa === "solar";
+  const tok = Deno.env.get("GC_ACCESS_TOKEN"), sec = Deno.env.get("GC_SECRET_TOKEN");
+  if (!tok) return out({ erro: "GC_ACCESS_TOKEN não configurado" }, 500);
   const h: Record<string, string> = { "access-token": tok, "Content-Type": "application/json" };
   if (sec) h["secret-access-token"] = sec;
 
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
   }
   if (b.acao === "ler") { // diagnóstico: só GET em recursos conhecidos
     const rec = String(b.recurso || "");
-    if (!/^(clientes|orcamentos|situacoes_orcamentos|produtos|servicos|vendedores|formas_pagamentos|centros_custos|contas_bancarias|situacoes_vendas|vendas)(\/\d+)?$/.test(rec)) return out({ erro: "Recurso não permitido" }, 400);
+    if (!/^(clientes|orcamentos|situacoes_orcamentos|produtos|servicos|vendedores|formas_pagamentos|centros_custos|lojas|contas_bancarias|situacoes_vendas|vendas)(\/\d+)?$/.test(rec)) return out({ erro: "Recurso não permitido" }, 400);
     const r = await fetch(`${BASE}/${rec}?limite=${Math.min(+b.limite || 1, 5)}`, { headers: h });
     const t = await r.text(); let j: unknown = t; try { j = JSON.parse(t) } catch (_) {}
     return out({ status: r.status, dados: j });
@@ -102,26 +102,18 @@ Deno.serve(async (req) => {
         srv = { id: String(j?.data?.id ?? j?.id), nome: alvo.nome };
       }
     }
-    // ids padrão da conta ON Elétrica; na conta ON Solar são descobertos pelo nome
-    let sitId = "7221156", ccId: string | undefined = "513555", prod = { id: "72926677", vid: "123633552", tv: "519224" as string | undefined };
-    if (solar) {
-      const sj = await gj("situacoes_orcamentos?limite=50");
-      const sit = ((sj?.data || []) as Record<string, string>[]).find((x) => /em aberto/i.test(x.nome)) || ((sj?.data || [])[0]);
-      if (!sit) return out({ ok: false, erro: "Não achei a situação “Em aberto” na conta Solar" });
-      sitId = sit.id;
-      const cj = await gj("centros_custos?limite=50");
-      const cl = (cj?.data || []) as Record<string, string>[];
-      ccId = (cl.find((x) => /solar/i.test(x.nome)) || cl[0])?.id;
-      const pj = await gj(`produtos?nome=${encodeURIComponent("MATERIAIS GERAIS")}&limite=5`);
-      const p = ((pj?.data || []) as Record<string, any>[]).find((x) => /materiais gerais/i.test(x.nome || x.nome_produto || ""));
-      if (!p) return out({ ok: false, erro: "Não achei o produto “MATERIAIS GERAIS” na conta Solar. Cadastre-o lá (ou me diga outro produto genérico)." });
-      const va = p.variacoes?.[0]?.variacao;
-      prod = { id: String(p.id), vid: String(va?.id ?? p.variacao_id ?? ""), tv: va?.valores?.[0]?.tipo_id ? String(va.valores[0].tipo_id) : undefined };
-    }
+    // mesma conta; a empresa (loja) é escolhida pelo nome
+    const sitId = "7221156", prod = { id: "72926677", vid: "123633552", tv: "519224" as string | undefined };
+    let ccId: string | undefined = "513555", lojaId: string | undefined;
+    const lj = ((await gj("lojas?limite=50"))?.data || []) as Record<string, string>[];
+    const loja = lj.find((x) => solar ? /solar/i.test(norm(x.nome) + norm(x.razao_social)) : /el.trica|eletrica/i.test(norm(x.nome) + norm(x.razao_social)));
+    if (lj.length > 1 && !loja) return out({ ok: false, erro: "Não achei a empresa " + (solar ? "Solar" : "Elétrica") + " no Gestão Click. Empresas: " + lj.map((x) => x.nome).join(", ") });
+    lojaId = loja?.id;
+    if (solar) { const cl = ((await gj("centros_custos?limite=50"))?.data || []) as Record<string, string>[]; ccId = cl.find((x) => /solar/i.test(x.nome))?.id || ccId; }
     const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
     const money = (n: number) => (Math.round((+n || 0) * 100) / 100).toFixed(2);
     const corpo: Record<string, unknown> = {
-      cliente_id: String(o.cliente_gc_id), ...(v ? { vendedor_id: v.id } : {}), situacao_id: sitId, ...(ccId ? { centro_custo_id: ccId } : {}),
+      cliente_id: String(o.cliente_gc_id), ...(v ? { vendedor_id: v.id } : {}), situacao_id: sitId, ...(lojaId ? { loja_id: lojaId } : {}), ...(ccId ? { centro_custo_id: ccId } : {}),
       data: hoje, previsao_entrega: hoje, validade: "30 DIAS", introducao: String(o.ref || ""),
       produtos: (+o.total > 0 || +o.material > 0) ? [{ produto: { produto_id: prod.id, ...(prod.vid ? { variacao_id: prod.vid } : {}), nome_produto: "MATERIAIS GERAIS", detalhes: +o.total > 0 ? [String(o.tipo || "").toUpperCase(), String(o.titulo || "")].filter(Boolean).join(" · ") : String(o.titulo || ""), quantidade: "1", ...(prod.tv ? { tipo_valor_id: prod.tv } : {}), valor_venda: money(+o.total > 0 ? +o.total : +o.material), tipo_desconto: "R$", desconto_valor: "" } }] : [],
       servicos: srv ? [{ servico: { servico_id: srv.id, nome_servico: alvo!.nome, detalhes: String(o.titulo || ""), quantidade: "1", valor_venda: money(alvo!.valor), tipo_desconto: "R$", desconto_valor: "" } }] : [],
