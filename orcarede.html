@@ -1462,11 +1462,13 @@ async function editor(id){
        box.querySelectorAll("[data-esc]").forEach(c=>c.onchange=()=>{if(c.checked)SEL.set(c.dataset.esc,1);else SEL.delete(c.dataset.esc);chips()})};
      inp.onfocus=lista;inp.oninput=lista;document.addEventListener("scroll",()=>{if(!box.hidden)posAcl(inp,box)},true);box.addEventListener("pointerdown",e=>e.preventDefault());
      inp.addEventListener("blur",()=>setTimeout(()=>{if(!box.contains(document.activeElement))box.hidden=true},180));
-     const addEst=async()=>{const txt=inp.value.trim();if(txt)txt.split(/[;,]/).map(x=>x.trim()).filter(Boolean).forEach(cod=>{const e=acharEstrutura(cod);if(e)SEL.set(e.codigo,(SEL.get(e.codigo)||0)+1);else toast("Estrutura não encontrada: "+cod)});
-       if(!SEL.size){toast("Marque ou digite pelo menos uma estrutura.");return}const b=$("#pEstOk");b.disabled=true;b.textContent="Adicionando…";let n=0;
+     let ocupado=false;const TX=new Map();const addEst=async()=>{if(ocupado)return;const txt=inp.value.trim();TX.clear();if(txt)txt.split(/[;,]/).map(x=>x.trim()).filter(Boolean).forEach(cod=>{const e=acharEstrutura(cod);if(e){TX.set(e.codigo,(TX.get(e.codigo)||0)+1)}else toast("Estrutura não encontrada: "+cod)});
+       TX.forEach((q,k)=>SEL.set(k,Math.max(SEL.get(k)||0,q))); // o que está marcado e digitado ao mesmo tempo conta uma vez
+       if(txt)inp.value="";
+       if(!SEL.size){toast("Marque ou digite pelo menos uma estrutura.");return}ocupado=true;const b=$("#pEstOk");b.disabled=true;b.textContent="Adicionando…";let n=0;
        for(const [cod,q] of SEL){const e=acharEstrutura(cod);if(!e)continue;if(AUTO_CINTA&&ehFixCinta(e)&&!pt.cintas_manual){toast("A fixação com cintas é calculada automaticamente para este ponto.");continue}
          for(let k=0;k<q;k++){await chk(O.rpc("aplicar_estrutura",{p_ponto:pt.id,p_estrutura:e.id}));n++}}
-       await recarregaPonto(pt.id);renderHead();renderSide();toast(n+" estrutura(s) adicionada(s).");setTimeout(()=>$("#pEst")&&$("#pEst").focus(),10)};
+       SEL.clear();ocupado=false;await recarregaPonto(pt.id);renderHead();renderSide();toast(n+" estrutura(s) adicionada(s).");setTimeout(()=>$("#pEst")&&$("#pEst").focus(),10)};
      $("#pEstOk").onclick=addEst;inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();addEst()}else if(e.key==="Escape")box.hidden=true}}
     const seq=async()=>{const txt=$("#pSeq").value;if(lerTokens(txt).some(t=>!t.alvo&&!t.ign))return verificar(pt,txt,"digitado");const r=await aplicarSequencia(pt,txt);renderHead();renderPins();renderSide();
       toast([r.ok.length?`Aplicado: ${r.ok.join(", ")}`:"",r.nok.length?`Não reconhecido: ${r.nok.join(", ")}`:""].filter(Boolean).join(" · ")||"Nada novo para aplicar.")};
