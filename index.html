@@ -309,7 +309,7 @@ async function carregar(){
     sb.from("colunas").select("*").order("ordem"),
     sb.from("obras").select("id,titulo,cliente,local,coluna,ordem,token,avanco,atualizado_em,tipo,lat,lng,mapsLink:dados->obra->>mapsLink,negocio:dados->obra->>negocio").order("ordem")]);
   if(rc.error||ro.error){toast("Erro ao carregar: "+((rc.error||ro.error).message));return}
-  colunas=rc.data||[];obras=ro.data||[];
+  colunas=rc.data||[];obras=(ro.data||[]).filter(x=>x.tipo!=="demo"); /* obra de demonstração não entra nas contas do painel */
   try{const rs=await sb.from("negocios").select("id,titulo,cliente,cidade,pot,un,valor,lat,lng,coluna").eq("quadro","solar").eq("no_mapa",true);solares=(rs.data||[]).filter(n=>n.lat!=null)}catch(e){solares=[]}
   negs={};etqs={};
   try{const ids=obras.map(o=>o.negocio).filter(Boolean);if(ids.length){const [rn,re]=await Promise.all([sb.from("negocios").select("id,titulo,valor,etiquetas,tipo,cidade,prazo").in("id",ids),sb.from("neg_etiquetas").select("*")]);(rn.data||[]).forEach(n=>negs[n.id]=n);(re.data||[]).forEach(e=>etqs[e.id]=e)}}catch(e){}
