@@ -555,7 +555,7 @@ async function fluxograma(c,alvo){
 async function abrirCalendario(){
   const m=document.createElement("div");m.style.cssText="position:fixed;inset:0;z-index:1500;background:rgba(5,12,20,.72);display:flex;align-items:center;justify-content:center;padding:10px";
   const pad=n=>String(n).padStart(2,"0"),chv=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  let ref=new Date();ref.setDate(1);let sel=chv(new Date()),de=eu,LM=[];
+  let ref=new Date();ref.setDate(1);let sel=chv(new Date()),de=eu,LM=[],modo="mes";
   const MES=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   m.innerHTML=`<style>.cal{background:var(--panel,#16222f);color:var(--ink,#e8eef4);border:1px solid var(--line,#2a3b4c);border-radius:14px;width:min(1100px,100%);max-height:96vh;overflow:auto;padding:14px}
    .cal .gr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cal .dw{font-size:11px;text-transform:uppercase;opacity:.7;text-align:center;padding:2px}
@@ -565,24 +565,43 @@ async function abrirCalendario(){
    @media(max-width:700px){.cal .dc{min-height:56px}.cal .ev{font-size:10px}.cal .lf{grid-template-columns:1fr}}</style>
    <div class="cal"><div class="row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h2 style="margin:0;font-size:18px;flex:1">📅 Calendário</h2>
     <select class="inp" id="cP"><option value="">Todos</option>${U.map(u=>`<option value="${u.id}" ${u.id===eu?"selected":""}>${u.id===eu?"Meus":esc(u.nome)}</option>`).join("")}</select>
-    <button class="btn" id="cA">‹</button><b id="cT" style="min-width:140px;text-align:center"></b><button class="btn" id="cN">›</button><button class="btn" id="cH">Hoje</button><button class="btn" id="cX">Fechar</button></div>
+    <span class="seg" id="cM">${[["dia","Dia"],["sem","Semana"],["mes","Mês"],["ano","Ano"]].map(([k,n])=>`<button class="btn" data-m="${k}">${n}</button>`).join("")}</span><button class="btn" id="cA">‹</button><b id="cT" style="min-width:170px;text-align:center"></b><button class="btn" id="cN">›</button><button class="btn" id="cH">Hoje</button><button class="btn" id="cX">Fechar</button></div>
    <div id="cG" style="margin-top:10px"></div><div id="cD" class="dia"></div></div>`;
   document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.remove()};
   const $c=q=>m.querySelector(q);
-  const carrega=async()=>{const i=new Date(ref.getFullYear(),ref.getMonth()-1,20),f=new Date(ref.getFullYear(),ref.getMonth()+2,10);
+  const carrega=async()=>{const i=new Date(ref.getFullYear()-1,11,1),f=new Date(ref.getFullYear()+1,0,31);
     const r=await sb.from("neg_lembretes").select("id,negocio_id,para,quando,texto,feito").gte("quando",i.toISOString()).lte("quando",f.toISOString());LM=r.data||[]};
   const tit=id=>{const c=CARDS.find(x=>x.id===id);return c?c.titulo:""};
   const evs=()=>{const E={};const add=(k,o)=>(E[k]=E[k]||[]).push(o);const agora=new Date();
     LM.filter(l=>!de||l.para===de).forEach(l=>{const q=new Date(l.quando);add(chv(q),{t:q.getTime(),h:`${pad(q.getHours())}:${pad(q.getMinutes())}`,txt:(l.texto||"Lembrete")+" · "+tit(l.negocio_id),n:l.negocio_id,id:l.id,ok:l.feito,atr:!l.feito&&q<agora,tipo:"l",para:l.para})});
     CARDS.filter(c=>c.prazo&&(!de||c.resp===de||(c.membros||[]).includes(de))).forEach(c=>add(String(c.prazo).slice(0,10),{t:0,h:"🏁",txt:"Prazo · "+c.titulo,n:c.id,tipo:"p"}));
     Object.values(E).forEach(a=>a.sort((x,y)=>x.t-y.t));return E};
-  const desenha=()=>{const E=evs(),ini=new Date(ref),dow=(ini.getDay()+6)%7;ini.setDate(1-dow);const hj=chv(new Date());
-    $c("#cT").textContent=MES[ref.getMonth()]+" "+ref.getFullYear();
-    let h=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"].map(x=>`<div class="dw">${x}</div>`).join("");
-    for(let k=0;k<42;k++){const d=new Date(ini);d.setDate(ini.getDate()+k);const c=chv(d),L=E[c]||[];
-      h+=`<div class="dc ${d.getMonth()!==ref.getMonth()?"fora":""} ${c===hj?"hj":""} ${c===sel?"on":""}" data-d="${c}"><b>${d.getDate()}</b>${L.slice(0,3).map(e=>`<span class="ev ${e.tipo==="p"?"pz":e.ok?"ok":e.atr?"atr":""}">${e.h} ${esc(e.txt)}</span>`).join("")}${L.length>3?`<span class="note" style="font-size:10px">+${L.length-3}</span>`:""}</div>`}
-    $c("#cG").innerHTML=`<div class="gr">${h}</div>`;
-    $c("#cG").querySelectorAll("[data-d]").forEach(x=>x.onclick=()=>{sel=x.dataset.d;desenha()});
+  const clsE=e=>e.tipo==="p"?"pz":e.ok?"ok":e.atr?"atr":"";
+  const evHtml=(e,k)=>`<span class="ev ${clsE(e)}" data-g="${k}">${e.h} ${esc(e.txt)}</span>`;
+  const sd=()=>{const[y,mo,dd]=sel.split("-").map(Number);return new Date(y,mo-1,dd)};
+  const desenha=()=>{const E=evs(),hj=chv(new Date());
+    m.querySelectorAll("#cM [data-m]").forEach(b=>b.classList.toggle("pri",b.dataset.m===modo));
+    const G=$c("#cG");
+    if(modo==="mes"){const ini=new Date(ref),dow=(ini.getDay()+6)%7;ini.setDate(1-dow);
+      $c("#cT").textContent=MES[ref.getMonth()]+" "+ref.getFullYear();
+      let h=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"].map(x=>`<div class="dw">${x}</div>`).join("");
+      for(let k=0;k<42;k++){const d=new Date(ini);d.setDate(ini.getDate()+k);const c=chv(d),L=E[c]||[];
+        h+=`<div class="dc ${d.getMonth()!==ref.getMonth()?"fora":""} ${c===hj?"hj":""} ${c===sel?"on":""}" data-d="${c}"><b>${d.getDate()}</b>${L.slice(0,3).map(e=>`<span class="ev ${clsE(e)}">${e.h} ${esc(e.txt)}</span>`).join("")}${L.length>3?`<span class="note" style="font-size:10px">+${L.length-3}</span>`:""}</div>`}
+      G.innerHTML=`<div class="gr">${h}</div>`}
+    else if(modo==="sem"){const d0=sd(),ini=new Date(d0);ini.setDate(d0.getDate()-((d0.getDay()+6)%7));const fim=new Date(ini);fim.setDate(ini.getDate()+6);
+      $c("#cT").textContent=`${pad(ini.getDate())}/${pad(ini.getMonth()+1)} – ${pad(fim.getDate())}/${pad(fim.getMonth()+1)}/${fim.getFullYear()}`;
+      let h="";for(let k=0;k<7;k++){const d=new Date(ini);d.setDate(ini.getDate()+k);const c=chv(d),L=E[c]||[];
+        h+=`<div class="dc ${c===hj?"hj":""} ${c===sel?"on":""}" data-d="${c}" style="min-height:300px"><div class="dw">${["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"][k]}</div><b>${d.getDate()}/${pad(d.getMonth()+1)}</b>${L.map(e=>`<span class="ev ${clsE(e)}" style="white-space:normal">${e.h} ${esc(e.txt)}</span>`).join("")}</div>`}
+      G.innerHTML=`<div class="gr">${h}</div>`}
+    else if(modo==="ano"){const a=ref.getFullYear();$c("#cT").textContent=String(a);let h="";
+      for(let mm=0;mm<12;mm++){const ini=new Date(a,mm,1),dow=(ini.getDay()+6)%7,nd=new Date(a,mm+1,0).getDate();let c="";
+        for(let k=0;k<dow;k++)c+="<span></span>";
+        for(let d=1;d<=nd;d++){const key=a+"-"+pad(mm+1)+"-"+pad(d),n=(E[key]||[]).length;c+=`<span data-d="${key}" style="text-align:center;font-size:11px;padding:2px 0;border-radius:4px;cursor:pointer;${key===hj?"outline:1px solid #62a8dc;":""}${n?"background:#62a8dc55;font-weight:700":""}" title="${n?n+" item(ns)":""}">${d}</span>`}
+        h+=`<div style="border:1px solid var(--line,#2a3b4c);border-radius:10px;padding:8px"><b data-mes="${mm}" style="cursor:pointer">${MES[mm]}</b><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:4px">${c}</div></div>`}
+      G.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px">${h}</div>`;
+      G.querySelectorAll("[data-mes]").forEach(x=>x.onclick=()=>{ref=new Date(a,+x.dataset.mes,1);modo="mes";desenha()})}
+    else{const d=sd();$c("#cT").textContent=`${["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"][d.getDay()]}, ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;G.innerHTML=""}
+    G.querySelectorAll("[data-d]").forEach(x=>x.onclick=()=>{sel=x.dataset.d;if(modo==="ano"){const[y,mo]=sel.split("-").map(Number);ref=new Date(y,mo-1,1);modo="mes"}desenha()});
     const L=E[sel]||[],[y,mo,dd]=sel.split("-");
     $c("#cD").innerHTML=`<b>${dd}/${mo}/${y}</b>${L.map((e,i)=>`<span class="ev ${e.tipo==="p"?"pz":e.ok?"ok":e.atr?"atr":""}" data-i="${i}">${e.h} ${esc(e.txt)}${e.tipo==="l"&&e.para!==eu?` <small>(${esc((U.find(u=>u.id===e.para)||{}).nome||"")})</small>`:""}</span>`).join("")||'<span class="note">Nada neste dia.</span>'}
      <div class="lf"><input type="time" id="cHr" value="09:00"><select id="cNg" class="inp"><option value="">— negócio (ticket) —</option>${CARDS.slice().sort((a,b)=>(a.titulo||"").localeCompare(b.titulo||"","pt")).map(c=>`<option value="${c.id}">${esc(c.titulo||"")}${c.cliente?" · "+esc(c.cliente):""}</option>`).join("")}</select><input id="cTx" placeholder="Texto do lembrete"></div>
@@ -594,7 +613,10 @@ async function abrirCalendario(){
       toast("Lembrete criado.");await carregaTudoLemb();desenha();if(window.ON_LEMBRETES)window.ON_LEMBRETES.checar()}};
   const carregaTudoLemb=async()=>{await carrega();const {data}=await sb.from("neg_lembretes").select("id,negocio_id,para,quando,texto,feito").eq("feito",false);LEMB=data||[]};
   $c("#cX").onclick=()=>m.remove();$c("#cP").onchange=e=>{de=e.target.value;desenha()};
-  const mv=n=>async()=>{ref=new Date(ref.getFullYear(),ref.getMonth()+n,1);await carrega();desenha()};
+  const mv=n=>async()=>{if(modo==="mes")ref=new Date(ref.getFullYear(),ref.getMonth()+n,1);else if(modo==="ano")ref=new Date(ref.getFullYear()+n,0,1);
+    else{const d=sd();d.setDate(d.getDate()+n*(modo==="sem"?7:1));sel=chv(d);ref=new Date(d.getFullYear(),d.getMonth(),1)}
+    await carrega();desenha()};
+  m.querySelectorAll("#cM [data-m]").forEach(b=>b.onclick=()=>{modo=b.dataset.m;if(modo==="ano")ref=new Date(ref.getFullYear(),0,1);else if(modo!=="mes"){const d=sd();ref=new Date(d.getFullYear(),d.getMonth(),1)}desenha()});
   $c("#cA").onclick=mv(-1);$c("#cN").onclick=mv(1);$c("#cH").onclick=async()=>{ref=new Date();ref.setDate(1);sel=chv(new Date());await carrega();desenha()};
   await carrega();desenha();
 }
