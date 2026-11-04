@@ -202,10 +202,14 @@ a.demo span{font-size:5.5cqw}
 
 /* ===== páginas da proposta ===== */
 .cv{display:grid;gap:0}
-.cr{display:grid;grid-template-columns:27cqw 1fr 24cqw 10cqw;gap:2cqw;align-items:center;padding:.55cqw 0;border-top:1px solid #ffffff1c;font-size:2.4cqw}
+.cr{display:grid;grid-template-columns:4.4cqw 25cqw 1fr 24cqw 10cqw;gap:2cqw;align-items:center;padding:.55cqw 0;border-top:1px solid #ffffff1c;font-size:2.4cqw}
 .cr .nm{font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:1.95cqw;color:#fff;white-space:nowrap}
 .cr .tr{height:2.2cqw;background:#ffffff12;border-radius:2cqw;overflow:hidden}
 .cr .tr i{display:block;height:100%;border-radius:2cqw;transform-origin:left;transform:scaleX(0)}
+.cr.cA{background:linear-gradient(90deg,#2a78b44d,#2a78b414)}.cr.cB{background:linear-gradient(90deg,#62a8dc2e,#62a8dc0d)}.cr.cC{background:#8fb0c812}
+.cr{padding-left:1.2cqw;padding-right:1.2cqw;border-radius:1cqw}
+.cr .cl{display:inline-grid;place-items:center;width:3.6cqw;height:3.6cqw;border-radius:50%;font-weight:800;font-size:2cqw;color:#fff}
+.cr.cA .cl{background:#2a78b4}.cr.cB .cl{background:#62a8dc;color:#0b2740}.cr.cC .cl{background:#8fb0c8;color:#0b2740}
 .cr.cA .tr i{background:#3b8fd0}.cr.cB .tr i{background:#62a8dc}.cr.cC .tr i{background:#a9c4d8}
 .book-ready .page.show .cr .tr i{transform:scaleX(1);transition:transform 1s cubic-bezier(.2,.7,.2,1);transition-delay:calc(.5s + var(--j,0)*.06s)}
 .cr .vl{text-align:right;font-weight:700;color:#fff}.cr .pc{text-align:right;color:#9fb8cc}
@@ -218,6 +222,8 @@ a.demo span{font-size:5.5cqw}
 .gl .r.t{background:#12b566;color:#fff;font-size:4cqw;font-weight:800;white-space:nowrap}.gl .r span:last-child{white-space:nowrap}
 .pays{display:grid;grid-template-columns:1fr 1fr;gap:1.4cqw 2cqw}
 .pr{display:grid;grid-template-columns:7cqw 1fr;grid-template-areas:"a b" "a c";column-gap:2.4cqw;background:#62a8dc1f;border-radius:2cqw;padding:1cqw 2.4cqw;font-size:2.4cqw;align-items:center}
+.avs{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"a b" "a c";column-gap:3cqw;margin-top:2cqw;background:#2a78b440;border:1px solid #62a8dc88;border-radius:2cqw;padding:1.4cqw 2.6cqw;font-size:2.6cqw;align-items:center}
+.avs b{grid-area:a;color:#fff;font-size:3.2cqw;text-transform:uppercase;letter-spacing:.06em}.avs span{font-weight:800;color:#fff;font-size:3.4cqw}.avs em{font-style:normal;color:#c5d8e8;font-size:2.2cqw}
 .pr b{grid-area:a;color:var(--blue);font-size:3cqw}.pr span{font-weight:700;color:#fff}.pr em{font-style:normal;color:#9fb8cc;font-size:2.1cqw}
 .gt{display:grid;grid-template-columns:1.9fr repeat(6,1fr);gap:1cqw;font-size:2.1cqw}
 .gh{background:var(--blue);color:var(--navy);font-weight:800;text-align:center;padding:1.6cqw .4cqw;border-radius:1.4cqw;text-transform:uppercase}
@@ -309,6 +315,17 @@ body.pronto #book{opacity:1;transition:opacity .45s ease}
 #carr i{width:34px;height:34px;border:3px solid #62a8dc55;border-top-color:#62a8dc;border-radius:50%;animation:carrg .8s linear infinite}
 @keyframes carrg{to{transform:rotate(360deg)}}
 body.pronto #carr,body.pdf #carr{opacity:0;pointer-events:none}
+
+body.pdf .page.print .cr.cA{background:#2a78b41f!important}body.pdf .page.print .cr.cB{background:#62a8dc24!important}body.pdf .page.print .cr.cC{background:#eef3f7!important}
+body.pdf .page.print .cr .cl{color:#fff!important}body.pdf .page.print .cr.cA .cl{background:#2a78b4!important}body.pdf .page.print .cr.cB .cl{background:#4f97cc!important}body.pdf .page.print .cr.cC .cl{background:#7d9fb8!important}
+
+body.pdf .page.print .avs{background:#e3eef8!important;border-color:#62a8dc!important}body.pdf .page.print .avs b,body.pdf .page.print .avs span{color:#0b2740!important}body.pdf .page.print .avs em{color:#3a566d!important}
+
+.recs{display:grid;grid-template-columns:1fr 1fr;gap:1.6cqw;margin-top:4cqw}
+.rc{display:flex;gap:2cqw;align-items:flex-start;background:#62a8dc1f;border:1px solid #62a8dc40;border-radius:2.4cqw;padding:2cqw 2.2cqw}
+.rc i{flex:none;display:grid;place-items:center;width:4.4cqw;height:4.4cqw;border-radius:50%;background:#62a8dc;color:#0b2740;font-style:normal;font-weight:800;font-size:2.6cqw}
+.rc b{display:block;font-size:2.9cqw;color:#fff}.rc small{display:block;font-size:2.2cqw;color:#9fb8cc;margin-top:.4cqw;line-height:1.35}
+body.pdf .page.print .rc{background:#eef5fb!important;border-color:#b9d3e8!important}body.pdf .page.print .rc b{color:#0b2740!important}body.pdf .page.print .rc small{color:#3a566d!important}body.pdf .page.print .rc i{color:#fff!important;background:#2a78b4!important}
 
 .capapdf{position:absolute;inset:0;background:#fff;font-family:Montserrat,system-ui,sans-serif;overflow:hidden}
 .cp-h{position:absolute;left:0;top:0;width:100%;height:250px;background:#fff;border-bottom:4px solid #62a8dc}.cp-h img{position:absolute;left:44px;top:34px;width:230px}
@@ -413,7 +430,8 @@ const Q=new URLSearchParams(location.search),CODE=Q.get('c'),PDFM=Q.get('pdf')==
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const rich=s=>esc(s).replace(/&lt;(\/?)(b|br)&gt;/g,'<$1$2>');
 const brl=v=>'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-const pct=v=>(Math.round((+v||0)*100)/100).toLocaleString('pt-BR')+'%';
+const ACOMP_REC=['Diário de obra — registro diário da equipe, com fotos e ocorrências','APR — análise preliminar de risco de cada atividade','Projetos e documentos — plantas, ART e arquivos da obra num só lugar','Mapa atualizado da obra — localização e andamento em tempo real'];
+const pct=v=>(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
 const img=(u,def)=>u||def||'';
 let D=null,STATE={status:'rascunho'};
 const pg=(id,inner,cls)=>`<div class="page navy ${cls||''}" data-gen="1" data-id="${id}"><div class="in">${inner}<div class="foot"><span>ON Engenharia</span><span>#</span></div></div></div>`;
@@ -449,11 +467,11 @@ valores:d=>{const v=d.valores;return `<div class="pad" style="padding-top:6cqw">
 curva:d=>{const c=d.curva,L=c.linhas||[];const mx=Math.max(1,...L.map(l=>+l.v||0));const S={A:0,B:0,C:0},Pp={A:0,B:0,C:0};L.forEach(l=>{S[l.c]=(S[l.c]||0)+(+l.v||0);Pp[l.c]=(Pp[l.c]||0)+(+l.p||0)});
 const txt=c.texto||(L.length?`Os ${L.filter(l=>l.c==='A').length} itens da curva A concentram ${Math.round(Pp.A)}% do valor dos materiais.`:'');
 return `<div class="pad" style="padding-top:5cqw"><div class="kicker">${esc(c.kicker)}</div><h2 style="margin-bottom:1cqw;font-size:5.6cqw">${rich(c.titulo)}</h2><p style="font-size:2.8cqw;margin-bottom:2cqw">${rich(txt)}</p>
-<div class="cv">${L.map(l=>`<div class="cr c${l.c}"><span class="nm">${esc(l.n)}</span><span class="tr"><i style="width:${(l.v/mx*100).toFixed(1)}%"></i></span><span class="vl">${brl(l.v)}</span><span class="pc">${pct(l.p)}</span></div>`).join('')}</div>
+<div class="cv">${L.map(l=>`<div class="cr c${l.c}"><span class="cl">${esc(l.c)}</span><span class="nm">${esc(l.n)}</span><span class="tr"><i style="width:${(l.v/mx*100).toFixed(1)}%"></i></span><span class="vl">${brl(l.v)}</span><span class="pc">${pct(l.p)}</span></div>`).join('')}</div>
 <div class="cvs"><div class="a"><small>Curva A</small><b>${brl(S.A)}</b><small>${pct(Pp.A)}</small></div><div class="b"><small>Curva B</small><b>${brl(S.B)}</b><small>${pct(Pp.B)}</small></div><div class="c"><small>Curva C</small><b>${brl(S.C)}</b><small>${pct(Pp.C)}</small></div></div></div>`},
 cron:d=>{const c=d.cron;return `<div class="pad" style="padding-top:5cqw"><div class="kicker">${esc(c.kicker)}</div><h2 style="margin-bottom:1cqw;font-size:5.6cqw">${rich(c.titulo)}</h2>
 <p style="font-size:3cqw;margin-bottom:2cqw"><b>${rich(c.fin)}</b></p>
-<div class="pays">${(c.parcelas||[]).map(p=>`<div class="pr"><b>${esc(p.pct)}${/%$/.test(p.pct)?'':'%'}</b><span>${brl(p.valor)}</span><em>${esc(p.quando)}</em></div>`).join('')}</div>
+<div class="pays">${(c.parcelas||[]).map(p=>`<div class="pr"><b>${esc(p.pct)}${/%$/.test(p.pct)?'':'%'}</b><span>${brl(p.valor)}</span><em>${esc(p.quando)}</em></div>`).join('')}</div>${c.avista?`<div class="avs"><b>À vista</b><span>${brl(+c.avistaValor>0?c.avistaValor:(d.valores&&d.valores.total)||0)}</span><em>${esc(c.avista)}</em></div>`:''}
 <p style="font-size:3cqw;margin:3.5cqw 0 1.5cqw"><b>${rich(c.exec)}</b></p>
 <div class="gt" style="grid-template-columns:1.9fr repeat(${(c.cols||[]).length},1fr)"><div class="gh">Atividade</div>${(c.cols||[]).map(x=>`<div class="gh">Dia ${esc(x)}</div>`).join('')}${(c.rows||[]).map(r=>`<div class="ga">${esc(r.a)}</div>`+(c.cols||[]).map((_,i)=>`<div class="gx ${r.x&&r.x[i]?'on':''}">${r.x&&r.x[i]?'X':''}</div>`).join('')).join('')}</div></div>`},
 fotos:d=>{const f=d.fotos,E=[0,1,2,3].map(i=>img(f.eletricas[i],DEF.f[i])),C=[0,1,2].map(i=>img(f.civis[i],DEF.c[i]));
@@ -462,8 +480,9 @@ return `<div class="pad" style="padding-top:5cqw"><div class="kicker">${esc(f.ki
 <p style="font-size:2.7cqw;margin:3cqw 0 2cqw">${esc(f.sub2)}</p><div class="ph3 c3">${C.map(u=>`<div class="ph"><img src="${esc(u)}" alt=""></div>`).join('')}</div></div>`},
 acomp:d=>{const a=d.acomp;return `<div class="ring"></div><div class="pad" style="padding-top:9cqh"><div class="chip">${esc(a.chip)}</div><h2 class="big" style="font-size:9.5cqw">${rich(a.titulo)}</h2>
 <p style="font-size:3.8cqw;margin-top:4cqw">${rich(a.texto)}</p>
+${(()=>{const R=((Array.isArray(a.recursos)&&a.recursos.length)?a.recursos:ACOMP_REC).map(x=>String(x).split(/\s+[—–-]\s+/)).filter(x=>x[0]&&x[0].trim());return R.length?`<div class="recs">${R.map(x=>`<div class="rc"><i>✓</i><div><b>${esc(x[0].trim())}</b>${x[1]?`<small>${esc(x.slice(1).join(' — ').trim())}</small>`:''}</div></div>`).join('')}</div>`:''})()}
 ${a.foto?`<div class="ph fotoacomp has" style="height:28cqw;margin-top:4cqw;border-radius:3cqw"><img src="${esc(a.foto)}" alt="Acompanhamento da obra"></div>`:''}
-<div style="text-align:center;margin-top:${a.foto?3:12}cqw"><a class="demo gmaps" href="${esc(a.demo)}" target="_blank" rel="noopener">Ver demonstração <span>→</span></a></div>
+<div style="text-align:center;margin-top:${a.foto?3:6}cqw"><a class="demo gmaps" href="${esc(a.demo)}" target="_blank" rel="noopener">Ver demonstração <span>→</span></a></div>
 <p style="text-align:center;font-size:2.6cqw;color:#9fb8cc;margin-top:2cqw">${esc(a.demoNota)}</p></div>`},
 aceite:d=>{const a=d.aceite,wa=`https://wa.me/${a.whats}?text=${encodeURIComponent('Olá, vi a proposta '+(d.orc.numero||'')+' e queria conversar.')}`;
 const proj=d.cliente.projeto+(d.cliente.cidade?', em '+d.cliente.cidade:'');
