@@ -484,7 +484,7 @@ acomp:d=>{const a=d.acomp;return `<div class="ring"></div><div class="pad" style
 <p style="font-size:3.8cqw;margin-top:4cqw">${rich(a.texto)}</p>
 ${(()=>{const R=((Array.isArray(a.recursos)&&a.recursos.length)?a.recursos:ACOMP_REC).map(x=>String(x).split(/\s+[—–-]\s+/)).filter(x=>x[0]&&x[0].trim());return R.length?`<div class="recs">${R.map(x=>`<div class="rc"><i>✓</i><div><b>${esc(x[0].trim())}</b>${x[1]?`<small>${esc(x.slice(1).join(' — ').trim())}</small>`:''}</div></div>`).join('')}</div>`:''})()}
 ${a.foto?`<div class="ph fotoacomp has" style="height:28cqw;margin-top:4cqw;border-radius:3cqw"><img src="${esc(a.foto)}" alt="Acompanhamento da obra"></div>`:''}
-<div style="text-align:center;margin-top:${a.foto?3:6}cqw"><a class="demo gmaps" href="${esc(a.demo)}" target="_blank" rel="noopener">Ver demonstração <span>→</span></a></div>
+<div style="text-align:center;margin-top:${a.foto?3:6}cqw"><a class="demo gmaps" href="${esc(/orcaredeteste\.vercel\.app/.test(a.demo||"")?"https://onengenharia.github.io/on-obras/obra.html?t=3d0fe2ba-e3b1-4790-b37f-ca8076a166a8":a.demo)}" target="_blank" rel="noopener">Ver demonstração <span>→</span></a></div>
 <p style="text-align:center;font-size:2.6cqw;color:#9fb8cc;margin-top:2cqw">${esc(a.demoNota)}</p></div>`},
 aceite:d=>{const a=d.aceite,wa=`https://wa.me/${a.whats}?text=${encodeURIComponent('Olá, vi a proposta '+(d.orc.numero||'')+' e queria conversar.')}`;
 const proj=d.cliente.projeto+(d.cliente.cidade?', em '+d.cliente.cidade:'');
