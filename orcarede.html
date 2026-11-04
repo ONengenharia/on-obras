@@ -2278,9 +2278,9 @@ async function editor(id){
    ["materiais","Materiais",[["materiais.chip","Selo"],["materiais.titulo","Título"],["materiais.itens","Itens","rep",[["t","Título",160],["d","Descrição",0,"area"]]]]],
    ["mao","Mão de obra",[["mao.chip","Selo"],["mao.titulo","Título"],["mao.itens","Itens","rep",[["t","Título",160],["d","Descrição",0,"area"]]]]],
    ["escopo","Escopo e responsabilidades",[["escopo.titulo","Título"],["escopo.texto","Texto","area"],["escopo.resp","A contratada será responsável por (um por linha)","lista"],["escopo.nao","Não inclusos (um por linha)","lista"],["escopo.rodape","Observação final","area"]]],
-   ["valores","Valores globais",[["valores.titulo","Título"],["valores.global","Empreitada global (material + mão de obra num único valor)","chk"],["valores.material","Material global (R$)","money"],["valores.mao","Mão de obra global (R$)","money"],["valores.total","Total geral (R$)","money"],["valores.lotes","Lotes","int"],["valores.porLote","Valor por lote (R$)","money"],["valores.p1","Faturamento","area"],["valores.p2","Flexibilidade de negociação","area"]]],
+   ["valores","Valores globais",[["valores.titulo","Título"],["valores.global","Empreitada global (material + mão de obra num único valor)","chk"],["valores.linhas","Linhas da empreitada global (ex.: Transformador, Restante da obra) — se preencher, o total geral é a soma","rep",[["n","Descrição",0],["v","Valor R$",120,"money"]]],["valores.material","Material global (R$)","money"],["valores.mao","Mão de obra global (R$)","money"],["valores.total","Total geral (R$)","money"],["valores.lotes","Lotes","int"],["valores.porLote","Valor por lote (R$)","money"],["valores.p1","Faturamento","area"],["valores.p2","Flexibilidade de negociação","area"]]],
    ["curva","Curva de preços",[["curva.titulo","Título"],["curva.texto","Frase de destaque (vazio = automática)","area"],["curva.linhas","Grupos de materiais","rep",[["n","Grupo",150],["v","Valor R$",110,"money"],["p","%",70,"money"],["c","Curva",60]]]]],
-   ["cron","Cronogramas",[["cron.titulo","Título"],["cron.fin","Texto do cronograma financeiro"],["cron.avista","Condição à vista (ex.: 5% de desconto para pagamento à vista) — vazio = não mostra"],["cron.avistaValor","Valor à vista R$ (vazio = total geral)","money"],["cron.parcelas","Parcelas","rep",[["pct","%",60],["valor","Valor R$",120,"money"],["quando","Quando",0]]],["cron.rows","Cronograma executivo","gantt"]]],
+   ["cron","Cronogramas",[["cron.titulo","Título"],["cron.fin","Texto do cronograma financeiro"],["cron.base","Base de cálculo das parcelas","sel"],["cron.baseValor","Valor base personalizado (R$) — usado na opção \"Valor personalizado\"","money"],["cron.descAvista","Desconto à vista (% sobre a base) — calcula o valor à vista","money"],["cron.avista","Condição à vista (ex.: 5% de desconto para pagamento à vista) — vazio = não mostra"],["cron.avistaValor","Valor à vista R$ (vazio = total geral)","money"],["cron.parcelas","Parcelas","rep",[["pct","%",60],["valor","Valor R$",120,"money"],["quando","Quando",0]]],["cron.rows","Cronograma executivo","gantt"]]],
    ["fotos","Fotos executivas",[["fotos.titulo","Título"],["fotos.sub1","Legenda 1"],["fotos.eletricas.0","Foto elétrica 1","foto"],["fotos.eletricas.1","Foto elétrica 2","foto"],["fotos.eletricas.2","Foto elétrica 3","foto"],["fotos.eletricas.3","Foto elétrica 4","foto"],["fotos.sub2","Legenda 2"],["fotos.civis.0","Foto civil 1","foto"],["fotos.civis.1","Foto civil 2","foto"],["fotos.civis.2","Foto civil 3","foto"]]],
    ["acomp","Acompanhamento da obra",[["acomp.titulo","Título"],["acomp.texto","Texto","area"],["acomp.recursos","Destaques (um por linha: Título — descrição). Vazio = padrão","lista"],["acomp.foto","Foto do acompanhamento da obra","foto"],["acomp.demo","Link da demonstração"]]],
    ["clientes","Nossos clientes (fixa)",[]],
@@ -2320,6 +2320,7 @@ async function editor(id){
       if(t==="lista")return `<label class="fld">${l}<textarea data-p="${p}" data-t="lista" rows="5" ${dis}>${esc((v||[]).join("\n"))}</textarea></label>`;
       if(t==="chk")return `<label class="fld" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" data-p="${p}" data-t="chk" ${v?"checked":""} ${dis}> <span>${l}</span></label>`;
       if(t==="money")return `<label class="fld">${l}<input data-p="${p}" data-t="money" value="${esc(num(v,2))}" inputmode="decimal" ${dis}></label>`;
+      if(t==="sel")return `<label class="fld">${l}<select data-p="${p}" data-t="sel" class="inp" ${dis}>${[["","Manual (digito os valores)"],["mao","Mão de obra"],["total","Total geral (empreitada global)"],["custom","Valor personalizado"]].map(([k,n])=>`<option value="${k}" ${(v||"")===k?"selected":""}>${n}</option>`).join("")}</select></label>`;
       if(t==="date")return `<label class="fld">${l}<input data-p="${p}" data-t="date" value="${esc(v)}" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" ${dis}></label>`;
       if(t==="int")return `<label class="fld">${l}<input data-p="${p}" data-t="int" value="${esc(v||"")}" inputmode="numeric" ${dis}></label>`;
       if(t==="foto")return `<div class="fld"><span>${l}</span><div class="pfoto">${v?`<img src="${esc(v)}" alt="">`:`<span class="pf0">sem foto</span>`}<span>${ro?"":`<label class="btn sm">Escolher<input type="file" accept="image/*" data-foto="${p}" hidden></label>${v?` <button type="button" class="btn sm" data-fx="${p}">Remover</button>`:""}`}</span></div></div>`;
@@ -2394,6 +2395,18 @@ async function editor(id){
     </div><div class="col2"><iframe class="pprev" id="pPrev" src="proposta.html?prev=1&v=${Date.now()}" title="Prévia da proposta"></iframe></div></div>`;
     ligaProp(ro);
   }
+  function propRecalc(D){ // automatiza total (linhas globais), parcelas e à vista
+    const V=D.valores=D.valores||{},C=D.cron=D.cron||{};
+    const ln=(V.linhas||[]).filter(x=>x&&(+x.v||0)>0);
+    if(V.global&&ln.length){V.total=+ln.reduce((s,x)=>s+(+x.v||0),0).toFixed(2);if(V.lotes)V.porLote=+(V.total/V.lotes).toFixed(2)}
+    const bs=C.base==="mao"?+V.mao||0:C.base==="total"?+V.total||0:C.base==="custom"?+C.baseValor||0:null;
+    if(bs!=null){(C.parcelas||[]).forEach(p=>{const k=parseFloat(String(p.pct).replace(",","."))||0;p.valor=+(bs*k/100).toFixed(2)});
+      const dp=+C.descAvista||0;if(dp>0){C.avistaValor=+((+V.total||0)-bs*dp/100).toFixed(2);if(!C.avista)C.avista=num(dp,dp%1?1:0)+"% de desconto para pagamento à vista"}}
+    // sincroniza os campos na tela
+    const F=$("#pForm");if(!F)return;const set=(p,v)=>{const n=F.querySelector(`[data-p="${p}"]`);if(n&&document.activeElement!==n)n.value=num(v,2)};
+    set("valores.total",V.total);set("valores.porLote",V.porLote);set("cron.avistaValor",C.avistaValor);
+    F.querySelectorAll('[data-rep="cron.parcelas"] .prow').forEach(r=>{const p=(C.parcelas||[])[+r.dataset.i];const n=r.querySelector('[data-rk="valor"]');if(p&&n&&document.activeElement!==n)n.value=num(p.valor,2)});
+  }
   function ligaProp(ro){
     const fr=$("#pPrev"),d=()=>PROP.dados;let pronto=false,ir=null;
     const envia=(so)=>{if(pronto&&fr.contentWindow)fr.contentWindow.postMessage({tipo:"dados",dados:PROP.dados,so:so||null},"*")};
@@ -2418,10 +2431,10 @@ async function editor(id){
     F.addEventListener("toggle",ev=>{const s=ev.target;if(!s||!s.classList||!s.classList.contains("psec")||!s.open)return;F.querySelectorAll("details.psec[open]").forEach(x=>{if(x!==s)x.open=false});irPara(s.dataset.sec)},true);
     F.addEventListener("input",e=>{const n=e.target,D=d();
       if(n.dataset.t==="date"){const x=n.value.replace(/\D/g,"").slice(0,8);n.value=x.replace(/^(\d{2})(\d)/,"$1/$2").replace(/^(\d{2})\/(\d{2})(\d)/,"$1/$2/$3")}
-      if(n.dataset.p&&!n.dataset.foto&&n.dataset.t!=="chk"){let v=n.value;if(n.dataset.t==="lista")v=v.split("\n").map(s=>s.trim()).filter(Boolean);else if(n.dataset.t==="money")v=pnumP(v);else if(n.dataset.t==="int")v=parseInt(v)||0;else if(n.dataset.t==="cols")v=v.split(",").map(s=>s.trim()).filter(Boolean);setv(D,n.dataset.p,v);mudou(secDe(n));return}
+      if(n.dataset.p&&!n.dataset.foto&&n.dataset.t!=="chk"){let v=n.value;if(n.dataset.t==="lista")v=v.split("\n").map(s=>s.trim()).filter(Boolean);else if(n.dataset.t==="money")v=pnumP(v);else if(n.dataset.t==="int")v=parseInt(v)||0;else if(n.dataset.t==="cols")v=v.split(",").map(s=>s.trim()).filter(Boolean);setv(D,n.dataset.p,v);propRecalc(D);mudou(secDe(n));return}
       if(n.dataset.obs){D.obs=D.obs||{};D.obs[n.dataset.obs]=n.value;propSujo=true;return}
       const row=n.closest(".prow"),rep=n.closest("[data-rep]");
-      if(rep&&n.dataset.rk){const arr=gp(D,rep.dataset.rep);const r=arr[+row.dataset.i];if(n.dataset.t==="date"){const x=n.value.replace(/\D/g,"").slice(0,8);n.value=x.replace(/^(\d{2})(\d)/,"$1/$2").replace(/^(\d{2})\/(\d{2})(\d)/,"$1/$2/$3")}r[n.dataset.rk]=n.dataset.t==="money"?pnumP(n.value):n.value;mudou(secDe(n));return}
+      if(rep&&n.dataset.rk){const arr=gp(D,rep.dataset.rep);const r=arr[+row.dataset.i];if(n.dataset.t==="date"){const x=n.value.replace(/\D/g,"").slice(0,8);n.value=x.replace(/^(\d{2})(\d)/,"$1/$2").replace(/^(\d{2})\/(\d{2})(\d)/,"$1/$2/$3")}r[n.dataset.rk]=n.dataset.t==="money"?pnumP(n.value):n.value;propRecalc(D);mudou(secDe(n));return}
       if(row&&row.dataset.gi!==undefined){const r=D.cron.rows[+row.dataset.gi];if(n.dataset.gk)r.a=n.value;if(n.dataset.gx!==undefined){r.x=(r.x||[]);r.x[+n.dataset.gx]=n.checked?1:0}mudou("cron")}});
     F.addEventListener("change",async e=>{const n=e.target,D=d();
       if(n.dataset.pg){D.paginas=D.paginas||{};if(n.checked)delete D.paginas[n.dataset.pg];else D.paginas[n.dataset.pg]=false;mudou(n.dataset.pg,true);return}
@@ -2429,8 +2442,9 @@ async function editor(id){
         if(n.dataset.p==="valores.global"){ // troca o texto de faturamento padrão, sem mexer se você já o editou
           const def=PROP_PADRAO.valores.p1,GL="<b>Faturamento.</b> Por se tratar de empreitada global, materiais e mão de obra são contratados em um único valor e faturados diretamente pela ON Engenharia. Os preços de mercado oscilam semanalmente, então o orçamento final será atualizado pelas tabelas vigentes na data da compra.";
           const p1=D.valores.p1;if(n.checked&&(!p1||p1===def))D.valores.p1=GL;else if(!n.checked&&p1===GL)D.valores.p1=def;
-          const sec=secDe(n);propSujo=true;desenhaProp();const x=$(`[data-sec="${sec}"]`);x&&(x.open=true);return}
+          const sec=secDe(n);propSujo=true;propRecalc(D);desenhaProp();const x=$(`[data-sec="${sec}"]`);x&&(x.open=true);return}
         mudou(secDe(n),true);return}
+      if(n.dataset.t==="sel"){setv(D,n.dataset.p,n.value);propRecalc(D);mudou(secDe(n),true);return}
       if(n.dataset.t==="cols"||(n.dataset.p==="cron.cols")){desenhaProp();return}
       if(n.dataset.foto){const f=n.files[0];if(!f)return;try{toast("Enviando foto…");const u=await propUpFoto(f);setv(D,n.dataset.foto,u);desenhaProp();setTimeout(()=>{const s=$(`[data-sec="${secDe(n)}"]`);s&&(s.open=true);envia();irPara(secDe(n))},200)}catch(er){console.error(er);toast("Não foi possível enviar a foto.")}}
       if(n.dataset.rk&&n.dataset.t==="money")n.value=num(pnumP(n.value),2);
@@ -2440,8 +2454,8 @@ async function editor(id){
       const redraw=op=>{const ab=keep();desenhaProp();ab.concat(op?[op]:[]).forEach(s=>{const x=$(`[data-sec="${s}"]`);x&&(x.open=true)});mudou(op)};
       if(!b)return;
       if(b.dataset.fx){setv(D,b.dataset.fx,"");redraw(secDe(b));return}
-      if(b.dataset.add){const arr=gp(D,b.dataset.add)||[];const mod={"resumo.stats":{n:"",l:""},"materiais.itens":{t:"",d:""},"mao.itens":{t:"",d:""},"curva.linhas":{n:"",v:0,p:0,c:"C"},"cron.parcelas":{pct:"10",valor:0,quando:""},"curta.blocos":{t:"",itens:""},"curta.itens":{nome:"",und:"UN",qtd:1,unit:0},"curta.parcelas":{venc:"",valor:0,forma:"",obs:""}}[b.dataset.add];arr.push({...mod});setv(D,b.dataset.add,arr);redraw(secDe(b));return}
-      if(b.dataset.rm){const [p,i]=b.dataset.rm.split("|");gp(D,p).splice(+i,1);redraw(secDe(b));return}
+      if(b.dataset.add){const arr=gp(D,b.dataset.add)||[];const mod={"resumo.stats":{n:"",l:""},"materiais.itens":{t:"",d:""},"mao.itens":{t:"",d:""},"curva.linhas":{n:"",v:0,p:0,c:"C"},"cron.parcelas":{pct:"10",valor:0,quando:""},"valores.linhas":{n:"",v:0},"curta.blocos":{t:"",itens:""},"curta.itens":{nome:"",und:"UN",qtd:1,unit:0},"curta.parcelas":{venc:"",valor:0,forma:"",obs:""}}[b.dataset.add];arr.push({...mod});setv(D,b.dataset.add,arr);propRecalc(D);redraw(secDe(b));return}
+      if(b.dataset.rm){const [p,i]=b.dataset.rm.split("|");gp(D,p).splice(+i,1);propRecalc(D);redraw(secDe(b));return}
       if(b.dataset.gadd!==undefined){D.cron.rows.push({a:"",x:D.cron.cols.map(()=>0)});redraw("cron");return}
       if(b.dataset.gr!==undefined){D.cron.rows.splice(+b.dataset.gr,1);redraw("cron");return}});
     F.addEventListener("toggle",e=>{const s=e.target;if(s.open&&s.dataset&&s.dataset.sec)irPara(s.dataset.sec)},true);
