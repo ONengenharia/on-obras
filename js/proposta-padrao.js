@@ -6,8 +6,8 @@ window.PROP_PADRAO = {
   orc: { numero: "", versao: "", data: "", validade: "" },
   projeto: { kicker: "Seu projeto", titulo: "Redes de distribuição e <b>iluminação pública</b>", sub: "Incorporação · planta do projeto", planta: "", sat: "", legSat: "Localização da obra" },
   resumo: { kicker: "Resumo da obra", titulo: "O que será <b>entregue</b>", stats: [], texto: "Tudo o que está descrito nas próximas páginas é entregue <b>completo, testado e energizado</b>: do fornecimento dos materiais à execução em campo, com ART, equipe própria e acompanhamento da obra pelo seu link exclusivo." },
-  materiais: { chip: "Proposta técnica · 1", titulo: "Fornecimento de <b>materiais</b>", itens: [] },
-  mao: { chip: "Proposta técnica · 2", titulo: "Execução e <b>mão de obra</b>", itens: [
+  materiais: { chip: "Proposta técnica", titulo: "Fornecimento de <b>materiais</b>", itens: [] },
+  mao: { chip: "Proposta técnica", titulo: "Execução e <b>mão de obra</b>", itens: [
     { t: "Infraestrutura e montagem", d: "Hincamento e alinhamento dos postes, lançamento de rede compacta (MT) e multiplexada (BT), com tensionamento e fixação de mensageiros." },
     { t: "Equipamentos", d: "Instalação e interligação dos transformadores, com todos os sistemas de aterramento e proteção." },
     { t: "Iluminação pública", d: "Montagem do parque de IP: luminárias LED e braços tipo cisne, fixados com cintas e parafusos de alta resistência." },

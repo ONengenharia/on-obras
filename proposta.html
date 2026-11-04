@@ -326,6 +326,7 @@ body.pdf .page.print .avs{background:#e3eef8!important;border-color:#62a8dc!impo
 .rc i{flex:none;display:grid;place-items:center;width:4.4cqw;height:4.4cqw;border-radius:50%;background:#62a8dc;color:#0b2740;font-style:normal;font-weight:800;font-size:2.6cqw}
 .rc b{display:block;font-size:2.9cqw;color:#fff}.rc small{display:block;font-size:2.2cqw;color:#9fb8cc;margin-top:.4cqw;line-height:1.35}
 body.pdf .page.print .rc{background:#eef5fb!important;border-color:#b9d3e8!important}body.pdf .page.print .rc b{color:#0b2740!important}body.pdf .page.print .rc small{color:#3a566d!important}body.pdf .page.print .rc i{color:#fff!important;background:#2a78b4!important}
+.gl .r.t.g{font-size:3.2cqw;letter-spacing:.02em}
 
 .capapdf{position:absolute;inset:0;background:#fff;font-family:Montserrat,system-ui,sans-serif;overflow:hidden}
 .cp-h{position:absolute;left:0;top:0;width:100%;height:250px;background:#fff;border-bottom:4px solid #62a8dc}.cp-h img{position:absolute;left:44px;top:34px;width:230px}
@@ -431,6 +432,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const rich=s=>esc(s).replace(/&lt;(\/?)(b|br)&gt;/g,'<$1$2>');
 const brl=v=>'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const ACOMP_REC=['Diário de obra — registro diário da equipe, com fotos e ocorrências','APR — análise preliminar de risco de cada atividade','Projetos e documentos — plantas, ART e arquivos da obra num só lugar','Mapa atualizado da obra — localização e andamento em tempo real'];
+const chipT=s=>String(s||'').replace(/^(Proposta técnica)\s*[·\-–]\s*\d+\s*$/i,'$1');
 const pct=v=>(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%';
 const img=(u,def)=>u||def||'';
 let D=null,STATE={status:'rascunho'};
@@ -452,15 +454,15 @@ ${p.sat?`<p style="font-size:2.8cqw;margin:3.5cqw 0 2.5cqw">${esc(p.legSat)}</p>
 resumo:d=>{const r=d.resumo;return `<div class="pad" style="padding-top:6cqw"><div class="kicker">${esc(r.kicker)}</div><h2>${rich(r.titulo)}</h2>
 <div class="stats" style="margin-top:4cqw;gap:3cqw 2cqw;grid-template-columns:repeat(3,1fr);font-size:2.6cqw">${(r.stats||[]).map(s=>`<div><b style="font-size:8cqw">${esc(s.n)}</b>${esc(s.l)}</div>`).join('')}</div>
 <p style="margin-top:7cqw;font-size:3cqw">${rich(r.texto)}</p></div>`},
-materiais:d=>`<div class="pad" style="padding-top:6cqw"><div class="chip">${esc(d.materiais.chip)}</div><h2 style="margin-bottom:0">${rich(d.materiais.titulo)}</h2><ol class="steps st3" style="margin-top:0">${steps(d.materiais.itens)}</ol></div>`,
-mao:d=>`<div class="pad" style="padding-top:6cqw"><div class="chip">${esc(d.mao.chip)}</div><h2 style="margin-bottom:0">${rich(d.mao.titulo)}</h2><ol class="steps st3" style="margin-top:0">${steps(d.mao.itens)}</ol></div>`,
+materiais:d=>`<div class="pad" style="padding-top:6cqw"><div class="chip">${esc(chipT(d.materiais.chip))}</div><h2 style="margin-bottom:0">${rich(d.materiais.titulo)}</h2><ol class="steps st3" style="margin-top:0">${steps(d.materiais.itens)}</ol></div>`,
+mao:d=>`<div class="pad" style="padding-top:6cqw"><div class="chip">${esc(chipT(d.mao.chip))}</div><h2 style="margin-bottom:0">${rich(d.mao.titulo)}</h2><ol class="steps st3" style="margin-top:0">${steps(d.mao.itens)}</ol></div>`,
 escopo:d=>{const e=d.escopo;return `<div class="pad" style="padding-top:5cqw"><div class="kicker">${esc(e.kicker)}</div><h2 style="margin-bottom:1cqw;font-size:5.4cqw">${rich(e.titulo)}</h2>
 <p style="font-size:2.4cqw">${rich(e.texto)}</p>
 <div class="pill" style="margin-top:2.4cqw;padding:3cqw 4cqw"><b>A contratada será responsável por</b><ul class="ls">${lis(e.resp)}</ul></div>
 <div class="pill no" style="margin-top:2.4cqw;padding:3cqw 4cqw"><b>Não inclusos no escopo</b><ul class="ls">${lis(e.nao)}</ul></div>
 <p style="font-size:2.1cqw;margin-top:2.4cqw;color:#9fb8cc">${rich(e.rodape)}</p></div>`},
 valores:d=>{const v=d.valores;return `<div class="pad" style="padding-top:6cqw"><div class="kicker">${esc(v.kicker)}</div><h2>${rich(v.titulo)}</h2>
-<div class="gl"><div class="r h"><span>Descrição</span><span>Valor</span></div><div class="r"><span>Material global</span><span>${brl(v.material)}</span></div><div class="r"><span>Mão de obra global</span><span>${brl(v.mao)}</span></div><div class="r t"><span>Total geral</span><span>${brl(v.total)}</span></div></div>
+${v.global?`<div class="gl"><div class="r h"><span>Descrição</span><span>Valor</span></div><div class="r t g"><span>Empreitada global</span><span>${brl(v.total)}</span></div></div><p style="font-size:2.4cqw;color:#9fb8cc;margin-top:1.6cqw">Valor único: materiais e mão de obra incluídos.</p>`:`<div class="gl"><div class="r h"><span>Descrição</span><span>Valor</span></div><div class="r"><span>Material global</span><span>${brl(v.material)}</span></div><div class="r"><span>Mão de obra global</span><span>${brl(v.mao)}</span></div><div class="r t"><span>Total geral</span><span>${brl(v.total)}</span></div></div>`}
 <div class="vals" style="margin-top:4cqw">${v.lotes?`<span>${esc(v.lotes)} lotes</span>`:''}${v.porLote?`<span>Valor por lote: ${brl(v.porLote)}</span>`:''}</div>
 <div class="pill" style="margin-top:4cqw;font-size:2.7cqw;padding:3cqw 4cqw">${rich(v.p1)}</div>
 <div class="pill" style="margin-top:2.5cqw;font-size:2.7cqw;padding:3cqw 4cqw">${rich(v.p2)}</div></div>`},
@@ -560,11 +562,19 @@ function ajustaGen(list){const st=document.createElement('div');st.style.cssText
   st.remove()}
 function tweakBase(l){l.forEach(pg=>{const h=[...pg.querySelectorAll('h2')].find(x=>/nasceu para entregar/.test(x.textContent));if(h){h.style.fontSize='5cqw';h.style.marginBottom='2cqw';const ph=pg.querySelector('.ph');if(ph&&ph.style.height==='17cqh')ph.style.height='13cqh'}});}
 let started=false,sig='';
-function aplicar(dados){
+const DEP={valores:['valores','cron','resumo']};
+function aplicar(dados,so){
   D=propMerge(PROP_PADRAO,dados||{});
   const book=document.getElementById('book');
-  const list=paginas(D);ajustaGen(list);
+  const list=paginas(D);
   const ids=list.map(p=>p.dataset.id).join(',');
+  if(so&&started&&so!=='capa'&&ids===window.__api.sig){ // edição de uma seção: refaz só as páginas dela
+    const alvo=DEP[so]||[so];
+    alvo.forEach(id=>{const sel=list.filter(p=>p.dataset.id===id);if(!sel.length)return;ajustaGen(sel);
+      const atuais=window.__api.PG().filter(x=>x.dataset.id===id);
+      sel.forEach((nn,i)=>{const a=atuais[i];if(a){a.querySelector('.in').innerHTML=nn.querySelector('.in').innerHTML;a.classList.remove('show');decor(a)}})});
+    numera(window.__api.PG());window.__api.reshow();wire();return}
+  ajustaGen(list);
   const stat1=started?window.__api.base:[...book.querySelectorAll('.page:not([data-gen])')];
   if(!started){window.__baseAll=stat1;tweakBase(stat1);ajustaGen(stat1);book.querySelectorAll('.page[data-gen]').forEach(e=>e.remove())}
   const capaEl=list.find(p=>p.dataset.id==='capa'),resto=list.filter(p=>p!==capaEl);
@@ -612,7 +622,7 @@ async function boot(){
   if(!document.getElementById('carr')){const c=document.createElement('div');c.id='carr';c.innerHTML='<i></i><span>Abrindo sua proposta…</span>';document.body.appendChild(c)}
   const p1=document.querySelector('#book .page');if(p1&&!p1.dataset.gen)p1.remove(); // a capa do portfólio sai: a capa da proposta é a inicial
   if(PDFM){window.addEventListener('message',e=>{if(e.data&&e.data.tipo==='dados')flat(e.data.dados)});parent.postMessage({tipo:'pronto'},'*');return}
-  if(PREV){window.addEventListener('message',e=>{if(e.data&&e.data.tipo==='dados')aplicar(e.data.dados);else if(e.data&&e.data.tipo==='ir'&&window.__api)window.__api.ir(e.data.id)});aplicar({});parent.postMessage({tipo:'pronto'},'*');return}
+  if(PREV){window.addEventListener('message',e=>{if(e.data&&e.data.tipo==='dados')aplicar(e.data.dados,e.data.so);else if(e.data&&e.data.tipo==='ir'&&window.__api)window.__api.ir(e.data.id)});aplicar({});parent.postMessage({tipo:'pronto'},'*');return}
   if(!CODE){document.body.innerHTML='<p style="color:#fff;font:600 18px Montserrat,sans-serif;padding:40px;text-align:center">Link de proposta inválido.</p>';return}
   try{const r=await rpc('proposta_publica',{p_codigo:CODE,p_ua:navigator.userAgent});
     if(!r){document.body.innerHTML='<p style="color:#fff;font:600 18px Montserrat,sans-serif;padding:40px;text-align:center">Esta proposta não está disponível. Fale com a ON Engenharia.</p>';return}
