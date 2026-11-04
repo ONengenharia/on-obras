@@ -363,6 +363,7 @@ function _render(){
    <div class="seg">${Object.values(QUADROS).sort((a,b)=>a.ordem-b.ordem).map(v=>`<button class="${quadro===v.id?"on":""}" data-q="${v.id}"><i style="background:${v.cor}"></i>${esc(v.nome)}</button>`).join("")}</div>
    <span class="who">${esc(perfil.nome||perfil.email)}${perfil.setor?" · "+esc(perfil.setor):""}</span>
    ${Object.keys(COLW).length?'<button class="btn" id="bColW" title="Voltar todas as colunas à largura padrão">↔ Larguras padrão</button>':""}
+   <button class="btn" id="bCal" title="Calendário de lembretes e prazos">📅 Calendário</button>
    <button class="btn sino" id="bIn" title="Caixa de entrada">🔔 Caixa de entrada${nl?`<b class="badge ${INBOX.some(n=>!n.lido&&n.tipo==="mencao")?"pisca":""}">${nl}</b>`:""}</button>
    ${ADM?'<button class="btn" id="bCols">Colunas e etiquetas</button><button class="btn" id="bPerm">Permissões</button>':""}
    <button class="btn pri" id="bNovo" ${podeCriar(quadro)?"":"disabled title='Você não tem permissão para criar negócios neste quadro'"}>+ Novo negócio</button></header>
@@ -387,6 +388,7 @@ function _render(){
   document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{fEtq=fEtq===b.dataset.e?"":b.dataset.e;render()});
   document.querySelectorAll("[data-ar]").forEach(b=>b.onclick=()=>{fArea=b.dataset.ar;render()});
   $("#bNovo").onclick=novo;
+  $("#bCal").onclick=()=>abrirCalendario();
   $("#bIn").onclick=caixa;
   if(ADM){$("#bPerm").onclick=permissoes;$("#bCols").onclick=gerirColunas}
   document.querySelectorAll(".card").forEach(el=>{
@@ -549,6 +551,53 @@ async function fluxograma(c,alvo){
    <div class="row"><span class="note">Para mudar a etapa, mova o card no quadro.</span><span style="display:flex;gap:8px">${info.comprasId?`<a class="btn" href="compras.html?id=${info.comprasId}">🛒 Compras</a>`:""}${ADM&&info.orcamento?`<a class="btn" href="orcarede.html?neg=${c.id}">Orçamento</a>`:""}</span></div></div>`;
   document.body.appendChild(m);m.onclick=e=>{if(e.target===m||e.target.closest("[data-fx]"))m.remove()};
   }
+
+async function abrirCalendario(){
+  const m=document.createElement("div");m.style.cssText="position:fixed;inset:0;z-index:1500;background:rgba(5,12,20,.72);display:flex;align-items:center;justify-content:center;padding:10px";
+  const pad=n=>String(n).padStart(2,"0"),chv=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  let ref=new Date();ref.setDate(1);let sel=chv(new Date()),de=eu,LM=[];
+  const MES=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  m.innerHTML=`<style>.cal{background:var(--panel,#16222f);color:var(--ink,#e8eef4);border:1px solid var(--line,#2a3b4c);border-radius:14px;width:min(1100px,100%);max-height:96vh;overflow:auto;padding:14px}
+   .cal .gr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cal .dw{font-size:11px;text-transform:uppercase;opacity:.7;text-align:center;padding:2px}
+   .cal .dc{min-height:92px;border:1px solid var(--line,#2a3b4c);border-radius:8px;padding:4px;cursor:pointer;overflow:hidden;background:rgba(255,255,255,.02)}.cal .dc.fora{opacity:.4}.cal .dc.hj{border-color:#62a8dc}.cal .dc.on{outline:2px solid #62a8dc}
+   .cal .dc b{font-size:12px}.cal .ev{display:block;font-size:11px;line-height:1.25;margin-top:3px;padding:2px 5px;border-radius:5px;background:#62a8dc33;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}.cal .ev.atr{background:#e5484d44}.cal .ev.ok{opacity:.5;text-decoration:line-through}.cal .ev.pz{background:#f5a62344}
+   .cal .dia{margin-top:10px;display:grid;gap:6px}.cal .dia .ev{font-size:13px;white-space:normal;padding:6px 8px}.cal .lf{display:grid;grid-template-columns:110px 1fr 1fr;gap:6px;margin-top:8px}
+   @media(max-width:700px){.cal .dc{min-height:56px}.cal .ev{font-size:10px}.cal .lf{grid-template-columns:1fr}}</style>
+   <div class="cal"><div class="row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><h2 style="margin:0;font-size:18px;flex:1">📅 Calendário</h2>
+    <select class="inp" id="cP"><option value="">Todos</option>${U.map(u=>`<option value="${u.id}" ${u.id===eu?"selected":""}>${u.id===eu?"Meus":esc(u.nome)}</option>`).join("")}</select>
+    <button class="btn" id="cA">‹</button><b id="cT" style="min-width:140px;text-align:center"></b><button class="btn" id="cN">›</button><button class="btn" id="cH">Hoje</button><button class="btn" id="cX">Fechar</button></div>
+   <div id="cG" style="margin-top:10px"></div><div id="cD" class="dia"></div></div>`;
+  document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.remove()};
+  const $c=q=>m.querySelector(q);
+  const carrega=async()=>{const i=new Date(ref.getFullYear(),ref.getMonth()-1,20),f=new Date(ref.getFullYear(),ref.getMonth()+2,10);
+    const r=await sb.from("neg_lembretes").select("id,negocio_id,para,quando,texto,feito").gte("quando",i.toISOString()).lte("quando",f.toISOString());LM=r.data||[]};
+  const tit=id=>{const c=CARDS.find(x=>x.id===id);return c?c.titulo:""};
+  const evs=()=>{const E={};const add=(k,o)=>(E[k]=E[k]||[]).push(o);const agora=new Date();
+    LM.filter(l=>!de||l.para===de).forEach(l=>{const q=new Date(l.quando);add(chv(q),{t:q.getTime(),h:`${pad(q.getHours())}:${pad(q.getMinutes())}`,txt:(l.texto||"Lembrete")+" · "+tit(l.negocio_id),n:l.negocio_id,id:l.id,ok:l.feito,atr:!l.feito&&q<agora,tipo:"l",para:l.para})});
+    CARDS.filter(c=>c.prazo&&(!de||c.resp===de||(c.membros||[]).includes(de))).forEach(c=>add(String(c.prazo).slice(0,10),{t:0,h:"🏁",txt:"Prazo · "+c.titulo,n:c.id,tipo:"p"}));
+    Object.values(E).forEach(a=>a.sort((x,y)=>x.t-y.t));return E};
+  const desenha=()=>{const E=evs(),ini=new Date(ref),dow=(ini.getDay()+6)%7;ini.setDate(1-dow);const hj=chv(new Date());
+    $c("#cT").textContent=MES[ref.getMonth()]+" "+ref.getFullYear();
+    let h=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"].map(x=>`<div class="dw">${x}</div>`).join("");
+    for(let k=0;k<42;k++){const d=new Date(ini);d.setDate(ini.getDate()+k);const c=chv(d),L=E[c]||[];
+      h+=`<div class="dc ${d.getMonth()!==ref.getMonth()?"fora":""} ${c===hj?"hj":""} ${c===sel?"on":""}" data-d="${c}"><b>${d.getDate()}</b>${L.slice(0,3).map(e=>`<span class="ev ${e.tipo==="p"?"pz":e.ok?"ok":e.atr?"atr":""}">${e.h} ${esc(e.txt)}</span>`).join("")}${L.length>3?`<span class="note" style="font-size:10px">+${L.length-3}</span>`:""}</div>`}
+    $c("#cG").innerHTML=`<div class="gr">${h}</div>`;
+    $c("#cG").querySelectorAll("[data-d]").forEach(x=>x.onclick=()=>{sel=x.dataset.d;desenha()});
+    const L=E[sel]||[],[y,mo,dd]=sel.split("-");
+    $c("#cD").innerHTML=`<b>${dd}/${mo}/${y}</b>${L.map((e,i)=>`<span class="ev ${e.tipo==="p"?"pz":e.ok?"ok":e.atr?"atr":""}" data-i="${i}">${e.h} ${esc(e.txt)}${e.tipo==="l"&&e.para!==eu?` <small>(${esc((U.find(u=>u.id===e.para)||{}).nome||"")})</small>`:""}</span>`).join("")||'<span class="note">Nada neste dia.</span>'}
+     <div class="lf"><input type="time" id="cHr" value="09:00"><select id="cNg" class="inp"><option value="">— negócio (ticket) —</option>${CARDS.slice().sort((a,b)=>(a.titulo||"").localeCompare(b.titulo||"","pt")).map(c=>`<option value="${c.id}">${esc(c.titulo||"")}${c.cliente?" · "+esc(c.cliente):""}</option>`).join("")}</select><input id="cTx" placeholder="Texto do lembrete"></div>
+     <div style="display:flex;gap:8px;margin-top:6px;justify-content:flex-end"><select id="cPa" class="inp">${U.map(u=>`<option value="${u.id}" ${u.id===(de||eu)?"selected":""}>${u.id===eu?"Para mim":"Para "+esc(u.nome)}</option>`).join("")}</select><button class="btn pri" id="cAdd">+ Criar lembrete</button></div>`;
+    $c("#cD").querySelectorAll(".ev[data-i]").forEach(x=>x.onclick=()=>{const e=L[+x.dataset.i];m.remove();abrir(e.n)});
+    $c("#cAdd").onclick=async()=>{const n=$c("#cNg").value;if(!n){toast("Escolha o negócio do lembrete.");return}
+      const r=await sb.from("neg_lembretes").insert({negocio_id:n,para:$c("#cPa").value,quando:new Date(sel+"T"+$c("#cHr").value).toISOString(),texto:$c("#cTx").value.trim()});
+      if(r.error){toast("Não foi possível criar: "+r.error.message);return}
+      toast("Lembrete criado.");await carregaTudoLemb();desenha();if(window.ON_LEMBRETES)window.ON_LEMBRETES.checar()}};
+  const carregaTudoLemb=async()=>{await carrega();const {data}=await sb.from("neg_lembretes").select("id,negocio_id,para,quando,texto,feito").eq("feito",false);LEMB=data||[]};
+  $c("#cX").onclick=()=>m.remove();$c("#cP").onchange=e=>{de=e.target.value;desenha()};
+  const mv=n=>async()=>{ref=new Date(ref.getFullYear(),ref.getMonth()+n,1);await carrega();desenha()};
+  $c("#cA").onclick=mv(-1);$c("#cN").onclick=mv(1);$c("#cH").onclick=async()=>{ref=new Date();ref.setDate(1);sel=chv(new Date());await carrega();desenha()};
+  await carrega();desenha();
+}
 async function abrir(id,manter){
   aberto=id;const c=CARDS.find(x=>x.id===id);if(!c){fechar();return}
   if(!manter)await carregarExtras(id);
