@@ -334,7 +334,7 @@ function render(){
   if(mapa){mapa.remove();mapa=null}
   if(aba==="kanban"||aba==="inicio"){try{localStorage.setItem("on.obrasVista",aba)}catch(e){}}
   aba==="painel"?renderPainel():aba==="inicio"?renderInicio():aba==="equipe"?renderEquipe():renderKanban();
-  if(aba==="kanban"||aba==="inicio"){const c=$("#corpo");const v=document.createElement("div");v.className="vista";v.innerHTML=`<span class="seg2"><button class="${aba==="kanban"?"on":""}" data-vis="kanban">🗂 Quadro</button><button class="${aba==="inicio"?"on":""}" data-vis="inicio">📍 Mapa</button></span><button class="btn" id="vSA" style="margin-left:auto" title="Serviço emergencial, sem projeto">⚡ Lançar serviço avulso do dia</button>`;c.prepend(v);v.querySelector("#vSA").onclick=()=>servicoAvulso();
+  if(aba==="kanban"||aba==="inicio"){const c=$("#corpo");const v=document.createElement("div");v.className="vista";v.innerHTML=`<span class="seg2"><button class="${aba==="kanban"?"on":""}" data-vis="kanban">🗂 Quadro</button><button class="${aba==="inicio"?"on":""}" data-vis="inicio">📍 Mapa</button></span><button class="btn" id="vFD" style="margin-left:auto" title="Marcar as obras liberadas que não tiveram produção hoje">🌧 Fechar o dia</button><button class="btn" id="vSA" title="Serviço emergencial, sem projeto">⚡ Lançar serviço avulso do dia</button>`;c.prepend(v);v.querySelector("#vSA").onclick=()=>servicoAvulso();v.querySelector("#vFD").onclick=()=>fecharDia();
     v.querySelectorAll("[data-vis]").forEach(b=>b.onclick=()=>{if(b.dataset.vis===aba)return;aba=b.dataset.vis;try{history.replaceState(null,"","#"+aba)}catch(e){}render()})}
 }
 window.addEventListener("hashchange",()=>{const h=location.hash.replace("#","");if(["kanban","inicio","painel","equipe"].includes(h)&&h!==aba&&perfil){aba=h;render()}});
@@ -420,6 +420,37 @@ async function renderPainel(){
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("script"));document.head.appendChild(s)})}
 /* ---------- equipe: dias trabalhados, produção e custos (admin) ---------- */
 let VALOR={};let eqFO=new Set(),eqDia=null,eqVista="mes";let eqMes=(()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")})(),eqTipo="",eqSel=null,eqTodas=false,EQC_OK=null;
+const MOT_SP=["Chuva / clima","Atendimento emergencial","Falta de material","Outro"];
+function fecharDia(){
+  const m=document.createElement("div");m.className="lemod";const hj=new Date();const hoje=hj.getFullYear()+"-"+String(hj.getMonth()+1).padStart(2,"0")+"-"+String(hj.getDate()).padStart(2,"0");
+  const lib=obras.filter(o=>["liberado","andamento"].includes(o.coluna)).sort((a,b)=>a.titulo.localeCompare(b.titulo,"pt"));
+  m.innerHTML=`<div class="lebox" style="width:min(720px,100%)"><div class="row"><h2 style="margin:0;font-size:18px">🌧 Fechar o dia</h2><button class="btn" id="fdX">Fechar</button></div>
+   <p class="note">Marque as obras liberadas em que a equipe <b>não produziu</b> no dia (chuva, atendimento emergencial etc.). Obras com registro no diário no dia aparecem como trabalhadas.</p>
+   <div class="row" style="gap:8px;flex-wrap:wrap;justify-content:flex-start"><label class="fld" style="margin:0">Dia<input type="date" id="fdD" value="${hoje}"></label>
+    <label class="fld" style="margin:0">Aplicar a todas<select id="fdAll"><option value="">— motivo —</option>${MOT_SP.map(x=>`<option>${x}</option>`).join("")}</select></label></div>
+   <div id="fdL" style="display:grid;gap:8px;margin:10px 0;max-height:52vh;overflow:auto"><div class="note">Carregando…</div></div>
+   <div class="row"><span class="note" id="fdN"></span><button class="btn pri" id="fdOk">Salvar</button></div></div>`;
+  document.body.appendChild(m);m.querySelector("#fdX").onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()};
+  let EX={},TR=new Set(),ok=true;
+  const desenha=()=>{const L=m.querySelector("#fdL");
+    if(!lib.length){L.innerHTML='<div class="note">Não há obras liberadas ou em andamento.</div>';return}
+    L.innerHTML=lib.map(o=>{const e=EX[o.id];if(TR.has(o.id))return `<div class="card" style="padding:8px 12px;display:flex;gap:8px;align-items:center"><b style="flex:1">${esc(o.titulo)}</b><span class="note">✔ teve registro no diário</span></div>`;
+      return `<div class="card" data-o="${o.id}" style="padding:8px 12px;display:grid;gap:6px"><label style="display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" data-c ${e?"checked":""} style="width:18px;height:18px"> ${esc(o.titulo)}${o.cliente?` <span class="note" style="font-weight:400">· ${esc(o.cliente)}</span>`:""}</label>
+        <div data-d style="display:${e?"grid":"none"};grid-template-columns:200px 1fr;gap:8px"><select data-m>${MOT_SP.map(x=>`<option ${e&&e.motivo===x?"selected":""}>${x}</option>`).join("")}</select><input data-b placeholder="Observação (opcional)" value="${esc((e&&e.obs)||"")}"></div></div>`}).join("");
+    L.querySelectorAll("[data-c]").forEach(c=>c.onchange=()=>{c.closest("[data-o]").querySelector("[data-d]").style.display=c.checked?"grid":"none"})};
+  const carrega=async()=>{const d=m.querySelector("#fdD").value;m.querySelector("#fdL").innerHTML='<div class="note">Carregando…</div>';
+    const [a,b]=await Promise.all([sb.from("dia_sem_producao").select("*").eq("data",d),sb.from("diario").select("obra_id").eq("data",d)]);
+    if(a.error){ok=false;m.querySelector("#fdL").innerHTML='<div class="note">Este recurso ainda não foi liberado no banco de dados.</div>';return}
+    ok=true;EX={};(a.data||[]).forEach(r=>EX[r.obra_id]=r);TR=new Set((b.data||[]).map(r=>r.obra_id));desenha()};
+  m.querySelector("#fdD").onchange=carrega;
+  m.querySelector("#fdAll").onchange=e=>{const v=e.target.value;if(!v)return;m.querySelectorAll("[data-o]").forEach(c=>{c.querySelector("[data-c]").checked=true;c.querySelector("[data-d]").style.display="grid";c.querySelector("[data-m]").value=v});e.target.value=""};
+  m.querySelector("#fdOk").onclick=async()=>{if(!ok)return;const d=m.querySelector("#fdD").value,btn=m.querySelector("#fdOk");btn.disabled=true;let n=0;
+    try{for(const c of m.querySelectorAll("[data-o]")){const id=c.dataset.o,on=c.querySelector("[data-c]").checked;
+      if(on){const r=await sb.from("dia_sem_producao").upsert({obra_id:id,data:d,motivo:c.querySelector("[data-m]").value,obs:c.querySelector("[data-b]").value.trim()||null,autor:perfil.id},{onConflict:"obra_id,data"});if(r.error)throw r.error;n++}
+      else if(EX[id]){const r=await sb.from("dia_sem_producao").delete().eq("id",EX[id].id);if(r.error)throw r.error}}
+      toast(n?n+" obra(s) marcadas sem produção.":"Dia salvo.");m.remove()}catch(e){console.error(e);toast("Não foi possível salvar: "+(e.message||e));btn.disabled=false}};
+  carrega();
+}
 function servicoAvulso(depois,dataIni){const m=document.createElement("div");m.className="lemod";const hoje=new Date();const h=hoje.getFullYear()+"-"+String(hoje.getMonth()+1).padStart(2,"0")+"-"+String(hoje.getDate()).padStart(2,"0");
   m.innerHTML=`<div class="lebox" style="width:min(560px,100%)"><div class="row"><h2 style="margin:0;font-size:18px">⚡ Lançar serviço / dia trabalhado</h2><button class="btn" id="saX">Fechar</button></div><p class="note">Para serviço emergencial ou rápido, sem projeto nem obra criada. Entra no calendário da equipe.</p>
    <div class="saf"><label class="w">Obra<input id="saOq" placeholder="Digite para procurar a obra (vazio = serviço avulso)" autocomplete="off"><select id="saO" size="5" style="margin-top:4px"><option value="">— Sem obra (serviço avulso / emergencial) —</option>${obras.slice().sort((a,b)=>a.titulo.localeCompare(b.titulo,"pt")).map(o=>`<option value="${o.id}">${esc(o.titulo)}${o.cliente?" · "+esc(o.cliente):""}</option>`).join("")}</select><span class="note" id="saOn">Escolhendo uma obra, o dia entra no diário dela (para lançar dia trabalhado que ficou sem registro).</span></label><label>Data<input type="date" id="saD" value="${dataIni||h}"></label><label>Cliente<input id="saC" list="dlSaC" placeholder="escolha da lista ou digite um novo" autocomplete="off"><datalist id="dlSaC"></datalist></label><label>Local<input id="saL" placeholder="cidade / endereço"></label><label>Equipe<input id="saE" placeholder="quem foi"></label><label>Horas<input id="saH" inputmode="decimal" placeholder="opcional"></label><label class="w">O que foi feito<textarea id="saT" rows="3" placeholder="ex.: troca de chave fusível queimada, religamento"></textarea></label></div>
