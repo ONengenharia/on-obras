@@ -2393,7 +2393,12 @@ async function editor(id){
       if(row&&row.dataset.gi!==undefined){const r=D.cron.rows[+row.dataset.gi];if(n.dataset.gk)r.a=n.value;if(n.dataset.gx!==undefined){r.x=(r.x||[]);r.x[+n.dataset.gx]=n.checked?1:0}mudou("cron")}});
     F.addEventListener("change",async e=>{const n=e.target,D=d();
       if(n.dataset.pg){D.paginas=D.paginas||{};if(n.checked)delete D.paginas[n.dataset.pg];else D.paginas[n.dataset.pg]=false;mudou(n.dataset.pg,true);return}
-      if(n.dataset.t==="chk"){setv(D,n.dataset.p,n.checked);mudou(secDe(n),true);return}
+      if(n.dataset.t==="chk"){setv(D,n.dataset.p,n.checked);
+        if(n.dataset.p==="valores.global"){ // troca o texto de faturamento padrão, sem mexer se você já o editou
+          const def=PROP_PADRAO.valores.p1,GL="<b>Faturamento.</b> Por se tratar de empreitada global, materiais e mão de obra são contratados em um único valor e faturados diretamente pela ON Engenharia. Os preços de mercado oscilam semanalmente, então o orçamento final será atualizado pelas tabelas vigentes na data da compra.";
+          const p1=D.valores.p1;if(n.checked&&(!p1||p1===def))D.valores.p1=GL;else if(!n.checked&&p1===GL)D.valores.p1=def;
+          const sec=secDe(n);propSujo=true;desenhaProp();const x=$(`[data-sec="${sec}"]`);x&&(x.open=true);return}
+        mudou(secDe(n),true);return}
       if(n.dataset.t==="cols"||(n.dataset.p==="cron.cols")){desenhaProp();return}
       if(n.dataset.foto){const f=n.files[0];if(!f)return;try{toast("Enviando foto…");const u=await propUpFoto(f);setv(D,n.dataset.foto,u);desenhaProp();setTimeout(()=>{const s=$(`[data-sec="${secDe(n)}"]`);s&&(s.open=true);envia();irPara(secDe(n))},200)}catch(er){console.error(er);toast("Não foi possível enviar a foto.")}}
       if(n.dataset.rk&&n.dataset.t==="money")n.value=num(pnumP(n.value),2);
