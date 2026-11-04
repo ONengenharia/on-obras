@@ -2285,24 +2285,49 @@ async function editor(id){
    ["acomp","Acompanhamento da obra",[["acomp.titulo","Título"],["acomp.texto","Texto","area"],["acomp.recursos","Destaques (um por linha: Título — descrição). Vazio = padrão","lista"],["acomp.foto","Foto do acompanhamento da obra","foto"],["acomp.demo","Link da demonstração"]]],
    ["clientes","Nossos clientes (fixa)",[]],
    ["aceite","Termo de aceite",[["aceite.titulo","Título"],["aceite.texto","Texto ({projeto} vira o nome da obra)","area"],["aceite.resp","Responsável técnico"],["aceite.local","Local"],["aceite.fone","Telefone"],["aceite.email","E-mail"],["aceite.whats","WhatsApp do representante (só números, com 55)"]]]];
+  const FIELDS_CURTA=[
+   ["cabecalho","Cabeçalho",[["cliente.nome","Cliente"],["orc.numero","Nº do orçamento (Gestão Click)"],["orc.versao","Versão"],["orc.data","Data","date"],["curta.vendedor","Vendedor"],["curta.validade","Validade da proposta"],["curta.entrega","Previsão de entrega"],["curta.cuidados","Cuidados com o cliente (aos cuidados de)"]]],
+   ["texto","Descrição",[["curta.intro","Texto de abertura","area"],["curta.blocos","Blocos de descrição (itens um por linha)","rep",[["t","Título",170],["itens","Itens (um por linha)",0,"area"]]]]],
+   ["cliente","Dados do cliente",[["curta.cli.doc","CPF / CNPJ"],["curta.cli.end","Endereço"],["curta.cli.cep","CEP"],["curta.cli.cidade","Cidade"],["curta.cli.uf","UF"],["curta.cli.fone","Telefone"],["curta.cli.email","E-mail"]]],
+   ["itens","Produtos e valores",[["curta.itens","Itens","rep",[["nome","Produto / serviço",0],["und","Un.",50],["qtd","Qtd.",70,"money"],["unit","Valor unit. R$",110,"money"]]]]],
+   ["pgto","Pagamento",[["curta.parcelas","Parcelas","rep",[["venc","Vencimento",100,"date"],["valor","Valor R$",110,"money"],["forma","Forma",0],["obs","Obs.",0]]]]],
+   ["obsc","Observações",[["curta.obs","Observações","area"]]]];
+  async function propBaseCurta(){
+    const b=propBase(),hoje=new Date();let cad={},neg={},gcnum="";
+    try{const nid=ORC.negocio_id||((PAS.find(p=>p.id===ORC.pasta_id)||{}).negocio_id)||null;
+      if(nid){const r=await sb.from("negocios").select("*").eq("id",nid).maybeSingle();neg=r.data||{};cad=neg.cadastro||{};gcnum=String((cad.gc_orc||{}).codigo||"")}}catch(e){}
+    const so=v=>String(v||"").replace(/\D/g,"");
+    const cep=so(cad.cep),doc=so(cad.doc),fn=so(neg.fone||"");
+    const fmtD=x=>x.length===14?x.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,"$1.$2.$3/$4-$5"):x.length===11?x.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/,"$1.$2.$3-$4"):x;
+    const nome=(perfil&&(perfil.nome||perfil.apelido))||"";
+    const T=+b.valores.total||0;
+    return {modelo:"curta",cliente:{nome:b.cliente.nome,projeto:b.cliente.projeto,cidade:b.cliente.cidade},
+      orc:{numero:gcnum,versao:b.orc.versao,data:fdt(hoje),validade:""},
+      _ref:b._ref,
+      curta:{vendedor:nome,cuidados:"",validade:"10 DIAS",entrega:"",intro:"",blocos:[],
+        cli:{doc:fmtD(doc),end:[cad.endereco,cad.numero,cad.bairro].filter(Boolean).join(", "),cep:cep.length===8?cep.replace(/^(\d{5})(\d{3})$/,"$1-$2"):cep,cidade:neg.cidade||b.cliente.cidade||"",uf:cad.uf||"",fone:fn,email:cad.email||""},
+        itens:[{nome:"MATERIAIS GERAIS",und:"UN",qtd:1,unit:+T.toFixed(2)}],
+        parcelas:[],obs:""}};
+  }
   const getv=(d,p)=>{const v=gp(d,p);return v==null?"":v};
   const setv=(d,p,v)=>{const ks=p.split(".");let a=d;ks.slice(0,-1).forEach((k,i)=>{if(a[k]==null)a[k]=/^\d+$/.test(ks[i+1])?[]:{};a=a[k]});a[ks[ks.length-1]]=v};
   const pnumP=s=>{const t=String(s).replace(/[^\d,.-]/g,"");const n=t.includes(",")?t.replace(/\./g,"").replace(",","."):t;return n===""?0:+n};
 
   function propFormHtml(d,ro){
-    const dis=ro?"disabled":"";
+    const dis=ro?"disabled":"";const CURTA=d.modelo==="curta";
     const campo=(f)=>{const [p,l,t,cols]=f;const v=getv(d,p),id="pf_"+p.replace(/\./g,"_");
       if(t==="area")return `<label class="fld">${l}<textarea data-p="${p}" rows="3" ${dis}>${esc(v)}</textarea></label>`;
       if(t==="lista")return `<label class="fld">${l}<textarea data-p="${p}" data-t="lista" rows="5" ${dis}>${esc((v||[]).join("\n"))}</textarea></label>`;
       if(t==="chk")return `<label class="fld" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" data-p="${p}" data-t="chk" ${v?"checked":""} ${dis}> <span>${l}</span></label>`;
       if(t==="money")return `<label class="fld">${l}<input data-p="${p}" data-t="money" value="${esc(num(v,2))}" inputmode="decimal" ${dis}></label>`;
+      if(t==="date")return `<label class="fld">${l}<input data-p="${p}" data-t="date" value="${esc(v)}" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" ${dis}></label>`;
       if(t==="int")return `<label class="fld">${l}<input data-p="${p}" data-t="int" value="${esc(v||"")}" inputmode="numeric" ${dis}></label>`;
       if(t==="foto")return `<div class="fld"><span>${l}</span><div class="pfoto">${v?`<img src="${esc(v)}" alt="">`:`<span class="pf0">sem foto</span>`}<span>${ro?"":`<label class="btn sm">Escolher<input type="file" accept="image/*" data-foto="${p}" hidden></label>${v?` <button type="button" class="btn sm" data-fx="${p}">Remover</button>`:""}`}</span></div></div>`;
-      if(t==="rep"){const arr=v||[];return `<div class="fld"><span>${l}</span><div class="prep" data-rep="${p}">${arr.map((r,i)=>`<div class="prow" data-i="${i}">${cols.map(([k,cl,w,tp])=>tp==="area"?`<textarea data-rk="${k}" placeholder="${cl}" rows="2" ${dis}>${esc(r[k]??"")}</textarea>`:`<input data-rk="${k}" ${tp==="money"?'data-t="money"':""} placeholder="${cl}" value="${esc(tp==="money"?num(r[k],2):(r[k]??""))}" style="${w?`width:${w}px`:"flex:1"}" ${dis}>`).join("")}${ro?"":`<button type="button" class="btn sm" data-rm="${p}|${i}" title="Remover">×</button>`}</div>`).join("")}</div>${ro?"":`<button type="button" class="btn sm" data-add="${p}">+ Adicionar</button>`}</div>`}
+      if(t==="rep"){const arr=v||[];return `<div class="fld"><span>${l}</span><div class="prep" data-rep="${p}">${arr.map((r,i)=>`<div class="prow" data-i="${i}">${cols.map(([k,cl,w,tp])=>tp==="area"?`<textarea data-rk="${k}" placeholder="${cl}" rows="2" ${dis}>${esc(r[k]??"")}</textarea>`:`<input data-rk="${k}" ${tp==="money"?'data-t="money"':tp==="date"?'data-t="date" maxlength="10"':""} placeholder="${cl}" value="${esc(tp==="money"?num(r[k],2):(r[k]??""))}" style="${w?`width:${w}px`:"flex:1"}" ${dis}>`).join("")}${ro?"":`<button type="button" class="btn sm" data-rm="${p}|${i}" title="Remover">×</button>`}</div>`).join("")}</div>${ro?"":`<button type="button" class="btn sm" data-add="${p}">+ Adicionar</button>`}</div>`}
       if(t==="gantt"){const cols=gp(d,"cron.cols")||[],rows=v||[];return `<div class="fld"><span>${l} <small>(colunas = dias)</small></span><input data-p="cron.cols" data-t="cols" value="${esc(cols.join(", "))}" ${dis}><div class="prep">${rows.map((r,i)=>`<div class="prow" data-gi="${i}"><input data-gk="a" value="${esc(r.a)}" style="flex:1" ${dis}>${cols.map((_,j)=>`<label class="gk"><input type="checkbox" data-gx="${j}" ${r.x&&r.x[j]?"checked":""} ${dis}></label>`).join("")}${ro?"":`<button type="button" class="btn sm" data-gr="${i}">×</button>`}</div>`).join("")}</div>${ro?"":`<button type="button" class="btn sm" data-gadd>+ Linha</button>`}</div>`}
       return `<label class="fld">${l}<input data-p="${p}" value="${esc(v)}" ${dis}></label>`};
-    return FIELDS.map(([id,tt,fs])=>{const on=!(d.paginas&&d.paginas[id]===false);
-      return `<details class="psec" data-sec="${id}"><summary><span>${tt}</span>${id==="capa"||id==="aceite"?"":`<label class="pon" title="Mostrar esta página na proposta"><input type="checkbox" data-pg="${id}" ${on?"checked":""} ${dis}> mostrar</label>`}</summary>
+    return (CURTA?FIELDS_CURTA:FIELDS).map(([id,tt,fs])=>{const on=!(d.paginas&&d.paginas[id]===false);
+      return `<details class="psec" data-sec="${id}"><summary><span>${tt}</span>${CURTA||id==="capa"||id==="aceite"?"":`<label class="pon" title="Mostrar esta página na proposta"><input type="checkbox" data-pg="${id}" ${on?"checked":""} ${dis}> mostrar</label>`}</summary>
       <div class="pbody">${fs.map(campo).join("")}<label class="fld"><span>Observação interna <small>(não aparece para o cliente)</small></span><textarea data-obs="${id}" rows="2" ${dis}>${esc((d.obs||{})[id]||"")}</textarea></label></div></details>`}).join("");
   }
 
@@ -2327,9 +2352,9 @@ async function editor(id){
     await propCarregar();
     if(!PROPOK){el.innerHTML=`<div class="pload"><b>A proposta em revista ainda não foi liberada no banco de dados.</b><br>Assim que a estrutura for criada, esta aba abre aqui, já preenchida com os dados do orçamento.</div>`;return}
     if(!PROP)PROP={orcamento_id:ORC.id,dados:propBase(),versao:1,status:"rascunho"};
-    else{PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});
-      if((PROP.status||"rascunho")==="rascunho"&&/_/.test(PROP.dados.cliente.nome||"")){PROP.dados.cliente.nome=String(PROP.dados.cliente.nome).replace(/_/g," ").replace(/^\s*\d+\s+/,"").replace(/\s+/g," ").trim();propSujo=true}
-      if((PROP.status||"rascunho")==="rascunho"){const b=propBase(),r0=PROP.dados._ref||{};
+    else{PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});const CUR=PROP.dados.modelo==="curta";
+      if(!CUR&&(PROP.status||"rascunho")==="rascunho"&&/_/.test(PROP.dados.cliente.nome||"")){PROP.dados.cliente.nome=String(PROP.dados.cliente.nome).replace(/_/g," ").replace(/^\s*\d+\s+/,"").replace(/\s+/g," ").trim();propSujo=true}
+      if(!CUR&&(PROP.status||"rascunho")==="rascunho"){const b=propBase(),r0=PROP.dados._ref||{};
         if(Math.abs((r0.M||0)-b._ref.M)>0.01||Math.abs((r0.S||0)-b._ref.S)>0.01){["resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas","_ref"].forEach(p=>setv(PROP.dados,p,gp(b,p)));propSujo=true;toast("Valores atualizados conforme a precificação.")}}}
     desenhaProp();
   }
@@ -2360,7 +2385,7 @@ async function editor(id){
       <div class="pbar">${stChip}<span style="flex:1"></span>
         ${ro?`<button class="btn" id="pNova">Nova versão</button>`:`<button class="btn" id="pSalv">Salvar</button><button class="btn pri" id="pEnv">Enviar ao cliente</button>`}
       </div>
-      <div class="pbar"><button class="btn sm" id="pMod">Usar modelo…</button><button class="btn sm" id="pSM">Salvar como modelo</button><button class="btn sm" id="pRef">Refazer a partir do orçamento</button>${PROP.id&&st!=="rascunho"?`<button class="btn sm" id="pLink">Copiar link</button>`:""}${PROP.pdf_path?`<a class="btn sm" href="${urlPub(PROP.pdf_path)}" target="_blank" rel="noopener">PDF enviado</a>`:""}${PROP.id&&st!=="rascunho"&&!PROP.pdf_path?`<button class="btn sm" id="pGPdf">Gerar PDF desta versão</button>`:""}<button class="btn sm" id="pPdf">Prévia em PDF</button></div>
+      <div class="pbar">${ro?"":`<select class="inp" id="pModelo" style="padding:5px 8px;font-size:12.5px" aria-label="Tipo de proposta"><option value="revista" ${d.modelo!=="curta"?"selected":""}>Proposta completa (revista)</option><option value="curta" ${d.modelo==="curta"?"selected":""}>Proposta curta (1 página)</option></select>`}${d.modelo==="curta"?"":`<button class="btn sm" id="pMod">Usar modelo…</button><button class="btn sm" id="pSM">Salvar como modelo</button>`}<button class="btn sm" id="pRef">Refazer a partir do orçamento</button>${PROP.id&&st!=="rascunho"?`<button class="btn sm" id="pLink">Copiar link</button>`:""}${PROP.pdf_path?`<a class="btn sm" href="${urlPub(PROP.pdf_path)}" target="_blank" rel="noopener">PDF enviado</a>`:""}${PROP.id&&st!=="rascunho"&&!PROP.pdf_path?`<button class="btn sm" id="pGPdf">Gerar PDF desta versão</button>`:""}<button class="btn sm" id="pPdf">Prévia em PDF</button></div>
       ${PROP.id&&st!=="rascunho"?`<div class="ptrk"><b>Acompanhamento do cliente</b> · <a href="#" id="pAtu">atualizar</a><br>${abriu.length?`👁 Aberta <b>${abriu.length}×</b> · última ${dtHora(ult.criado_em)}`:"Ainda não foi aberta."}<br><small>Link: <a href="${esc(linkProp())}" target="_blank" rel="noopener">${esc(linkProp())}</a></small>
         ${TPk.length?`<div style="margin-top:8px"><b>Tempo em cada página</b> · total ${fmtS(TPtot)}${TPk.map(k=>`<div style="display:grid;grid-template-columns:150px 1fr 56px;gap:6px;align-items:center;font-size:12px"><span>${esc(nmP(k))}</span><span style="background:var(--line);border-radius:4px;height:8px"><i style="display:block;height:100%;width:${Math.round(TP[k]/TPmax*100)}%;background:var(--accent);border-radius:4px"></i></span><span style="text-align:right">${fmtS(TP[k])}</span></div>`).join("")}</div>`:`<div style="margin-top:6px"><small>O tempo por página aparece aqui depois que o cliente navegar.</small></div>`}
         <ul>${PEV.filter(e=>e.tipo!=="pagina").slice(0,40).map(e=>`<li>${dtHora(e.criado_em)} · ${ROT[e.tipo]||esc(e.tipo)}${e.tipo==="aceite"&&e.info?` · ${esc(e.info.nome||"")}`:""}${e.tipo==="abriu"&&e.info&&e.info.local&&e.info.local.cidade?` · 📍 ${esc(e.info.local.cidade)}${e.info.local.regiao?"/"+esc(e.info.local.regiao):""} <small>(aprox.)</small>`:""}</li>`).join("")}</ul></div>`:""}
@@ -2383,13 +2408,20 @@ async function editor(id){
     $("#pMod")&&($("#pMod").onclick=propModelos);$("#pSM")&&($("#pSM").onclick=propSalvarModelo);
     if(ro){return}
     const F=$("#pForm");
+    $("#pModelo")&&($("#pModelo").onchange=async e=>{const D=d(),v=e.target.value;
+      if(v==="curta"){if(!confirm("Trocar para a proposta curta? Os dados serão preenchidos a partir do orçamento e do negócio. A revista fica guardada e volta se você trocar de novo."))return e.target.value="revista";
+        D._revista=JSON.parse(JSON.stringify(D));const c=await propBaseCurta();Object.keys(D).forEach(k=>delete D[k]);Object.assign(D,c)}
+      else{if(!confirm("Voltar para a proposta completa (revista)?"))return e.target.value="curta";
+        const r=D._revista;Object.keys(D).forEach(k=>delete D[k]);Object.assign(D,r||propBase())}
+      propSujo=true;desenhaProp()});
     const secDe=n=>(n.closest("[data-sec]")||{dataset:{}}).dataset.sec;
     F.addEventListener("toggle",ev=>{const s=ev.target;if(!s||!s.classList||!s.classList.contains("psec")||!s.open)return;F.querySelectorAll("details.psec[open]").forEach(x=>{if(x!==s)x.open=false});irPara(s.dataset.sec)},true);
     F.addEventListener("input",e=>{const n=e.target,D=d();
+      if(n.dataset.t==="date"){const x=n.value.replace(/\D/g,"").slice(0,8);n.value=x.replace(/^(\d{2})(\d)/,"$1/$2").replace(/^(\d{2})\/(\d{2})(\d)/,"$1/$2/$3")}
       if(n.dataset.p&&!n.dataset.foto&&n.dataset.t!=="chk"){let v=n.value;if(n.dataset.t==="lista")v=v.split("\n").map(s=>s.trim()).filter(Boolean);else if(n.dataset.t==="money")v=pnumP(v);else if(n.dataset.t==="int")v=parseInt(v)||0;else if(n.dataset.t==="cols")v=v.split(",").map(s=>s.trim()).filter(Boolean);setv(D,n.dataset.p,v);mudou(secDe(n));return}
       if(n.dataset.obs){D.obs=D.obs||{};D.obs[n.dataset.obs]=n.value;propSujo=true;return}
       const row=n.closest(".prow"),rep=n.closest("[data-rep]");
-      if(rep&&n.dataset.rk){const arr=gp(D,rep.dataset.rep);const r=arr[+row.dataset.i];r[n.dataset.rk]=n.dataset.t==="money"?pnumP(n.value):n.value;mudou(secDe(n));return}
+      if(rep&&n.dataset.rk){const arr=gp(D,rep.dataset.rep);const r=arr[+row.dataset.i];if(n.dataset.t==="date"){const x=n.value.replace(/\D/g,"").slice(0,8);n.value=x.replace(/^(\d{2})(\d)/,"$1/$2").replace(/^(\d{2})\/(\d{2})(\d)/,"$1/$2/$3")}r[n.dataset.rk]=n.dataset.t==="money"?pnumP(n.value):n.value;mudou(secDe(n));return}
       if(row&&row.dataset.gi!==undefined){const r=D.cron.rows[+row.dataset.gi];if(n.dataset.gk)r.a=n.value;if(n.dataset.gx!==undefined){r.x=(r.x||[]);r.x[+n.dataset.gx]=n.checked?1:0}mudou("cron")}});
     F.addEventListener("change",async e=>{const n=e.target,D=d();
       if(n.dataset.pg){D.paginas=D.paginas||{};if(n.checked)delete D.paginas[n.dataset.pg];else D.paginas[n.dataset.pg]=false;mudou(n.dataset.pg,true);return}
@@ -2408,14 +2440,15 @@ async function editor(id){
       const redraw=op=>{const ab=keep();desenhaProp();ab.concat(op?[op]:[]).forEach(s=>{const x=$(`[data-sec="${s}"]`);x&&(x.open=true)});mudou(op)};
       if(!b)return;
       if(b.dataset.fx){setv(D,b.dataset.fx,"");redraw(secDe(b));return}
-      if(b.dataset.add){const arr=gp(D,b.dataset.add)||[];const mod={"resumo.stats":{n:"",l:""},"materiais.itens":{t:"",d:""},"mao.itens":{t:"",d:""},"curva.linhas":{n:"",v:0,p:0,c:"C"},"cron.parcelas":{pct:"10",valor:0,quando:""}}[b.dataset.add];arr.push({...mod});setv(D,b.dataset.add,arr);redraw(secDe(b));return}
+      if(b.dataset.add){const arr=gp(D,b.dataset.add)||[];const mod={"resumo.stats":{n:"",l:""},"materiais.itens":{t:"",d:""},"mao.itens":{t:"",d:""},"curva.linhas":{n:"",v:0,p:0,c:"C"},"cron.parcelas":{pct:"10",valor:0,quando:""},"curta.blocos":{t:"",itens:""},"curta.itens":{nome:"",und:"UN",qtd:1,unit:0},"curta.parcelas":{venc:"",valor:0,forma:"",obs:""}}[b.dataset.add];arr.push({...mod});setv(D,b.dataset.add,arr);redraw(secDe(b));return}
       if(b.dataset.rm){const [p,i]=b.dataset.rm.split("|");gp(D,p).splice(+i,1);redraw(secDe(b));return}
       if(b.dataset.gadd!==undefined){D.cron.rows.push({a:"",x:D.cron.cols.map(()=>0)});redraw("cron");return}
       if(b.dataset.gr!==undefined){D.cron.rows.splice(+b.dataset.gr,1);redraw("cron");return}});
     F.addEventListener("toggle",e=>{const s=e.target;if(s.open&&s.dataset&&s.dataset.sec)irPara(s.dataset.sec)},true);
     $("#pSalv").onclick=async()=>{try{await propSalvar();toast("Proposta salva.");desenhaProp()}catch(e){}};
     $("#pEnv").onclick=()=>propEnviar();
-    $("#pRef").onclick=()=>{if(!confirm("Refazer os números, itens e curva a partir do orçamento atual? Os textos que você editou nessas partes serão substituídos."))return;const b=propBase(),D=d();["resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas","_ref"].forEach(p=>setv(D,p,gp(b,p)));desenhaProp();setTimeout(envia,300);propSujo=true};
+    $("#pRef").onclick=async()=>{if(d().modelo==="curta"){if(!confirm("Refazer os dados da proposta curta a partir do orçamento e do negócio? Os campos editados serão substituídos."))return;const D=d(),c=await propBaseCurta();Object.keys(D).forEach(k=>delete D[k]);Object.assign(D,c);propSujo=true;desenhaProp();return}
+      if(!confirm("Refazer os números, itens e curva a partir do orçamento atual? Os textos que você editou nessas partes serão substituídos."))return;const b=propBase(),D=d();["resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas","_ref"].forEach(p=>setv(D,p,gp(b,p)));desenhaProp();setTimeout(envia,300);propSujo=true};
   }
   async function propUpFoto(file){
     const bmp=await createImageBitmap(file),k=Math.min(1,1600/Math.max(bmp.width,bmp.height));const cv=document.createElement("canvas");cv.width=Math.round(bmp.width*k);cv.height=Math.round(bmp.height*k);cv.getContext("2d").drawImage(bmp,0,0,cv.width,cv.height);

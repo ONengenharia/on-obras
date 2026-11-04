@@ -328,6 +328,26 @@ body.pdf .page.print .avs{background:#e3eef8!important;border-color:#62a8dc!impo
 body.pdf .page.print .rc{background:#eef5fb!important;border-color:#b9d3e8!important}body.pdf .page.print .rc b{color:#0b2740!important}body.pdf .page.print .rc small{color:#3a566d!important}body.pdf .page.print .rc i{color:#fff!important;background:#2a78b4!important}
 .gl .r.t.g{font-size:3.2cqw;letter-spacing:.02em}
 
+body.curta{display:block!important;height:auto!important;overflow:auto!important;background:#0f1a26}
+body.curta #book,body.curta .bar{display:none!important}body:not(.curta) #curta{display:none}
+#curta{max-width:820px;margin:0 auto;padding:14px 12px 40px}
+.cpg{container-type:inline-size;width:100%;aspect-ratio:760/1076;background:#fff;color:#1e2f40;position:relative;overflow:hidden;box-sizing:border-box;border-radius:6px;box-shadow:0 6px 30px #0006}
+.cpg .cin{box-sizing:border-box;height:100%;overflow:hidden;padding:4.6cqw 5.2cqw 4cqw;font-family:Montserrat,Inter,Arial,sans-serif;font-size:calc(var(--k,1.8)*1cqw);line-height:1.38;display:flex;flex-direction:column;gap:.7em}
+.cpg .ch{display:flex;gap:1.4em;justify-content:space-between;align-items:flex-start;font-size:.86em}.cpg .ch img{height:5.2em;width:auto;flex:none}
+.cpg .ce,.cpg .cc{display:flex;flex-direction:column;gap:.1em}.cpg .ce{flex:1}.cpg .cc{text-align:right}.cpg .ce b{font-size:1.15em;color:#0b2740}
+.cpg .ct{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid #2a78b4;border-bottom:1px solid #c5d6e4;padding:.45em 0;font-size:1.15em;color:#0b2740}.cpg .ct span{font-weight:600}
+.cpg .ci{margin:0}.cpg .cb{display:flex;flex-direction:column;gap:.05em}.cpg .cb b{color:#0b2740}
+.cpg .cv2{display:flex;justify-content:space-between;gap:1em;font-size:.92em;border-top:1px solid #e1eaf2;border-bottom:1px solid #e1eaf2;padding:.35em 0}
+.cpg h4{margin:.35em 0 0;font-size:.95em;letter-spacing:.06em;color:#fff;background:#2a78b4;padding:.25em .6em;border-radius:.3em}
+.cpg .cg{display:grid;grid-template-columns:1fr 1fr;gap:.2em 1.4em}.cpg .kv{display:flex;gap:.5em;border-bottom:1px dotted #c5d6e4;padding:.12em 0}.cpg .kv i{font-style:normal;color:#5b6b7a;min-width:5.4em}.cpg .kv span{font-weight:600}
+.cpg .tb{width:100%;border-collapse:collapse;font-size:.9em}.cpg .tb th{background:#eaf2f9;color:#0b2740;text-align:center;padding:.3em .4em;font-size:.88em}.cpg .tb td{text-align:center;padding:.3em .4em;border-bottom:1px solid #e1eaf2}.cpg .tb .l{text-align:left}
+.cpg .tt{display:flex;justify-content:flex-end;gap:1.2em;font-size:1.1em;color:#0b2740}.cpg .tt b{font-size:1.1em}
+.cpg .co p{margin:.1em 0;font-size:.92em}
+.cpg .cs{margin-top:auto;padding-top:1.4em;text-align:center}.cpg .cs i{display:block;width:60%;margin:0 auto;border-top:1px solid #1e2f40}.cpg .cs span{font-size:.85em;color:#5b6b7a}
+.cact{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px}.cbt{font:700 15px Montserrat,Inter,sans-serif;border:0;border-radius:999px;padding:13px 22px;background:#26394d;color:#fff;cursor:pointer;text-decoration:none}.cbt.pri{background:#62a8dc;color:#0b2740}
+body.pdf .cpg{border-radius:0;box-shadow:none}
+.cpg p,.cpg .ci{font-size:.95em!important;line-height:1.38;margin:0!important;font-weight:500}.cpg .co p{font-size:.92em!important}
+
 .capapdf{position:absolute;inset:0;background:#fff;font-family:Montserrat,system-ui,sans-serif;overflow:hidden}
 .cp-h{position:absolute;left:0;top:0;width:100%;height:250px;background:#fff;border-bottom:4px solid #62a8dc}.cp-h img{position:absolute;left:44px;top:34px;width:230px}
 .cp-t{position:absolute;right:46px;top:62px;text-align:left;color:#2f6f9f;line-height:1.05}.cp-t span{display:block;font-size:56px;font-weight:300}.cp-t b{display:block;font-size:60px;font-weight:800}
@@ -562,9 +582,45 @@ function ajustaGen(list){const st=document.createElement('div');st.style.cssText
   st.remove()}
 function tweakBase(l){l.forEach(pg=>{const h=[...pg.querySelectorAll('h2')].find(x=>/nasceu para entregar/.test(x.textContent));if(h){h.style.fontSize='5cqw';h.style.marginBottom='2cqw';const ph=pg.querySelector('.ph');if(ph&&ph.style.height==='17cqh')ph.style.height='13cqh'}});}
 let started=false,sig='';
+
+/* ---------- proposta curta (1 página A4, no padrão do orçamento do Gestão Click) ---------- */
+const nlq=s=>String(s||'').split(/\n/).map(x=>x.trim()).filter(Boolean);
+const dBR=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||''));return m?`${m[3]}/${m[2]}/${m[1]}`:String(s||'')};
+const nbr=(n,c)=>(+n||0).toLocaleString('pt-BR',{minimumFractionDigits:c,maximumFractionDigits:c});
+function curtaHtml(d){const c=d.curta||{},cl=c.cli||{},o=d.orc||{};
+  const itens=c.itens||[],par=c.parcelas||[];const tot=itens.reduce((t,i)=>t+(+i.qtd||0)*(+i.unit||0),0);
+  const cel=(a,b)=>`<div class="kv"><i>${a}</i><span>${esc(b||'')}</span></div>`;
+  return `<div class="ch"><img src="${LOGO}" alt="ON Engenharia"><div class="ce"><b>ON ENGENHARIA</b><span>CNPJ: 40.258.369/0001-13</span><span>VL ARROIO GRANDE, SN (PRÓXIMO À COOPEAGRI) - INTERIOR</span><span>Ibirubá/RS - CEP: 98200-000</span></div>
+<div class="cc"><span>(54) 9976-6465 · (55) 99133-7296</span><span>projetos.on.engenharia@gmail.com</span><span>www.onengenhariaeletrica.com.br</span>${c.vendedor?`<span>Vendedor: <b>${esc(c.vendedor)}</b></span>`:''}${c.cuidados?`<span>Aos cuidados de: <b>${esc(c.cuidados)}</b></span>`:''}</div></div>
+<div class="ct"><b>ORÇAMENTO Nº ${esc(o.numero||'—')}${o.versao&&+String(o.versao).replace(/^v/i,'')>1?` · v${esc(String(o.versao).replace(/^v/i,''))}`:''}</b><span>${esc(dBR(o.data))}</span></div>
+${c.intro?`<p class="ci">${rich(c.intro)}</p>`:''}
+${(c.blocos||[]).filter(b=>b.t||b.itens).map(b=>`<div class="cb">${b.t?`<b>${esc(b.t)}</b>`:''}${nlq(b.itens).map(x=>`<div>- ${esc(x)}</div>`).join('')}</div>`).join('')}
+<div class="cv2"><span>VALIDADE DA PROPOSTA: <b>${esc(c.validade||'')}</b></span>${c.entrega?`<span>PREVISÃO DE ENTREGA: <b>${esc(dBR(c.entrega))}</b></span>`:''}</div>
+<h4>DADOS DO CLIENTE</h4><div class="cg">${cel('Cliente',(d.cliente||{}).nome)}${cel('CNPJ/CPF',cl.doc)}${cel('Endereço',cl.end)}${cel('CEP',cl.cep)}${cel('Cidade',cl.cidade)}${cel('Estado',cl.uf)}${cel('Telefone',cl.fone)}${cel('E-mail',cl.email)}</div>
+<h4>PRODUTOS</h4><table class="tb"><thead><tr><th>ITEM</th><th class="l">NOME</th><th>UND.</th><th>QTD.</th><th>VR. UNIT.</th><th>SUBTOTAL</th></tr></thead><tbody>${itens.map((i,k)=>`<tr><td>${k+1}</td><td class="l">${esc(i.nome)}</td><td>${esc(i.und||'UN')}</td><td>${nbr(i.qtd,2)}</td><td>${nbr(i.unit,2)}</td><td>${nbr((+i.qtd||0)*(+i.unit||0),2)}</td></tr>`).join('')}</tbody></table>
+<div class="tt"><span>TOTAL</span><b>R$ ${nbr(tot,2)}</b></div>
+${par.length?`<h4>DADOS DO PAGAMENTO</h4><table class="tb"><thead><tr><th>VENCIMENTO</th><th>VALOR DA PARCELA</th><th>FORMA DE PAGAMENTO</th><th class="l">OBSERVAÇÃO</th></tr></thead><tbody>${par.map(p=>`<tr><td>${esc(dBR(p.venc))}</td><td>${nbr(p.valor,2)}</td><td>${esc(p.forma||'')}</td><td class="l">${esc(p.obs||'')}</td></tr>`).join('')}</tbody></table>`:''}
+${c.obs?`<h4>OBSERVAÇÕES</h4><div class="co">${nlq(c.obs).map(x=>`<p>${rich(x)}</p>`).join('')}</div>`:''}
+<div class="cs"><i></i><span>Assinatura do cliente</span></div>`}
+function fitCurta(pg){const cin=pg.querySelector('.cin');if(!cin)return;let k=1.9;cin.style.setProperty('--k',k);let n=0;while(cin.scrollHeight>cin.clientHeight+1&&k>1.05&&n++<30){k-=.05;cin.style.setProperty('--k',k.toFixed(2))}}
+function renderCurta(d){
+  D=d;document.body.classList.add('curta');document.body.classList.add('pronto');
+  let w=document.getElementById('curta');if(!w){w=document.createElement('div');w.id='curta';document.body.appendChild(w)}
+  const zap=((d.aceite||{}).whats||'5555991337296');
+  w.innerHTML=`<div class="cpg"><div class="cin">${curtaHtml(d)}</div></div><div class="cact"><button id="btnAceite" class="cbt pri">${STATE.status==='aceita'?'Proposta aceita ✓':'Aceitar proposta'}</button><button id="btnPdf" class="cbt">Baixar PDF</button><a id="waRep" class="cbt" target="_blank" rel="noopener" href="https://wa.me/${zap}?text=${encodeURIComponent('Olá, vi o orçamento '+((d.orc||{}).numero||'')+' e queria conversar.')}">Falar com a ON</a></div>`;
+  document.title='Orçamento '+((d.orc||{}).numero||'')+' · ON Engenharia';
+  const go=()=>fitCurta(w.querySelector('.cpg'));go();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(go);
+  window.addEventListener('resize',go,{once:true});wire()}
+function flatCurta(dados){
+  D=propMerge(PROP_PADRAO,dados||{});document.body.classList.add('pdf');
+  let w=document.getElementById('pdfwrap');if(!w){w=document.createElement('div');w.id='pdfwrap';document.body.appendChild(w)}
+  w.innerHTML=`<div class="page light print" data-id="curta" style="position:relative;width:760px;height:1076px"><div class="cpg" style="width:760px;height:1076px;aspect-ratio:auto"><div class="cin">${curtaHtml(D)}</div></div></div>`;
+  const pg=w.querySelector('.cpg'),imgs=[...w.querySelectorAll('img')];
+  Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r}))).then(()=>{fitCurta(pg);setTimeout(()=>{fitCurta(pg);parent.postMessage({tipo:'renderizado',paginas:1},'*')},400)})}
 const DEP={valores:['valores','cron','resumo']};
 function aplicar(dados,so){
   D=propMerge(PROP_PADRAO,dados||{});
+  if(D.modelo==='curta'){renderCurta(D);return}document.body.classList.remove('curta');
   const book=document.getElementById('book');
   const list=paginas(D);
   const ids=list.map(p=>p.dataset.id).join(',');
@@ -608,6 +664,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     try{const a=await rpc('proposta_aceitar',{p_codigo:CODE,p_nome:n,p_doc:c});STATE.status='aceita';r.innerHTML='<b style="color:#1f8a4c">Aceite registrado</b> em '+new Date(a.em||Date.now()).toLocaleString('pt-BR')+'. A ON foi avisada.';const b=document.getElementById('btnAceite');if(b)b.innerHTML='Proposta aceita ✓'}catch(e){r.textContent='Não foi possível registrar: '+e.message}};
   boot()});
 function flat(dados){
+  if(dados&&dados.modelo==='curta')return flatCurta(dados);
   D=propMerge(PROP_PADRAO,dados||{});document.body.classList.add('pdf');
   let w=document.getElementById('pdfwrap');if(!w){w=document.createElement('div');w.id='pdfwrap';document.body.appendChild(w);const b=document.getElementById('book');[...b.querySelectorAll('.page')].forEach(p=>w.appendChild(p));window.__baseFlat=[...w.querySelectorAll('.page')]}
   w.querySelectorAll('.page[data-gen]').forEach(e=>e.remove());
