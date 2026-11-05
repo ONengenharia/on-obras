@@ -1779,7 +1779,7 @@ async function editor(id){
     const multi=Object.entries(PR).filter(([,p])=>p.L.length>1),DIR={},porPt={};multi.forEach(([k,p])=>{[p.a,p.b].forEach(x=>(porPt[x]=porPt[x]||[]).push(k))});
     multi.forEach(([k0,p0])=>{if(DIR[k0])return;const A=ptById(p0.a),B=ptById(p0.b);if(!A||!B)return;DIR[k0]=(B.x-A.x>0||(B.x===A.x&&B.y>A.y))?[p0.a,p0.b]:[p0.b,p0.a];const fila=[k0];
       while(fila.length){const k=fila.shift();const [f,t]=DIR[k];[[t,"ini"],[f,"fim"]].forEach(([P,modo])=>(porPt[P]||[]).forEach(k2=>{if(DIR[k2])return;const q=PR[k2];const o=q.a===P?q.b:q.a;DIR[k2]=modo==="ini"?[P,o]:[o,P];fila.push(k2)}))}});
-    svg.innerHTML=VAOS.filter(g=>tracing||!redeOc.has(g.tipo_rede_id)).map(g=>{const a=ptById(g.ponto_a),b=ptById(g.ponto_b);if(!a||!b)return"";const t=TRM[g.tipo_rede_id]||{cor:"#555"};
+    svg.innerHTML=VAOS.filter(g=>tracing||!redeOc.has(String(g.tipo_rede_id))).map(g=>{const a=ptById(g.ponto_a),b=ptById(g.ponto_b);if(!a||!b)return"";const t=TRM[g.tipo_rede_id]||{cor:"#555"};
       const k=[g.ponto_a,g.ponto_b].sort().join("|"),pr=PR[k];let nx=0,ny=0,off=0;
       if(pr.L.length>1&&DIR[k]){const F=ptById(DIR[k][0]),T2=ptById(DIR[k][1]);const dx=T2.x-F.x,dy=T2.y-F.y,L=Math.hypot(dx,dy)||1;nx=-dy/L;ny=dx/L;off=(pr.L.indexOf(g)-(pr.L.length-1)/2)*9*w}
       else{const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1;nx=-dy/L;ny=dx/L;if(ny<0||(ny===0&&nx<0)){nx=-nx;ny=-ny}}
