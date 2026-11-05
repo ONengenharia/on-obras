@@ -2,10 +2,12 @@
 create table if not exists public.metas (
   mes date not null,                    -- sempre dia 1 do mês
   quadro text not null,                 -- 'geral' | 'eletrica' | 'solar'
+  tipo text not null default 'fechamento', -- 'fechamento' | 'servico'
+  realizado numeric,                    -- preenchido manualmente (metas de serviço); fechamento é automático
   valor numeric not null default 0,
   atualizado_em timestamptz not null default now(),
   atualizado_por uuid default auth.uid(),
-  primary key (mes, quadro)
+  primary key (mes, quadro, tipo)
 );
 alter table public.metas enable row level security;
 create policy metas_adm on public.metas for all to authenticated using (privado.is_admin()) with check (privado.is_admin());
