@@ -521,11 +521,15 @@ async function config(aba){
     $("#minat").onchange=e=>{minat=e.target.checked;tMateriais()};
     $("#mPrev")&&($("#mPrev").onclick=()=>{mpag--;tMateriais()});$("#mNext")&&($("#mNext").onclick=()=>{mpag++;tMateriais()});
     $$("tr[data-m]").forEach(r=>r.onclick=()=>fichaMaterial(r.dataset.m));
-    $("#mNovo").onclick=()=>modal(`<h2>Novo material</h2><div class="grid2"><label class="fld">Código<input name="codigo" required></label><label class="fld">Unidade${unSel("UN")}</label></div>
+    $("#mNovo").onclick=()=>modal(`<h2>Novo material</h2><div class="grid2"><label class="fld">Código<input name="codigo" value="${(()=>{let n=0;MATS.forEach(m=>{const x=/^ON-(\d+)$/.exec(m.codigo);if(x)n=Math.max(n,+x[1])});return "ON-"+String(n+1).padStart(4,"0")})()}" required></label><label class="fld">Unidade${unSel("UN")}</label></div>
       <label class="fld">Nome<input name="nome" required></label><label class="fld">Subgrupo<select name="sub"><option value="">—</option>${SUBS.map(s=>`<option>${esc(s.nome)}</option>`).join("")}</select></label>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" name="gc" value="1" checked style="width:auto"> Cadastrar também como produto no Gestão Click (código e nome)</label>
       <p class="note">O código vale também para o ERP — use o que vai lançar lá.</p>`,async f=>{
       if(MATS.some(m=>m.codigo===f.codigo.trim())){toast("Já existe um material com esse código.");return false}
-      const r=await chk(O.from("materiais").insert({codigo:f.codigo.trim(),nome:f.nome.trim(),unidade:f.unidade.trim()||null,subgrupo:f.sub||null}).select("*").single());MATS.push(r);mq=r.codigo;tMateriais()},"Criar");
+      const r=await chk(O.from("materiais").insert({codigo:f.codigo.trim(),nome:f.nome.trim(),unidade:f.unidade.trim()||null,subgrupo:f.sub||null}).select("*").single());MATS.push(r);mq=r.codigo;
+      if(f.gc){try{const {data,error}=await sb.functions.invoke("gestaoclick",{body:{acao:"produto_criar",produto:{codigo:r.codigo,nome:r.nome}}});
+        if(error||!data||!data.ok)toast("Material criado aqui, mas não consegui criar no Gestão Click: "+((data&&(data.erro||JSON.stringify(data.resposta||"")))||(error&&error.message)||"erro"));else toast(data.novo===false?"Material criado. Produto já existia no Gestão Click.":"Material criado e cadastrado no Gestão Click.")}catch(e){toast("Material criado aqui, mas falhou o Gestão Click: "+(e.message||e))}}
+      tMateriais()},"Criar");
     $("#mSug")&&($("#mSug").onclick=()=>{const A=L.filter(m=>!m.subgrupo).map(m=>({m,g:sugSub(m.nome)})).filter(x=>x.g);
       const md=modal(`<h2>Sugestões de subgrupo (${A.length})</h2><p class="note">Aprendidas com os materiais que você já classificou. Desmarque o que não quiser.</p><div class="sugl">${A.map((x,i)=>`<label><input type="checkbox" data-sg="${i}" checked> <span>${esc(x.m.nome)}</span><b>${esc(x.g.sub)}</b></label>`).join("")}</div>`,async()=>{
         const G={};A.forEach((x,i)=>{if(md.querySelector(`[data-sg="${i}"]`).checked)(G[x.g.sub]=G[x.g.sub]||[]).push(x.m)});let n=0;
