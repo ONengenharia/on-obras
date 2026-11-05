@@ -271,7 +271,7 @@ svg.net text{font-family:var(--f-mono);font-weight:600;paint-order:stroke;stroke
 @container (max-width:390px){#ptpanel .grid2{grid-template-columns:1fr}#ptpanel .seq{flex-wrap:wrap}#ptpanel .seq input{flex-basis:100%}#ptpanel .pads .pad{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 .lockbar{background:var(--accent-soft);color:var(--accent);border-radius:8px;padding:9px 12px;font-size:13px}.plog summary{cursor:pointer;display:flex;gap:8px;align-items:center}.plog .tbl td{font-size:12.5px}
 
-.tot .eye{font-size:10.5px}.kpis.k6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}.minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0}.card.mn{padding:10px 12px}.card.mn h3{margin:0 0 6px;font-size:12.5px}.sk{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--idle-soft)}.sk i{display:block}.lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;margin:6px 0}.lg.v{flex-direction:column;margin:0;gap:3px}.lg u{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}.pvx{gap:4px!important}.pvr{font-size:12px!important}.pvb{height:9px!important}@media (max-width:1100px){.kpis.k6{grid-template-columns:repeat(2,minmax(0,1fr))}.minis{grid-template-columns:1fr}}.kpis.k5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.tot .eye{font-size:10.5px}.kpis.k6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}.minis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0}.mvtb{display:inline-flex;gap:2px;margin-left:10px;vertical-align:middle;opacity:.55}.mvtb:hover{opacity:1}.mvb{background:transparent;border:1px solid var(--line);color:inherit;border-radius:6px;padding:0 6px;font-size:11px;line-height:18px;cursor:pointer}.mvb[data-g]{cursor:grab}.card.mvcol{align-self:start;height:auto!important}.card.mvcol>*:not(h2):not(h3):not(:has(h2)):not(:has(h3)){display:none!important}.card.mvdrag{opacity:.45}.card[data-mv]{min-height:44px}.card[data-mv]{resize:both;overflow:auto}.dv{display:grid;grid-template-columns:96px 1fr 92px;gap:8px;align-items:center;margin:5px 0;font-size:12px}.dv .l b,.dv .n{display:block}.dv small{display:block;font-size:10px;opacity:.65;font-weight:400}.dv .n{text-align:right;font-weight:700}.db{position:relative;height:10px;background:var(--idle-soft);border-radius:5px}.db u{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)}.db i{position:absolute;top:1px;bottom:1px;border-radius:4px}.card.mn{padding:10px 12px}.card.mn h3{margin:0 0 6px;font-size:12.5px}.sk{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--idle-soft)}.sk i{display:block}.lg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;margin:6px 0}.lg.v{flex-direction:column;margin:0;gap:3px}.lg u{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}.pvx{gap:4px!important}.pvr{font-size:12px!important}.pvb{height:9px!important}@media (max-width:1100px){.kpis.k6{grid-template-columns:repeat(2,minmax(0,1fr))}.minis{grid-template-columns:1fr}}.kpis.k5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:3px}.kpi span{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}.kpi b{font-family:var(--f-mono);font-size:20px}.kpi small{font-size:11.5px;color:var(--muted)}
 .kpi.ok b{color:var(--ok)}.kpi.bad b{color:var(--danger)}
 @media (max-width:1100px){.kpis.k5{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -457,6 +457,30 @@ async function deNegocio(nid){
   root.innerHTML=`<div class="erro"><img src="assets/on-logo.png" alt=""><h1>Compras</h1><p>Este negócio ainda não tem painel de compras.${ADM?" Vincule um orçamento no OrçaRede e use o botão 🛒 Compras.":" Peça a um administrador para abrir a partir do orçamento."}</p><a href="negocios.html">Voltar aos negócios</a></div>`}
 
 /* ---------------- LISTA ---------------- */
+
+/* ---- Tabelas/cartões: mover, recolher e redimensionar (salvo neste navegador) ---- */
+(function(){const K="cmp.cards.v1";let S={};try{S=JSON.parse(localStorage.getItem(K)||"{}")}catch(e){}
+  const sv=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+  const keyDe=c=>{const h=c.querySelector("h2,h3");return h?h.textContent.replace(/[▾⠿⤢]/g,"").trim().slice(0,40):""};
+  const pk=p=>[...p.children].filter(x=>x.classList.contains("card")).map(keyDe).sort().join("|");
+  function prep(c){if(c.dataset.mv)return;const h=c.querySelector("h2,h3");if(!h)return;c.dataset.mv=1;const key=keyDe(c),st=S[key]||{};
+    const topo=[...c.children].find(x=>x.contains(h));const tb=document.createElement("span");tb.className="mvtb";
+    tb.innerHTML='<button type="button" class="mvb" data-g title="Arrastar para mover">⠿</button><button type="button" class="mvb" data-c title="Recolher / expandir">▾</button><button type="button" class="mvb" data-r title="Voltar ao tamanho padrão">⤢</button>';
+    h.appendChild(tb);
+    const aplica=()=>{c.classList.toggle("mvcol",!!(S[key]||{}).col)};if(st.col)aplica();
+    if(st.w)c.style.width=st.w;if(st.h){c.style.height=st.h;c.style.overflow="auto"}
+    tb.querySelector("[data-c]").onclick=e=>{e.stopPropagation();(S[key]=S[key]||{}).col=!(S[key]||{}).col;aplica();sv()};
+    tb.querySelector("[data-r]").onclick=e=>{e.stopPropagation();c.style.width="";c.style.height="";c.style.overflow="";c.classList.remove("mvcol");delete S[key];sv()};
+    const g=tb.querySelector("[data-g]");g.onpointerdown=()=>{c.draggable=true};g.onpointerup=()=>{c.draggable=false};
+    c.ondragstart=e=>{if(!c.draggable)return;e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",key)}catch(x){}c.classList.add("mvdrag");window.__mvc=c};
+    c.ondragend=()=>{c.draggable=false;c.classList.remove("mvdrag");window.__mvc=null;const p=c.parentElement;if(p){S["ord:"+pk(p)]=[...p.children].filter(x=>x.classList.contains("card")).map(keyDe);sv()}};
+    c.ondragover=e=>{const d=window.__mvc;if(!d||d===c||d.parentElement!==c.parentElement)return;e.preventDefault();const r=c.getBoundingClientRect(),dep=getComputedStyle(c.parentElement).display==="grid"&&r.width<c.parentElement.getBoundingClientRect().width*.7,depois=dep?e.clientX>r.left+r.width/2:e.clientY>r.top+r.height/2;c.parentElement.insertBefore(d,depois?c.nextSibling:c)};
+    c.addEventListener("pointerup",()=>{if(c.style.height||c.style.width){const o=S[key]=S[key]||{};if(c.style.width)o.w=c.style.width;if(c.style.height){o.h=c.style.height;c.style.overflow="auto"}sv()}});
+  }
+  function ordena(p){const o=S["ord:"+pk(p)];if(!o)return;o.forEach(k=>{const c=[...p.children].find(x=>x.classList.contains("card")&&keyDe(x)===k);if(c)p.appendChild(c)})}
+  const roda=()=>{const F=document.getElementById("full");if(!F)return;const ps=new Set();F.querySelectorAll(".card").forEach(c=>{const first=!c.dataset.mv;prep(c);if(first&&c.parentElement)ps.add(c.parentElement)});ps.forEach(ordena)};
+  new MutationObserver(()=>{clearTimeout(roda.t);roda.t=setTimeout(roda,60)}).observe(document.body,{childList:true,subtree:true});setTimeout(roda,0);
+})();
 async function lista(){
   const [C,I]=await Promise.all([todos(()=>O.from("compras").select("*").order("atualizado_em",{ascending:false})),todos(()=>O.from("compra_itens").select("compra_id,qtd,preco_previsto,preco_escolhido,cotacao_escolhida"))]);
   const R={};I.forEach(i=>{const r=R[i.compra_id]=R[i.compra_id]||{prev:0,esc:0,prevEsc:0,n:0,ne:0};const q=+i.qtd||0;if(!q)return;r.n++;r.prev+=q*(+i.preco_previsto||0);if(i.preco_escolhido!=null){r.ne++;r.esc+=q*(+i.preco_escolhido);r.prevEsc+=q*(+i.preco_previsto||0)}});
@@ -577,10 +601,14 @@ async function painel(id){
       if(+i.estoque>0&&q===0)N4.est++;else if(i.oc){N4.oc++;O4.oc+=q*pv}else if(vEsc(i)!=null){N4.esc++;O4.esc+=q*pv}else{N4.pen++;O4.pen+=q*pv}});
     const OT=O4.est+O4.oc+O4.esc+O4.pen||1,pe=v=>Math.round(v/OT*1000)/10,estPct=pe(O4.est);
     const COR={est:"#7c5cff",oc:"#2fb67c",esc:"#62a8dc",pen:"#8a97a6"},NOM={est:"Estoque",oc:"Com OC",esc:"Escolhido",pen:"Pendente"};
-    const bar2=(t,a,b)=>{const m2=Math.max(a,b,1);return `<div style="display:grid;grid-template-columns:62px 1fr 78px;gap:6px;align-items:center;font-size:11px;margin:3px 0"><span>${t}</span><div><div style="height:5px;border-radius:3px;background:#8a97a666;width:${a/m2*100}%"></div><div style="height:5px;border-radius:3px;margin-top:2px;background:${b<=a?"#2fb67c":"#e5484d"};width:${b/m2*100}%"></div></div><span class="n" style="text-align:right">${brl(b)}</span></div>`};
+    const dvRows=[["Material",matPrev,matProj],["Custos",custoPrev,custoReal],["Total",totPrev,totReal]];
+    if(pv.total){const lp=+pv.lucro||((+pv.total)-totPrev),lr=(+pv.total)-totReal;dvRows.push(["Lucro",lp,lr,true])}
+    const dvM=Math.max(5,...dvRows.map(([t,a,b,inv])=>a?Math.abs((inv?b-a:a-b)/a*100):0));
+    const dv=dvRows.map(([t,a,b,inv])=>{const d=inv?b-a:a-b,p=a?d/a*100:0,w=Math.min(1,Math.abs(p)/dvM)*50,ok=d>=0;
+      return `<div class="dv"><span class="l"><b>${t}</b><small>${brl(a)} → ${brl(b)}</small></span><div class="db"><u></u><i style="${ok?"left:50%":"right:50%"};width:${w}%;background:${ok?"#2fb67c":"#e5484d"}"></i></div><span class="n" style="color:${ok?"#2fb67c":"#e5484d"}">${d>=0?"+":"−"}${brl(Math.abs(d))}<small>${(d>=0?"+":"−")+Math.abs(p).toFixed(1).replace(".",",")}%</small></span></div>`}).join("");
     const NT=AT.length||1;let acc=0;const dn=Object.keys(NOM).map(k=>{const f=N4[k]/NT,d=`<circle r="15.9" cx="21" cy="21" fill="none" stroke="${COR[k]}" stroke-width="6" stroke-dasharray="${f*100} ${100-f*100}" stroke-dashoffset="${-acc*100}" transform="rotate(-90 21 21)"/>`;acc+=f;return d}).join("");
     const mini=`<div class="minis">
-      <div class="card mn"><h3>Previsto × realizado</h3>${bar2("Material",matPrev,matProj)}${bar2("Custos",custoPrev,custoReal)}${bar2("Total",totPrev,totReal)}<div class="note" style="font-size:10.5px">barra cinza = previsto · colorida = realizado/projetado</div></div>
+      <div class="card mn"><h3>Previsto × realizado</h3>${dv}<div class="note" style="font-size:10.5px">Barra para a direita (verde) = abaixo do previsto / lucro maior · esquerda (vermelho) = acima do previsto</div></div>
       <div class="card mn"><h3>Origem do material <span class="note">(pelo previsto)</span></h3><div class="sk">${Object.keys(NOM).map(k=>`<i style="width:${pe(O4[k])}%;background:${COR[k]}" title="${NOM[k]} ${pe(O4[k])}%"></i>`).join("")}</div>
         <div class="lg">${Object.keys(NOM).map(k=>`<span><u style="background:${COR[k]}"></u>${NOM[k]} <b>${pe(O4[k])}%</b></span>`).join("")}</div><div class="note" style="font-size:10.5px">${brl(O4.est)} atendidos pelo estoque</div></div>
       <div class="card mn"><h3>Itens por situação</h3><div style="display:flex;gap:10px;align-items:center"><svg viewBox="0 0 42 42" width="74" height="74">${dn}<text x="21" y="24" text-anchor="middle" font-size="9" fill="currentColor" font-weight="700">${AT.length}</text></svg>
