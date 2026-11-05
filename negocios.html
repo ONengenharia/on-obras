@@ -327,6 +327,11 @@ async function carregarAvisos(){const {data}=await sb.from("notificacoes").selec
 async function recarregar(){await carregarTudo();await carregarAvisos();render();if(aberto&&CARDS.find(c=>c.id===aberto))abrir(aberto,true)}
 
 /* ---------- gravação ---------- */
+const nCli=x=>String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
+function clientesEx(excl){const m=new Map();CARDS.slice().sort((a,b)=>String(b.atualizado_em||b.criado_em||"").localeCompare(String(a.atualizado_em||a.criado_em||""))).forEach(k=>{const n=nCli(k.cliente);if(!n||k.id===excl)return;const o=m.get(n);if(!o)m.set(n,{nome:k.cliente,fone:k.fone||"",cidade:k.cidade||"",cad:{...(k.cadastro||{})}});else{if(!o.fone&&k.fone)o.fone=k.fone;if(!o.cidade&&k.cidade)o.cidade=k.cidade;const kc=k.cadastro||{};Object.keys(kc).forEach(a=>{if(!o.cad[a]&&kc[a])o.cad[a]=kc[a]})}});
+  return [...m.values()].map(o=>{const cad={...o.cad};delete cad.gc_orc;delete cad.vendido;return{...o,cad}})}
+function cliEx(nome,excl){const n=nCli(nome);return n?clientesEx(excl).find(o=>nCli(o.nome)===n):null}
+function cliDl(id,excl){return `<datalist id="${id}">${clientesEx(excl).sort((a,b)=>a.nome.localeCompare(b.nome,"pt")).map(o=>`<option value="${esc(o.nome)}">${esc([o.cidade,o.fone].filter(Boolean).join(" · "))}</option>`).join("")}</datalist>`}
 async function salvarCampos(c,campos){
   Object.assign(c,campos);
   const {data,error}=await sb.from("negocios").update(campos).eq("id",c.id).select().single();
@@ -669,7 +674,7 @@ async function abrir(id,manter){
       <label class="fld">Nº do orçamento <small class="note">(Gestão Click)</small><input value="${esc(((c.cadastro||{}).gc_orc||{}).codigo||"")}" ${dis} data-gcnum placeholder="vem do Gestão Click"></label>
       <label class="fld">Vendido<select ${dis} data-vend="sim"><option value="">Não</option><option value="1" ${((c.cadastro||{}).vendido||{}).sim?"selected":""}>Sim · vendido</option></select></label>
       <label class="fld">Data da venda<input type="date" value="${esc(((c.cadastro||{}).vendido||{}).em||"")}" ${dis} data-vend="em"></label>
-      <label class="fld">Cliente<input value="${esc(c.cliente)}" ${dis} data-f="cliente"></label>
+      <label class="fld">Cliente<input value="${esc(c.cliente)}" ${dis} data-f="cliente" list="dlCli" autocomplete="off">${cliDl("dlCli",c.id)}</label>
       <label class="fld">Telefone / WhatsApp<input value="${esc(fmtFone(c.fone))}" ${dis} data-f="fone" inputmode="tel" placeholder="(54) 00000-0000"></label>
       <label class="fld">Cidade<input value="${esc(c.cidade)}" ${dis} data-f="cidade"></label>
       <label class="fld">Concessionária<select ${dis} data-f="conc"><option value="">—</option>${opts(LISTAS.conc,c.conc)}<option value="__conc">+ Adicionar outra…</option></select></label>
@@ -723,6 +728,8 @@ async function abrir(id,manter){
       if(f==="comissao_valor"){v=String(v).trim()===""?null:lerBrl(v);el.value=v!=null?brlTxt(v):""}
       campos[f]=v;
       if(f==="maps"){campos.lat=null;campos.lng=null;const p=coordsDe(v)||(/^https:/i.test(v)?await resolverLink(v):null);if(p){campos.lat=p.lat;campos.lng=p.lng}}
+      if(f==="cliente"&&v&&!(c.cadastro||{}).gc_id){const ex=cliEx(v,c.id);if(ex&&(ex.fone||ex.cidade||Object.keys(ex.cad).length)&&confirm(`Já existe o cliente “${ex.nome}”. Puxar telefone, cidade e cadastro dele para este negócio?\n(só preenche o que estiver vazio aqui)`)){
+        if(!c.fone&&ex.fone)campos.fone=ex.fone;if(!c.cidade&&ex.cidade)campos.cidade=ex.cidade;const cd={...ex.cad};Object.entries(c.cadastro||{}).forEach(([k,x])=>{if(x)cd[k]=x});if(Object.keys(cd).length)campos.cadastro=cd;campos.cliente=ex.nome}}
       if(await salvarCampos(c,campos)){render();
         if(f==="titulo"){const h=document.querySelector(".gv .gvh h2");if(h)h.textContent=c.titulo}
         if(["maps","comissao_pct","comissao_valor"].includes(f)){
@@ -868,17 +875,17 @@ async function novo(){
   {dono=await new Promise(res=>{const m=document.createElement("div");m.className="modal";
     m.innerHTML=`<div class="mbox" style="background:var(--panel);border-radius:12px;padding:18px;width:min(420px,100%);display:grid;gap:12px"><h2 style="margin:0">Novo negócio</h2><label class="note">De quem é este card? (responsável / consultor)</label>
       <select id="ndono" class="btn" style="text-align:left">${cand.map(u=>`<option value="${u.id}" ${u.id===eu?"selected":""}>${esc(u.nome)}${u.id===eu?" (eu)":""}</option>`).join("")}</select>
-      <label class="note">Cliente (opcional)</label><input id="ncli" class="btn" style="text-align:left" placeholder="Nome do cliente">
+      <label class="note">Cliente (opcional)</label><input id="ncli" class="btn" style="text-align:left" placeholder="Nome do cliente (digite para buscar existente)" list="dlNcli" autocomplete="off">${cliDl("dlNcli")}<div class="note" id="ncliInfo" hidden></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input id="nfone" class="btn" style="text-align:left" inputmode="tel" placeholder="Telefone / WhatsApp"><input id="ncid" class="btn" style="text-align:left" placeholder="Cidade"></div>
       <input id="nval" class="btn" style="text-align:left" inputmode="decimal" placeholder="Valor estimado (R$) · opcional">
       <label class="note" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ngc"> Cadastrar o cliente no Gestão Click</label>
       <label class="note" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="ngo"> Criar o orçamento no Gestão Click (precisa de cliente e valor)</label>
       <label class="note">Etapa inicial</label><select id="netapa" class="btn" style="text-align:left">${cols0.map(x=>`<option value="${x.id}" ${x.id===padrao.id?"selected":""}>${esc(x.nome)}</option>`).join("")}</select>
       <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" id="nx">Cancelar</button><button class="btn pri" id="nok">Criar</button></div></div>`;
-    document.body.appendChild(m);mascara(m.querySelector("#nfone"),fmtFone);m.querySelector("#nx").onclick=()=>{m.remove();res(null)};m.querySelector("#nok").onclick=()=>{const v=m.querySelector("#ndono").value;etapa0=m.querySelector("#netapa").value;const g=i=>m.querySelector(i);ini={cliente:g("#ncli").value.trim(),fone:fmtFone(g("#nfone").value),cidade:g("#ncid").value.trim(),valor:lerBrl(g("#nval").value)||0,gc:g("#ngc").checked||g("#ngo").checked,orc:g("#ngo").checked};m.remove();res(v)}});
+    document.body.appendChild(m);mascara(m.querySelector("#nfone"),fmtFone);{const ci=m.querySelector("#ncli");ci.addEventListener("change",()=>{const ex=cliEx(ci.value);const inf=m.querySelector("#ncliInfo");ini.cad=null;if(!ex){inf.hidden=true;return}ci.value=ex.nome;const f=m.querySelector("#nfone"),ct=m.querySelector("#ncid");if(!f.value&&ex.fone)f.value=fmtFone(ex.fone);if(!ct.value&&ex.cidade)ct.value=ex.cidade;ini.cad=Object.keys(ex.cad).length?ex.cad:null;inf.hidden=false;inf.textContent="✓ Cliente existente: dados puxados"+(ex.cad.gc_id?" (já cadastrado no Gestão Click)":"")})}m.querySelector("#nx").onclick=()=>{m.remove();res(null)};m.querySelector("#nok").onclick=()=>{const v=m.querySelector("#ndono").value;etapa0=m.querySelector("#netapa").value;const g=i=>m.querySelector(i);ini={cad:ini.cad||null,cliente:g("#ncli").value.trim(),fone:fmtFone(g("#nfone").value),cidade:g("#ncid").value.trim(),valor:lerBrl(g("#nval").value)||0,gc:g("#ngc").checked||g("#ngo").checked,orc:g("#ngo").checked};m.remove();res(v)}});
     if(!dono)return}
   const mem=[...new Set([dono,...(ADM||dono===eu?[]:[eu])])];
-  const {data,error}=await sb.from("negocios").insert({quadro,ordem:Math.max(0,...CARDS.filter(k=>k.coluna===(etapa0||primeira.id)).map(k=>+k.ordem||0))+1,coluna:etapa0||primeira.id,titulo:"Novo negócio "+(quadro==="solar"?"solar":"elétrico"),un:quadro==="solar"?"kWp":"kVA",membros:mem,resp:dono,...(ini.cliente?{cliente:ini.cliente,titulo:ini.cliente}:{}),...(ini.fone?{fone:ini.fone}:{}),...(ini.cidade?{cidade:ini.cidade}:{}),...(ini.valor>0?{valor:ini.valor}:{})}).select().single();
+  const {data,error}=await sb.from("negocios").insert({quadro,ordem:Math.max(0,...CARDS.filter(k=>k.coluna===(etapa0||primeira.id)).map(k=>+k.ordem||0))+1,coluna:etapa0||primeira.id,titulo:"Novo negócio "+(quadro==="solar"?"solar":"elétrico"),un:quadro==="solar"?"kWp":"kVA",membros:mem,resp:dono,...(ini.cliente?{cliente:ini.cliente,titulo:ini.cliente}:{}),...(ini.fone?{fone:ini.fone}:{}),...(ini.cidade?{cidade:ini.cidade}:{}),...(ini.valor>0?{valor:ini.valor}:{}),...(ini.cad?{cadastro:ini.cad}:{})}).select().single();
   if(error){toast("Não foi possível criar: "+error.message);return}
   CARDS.unshift(data);abaCard="resumo";render();abrir(data.id);
   if(ini.gc){if(!ini.cliente){toast("Negócio criado. Para cadastrar no Gestão Click, preencha o nome do cliente no card.");return}
