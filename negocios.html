@@ -553,13 +553,13 @@ async function fluxograma(c,alvo){
   }
 
 async function abrirCalendario(){
-  const m=document.createElement("div");m.style.cssText="position:fixed;inset:0;z-index:1500;background:rgba(5,12,20,.72);display:flex;align-items:center;justify-content:center;padding:10px";
+  const m=document.createElement("div");m.style.cssText="position:fixed;inset:0;z-index:1500;background:var(--panel,#16222f);display:flex;align-items:stretch;justify-content:stretch;padding:0";
   const pad=n=>String(n).padStart(2,"0"),chv=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   let ref=new Date();ref.setDate(1);let sel=chv(new Date()),de=eu,LM=[],modo="mes";
   const MES=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  m.innerHTML=`<style>.cal{background:var(--panel,#16222f);color:var(--ink,#e8eef4);border:1px solid var(--line,#2a3b4c);border-radius:14px;width:min(1100px,100%);max-height:96vh;overflow:auto;padding:14px}
+  m.innerHTML=`<style>.cal{background:var(--panel,#16222f);color:var(--ink,#e8eef4);border:1px solid var(--line,#2a3b4c);border-radius:0;border:0;width:100%;height:100%;max-height:none;overflow:hidden;padding:14px 18px;display:flex;flex-direction:column;box-sizing:border-box}.cal #cG{flex:1;min-height:0;overflow:auto}.cal #cG>.gr{min-height:100%;grid-auto-rows:minmax(104px,1fr)}.cal .dia{max-height:32vh;overflow:auto;flex:none}
    .cal .gr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cal .dw{font-size:11px;text-transform:uppercase;opacity:.7;text-align:center;padding:2px}
-   .cal .dc{min-height:92px;border:1px solid var(--line,#2a3b4c);border-radius:8px;padding:4px;cursor:pointer;overflow:hidden;background:rgba(255,255,255,.02)}.cal .dc.fora{opacity:.4}.cal .dc.hj{border-color:#62a8dc}.cal .dc.on{outline:2px solid #62a8dc}
+   .cal .dc{min-height:92px;font-size:13px;border:1px solid var(--line,#2a3b4c);border-radius:8px;padding:4px;cursor:pointer;overflow:hidden;background:rgba(255,255,255,.02)}.cal .dc.fora{opacity:.4}.cal .dc.hj{border-color:#62a8dc}.cal .dc.on{outline:2px solid #62a8dc}
    .cal .dc b{font-size:12px}.cal .ev{display:block;font-size:11px;line-height:1.25;margin-top:3px;padding:2px 5px;border-radius:5px;background:#62a8dc33;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}.cal .ev.atr{background:#e5484d44}.cal .ev.ok{opacity:.5;text-decoration:line-through}.cal .ev.pz{background:#f5a62344}
    .cal .dia{margin-top:10px;display:grid;gap:6px}.cal .dia .ev{font-size:13px;white-space:normal;padding:6px 8px}.cal .lf{display:grid;grid-template-columns:110px 1fr 1fr;gap:6px;margin-top:8px}
    @media(max-width:700px){.cal .dc{min-height:56px}.cal .ev{font-size:10px}.cal .lf{grid-template-columns:1fr}}</style>
