@@ -298,7 +298,7 @@ header.top .steps{width:100%}
 .tbl.cotrev{table-layout:fixed;width:100%}.tbl.cotrev th{resize:horizontal;overflow:hidden}.tbl.cotrev td{overflow-wrap:anywhere;vertical-align:top}.tbl.cotrev .acw input{width:100%}.matfull{font-size:12px;font-weight:600;margin-top:4px;line-height:1.3}
 .cmpsc .tbl.cmp thead th{position:sticky;top:0;z-index:2;background:var(--panel);box-shadow:0 1px 0 var(--line)}.cmpsc .tbl.cmp tfoot td{position:sticky;bottom:0;background:var(--panel);box-shadow:0 -1px 0 var(--line)}
 .tbl.cmp th:first-child,.tbl.cmp td:first-child{position:sticky;left:0;z-index:1;background:var(--panel);min-width:280px;max-width:420px;white-space:normal}.cmpsc .tbl.cmp thead th:first-child,.cmpsc .tbl.cmp tfoot td:first-child{z-index:3}
-.tbl.dre .pvb{height:6px;margin-top:4px}.dredet td{background:var(--bg)}.drl{display:grid;grid-template-columns:110px 1fr 120px 60px;gap:8px;padding:4px 0;border-bottom:1px dashed var(--line);font-size:12.5px;align-items:center}.drl:last-child{border:0}
+.tbl.dre th{font-size:12.5px;padding:10px 12px}.tbl.dre td{font-size:17px;padding:14px 12px}.tbl.dre td.n{font-size:18px;font-weight:700;white-space:nowrap}.tbl.dre td b{font-size:18px}.tbl.dre td .sm{font-size:12.5px}.tbl.dre tfoot td{font-size:19px;padding:14px 12px}.tbl.dre tfoot td b{font-size:20px}.tbl.dre .pvb{height:8px;margin-top:6px}.tbl.dre small{font-size:12.5px}.drl{font-size:14.5px!important}.dredet td{background:var(--bg)}.drl{display:grid;grid-template-columns:110px 1fr 120px 60px;gap:8px;padding:4px 0;border-bottom:1px dashed var(--line);font-size:12.5px;align-items:center}.drl:last-child{border:0}
 </style>
 </head>
 <body>
@@ -571,9 +571,11 @@ async function painel(id){
     const tP=cats.reduce((s,c)=>s+(PREV[c]||0),0),tR=cats.reduce((s,c)=>s+(REAL[c]||0),0),venda=+pv.total||0;
     const mx=Math.max(1,...cats.map(c=>Math.max(PREV[c]||0,REAL[c]||0)));
     $("#full").innerHTML=`<div class="wrap2 wide3">
-     <div class="kpis k5"><div class="kpi"><span>Previsto (orçamento)</span><b>${brl(tP)}</b></div><div class="kpi"><span>Realizado</span><b>${brl(tR)}</b><small>${PD.length} OC(s) · ${GA.length} lançamento(s)</small></div>
-      <div class="kpi ${tP-tR>=0?"ok":"bad"}"><span>${tP-tR>=0?"Abaixo do previsto":"Acima do previsto"}</span><b>${brl(Math.abs(tP-tR))}</b></div>
-      <div class="kpi"><span>Valor vendido</span><b>${venda?brl(venda):"—"}</b></div><div class="kpi ${venda-tR>=0?"ok":"bad"}"><span>Resultado real</span><b>${venda?brl(venda-tR):"—"}</b><small>${venda?pct((venda-tR)/venda*100)+" · previsto "+brl(+pv.lucro||venda-tP):""}</small></div></div>
+     <div class="neg"><div><span>VALOR VENDIDO</span><b>${venda?brl(venda):"—"}</b>${venda?"":'<small>Sem valor de venda no orçamento</small>'}</div>
+      <div class="ng2"><span>Previsto (orçamento)</span><b>${brl(tP)}</b></div>
+      <div class="ng2"><span>Realizado</span><b>${brl(tR)}</b><small>${PD.length} OC(s) · ${GA.length} lançamento(s)</small></div>
+      <div class="ng2 ${tP-tR>=0?"ok":"bad"}"><span>${tP-tR>=0?"Diferença (abaixo do previsto)":"Diferença (acima do previsto)"}</span><b>${tP-tR>=0?"+":"−"}${brl(Math.abs(tP-tR))}</b><small>${(tP-tR>=0?"+":"−")+Math.abs(tP?(tP-tR)/tP*100:0).toFixed(2).replace(".",",")}%</small></div>
+      <div class="ng2 ${venda-tR>=0?"ok":"bad"}"><span>Resultado real</span><b>${venda?brl(venda-tR):"—"}</b><small>${venda?pct((venda-tR)/venda*100)+" · previsto "+brl(+pv.lucro||venda-tP):""}</small></div></div>
      <div class="cols"><div class="card"><div class="row"><h2>DRE da obra</h2><div class="tools"><button class="btn sm" id="gXl">⬇ Excel</button><button class="btn sm" id="gOc">+ OC avulsa</button><button class="btn sm pri" id="gNovo">+ Lançar gasto</button></div></div>
       <p class="note">Realizado = OCs (cada uma na sua categoria) + lançamentos manuais (frete, diárias…). Clique numa linha para ver o que compõe o valor.</p>
       <table class="tbl dre"><thead><tr><th>Categoria</th><th class="n">Previsto</th><th class="n">Realizado</th><th class="n">Diferença</th></tr></thead><tbody>
