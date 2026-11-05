@@ -1603,7 +1603,7 @@ async function editor(id){
         if(MAT[cod]||MATS.some(m=>m.codigo===cod)){toast("Já existe um material com esse código.");return false}
         const r=await chk(O.from("materiais").insert({codigo:cod,nome,unidade:(f.unidade||"").trim()||null}).select("codigo,nome,unidade,subgrupo").single());
         MATS.push(r);MAT[r.codigo]=r;rankMat.N=null;
-        if(f.gc){try{const {data,error}=await sb.functions.invoke("gestaoclick",{body:{acao:"produto_criar",produto:{codigo:cod,nome,unidade:r.unidade||""}}});
+        if(f.gc){try{const {data,error}=await sb.functions.invoke("gestaoclick",{body:{acao:"produto_criar",produto:{codigo:cod,nome}}});
           if(error||!data||!data.ok)toast("Material criado aqui, mas não consegui criar no Gestão Click: "+((data&&(data.erro||JSON.stringify(data.resposta||"")))||(error&&error.message)||"erro"));else toast(data.novo===false?"Material criado. Produto já existia no Gestão Click.":"Material criado e cadastrado no Gestão Click.")}catch(e){toast("Material criado aqui; falhou o Gestão Click.")}}
         else toast("Material criado.");
         const ja=fila.find(x=>x.c===cod);if(!ja)fila.push({c:cod,q:pnum($("#amQ",md).value)||1});draw()},"Criar e incluir")};
