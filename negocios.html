@@ -573,7 +573,7 @@ async function abrirCalendario(){
     const r=await sb.from("neg_lembretes").select("id,negocio_id,para,quando,texto,feito").gte("quando",i.toISOString()).lte("quando",f.toISOString());LM=r.data||[]};
   const tit=id=>{const c=CARDS.find(x=>x.id===id);return c?c.titulo:""};
   const evs=()=>{const E={};const add=(k,o)=>(E[k]=E[k]||[]).push(o);const agora=new Date();
-    LM.filter(l=>!de||l.para===de).forEach(l=>{const q=new Date(l.quando);add(chv(q),{t:q.getTime(),h:`${pad(q.getHours())}:${pad(q.getMinutes())}`,txt:(l.texto||"Lembrete")+" · "+tit(l.negocio_id),n:l.negocio_id,id:l.id,ok:l.feito,atr:!l.feito&&q<agora,tipo:"l",para:l.para})});
+    LM.filter(l=>!de||l.para===de).forEach(l=>{const q=new Date(l.quando);add(chv(q),{t:q.getTime(),h:`${pad(q.getHours())}:${pad(q.getMinutes())}`,txt:(l.texto||"Lembrete")+(l.negocio_id?" · "+tit(l.negocio_id):""),n:l.negocio_id,id:l.id,ok:l.feito,atr:!l.feito&&q<agora,tipo:"l",para:l.para})});
     CARDS.filter(c=>c.prazo&&(!de||c.resp===de||(c.membros||[]).includes(de))).forEach(c=>add(String(c.prazo).slice(0,10),{t:0,h:"🏁",txt:"Prazo · "+c.titulo,n:c.id,tipo:"p"}));
     Object.values(E).forEach(a=>a.sort((x,y)=>x.t-y.t));return E};
   const clsE=e=>e.tipo==="p"?"pz":e.ok?"ok":e.atr?"atr":"";
@@ -605,10 +605,10 @@ async function abrirCalendario(){
     const L=E[sel]||[],[y,mo,dd]=sel.split("-");
     const NGL=(()=>{const c={},L=CARDS.slice().sort((x,y)=>(x.titulo||"").localeCompare(y.titulo||"","pt")).map(k=>({id:k.id,l:(k.titulo||"")+(k.cliente?" · "+k.cliente:"")}));L.forEach(o=>c[o.l]=(c[o.l]||0)+1);L.forEach(o=>{if(c[o.l]>1)o.l+=" #"+String(o.id).slice(0,4)});return L})();
     $c("#cD").innerHTML=`<b>${dd}/${mo}/${y}</b>${L.map((e,i)=>`<span class="ev ${e.tipo==="p"?"pz":e.ok?"ok":e.atr?"atr":""}" data-i="${i}">${e.h} ${esc(e.txt)}${e.tipo==="l"&&e.para!==eu?` <small>(${esc((U.find(u=>u.id===e.para)||{}).nome||"")})</small>`:""}</span>`).join("")||'<span class="note">Nada neste dia.</span>'}
-     <div class="lf"><input type="time" id="cHr" value="09:00"><input id="cNg" class="inp" list="cNgL" placeholder="Digite para buscar o negócio (ticket)…" autocomplete="off"><datalist id="cNgL">${NGL.map(o=>`<option value="${esc(o.l)}"></option>`).join("")}</datalist><input id="cTx" placeholder="Texto do lembrete"></div>
+     <div class="lf"><input type="time" id="cHr" value="09:00"><input id="cNg" class="inp" list="cNgL" placeholder="Negócio (opcional) — digite para buscar" autocomplete="off"><datalist id="cNgL">${NGL.map(o=>`<option value="${esc(o.l)}"></option>`).join("")}</datalist><input id="cTx" placeholder="Escreva o lembrete (livre)"></div>
      <div style="display:flex;gap:8px;margin-top:6px;justify-content:flex-end"><select id="cPa" class="inp">${U.map(u=>`<option value="${u.id}" ${u.id===(de||eu)?"selected":""}>${u.id===eu?"Para mim":"Para "+esc(u.nome)}</option>`).join("")}</select><button class="btn pri" id="cAdd">+ Criar lembrete</button></div>`;
-    $c("#cD").querySelectorAll(".ev[data-i]").forEach(x=>x.onclick=()=>{const e=L[+x.dataset.i];m.remove();abrir(e.n)});
-    $c("#cAdd").onclick=async()=>{const tv=$c("#cNg").value.trim().toLowerCase();const hit=NGL.find(o=>o.l.toLowerCase()===tv)||(NGL.filter(o=>o.l.toLowerCase().includes(tv)).length===1&&tv?NGL.find(o=>o.l.toLowerCase().includes(tv)):null);const n=hit&&hit.id;if(!n){toast("Escolha o negócio na lista (digite parte do nome e selecione).");return}
+    $c("#cD").querySelectorAll(".ev[data-i]").forEach(x=>x.onclick=()=>{const e=L[+x.dataset.i];if(!e.n)return;m.remove();abrir(e.n)});
+    $c("#cAdd").onclick=async()=>{const tv=$c("#cNg").value.trim().toLowerCase();const hit=NGL.find(o=>o.l.toLowerCase()===tv)||(NGL.filter(o=>o.l.toLowerCase().includes(tv)).length===1&&tv?NGL.find(o=>o.l.toLowerCase().includes(tv)):null);const n=hit?hit.id:null;if(tv&&!n){toast("Negócio não encontrado: apague o campo para criar um lembrete livre, ou escolha um da lista.");return}if(!n&&!$c("#cTx").value.trim()){toast("Escreva o lembrete ou escolha um negócio.");return}
       const r=await sb.from("neg_lembretes").insert({negocio_id:n,para:$c("#cPa").value,quando:new Date(sel+"T"+$c("#cHr").value).toISOString(),texto:$c("#cTx").value.trim()});
       if(r.error){toast("Não foi possível criar: "+r.error.message);return}
       toast("Lembrete criado.");await carregaTudoLemb();desenha();if(window.ON_LEMBRETES)window.ON_LEMBRETES.checar()}};
