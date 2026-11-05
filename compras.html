@@ -702,11 +702,22 @@ async function painel(id){
     $$("[data-cl]").forEach(b=>b.onclick=async()=>{const i=IT.find(x=>x.id==b.dataset.cl);await salvaEsc(i,null,null,null);shell()});
     $("#cBase").onclick=()=>{const Lb=ativos().filter(i=>i.material_codigo&&vEsc(i)!=null&&vEsc(i)>0&&Math.abs(vEsc(i)-(+i.preco_previsto||0))>0.005);
       if(!Lb.length){toast("Nenhum item com preço escolhido diferente do previsto.");return}
-      modal(`<h2>Atualizar base de orçamento</h2><p class="note">Os preços escolhidos nesta compra entram no histórico de preços da base de materiais (origem: compra, com fornecedor e data). Desmarque o que não quiser enviar.</p><div style="max-height:55vh;overflow:auto"><table class="tbl"><thead><tr><th></th><th>Material</th><th>Fornecedor</th><th class="n">Orçado</th><th class="n">Escolhido</th></tr></thead><tbody>${Lb.map((i,x)=>`<tr><td><input type="checkbox" data-bb="${x}" checked></td><td>${esc(i.descricao)}</td><td>${esc(i.cotacao_escolhida?nomeC(i.cotacao_escolhida):"manual")}</td><td class="n">${brl(i.preco_previsto)}</td><td class="n"><b>${brl(vEsc(i))}</b></td></tr>`).join("")}</tbody></table></div>`,async()=>{
-        const sel=Lb.filter((i,x)=>document.querySelector(`[data-bb="${x}"]`)&&document.querySelector(`[data-bb="${x}"]`).checked);if(!sel.length)return false;
+      const fn=i=>i.cotacao_escolhida?nomeC(i.cotacao_escolhida):"manual";const FS=[...new Set(Lb.map(fn))].sort();
+      modal(`<h2>Atualizar base de orçamento</h2><p class="note">Os preços escolhidos nesta compra entram no histórico de preços da base de materiais (origem: compra, com fornecedor e data). Filtre e desmarque o que não quiser enviar.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0"><select class="inp" id="bbF" style="width:auto"><option value="">Todos os fornecedores</option>${FS.map(f=>`<option>${esc(f)}</option>`).join("")}</select><input class="inp" id="bbQ" placeholder="Buscar material" style="flex:1;min-width:160px"><button type="button" class="btn sm" id="bbAll">Marcar visíveis</button><button type="button" class="btn sm" id="bbNone">Desmarcar visíveis</button><span class="note" id="bbN"></span></div>
+      <div style="max-height:60vh;overflow:auto"><table class="tbl" style="width:100%"><thead><tr><th></th><th>Material</th><th>Fornecedor</th><th class="n">Orçado</th><th class="n">Escolhido</th></tr></thead><tbody>${Lb.map((i,x)=>`<tr data-bbr="${x}" data-f="${esc(fn(i))}" data-t="${esc(norm(i.descricao+" "+(i.material_codigo||"")))}"><td><input type="checkbox" data-bb="${x}" checked></td><td>${esc(i.descricao)}</td><td>${esc(fn(i))}</td><td class="n">${brl(i.preco_previsto)}</td><td class="n"><b>${brl(vEsc(i))}</b></td></tr>`).join("")}</tbody></table></div>`,async()=>{
+        const sel=Lb.filter((i,x)=>{const r=document.querySelector(`[data-bbr="${x}"]`);return r&&r.style.display!=="none"&&r.querySelector("input").checked});if(!sel.length){toast("Nada marcado.");return false}
         const hoje=new Date().toISOString().slice(0,10);
-        await chk(O.from("precos").insert(sel.map(i=>({material_codigo:i.material_codigo,valor:vEsc(i),data:hoje,origem:"compra",fornecedor:i.cotacao_escolhida?nomeC(i.cotacao_escolhida):"manual",documento:"Compras: "+(C.titulo||""),criado_por:perfil.id}))));
-        toast(`${sel.length} preço(s) enviados para a base de materiais.`)},"Enviar para a base")};
+        await chk(O.from("precos").insert(sel.map(i=>({material_codigo:i.material_codigo,valor:vEsc(i),data:hoje,origem:"compra",fornecedor:fn(i),documento:"Compras: "+(C.titulo||""),criado_por:perfil.id}))));
+        toast(`${sel.length} preço(s) enviados para a base de materiais.`)},"Enviar para a base");
+      const bx=document.querySelector(".modal .mbox");if(bx){bx.style.width="min(1100px,96vw)";bx.style.maxWidth="96vw"}
+      const rows=[...document.querySelectorAll("[data-bbr]")],vis=()=>rows.filter(r=>r.style.display!=="none");
+      const cnt=()=>{const v=vis();document.getElementById("bbN").textContent=`${v.filter(r=>r.querySelector("input").checked).length} de ${v.length} marcados`};
+      const filtra=()=>{const f=document.getElementById("bbF").value,q=norm(document.getElementById("bbQ").value||"");rows.forEach(r=>{r.style.display=(!f||r.dataset.f===f)&&(!q||r.dataset.t.includes(q))?"":"none"});cnt()};
+      document.getElementById("bbF").onchange=filtra;document.getElementById("bbQ").oninput=filtra;
+      document.getElementById("bbAll").onclick=()=>{vis().forEach(r=>r.querySelector("input").checked=true);cnt()};
+      document.getElementById("bbNone").onclick=()=>{vis().forEach(r=>r.querySelector("input").checked=false);cnt()};
+      rows.forEach(r=>r.querySelector("input").onchange=cnt);cnt()};
     $("#cRes").onclick=()=>{const R=[];ativos().slice().sort((a,b)=>(a.descricao||"").localeCompare(b.descricao||"","pt")).forEach(i=>{const e=Math.min(+i.estoque||0,+i.qtd||0),q=qc(i);
         if(e>0)R.push({d:i.descricao,c:i.material_codigo||"",u:i.unidade||"",q:e,o:"ESTOQUE",est:true,g:0});
         if(q>0)R.push({d:i.descricao,c:i.material_codigo||"",u:i.unidade||"",q,o:i.cotacao_escolhida?nomeC(i.cotacao_escolhida):"— sem escolha —",oc:i.oc||"",sem:!i.cotacao_escolhida,g:i.oc?1:2})});
