@@ -613,12 +613,12 @@ async function painel(id){
         <div class="lg">${Object.keys(NOM).map(k=>`<span><u style="background:${COR[k]}"></u>${NOM[k]} <b>${pe(O4[k])}%</b></span>`).join("")}</div><div class="note" style="font-size:10.5px">${brl(O4.est)} atendidos pelo estoque</div></div>
       <div class="card mn"><h3>Itens por situação</h3><div style="display:flex;gap:10px;align-items:center"><svg viewBox="0 0 42 42" width="74" height="74">${dn}<text x="21" y="24" text-anchor="middle" font-size="9" fill="currentColor" font-weight="700">${AT.length}</text></svg>
         <div class="lg v">${Object.keys(NOM).map(k=>`<span><u style="background:${COR[k]}"></u>${NOM[k]} <b>${N4[k]}</b></span>`).join("")}</div></div></div></div>`;
-    const negV=k.esc,negPrev=AT.reduce((t,i)=>t+(vEsc(i)!=null?qc(i)*(+i.preco_previsto||0):0),0),negEco=negPrev-negV;
+    const negV=+pv.total||0,difT=totPrev-totReal;
     $("#full").innerHTML=`<div class="wrap2 wide3">
-     <div class="neg"><div><span>VALOR NEGOCIADO</span><b>${brl(negV)}</b><small>${k.ne} de ${k.n} itens com fornecedor escolhido${k.nOc?" · "+k.nOc+" com OC":""}</small></div>
-      <div class="ng2"><span>Previsto desses itens</span><b>${brl(negPrev)}</b></div>
-      <div class="ng2 ${negEco>=0?"ok":"bad"}"><span>${negEco>=0?"Economia":"Acima do previsto"}</span><b>${brl(Math.abs(negEco))}</b><small>${pct(negPrev?Math.abs(negEco)/negPrev*100:0)}</small></div>
-      ${pv.total?`<div class="ng2"><span>Vendido ao cliente</span><b>${brl(pv.total)}</b></div>`:""}</div>
+     <div class="neg"><div><span>VALOR NEGOCIADO (VALOR DA OBRA)</span><b>${negV?brl(negV):"—"}</b>${negV?"":'<small>Sem valor de venda no orçamento</small>'}</div>
+      <div class="ng2"><span>Custo previsto</span><b>${brl(totPrev)}</b><small>do orçamento</small></div>
+      <div class="ng2"><span>Custo praticado</span><b>${brl(totReal)}</b><small>escolhidos + mais barato no resto</small></div>
+      <div class="ng2 ${difT>=0?"ok":"bad"}"><span>${difT>=0?"Diferença (economia)":"Diferença (acima)"}</span><b>${difT>=0?"+":"−"}${brl(Math.abs(difT))}</b><small>${(difT>=0?"+":"−")+Math.abs(totPrev?difT/totPrev*100:0).toFixed(2).replace(".",",")}%</small></div></div>
      <div class="kpis k6">
       <div class="kpi" style="border-color:#7c5cff"><span>Atendido pelo estoque</span><b>${estPct}%</b><small>${nEstAny} itens com estoque · ${N4.est} cobertos 100% · ${brl(O4.est)}</small></div>
       <div class="kpi"><span>Previsto total da obra</span><b>${brl(totPrev)}</b><small>material ${brl(matPrev)} + custos ${brl(custoPrev)}</small></div>
