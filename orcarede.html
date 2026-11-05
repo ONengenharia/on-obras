@@ -1662,7 +1662,7 @@ async function editor(id){
   async function blobPlanta(u){const m=String(u).match(/^storage:(.+)$/)||String(u).match(/\/object\/(?:public|sign)\/negocios\/([^?]+)/);
     if(m){try{const {data,error}=await sb.storage.from("negocios").download(decodeURIComponent(m[1]));if(!error&&data&&data.size)return URL.createObjectURL(data)}catch(e){}}
     const su=await urlPlanta(u);if(!su)return"";try{const r=await fetch(su);if(r.ok)return URL.createObjectURL(await r.blob())}catch(e){}img.removeAttribute("crossorigin");return su}
-  let redeOc=false;const ocultaKey=()=>"orc.ocultaPlanta."+ORC.id;const plantaOculta=()=>{try{return localStorage.getItem(ocultaKey())==="1"}catch(e){return false}};
+  const redeOc=new Set();const ocultaKey=()=>"orc.ocultaPlanta."+ORC.id;const plantaOculta=()=>{try{return localStorage.getItem(ocultaKey())==="1"}catch(e){return false}};
   window.__plantaCache=window.__plantaCache||{};
   function setPlanta(){D=dims();if(ORC.planta_url&&!plantaOculta()){img.hidden=false;const u0=ORC.planta_url;img.onerror=()=>toast("A imagem da planta não carregou. Tente importar de novo.");
       const C=window.__plantaCache;if(C[u0]){if(img.src!==C[u0])img.src=C[u0]}else{const pr=C["p:"+u0]||(C["p:"+u0]=blobPlanta(u0));pr.then(u=>{delete C["p:"+u0];if(!u)return;C[u0]=u;if(ORC.planta_url===u0&&!plantaOculta())img.src=u})}
@@ -1675,10 +1675,10 @@ async function editor(id){
   function renderMapbar(){
     const b=$("#mapbar");if(!b)return;
     b.innerHTML=(colando?`<button class="btn on" id="mStopCol">⧉ Parar de colar</button>`:"")+`<button class="btn" id="bPlanta">Planta</button>${ORC.planta_url?`<button class="btn ${plantaOculta()?"on":""}" id="bOculta" title="Esconder a imagem da planta para a tela ficar mais leve (os pontos continuam)">${plantaOculta()?"👁 Mostrar planta":"🙈 Ocultar planta"}</button>`:""}<button class="btn ${placing?"on":""}" id="mPlace">${placing?"Cancelar":"+ Ponto"}</button>`
-      +(tracing?`<button class="btn on" id="mRede"><span class="dot" style="border-color:${TRM[tracing].cor}"></span>Concluir ${esc(TRM[tracing].nome)}${traceSobra!=null?` · sobra ${num(traceSobra)}%`:""}</button>`:`<button class="btn" id="mRede">〰 Rede</button>`)+(VAOS.length?`<button class="btn ${redeOc?"on":""}" id="mRedeOc" title="Esconde as redes já traçadas para conferir os pontos sobre a planta">${redeOc?"👁 Mostrar redes":"🙈 Ocultar redes"}</button>`:"")
+      +(tracing?`<button class="btn on" id="mRede"><span class="dot" style="border-color:${TRM[tracing].cor}"></span>Concluir ${esc(TRM[tracing].nome)}${traceSobra!=null?` · sobra ${num(traceSobra)}%`:""}</button>`:`<button class="btn" id="mRede">〰 Rede</button>`)
       +`<button class="btn ${calib?"on":""}" id="mCal">${calib?"Cancelar escala":"Escala"}</button>`;
     $("#bPlanta").onclick=plantaDialog;$("#bOculta")&&($("#bOculta").onclick=()=>{const v=!plantaOculta();try{localStorage.setItem(ocultaKey(),v?"1":"0")}catch(e){}if(v){img.removeAttribute("src")}setPlanta();renderMapbar();toast(v?"Planta oculta: a tela fica mais leve. Os pontos e a rede continuam.":"Planta visível.")});$("#mStopCol")&&($("#mStopCol").onclick=()=>{colando=null;renderMapbar();updHint()});
-    $("#mRedeOc")&&($("#mRedeOc").onclick=()=>{redeOc=!redeOc;renderMapbar();renderPins()});$("#mPlace").onclick=()=>{placing=!placing;tracing=null;anchor=null;calib=null;renderMapbar();updHint();renderPins()};
+    $("#mPlace").onclick=()=>{placing=!placing;tracing=null;anchor=null;calib=null;renderMapbar();updHint();renderPins()};
     $("#mRede").onclick=()=>{if(tracing){tracing=null;anchor=null;renderMapbar();updHint();renderPins();return}
       if(!escala){toast("Calibre a escala da planta antes de traçar a rede.");return}
       const m=modal(`<h2>Traçar rede</h2><p class="note">Escolha o condutor e a sobra. Depois clique nos postes em sequência; cada vão é medido pela escala.</p>
@@ -1760,8 +1760,9 @@ async function editor(id){
   function renderLegenda(){const el=$("#leg");if(!el)return;const A={};VAOS.forEach(v=>{(A[v.tipo_rede_id]=A[v.tipo_rede_id]||0);A[v.tipo_rede_id]+=+v.comprimento_m});
     const ks=Object.keys(A);const nPo=PTS.filter(p=>p.poste_id).length,nIP=PTS.filter(p=>temIP(p)).length;
     const TRK={};let nTR=0;IT.forEach(i=>{const nm=String((MAT[i.material_codigo]||{}).nome||"").toUpperCase();if(!/^\s*(TRANSFORMADOR|TRAFO)\b/.test(nm))return;const m=nm.match(/(\d+(?:[.,]\d+)?)\s*KVA/);const k=m?m[1].replace(".",",")+" kVA":"?";const q=Math.round(+i.quantidade||1);TRK[k]=(TRK[k]||0)+q;nTR+=q});
-    el.hidden=!ks.length&&!PTS.length;el.innerHTML=ks.map(k=>{const t=TRM[k]||{cor:"#555",nome:"?"};return `<div><span class="dot" style="border-color:${t.cor};border-top-width:4px;width:20px"></span>${esc(t.nome)}<b>${num(A[k],0)} m</b></div>`}).join("")+
-      `<div class="legtot"><div><span>Postes</span><b>${nPo}</b></div><div><span>Luminárias</span><b>${nIP}</b></div><div><span>Transformadores</span><b>${nTR}</b></div>${nTR?`<div class="legtr">${Object.entries(TRK).sort((a,b)=>pnum(a[0])-pnum(b[0])).map(([k,q])=>`${q} × ${esc(k)}`).join(" · ")}</div>`:""}</div>`}
+    el.hidden=!ks.length&&!PTS.length;el.innerHTML=ks.map(k=>{const t=TRM[k]||{cor:"#555",nome:"?"};const of=redeOc.has(k);return `<div style="${of?"opacity:.5":""}"><span class="dot" style="border-color:${t.cor};border-top-width:4px;width:20px"></span>${esc(t.nome)}<b>${num(A[k],0)} m</b><button type="button" class="xb" data-redeoc="${k}" title="${of?"Mostrar":"Ocultar"} esta rede no mapa" aria-label="${of?"Mostrar":"Ocultar"} ${esc(t.nome)}" style="margin-left:6px;cursor:pointer">${of?"🙈":"👁"}</button></div>`}).join("")+
+      `<div class="legtot"><div><span>Postes</span><b>${nPo}</b></div><div><span>Luminárias</span><b>${nIP}</b></div><div><span>Transformadores</span><b>${nTR}</b></div>${nTR?`<div class="legtr">${Object.entries(TRK).sort((a,b)=>pnum(a[0])-pnum(b[0])).map(([k,q])=>`${q} × ${esc(k)}`).join(" · ")}</div>`:""}</div>`;
+    $$("[data-redeoc]",el).forEach(b=>{b.onpointerdown=e=>e.stopPropagation();b.onclick=e=>{e.stopPropagation();const k=b.dataset.redeoc;redeOc.has(k)?redeOc.delete(k):redeOc.add(k);renderPins()}})}
   async function traceTap(pid){
     if(!anchor||anchor===pid){anchor=pid;renderPins();updHint();return}
     const dup=VAOS.some(g=>g.tipo_rede_id===tracing&&((g.ponto_a===anchor&&g.ponto_b===pid)||(g.ponto_a===pid&&g.ponto_b===anchor)));
@@ -1778,7 +1779,7 @@ async function editor(id){
     const multi=Object.entries(PR).filter(([,p])=>p.L.length>1),DIR={},porPt={};multi.forEach(([k,p])=>{[p.a,p.b].forEach(x=>(porPt[x]=porPt[x]||[]).push(k))});
     multi.forEach(([k0,p0])=>{if(DIR[k0])return;const A=ptById(p0.a),B=ptById(p0.b);if(!A||!B)return;DIR[k0]=(B.x-A.x>0||(B.x===A.x&&B.y>A.y))?[p0.a,p0.b]:[p0.b,p0.a];const fila=[k0];
       while(fila.length){const k=fila.shift();const [f,t]=DIR[k];[[t,"ini"],[f,"fim"]].forEach(([P,modo])=>(porPt[P]||[]).forEach(k2=>{if(DIR[k2])return;const q=PR[k2];const o=q.a===P?q.b:q.a;DIR[k2]=modo==="ini"?[P,o]:[o,P];fila.push(k2)}))}});
-    svg.innerHTML=(redeOc&&!tracing?[]:VAOS).map(g=>{const a=ptById(g.ponto_a),b=ptById(g.ponto_b);if(!a||!b)return"";const t=TRM[g.tipo_rede_id]||{cor:"#555"};
+    svg.innerHTML=VAOS.filter(g=>tracing||!redeOc.has(g.tipo_rede_id)).map(g=>{const a=ptById(g.ponto_a),b=ptById(g.ponto_b);if(!a||!b)return"";const t=TRM[g.tipo_rede_id]||{cor:"#555"};
       const k=[g.ponto_a,g.ponto_b].sort().join("|"),pr=PR[k];let nx=0,ny=0,off=0;
       if(pr.L.length>1&&DIR[k]){const F=ptById(DIR[k][0]),T2=ptById(DIR[k][1]);const dx=T2.x-F.x,dy=T2.y-F.y,L=Math.hypot(dx,dy)||1;nx=-dy/L;ny=dx/L;off=(pr.L.indexOf(g)-(pr.L.length-1)/2)*9*w}
       else{const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1;nx=-dy/L;ny=dx/L;if(ny<0||(ny===0&&nx<0)){nx=-nx;ny=-ny}}
