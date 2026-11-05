@@ -669,7 +669,7 @@ async function painel(id){
     const k=contas();const subs=[...new Set(ativos().map(i=>i.subgrupo||""))].filter(Boolean).sort();
     $("#full").innerHTML=`<div class="wrap2 wide3"><div class="card">
       <div class="row"><h2>Comparativo por item</h2><div class="tools">
-        <button class="btn sm pri" id="cMin" title="Para os itens sem escolha, escolhe o fornecedor mais barato entre os selecionados">Escolher o mais barato</button><button class="btn sm" id="cLimpa">Limpar escolhas</button></div></div>
+        <button class="btn sm" id="cRes" title="Lista simples: item, quantidade e de onde vem (estoque ou empresa)">📋 Resumir comparações</button><button class="btn sm pri" id="cMin" title="Para os itens sem escolha, escolhe o fornecedor mais barato entre os selecionados">Escolher o mais barato</button><button class="btn sm" id="cLimpa">Limpar escolhas</button></div></div>
       <div class="filtros">
         <input class="inp" id="cQ" placeholder="Material, código ou OC" value="${esc(fq)}">
         <select class="inp" id="cF">${[["","Todos os itens"],["naoesc","Sem escolha"],["esc","Já escolhidos"],["barato","Escolhidos no mais barato"],["caro","Escolhidos mais caros ⚠"],["sem","Sem cotação"],["semoc","Pendentes (sem OC)"],["oc","Com OC (comprados)"],["estoque","Com estoque (qualquer)"],["estT","Do estoque — cobre tudo"],["estP","Estoque parcial"],["sem0","Sem estoque"]].map(([v,l])=>`<option value="${v}" ${ff===v?"selected":""}>${l}</option>`).join("")}</select>
@@ -700,6 +700,23 @@ async function painel(id){
     $$("[data-es]").forEach(b=>b.onclick=()=>escolher(IT.find(i=>i.id==b.dataset.es),+b.dataset.c));
     $$("[data-ap]").forEach(b=>b.onclick=()=>precoManual(IT.find(i=>i.id==b.dataset.ap),+b.dataset.c));
     $$("[data-cl]").forEach(b=>b.onclick=async()=>{const i=IT.find(x=>x.id==b.dataset.cl);await salvaEsc(i,null,null,null);shell()});
+    $("#cRes").onclick=()=>{const R=[];ativos().slice().sort((a,b)=>(a.descricao||"").localeCompare(b.descricao||"","pt")).forEach(i=>{const e=Math.min(+i.estoque||0,+i.qtd||0),q=qc(i);
+        if(e>0)R.push({d:i.descricao,c:i.material_codigo||"",u:i.unidade||"",q:e,o:"ESTOQUE",est:true});
+        if(q>0)R.push({d:i.descricao,c:i.material_codigo||"",u:i.unidade||"",q,o:i.cotacao_escolhida?nomeC(i.cotacao_escolhida):"— sem escolha —",oc:i.oc||"",sem:!i.cotacao_escolhida})});
+      let agr=false;const m=document.createElement("div");m.className="modal";
+      const draw=()=>{const L=agr?R.slice().sort((a,b)=>(a.est===b.est?a.o.localeCompare(b.o,"pt"):a.est?-1:1)||a.d.localeCompare(b.d,"pt")):R;
+        m.querySelector("#rsB").innerHTML=L.map(r=>`<tr class="${r.est?"estT":""}"><td><b>${esc(r.d)}</b><span class="sm">${esc(r.c)}</span></td><td class="n">${num(r.q,2)} ${esc(r.u)}</td><td>${r.est?'<span class="etq">📦 ESTOQUE</span>':r.sem?'<span class="note">'+esc(r.o)+"</span>":"<b>"+esc(r.o)+"</b>"}${r.oc?` <span class="sm">OC ${esc(r.oc)}</span>`:""}</td></tr>`).join("")||'<tr><td colspan="3" class="note">Nada a listar.</td></tr>';
+        m.querySelector("#rsN").textContent=L.length+" linha(s) · "+L.filter(r=>r.est).length+" do estoque · "+L.filter(r=>!r.est).length+" a comprar"};
+      m.innerHTML=`<div class="mbox redim" style="width:min(820px,96vw);max-height:92vh;overflow:auto"><div class="row"><h2 style="margin:0">📋 Resumo das comparações</h2><button type="button" class="btn" id="rsX">Fechar</button></div>
+        <p class="note">Lista simples do que sai do estoque e do que será comprado, e de qual empresa. Item com estoque parcial aparece duas vezes (a parte do estoque e a parte a comprar).</p>
+        <div class="row" style="justify-content:flex-start;gap:8px;flex-wrap:wrap"><label class="chk"><input type="checkbox" id="rsA"> Agrupar por origem (estoque, depois por empresa)</label><span class="note" id="rsN"></span><span style="margin-left:auto;display:flex;gap:6px"><button type="button" class="btn sm" id="rsC">Copiar</button><button type="button" class="btn sm" id="rsXl">Baixar Excel</button></span></div>
+        <table class="tbl" style="margin-top:8px"><thead><tr><th>Item</th><th class="n">Quantidade</th><th>Estoque ou empresa</th></tr></thead><tbody id="rsB"></tbody></table></div>`;
+      document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.remove()};m.querySelector("#rsX").onclick=()=>m.remove();
+      m.querySelector("#rsA").onchange=e=>{agr=e.target.checked;draw()};
+      const linhas=()=>{const L=agr?R.slice().sort((a,b)=>(a.est===b.est?a.o.localeCompare(b.o,"pt"):a.est?-1:1)||a.d.localeCompare(b.d,"pt")):R;return L.map(r=>[r.d,r.c,+r.q,r.u,r.est?"ESTOQUE":r.o+(r.oc?" (OC "+r.oc+")":"")])};
+      m.querySelector("#rsC").onclick=async()=>{const t=["Item\tCódigo\tQuantidade\tUn.\tEstoque ou empresa",...linhas().map(l=>l.join("\t"))].join("\n");try{await navigator.clipboard.writeText(t);toast("Lista copiada.")}catch(e){toast("Não foi possível copiar.")}};
+      m.querySelector("#rsXl").onclick=async()=>{if(!window.XLSX)await loadScript("vendor/xlsx.full.min.js");const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([["Item","Código","Quantidade","Un.","Estoque ou empresa"],...linhas()]),"Resumo");XLSX.writeFile(wb,`Resumo compras ${C.titulo||"obra"}.xlsx`)};
+      draw()};
     $("#cMin").onclick=async()=>{const alvo=ativos().filter(i=>vEsc(i)==null&&qc(i)>0&&faixa(i,VC));if(!alvo.length){toast("Nenhum item sem escolha com cotação.");return}
       for(const i of alvo){const f=faixa(i,VC);await salvaEsc(i,f.min.c,f.min.v,null)}toast(`${alvo.length} itens com o fornecedor mais barato.`);shell()};
     $("#cLimpa").onclick=()=>modal(`<h2>Limpar as escolhas?</h2><p class="note">As cotações continuam; só as escolhas de fornecedor dos itens sem OC são desfeitas.</p>`,async()=>{await chk(O.from("compra_itens").update({cotacao_escolhida:null,preco_escolhido:null,motivo:null}).eq("compra_id",id).is("oc",null));IT.forEach(i=>{if(!i.oc){i.cotacao_escolhida=null;i.preco_escolhido=null;i.motivo=null}});shell()},"Limpar")}
