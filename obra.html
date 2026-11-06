@@ -303,8 +303,7 @@ const qExec=q=>q.auto?mapCount(q.auto):(+q.exec||0);
 const qConta=q=>q.auto?mapCount(q.auto,false,"exec"):(+q.exec||0);
 const qAnd=q=>q.auto?mapCount(q.auto,false,"and"):0;
 const andTxt=(n,un)=>n>0?` <span class="andm" title="Em andamento (conta 50% no avanço)">+${un==="m"?fmt0(n):fmt(n)} em andamento</span>`:"";
-/* previsto: o digitado; se vazio e o item é "mapa", vale o total desenhado no mapa (previsto + andamento + executado) */
-const qPrev=q=>+q.prev>0?+q.prev:(q.auto?Math.round(mapCount(q.auto,true)*10)/10:0);
+const qPrev=q=>+q.prev>0?+q.prev:0;
 const netN=k=>{const q=(S.quant||[]).find(x=>x.auto===k);return q&&q.nome?String(q.nome).replace(/\(\d+\)\s*$/,"").trim():NETN[k]};
 const qPct=q=>qPrev(q)>0?Math.min(100,qExec(q)/qPrev(q)*100):0;
 const PESO0={postes:30,MT:20,BT50:20,BT70:20,lum:18,trafo:12};
