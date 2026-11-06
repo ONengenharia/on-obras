@@ -263,7 +263,7 @@ S.redes.forEach(g=>{if(g.tipo==="BT"&&!g.bt)g.bt=/70/.test(g.cabo||"")?"70":"50"
 if(!S.pxm)S.pxm=150/25.4;
 if(!S.linkMig){S.linkMig=1;const L={m4:"q4",m5:"q1",m6:"BT",m7:"q5",m8:"q6"};S.marcos.forEach(m=>{if(L[m.id]&&!m.link&&(!m.pct||+m.pct===0))m.link=L[m.id]})}
 
-let massa=null,edit=false,canEdit=false,dirty=false,placing=false,selId=null,selSeg=null,tracing=null,anchor=null,tab="quant";
+let VOC=new Set(),massa=null,edit=false,canEdit=false,dirty=false,placing=false,selId=null,selSeg=null,tracing=null,anchor=null,tab="quant";
 let artifactNs=null,assetsNs=null;
 const admEd=()=>edit&&role==="admin";
 let draft={txt:"",fotos:[],data:""},matQ="";
@@ -641,9 +641,13 @@ function openAnexo(a){
   document.body.appendChild(m);$("#axX",m).onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()};
 }
 /* ---------- mapa: pontos e rede ---------- */
+const verBtn=(k,l)=>`<button class="btn ${VOC.has(k)?"on":""}" data-voc="${k}" title="${VOC.has(k)?"Mostrar":"Ocultar"} ${esc(l)} no mapa">${VOC.has(k)?"🙈":"👁"} ${esc(l)}</button>`;
+const verHtml=()=>`<span style="display:inline-flex;gap:4px;flex-wrap:wrap;align-items:center"><span class="note" style="align-self:center;background:var(--panel,#fff);padding:2px 6px;border-radius:6px">Ver:</span>${verBtn("planta","Planta")}${["MT","BT50","BT70"].map(k=>verBtn(k,netN(k).replace(/^Rede\s+/i,""))).join("")}${verBtn("postes","Postes")}${verBtn("trafo","Trafos")}</span>`;
+function aplicaVer(){const im=$("#img");if(im)im.style.visibility=VOC.has("planta")?"hidden":"";renderNet();renderPins()}
+function bindVer(b){b.querySelectorAll("[data-voc]").forEach(x=>x.onclick=()=>{const k=x.dataset.voc;VOC.has(k)?VOC.delete(k):VOC.add(k);renderMapbar();aplicaVer()})}
 function renderMapbar(){
   const b=$("#mapbar");
-  if(!edit){b.innerHTML="";return}
+  if(!edit){b.innerHTML=verHtml();bindVer(b);b.onpointerdown=e=>e.stopPropagation();return}
   b.innerHTML=`<button class="btn ${placing?"on":""}" id="bPlace">${placing?"Cancelar":"+ Ponto"}</button>`
    +(massa?`<button class="btn on" id="bMassa">Concluir em massa · ${massa.feitos.length} criado(s) · próximo ${esc(massa.pref)}${massa.n}</button><button class="btn" id="bMassaUn" ${massa.feitos.length?"":"disabled"}>↶ Desfazer último</button>`:`<button class="btn" id="bMassa" title="Marcar vários postes seguidos no mapa, sem abrir janela a cada um">⚡ Postes em massa</button>`)
    +["MT","BT50","BT70"].map(k=>[k,netN(k).replace(/^Rede\s+/i,"")]).map(([k,l])=>`<span style="display:inline-flex;align-items:center;gap:2px"><button class="btn ${tracing===k?"on":""}" data-tr="${k}">${tracing===k?"Concluir "+l:"Traçar "+l}</button><input type="color" data-cor="${k}" value="${corRede(k)}" title="Cor desta rede no mapa" aria-label="Cor ${esc(l)}" style="width:26px;height:30px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer"></span>`).join("");
@@ -654,11 +658,12 @@ function renderMapbar(){
       massa={pref:v.pref||"",n:Math.max(0,parseInt(v.ini)||1),status:v.status,data:v.data,lum:!!v.lum,feitos:[]};placing=false;tracing=null;anchor=null;renderMapbar();updHint();renderPins()})};
   $("#bMassaUn")&&($("#bMassaUn").onclick=()=>{const id=massa.feitos.pop();const i=S.pontos.findIndex(x=>x.id===id);if(i>=0){S.pontos.splice(i,1);massa.n=Math.max(0,massa.n-1);touch();renderPins();renderStats()}renderMapbar();updHint()});
   b.querySelectorAll("[data-tr]").forEach(x=>x.onclick=()=>{tracing=tracing===x.dataset.tr?null:x.dataset.tr;anchor=null;placing=false;renderMapbar();updHint();renderPins()});
+  b.insertAdjacentHTML("beforeend",verHtml());bindVer(b);
   b.querySelectorAll("[data-cor]").forEach(i=>{i.oninput=()=>{(S.cores=S.cores||{})[i.dataset.cor]=i.value;renderPins()};i.onchange=()=>{touch()}});
   b.onpointerdown=e=>e.stopPropagation();
 }
 function renderPins(){
-  $("#pins").innerHTML=S.pontos.map(p=>`<button class="pin ${p.status} ${p.id===selId?"sel":""} ${p.id===anchor?"anchor":""}" data-id="${p.id}" style="left:${p.x}px;top:${p.y}px" aria-label="${esc(p.tipo+" "+(p.titulo||""))}">${p.lum?'<span class="bd l">L</span>':""}${p.trafo?'<span class="bd t">T</span>':""}${p.fotos&&p.fotos.length?'<span class="bd f">▣</span>':""}</button>`).join("");
+  $("#pins").innerHTML=S.pontos.filter(p=>tracing||placing||massa||p.id===selId||!((p.tipo==="Poste"&&VOC.has("postes"))||(p.tipo==="Transformador"&&VOC.has("trafo")))).map(p=>`<button class="pin ${p.status} ${p.id===selId?"sel":""} ${p.id===anchor?"anchor":""}" data-id="${p.id}" style="left:${p.x}px;top:${p.y}px" aria-label="${esc(p.tipo+" "+(p.titulo||""))}">${p.lum?'<span class="bd l">L</span>':""}${p.trafo&&!VOC.has("trafo")?'<span class="bd t">T</span>':""}${p.fotos&&p.fotos.length?'<span class="bd f">▣</span>':""}</button>`).join("");
   $("#pins").querySelectorAll(".pin").forEach(b=>{
     b.onpointerdown=e=>{e.stopPropagation();
       if(!(edit&&!tracing&&!placing&&b.dataset.id===selId))return;
@@ -682,7 +687,7 @@ function traceTap(id){
 function renderNet(){
   const svg=$("#net");svg.setAttribute("width",S.mapW);svg.setAttribute("height",S.mapH);
   const w=Math.min(1/T.s,40);
-  svg.innerHTML=S.redes.map(g=>{const a=ptById(g.a),b=ptById(g.b);if(!a||!b)return"";
+  svg.innerHTML=S.redes.filter(g=>tracing||!VOC.has(netKey(g))).map(g=>{const a=ptById(g.a),b=ptById(g.b);if(!a||!b)return"";
     const prev=g.status!=="executado",key=netKey(g),col=corRede(key),sel=g.id===selSeg;
     /* MT passa no centro do poste; BT corre paralela, deslocada para a lateral */
     let ax=a.x,ay=a.y,bx=b.x,by=b.y;
