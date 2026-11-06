@@ -277,7 +277,7 @@ const eu=perfil.id,ADM=perfil.papel==="admin";let ORCN=ADM?"admin":null;try{cons
 let VT=new Set(),ORCA={};let verFiltros=false,LEMB=[],verSaidos=(()=>{try{return localStorage.getItem("neg.saidos")!=="0"}catch(e){return true}})(),AREAS=[],ACESSO={},fArea="",U=[],QUADROS={},COLS=[],ETQ=[],LISTAS={tipo:[],origem:[],pagto:[],conc:[]},CARDS=[],PERM={},CRIA={},INBOX=[];
 let quadro=(()=>{try{return localStorage.getItem("neg.quadro")||"eletrica"}catch(e){return"eletrica"}})();
 {const qq=new URLSearchParams(location.search).get("q");if(qq==="eletrica"||qq==="solar")quadro=qq;}
-let busca="",fEtq="",soMeus=false,aberto=null,abaCard="resumo",win=null,gravando=null;
+let busca="",fEtq="",fPes="",soMeus=false,aberto=null,abaCard="resumo",win=null,gravando=null;
 const uById=id=>U.find(u=>u.id===id)||{id,nome:"(removido)",sig:"?",cor:"#999",setor:""};
 const fmtDoc=v=>{const d=String(v||"").replace(/\D/g,"").slice(0,14);if(d.length<=11)return d.replace(/^(\d{3})(\d)/,"$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/,"$1.$2.$3").replace(/\.(\d{3})(\d)/,".$1-$2");return d.replace(/^(\d{2})(\d)/,"$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/,"$1.$2.$3").replace(/\.(\d{3})(\d)/,".$1/$2").replace(/(\d{4})(\d)/,"$1-$2")};
 const fmtCep=v=>{const d=String(v||"").replace(/\D/g,"").slice(0,8);return d.length>5?d.slice(0,5)+"-"+d.slice(5):d};
@@ -373,7 +373,7 @@ function _render(){
   const mAreas=minhasAreas().filter(a=>todas.some(c=>c.area===a.id));
   const f=busca.toLowerCase();
   const ORD={manual:(a,b)=>(+b.ordem||0)-(+a.ordem||0),prazo:(a,b)=>(a.prazo?new Date(a.prazo):8e15)-(b.prazo?new Date(b.prazo):8e15),valor:(a,b)=>(+b.valor||0)-(+a.valor||0),recente:(a,b)=>new Date(b.criado_em)-new Date(a.criado_em),parado:(a,b)=>new Date(a.atualizado_em)-new Date(b.atualizado_em)};
-  const vis=CARDS.slice().sort(ORD[ordemModo]||ORD.manual).filter(c=>c.quadro===quadro&&(!f||(c.titulo+" "+c.cliente+" "+c.cidade+" "+c.tipo).toLowerCase().includes(f))&&(!fEtq||c.etiquetas.includes(fEtq))&&(!soMeus||c.membros.includes(eu)||c.resp===eu));
+  const vis=CARDS.slice().sort(ORD[ordemModo]||ORD.manual).filter(c=>c.quadro===quadro&&(!f||(c.titulo+" "+c.cliente+" "+c.cidade+" "+c.tipo).toLowerCase().includes(f))&&(!fEtq||c.etiquetas.includes(fEtq))&&(!soMeus||c.membros.includes(eu)||c.resp===eu)&&(!fPes||c.resp===fPes||(c.membros||[]).includes(fPes)));
   const nl=INBOX.filter(n=>!n.lido).length;
   const etqs=ETQ.filter(e=>e.quadro===quadro);
   $("#app").innerHTML=`${navHtml()}
@@ -385,10 +385,11 @@ function _render(){
    <button class="btn sino" id="bIn" title="Caixa de entrada">🔔 Caixa de entrada${nl?`<b class="badge ${INBOX.some(n=>!n.lido&&n.tipo==="mencao")?"pisca":""}">${nl}</b>`:""}</button>
    ${ADM?'<button class="btn" id="bCols">Colunas e etiquetas</button><button class="btn" id="bPerm">Permissões</button>':""}
    <button class="btn pri" id="bNovo" ${podeCriar(quadro)?"":"disabled title='Você não tem permissão para criar negócios neste quadro'"}>+ Novo negócio</button></header>
-  <button class="btn fbtn" id="bFil">🔎 Filtros${(fArea?1:0)+(fEtq?1:0)+(soMeus?1:0)+(busca?1:0)?` <b class="badge">${(fArea?1:0)+(fEtq?1:0)+(soMeus?1:0)+(busca?1:0)}</b>`:""} <span class="note" style="margin-left:auto">${vis.filter(c=>!fantasma(c)).length} negócios</span></button>
+  <button class="btn fbtn" id="bFil">🔎 Filtros${(fArea?1:0)+(fEtq?1:0)+(soMeus?1:0)+(busca?1:0)+(fPes?1:0)?` <b class="badge">${(fArea?1:0)+(fEtq?1:0)+(soMeus?1:0)+(busca?1:0)+(fPes?1:0)}</b>`:""} <span class="note" style="margin-left:auto">${vis.filter(c=>!fantasma(c)).length} negócios</span></button>
   <div class="filtros ${verFiltros?"abre":""}">
   ${mAreas.length>1?`<div class="bar"><span class="note">Área:</span><button class="chip ${!fArea?"on":""}" data-ar="">${ADM?"Todas":"Todas as minhas"}</button>${mAreas.map(a=>`<button class="chip ${fArea===a.id?"on":""}" data-ar="${a.id}"><i style="width:9px;height:9px;border-radius:50%;background:${a.cor};display:inline-block"></i>${esc(a.nome)}</button>`).join("")}</div>`:""}
   <div class="bar"><input id="q" placeholder="Buscar negócio, cliente, cidade ou tipo" value="${esc(busca)}">
+   ${ADM?`<select id="fPes" class="chip ${fPes?"on":""}" title="Ver só os cards de uma pessoa (responsável ou membro)" style="padding:4px 8px"><option value="">👤 Todas as pessoas</option>${U.filter(u=>u.papel!=="pendente").sort((a,b)=>a.nome.localeCompare(b.nome,"pt")).map(u=>{const n=CARDS.filter(c=>c.quadro===quadro&&(c.resp===u.id||(c.membros||[]).includes(u.id))).length;return `<option value="${u.id}" ${fPes===u.id?"selected":""}>${esc(u.nome)} (${n})</option>`}).join("")}</select>`:""}
    <button class="chip ${soMeus?"on":""}" id="meus">Só os meus</button>${ADM&&!fArea?"":`<button class="chip ${verSaidos?"on":""}" id="saidos" title="Negócios que já passaram pela sua área e estão em outra">🔒 Mostrar os que já saíram</button>`}
    ${etqs.map(e=>`<button class="chip ${fEtq===e.id?"on":""}" data-e="${e.id}"><i style="width:9px;height:9px;border-radius:50%;background:${e.cor};display:inline-block"></i>${esc(e.nome)}</button>`).join("")}
    ${(()=>{const nv=vis.filter(c=>!fantasma(c));return `<span class="note" style="margin-left:auto">${nv.length} negócio${nv.length===1?"":"s"} · ${brl(nv.reduce((a,c)=>a+(+c.valor||0),0))} em carteira</span>`})()}</div></div>
@@ -401,6 +402,7 @@ function _render(){
   $("#q").oninput=e=>{busca=e.target.value;const p=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
   $("#bFil").onclick=()=>{verFiltros=!verFiltros;render()};
   $("#meus").onclick=()=>{soMeus=!soMeus;render()};
+  if($("#fPes"))$("#fPes").onchange=e=>{fPes=e.target.value;render()};
 
   if($("#saidos"))$("#saidos").onclick=()=>{verSaidos=!verSaidos;try{localStorage.setItem("neg.saidos",verSaidos?"1":"0")}catch(e){}render()};
   document.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{fEtq=fEtq===b.dataset.e?"":b.dataset.e;render()});
