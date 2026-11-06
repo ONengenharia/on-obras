@@ -263,7 +263,7 @@ S.redes.forEach(g=>{if(g.tipo==="BT"&&!g.bt)g.bt=/70/.test(g.cabo||"")?"70":"50"
 if(!S.pxm)S.pxm=150/25.4;
 if(!S.linkMig){S.linkMig=1;const L={m4:"q4",m5:"q1",m6:"BT",m7:"q5",m8:"q6"};S.marcos.forEach(m=>{if(L[m.id]&&!m.link&&(!m.pct||+m.pct===0))m.link=L[m.id]})}
 
-let edit=false,canEdit=false,dirty=false,placing=false,selId=null,selSeg=null,tracing=null,anchor=null,tab="quant";
+let massa=null,edit=false,canEdit=false,dirty=false,placing=false,selId=null,selSeg=null,tracing=null,anchor=null,tab="quant";
 let artifactNs=null,assetsNs=null;
 const admEd=()=>edit&&role==="admin";
 let draft={txt:"",fotos:[],data:""},matQ="";
@@ -640,8 +640,14 @@ function renderMapbar(){
   const b=$("#mapbar");
   if(!edit){b.innerHTML="";return}
   b.innerHTML=`<button class="btn ${placing?"on":""}" id="bPlace">${placing?"Cancelar":"+ Ponto"}</button>`
+   +(massa?`<button class="btn on" id="bMassa">Concluir em massa · ${massa.feitos.length} criado(s) · próximo ${esc(massa.pref)}${massa.n}</button><button class="btn" id="bMassaUn" ${massa.feitos.length?"":"disabled"}>↶ Desfazer último</button>`:`<button class="btn" id="bMassa" title="Marcar vários postes seguidos no mapa, sem abrir janela a cada um">⚡ Postes em massa</button>`)
    +[["MT","MT"],["BT50","BT 3×50"],["BT70","BT 3×70"]].map(([k,l])=>`<button class="btn ${tracing===k?"on":""}" data-tr="${k}">${tracing===k?"Concluir "+l:"Traçar "+l}</button>`).join("");
-  $("#bPlace").onclick=()=>{placing=!placing;tracing=null;anchor=null;renderMapbar();updHint();renderPins()};
+  $("#bPlace").onclick=()=>{placing=!placing;tracing=null;anchor=null;massa=null;renderMapbar();updHint();renderPins()};
+  $("#bMassa").onclick=()=>{if(massa){const n=massa.feitos.length;massa=null;renderMapbar();updHint();renderStats();toast(n+" poste(s) criado(s).");return}
+    const ult=S.pontos.filter(isPoste).map(x=>String(x.titulo||"").match(/^(\D*)(\d+)$/)).filter(Boolean).pop();
+    modal("Postes em massa",[{k:"n0",type:"note",label:"Depois de confirmar, toque no mapa em cada poste: cada toque cria um poste, já numerado, sem abrir janela."},{k:"pref",label:"Prefixo da identificação",v:ult?ult[1]:"P-"},{k:"ini",label:"Começar no número",v:ult?String(+ult[2]+1):"1"},{k:"status",label:"Situação",type:"select",v:"executado",opts:Object.entries(PST)},{k:"data",label:"Data",type:"date",v:today()},{k:"lum",label:"Com luminária",type:"check",v:false}],v=>{
+      massa={pref:v.pref||"",n:Math.max(0,parseInt(v.ini)||1),status:v.status,data:v.data,lum:!!v.lum,feitos:[]};placing=false;tracing=null;anchor=null;renderMapbar();updHint();renderPins()})};
+  $("#bMassaUn")&&($("#bMassaUn").onclick=()=>{const id=massa.feitos.pop();const i=S.pontos.findIndex(x=>x.id===id);if(i>=0){S.pontos.splice(i,1);massa.n=Math.max(0,massa.n-1);touch();renderPins();renderStats()}renderMapbar();updHint()});
   b.querySelectorAll("[data-tr]").forEach(x=>x.onclick=()=>{tracing=tracing===x.dataset.tr?null:x.dataset.tr;anchor=null;placing=false;renderMapbar();updHint();renderPins()});
   b.onpointerdown=e=>e.stopPropagation();
 }
@@ -892,12 +898,13 @@ wrap.addEventListener("pointermove",e=>{const p=ptrs.get(e.pointerId);if(!p)retu
   const dx=e.clientX-p.x,dy=e.clientY-p.y;moved+=Math.abs(dx)+Math.abs(dy);T.x+=dx;T.y+=dy;p.x=e.clientX;p.y=e.clientY;apply()});
 const up=e=>{const had=ptrs.has(e.pointerId);ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size)wrap.classList.remove("drag");
   if(had&&e.type==="pointerup"&&moved<6&&!ptrs.size){const r=wrap.getBoundingClientRect();const x=(e.clientX-r.left-T.x)/T.s,y=(e.clientY-r.top-T.y)/T.s;
-    if(placing&&edit&&x>=0&&y>=0&&x<=S.mapW&&y<=S.mapH){placing=false;renderMapbar();updHint();editPonto({id:uid(),x:Math.round(x),y:Math.round(y),tipo:"Poste",titulo:"",status:"executado",data:today(),nota:""},true)}
+    if(massa&&edit&&x>=0&&y>=0&&x<=S.mapW&&y<=S.mapH){const id=uid();S.pontos.push({id,x:Math.round(x),y:Math.round(y),tipo:"Poste",titulo:massa.pref+massa.n,status:massa.status,data:massa.data,lum:massa.lum,nota:"",fotos:[]});massa.feitos.push(id);massa.n++;touch();renderPins();renderStats();renderMapbar();updHint()}
+    else if(placing&&edit&&x>=0&&y>=0&&x<=S.mapW&&y<=S.mapH){placing=false;renderMapbar();updHint();editPonto({id:uid(),x:Math.round(x),y:Math.round(y),tipo:"Poste",titulo:"",status:"executado",data:today(),nota:""},true)}
     else if(tracing&&anchor){anchor=null;renderPins();updHint()}
     else if(selId||selSeg){selId=null;selSeg=null;renderPins();showCard()}}};
 wrap.addEventListener("pointerup",up);wrap.addEventListener("pointercancel",up);
-function updHint(){wrap.classList.toggle("place",placing);wrap.classList.toggle("trace",!!tracing);const h=$("#hint");
-  h.hidden=!(placing||tracing);h.textContent=placing?"Toque no mapa onde fica o ponto":tracing?(anchor?`${NETN[tracing]}: toque no próximo poste · toque no vazio para começar outro ramal`:`${NETN[tracing]}: toque no poste de início`):""}
+function updHint(){wrap.classList.toggle("place",placing||!!massa);wrap.classList.toggle("trace",!!tracing);const h=$("#hint");
+  h.hidden=!(placing||tracing||massa);h.textContent=massa?`Em massa: toque em cada poste (${massa.pref}${massa.n} é o próximo) · “Concluir em massa” ao terminar`:placing?"Toque no mapa onde fica o ponto":tracing?(anchor?`${NETN[tracing]}: toque no próximo poste · toque no vazio para começar outro ramal`:`${NETN[tracing]}: toque no poste de início`):""}
 new ResizeObserver(()=>{if(!wrap._fitted&&wrap.clientWidth){wrap._fitted=1;fit()}}).observe(wrap);
 const appEl=$(".app");
 const sw=lsGet("sidew"),mh=lsGet("maph"),mhm=lsGet("maphm");
