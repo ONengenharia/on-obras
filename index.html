@@ -311,7 +311,7 @@ const corPino=o=>corPor==="tipo"?corTipo(o.tipo):corCol(o.coluna);
 let negs={},etqs={},NMAP={},RMAP={};
 const NOME_G={"A Iniciar":"liberado","Execução":"andamento","Concluído":"finalizado"};
 /* Gerenciador = espelho dos Negócios (elétrica) na área "Obras": só entram cards que estão nessas colunas */
-const espelho=o=>{const n=o.negocio&&negs[o.negocio];return n?(NMAP[n.coluna]||null):null};
+const espelho=o=>{const n=o.negocio&&negs[o.negocio];if(n)return NMAP[n.coluna]||null;return["liberado","andamento","finalizado"].includes(o.coluna)?o.coluna:null}; /* obras antigas sem negócio (só no Gerenciador) seguem a própria coluna */
 const colunasV=()=>colunas.filter(c=>["liberado","andamento","finalizado"].includes(c.id));
 async function carregar(){
   const [rc,ro]=await Promise.all([
@@ -822,7 +822,7 @@ function renderInicio(){
 function renderKanban(){
   const f=filtro.trim().toLowerCase();
   const vis=obras.filter(o=>espelho(o)&&(!f||(o.titulo+" "+o.cliente+" "+o.local+" "+o.tipo).toLowerCase().includes(f)));
-  $("#corpo").innerHTML=`<div class="filt"><input id="fQ" placeholder="Buscar obra, cliente, cidade ou tipo" value="${esc(filtro)}"><span class="note">${vis.length} obra${vis.length===1?"":"s"} · espelho dos Negócios (A Iniciar, Execução, Concluído)${ADM()?" · arraste para mover (move o negócio também)":""}</span></div>
+  $("#corpo").innerHTML=`<div class="filt"><input id="fQ" placeholder="Buscar obra, cliente, cidade ou tipo" value="${esc(filtro)}"><span class="note">${vis.length} obra${vis.length===1?"":"s"} · espelho dos Negócios + obras antigas só do Gerenciador${ADM()?" · arraste para mover (move o negócio também)":""}</span></div>
    <div class="board" style="grid-template-columns:repeat(${Math.max(1,colunasV().length)},minmax(250px,1fr))">${colunasV().map(c=>{const Lc=vis.filter(o=>espelho(o)===c.id);return `<section class="col" style="--c:${c.cor}"><div class="colh"><b>${esc(c.nome)}</b><span>${Lc.length}</span></div><div class="list" data-col="${c.id}">${Lc.map(cartao).join("")||'<p class="empty">Nenhuma obra</p>'}</div></section>`}).join("")}</div>`;
   const q=$("#fQ");q.oninput=()=>{filtro=q.value;const p=q.selectionStart;renderKanban();const n=$("#fQ");n.focus();n.setSelectionRange(p,p)};
   document.querySelectorAll(".cardo").forEach(c=>{c.onclick=e=>{if(e.target.closest("[data-act]"))return;mural(obras.find(x=>x.id===c.dataset.id))};c.onkeydown=e=>{if(e.key==="Enter")c.click()}});
@@ -845,11 +845,11 @@ async function mover(ev){
   const antes=idx>0?ord(idx-1):null,depois=idx<irmaos.length-1?ord(idx+1):null;
   const nova=antes==null&&depois==null?Date.now()/1000:antes==null?depois-1:depois==null?antes+1:(antes+depois)/2;
   const o=obras.find(x=>x.id===id);const nid=RMAP[col];const n=o.negocio&&negs[o.negocio];
-  if(!n||!nid){toast("Esta obra não está vinculada a um negócio; mova pelo quadro de Negócios.");renderKanban();return}
-  const old={coluna:o.coluna,ordem:o.ordem,nc:n.coluna};o.coluna=col;o.ordem=nova;n.coluna=nid;
-  const {error}=await sb.from("negocios").update({coluna:nid}).eq("id",n.id);
-  if(error){Object.assign(o,{coluna:old.coluna,ordem:old.ordem});n.coluna=old.nc;toast("Não foi possível mover: "+error.message)}
-  else{sb.from("neg_historico").insert({negocio_id:n.id,texto:"Movido pelo Gerenciador de obras para "+nomeCol(col),autor_nome:""}).then(()=>{})}
+  if(n&&!nid){toast("Não foi possível identificar a coluna do negócio.");renderKanban();return}
+  const old={coluna:o.coluna,ordem:o.ordem,nc:n&&n.coluna};o.coluna=col;o.ordem=nova;if(n)n.coluna=nid;
+  const {error}=n?await sb.from("negocios").update({coluna:nid}).eq("id",n.id):await sb.from("obras").update({coluna:col,ordem:nova}).eq("id",id);
+  if(error){Object.assign(o,{coluna:old.coluna,ordem:old.ordem});if(n)n.coluna=old.nc;toast("Não foi possível mover: "+error.message)}
+  else if(n){sb.from("neg_historico").insert({negocio_id:n.id,texto:"Movido pelo Gerenciador de obras para "+nomeCol(col),autor_nome:""}).then(()=>{})}
   obras.sort((a,b)=>a.ordem-b.ordem);renderKanban();
 }
 function gerirColunas(){
