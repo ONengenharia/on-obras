@@ -235,7 +235,7 @@ img.logo{width:auto;height:38px;border-radius:0;object-fit:contain;background:no
 .bnn{background:#1f8a4c!important;color:#fff!important;font-size:20px;font-weight:800;letter-spacing:.12em;text-align:center;padding:10px!important;border-radius:8px}
 .bnn small{display:block;font-size:12px;font-weight:500;letter-spacing:0;opacity:.95;margin-top:3px}
 .hb2.nego{background:#1f8a4c;color:#fff;border-color:#1f8a4c;font-weight:700}
-.prow{display:grid;grid-template-columns:130px 1fr 110px 28px;gap:6px;align-items:center;margin-bottom:6px}.prow input,.prow select{padding:7px;border:1px solid var(--line);border-radius:7px;background:var(--bg);font-size:13px;min-width:0}
+.prow{display:grid;grid-template-columns:140px 1fr 120px 130px 28px;gap:6px;align-items:center;margin-bottom:6px}.prow input,.prow select{padding:7px;border:1px solid var(--line);border-radius:7px;background:var(--bg);font-size:13px;min-width:0}
 @media (max-width:640px){.prow{grid-template-columns:1fr 1fr}.prow .xb{grid-column:2}}
 </style>
 <script src="vendor/supabase.js"></script>
@@ -907,26 +907,34 @@ async function negociadaDialog(c){
   let P=(ng.parcelas||[]).map(x=>({...x}));
   const pg=[...new Set([...(LISTAS.pagto||[]),ng.forma||c.pagto||""].filter(Boolean))];
   const m=document.createElement("div");m.className="modal";
-  m.innerHTML=`<div class="box" style="width:min(680px,100%);max-height:92vh;overflow:auto"><h2 style="margin:0">✅ Negociada · ${esc(c.titulo)}</h2>
+  m.innerHTML=`<div class="box" style="width:min(900px,100%);max-height:94vh;overflow:auto"><h2 style="margin:0">✅ Negociada · ${esc(c.titulo)}</h2>
    <p class="note" style="margin:0">Ao salvar: o card fica verde, vai para o <b>Administrativo</b> e cada data abaixo vira um lembrete.</p>
-   <label class="fld">Como foi negociado<textarea id="nT" rows="3" placeholder="Condições combinadas, desconto, prazos, acordos…">${esc(ng.resumo||"")}</textarea></label>
+   <label class="fld">Como foi negociado<textarea id="nT" rows="4" placeholder="Condições combinadas, desconto, prazos, acordos…">${esc(ng.resumo||"")}</textarea></label>
    <div class="grid2"><label class="fld">Valor negociado (R$)<input id="nV" inputmode="decimal" value="${(ng.valor||+c.valor)?brlTxt(ng.valor||c.valor):""}" placeholder="R$ 0,00"></label>
    <label class="fld">Forma de pagamento<input id="nF" list="nFl" value="${esc(ng.forma||c.pagto||"")}" placeholder="PIX, boleto, transferência…"><datalist id="nFl">${pg.map(x=>`<option value="${esc(x)}">`).join("")}</datalist></label></div>
    <label class="fld">Emissão de NF (como será)<input id="nN" value="${esc(ng.nf||"")}" placeholder="Ex.: NF única na entrega · NF por medição"></label>
    <div class="sec" style="margin-top:4px"><b>Datas previstas (cada uma gera um lembrete)</b>
     <div class="note" style="margin:4px 0">Gerar parcelas iguais: <input id="gN" type="number" min="1" max="60" value="3" style="width:56px"> × a partir de <input id="gD" type="date" style="width:140px"> a cada <input id="gI" type="number" min="1" value="30" style="width:56px"> dias <button class="btn sm" type="button" id="gB">Gerar</button></div>
-    <div id="pL"></div><button class="btn sm" type="button" id="pA">+ Adicionar data</button></div>
+    <div id="pL"></div><div class="note" id="pS" style="margin:4px 0"></div><button class="btn sm" type="button" id="pA">+ Adicionar data</button></div>
    <label class="fld">Lembretes para<select id="nP">${cand.map(u=>`<option value="${u.id}" ${u.id===para0?"selected":""}>${esc(u.nome)}${u.id===eu?" (eu)":""}</option>`).join("")}</select></label>
    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px"><button class="btn" id="nX">Cancelar</button><button class="btn pri" id="nS" style="background:#1f8a4c;border-color:#1f8a4c">${ng.em?"Salvar alterações":"Confirmar negociada"}</button></div></div>`;
   document.body.appendChild(m);const q=x=>m.querySelector(x);
-  const draw=()=>{q("#pL").innerHTML=P.map((x,i)=>`<div class="prow"><input type="date" value="${esc(x.data||"")}" data-pk="data" data-i="${i}"><input value="${esc(x.desc||"")}" data-pk="desc" data-i="${i}" placeholder="Descrição (opcional)"><input value="${x.valor?brlTxt(x.valor):""}" data-pk="valor" data-i="${i}" inputmode="decimal" placeholder="R$ valor"><select data-pk="tipo" data-i="${i}" style="grid-column:1/-1;max-width:200px">${TIPOS.map(t=>`<option ${t===x.tipo?"selected":""}>${t}</option>`).join("")}</select><button class="xb" type="button" data-px="${i}" title="Remover" style="justify-self:end">×</button></div>`).join("")||'<p class="note">Nenhuma data ainda.</p>';
-    m.querySelectorAll("[data-pk]").forEach(el=>el.onchange=()=>{const x=P[+el.dataset.i],k=el.dataset.pk;if(k==="valor"){x.valor=lerBrl(el.value)||0;el.value=x.valor?brlTxt(x.valor):""}else x[k]=el.value});
-    m.querySelectorAll("[data-px]").forEach(b=>b.onclick=()=>{P.splice(+b.dataset.px,1);draw()})};
+  const tot=()=>lerBrl(q("#nV").value)||0;
+  const reb=()=>{const T=tot();if(!T||!P.length)return;const fx=P.filter(x=>x.fixo),li=P.filter(x=>!x.fixo);if(!li.length)return;
+    const resto=Math.max(0,Math.round((T-fx.reduce((a,x)=>a+(+x.valor||0),0))*100)/100);const v=Math.floor(resto/li.length*100)/100;
+    li.forEach((x,i)=>x.valor=i===li.length-1?Math.round((resto-v*(li.length-1))*100)/100:v)};
+  const soma=()=>{const T=tot(),S=Math.round(P.reduce((a,x)=>a+(+x.valor||0),0)*100)/100,d=Math.round((T-S)*100)/100;
+    q("#pS").innerHTML=T?`Soma das datas: <b>${brlTxt(S)}</b> de ${brlTxt(T)}${Math.abs(d)<0.01?' <span style="color:#1f8a4c">✓ confere</span>':` · <span style="color:var(--bad)">${d>0?"falta":"excede"} ${brlTxt(Math.abs(d))}</span>`}`:"";};
+  const draw=()=>{q("#pL").innerHTML=P.map((x,i)=>`<div class="prow"><input type="date" value="${esc(x.data||"")}" data-pk="data" data-i="${i}"><input value="${esc(x.desc||"")}" data-pk="desc" data-i="${i}" placeholder="Descrição (ex.: Entrada, Finalização)"><input value="${x.valor?brlTxt(x.valor):""}" data-pk="valor" data-i="${i}" inputmode="decimal" placeholder="R$ valor" title="${x.fixo?"Valor combinado (fixo)":"Ajusta sozinho conforme o total"}" style="${x.fixo?"border-color:#1f8a4c;font-weight:700":""}"><select data-pk="tipo" data-i="${i}">${TIPOS.map(t=>`<option ${t===x.tipo?"selected":""}>${t}</option>`).join("")}</select><button class="xb" type="button" data-px="${i}" title="Remover">×</button></div>`).join("")||'<p class="note">Nenhuma data ainda.</p>';
+    m.querySelectorAll("[data-pk]").forEach(el=>el.onchange=()=>{const x=P[+el.dataset.i],k=el.dataset.pk;if(k==="valor"){x.valor=lerBrl(el.value)||0;x.fixo=true;reb();draw();return}x[k]=el.value;if(k==="data")soma()});
+    m.querySelectorAll("[data-px]").forEach(b=>b.onclick=()=>{P.splice(+b.dataset.px,1);reb();draw()});soma()};
+  q("#nV").addEventListener("change",()=>{q("#nV").value=tot()?brlTxt(tot()):"";reb();draw()});
   draw();
-  q("#pA").onclick=()=>{P.push({data:"",tipo:"Parcela",valor:0,desc:""});draw()};
+  q("#pA").onclick=()=>{P.push({data:"",tipo:"Parcela",valor:0,desc:""});reb();draw()};
   q("#gB").onclick=()=>{const n=Math.max(1,Math.min(60,+q("#gN").value||1)),d0=q("#gD").value,iv=Math.max(1,+q("#gI").value||30);if(!d0){toast("Escolha a data da 1ª parcela.");return}
-    const tot=lerBrl(q("#nV").value)||0;const vp=tot?Math.round(tot/n*100)/100:0;const [y,mo,d]=d0.split("-").map(Number);
-    for(let i=0;i<n;i++){const dt=new Date(y,mo-1,d+i*iv);P.push({data:`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`,tipo:"Parcela",valor:i===n-1&&tot?Math.round((tot-vp*(n-1))*100)/100:vp,desc:`Parcela ${i+1}/${n}`})}draw()};
+    if(P.some(x=>x.data||x.valor)&&!confirm("Isto substitui as datas já listadas. Continuar?"))return;
+    const [y,mo,d]=d0.split("-").map(Number);P=[];
+    for(let i=0;i<n;i++){const dt=new Date(y,mo-1,d+i*iv);P.push({data:`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`,tipo:"Parcela",valor:0,desc:`Parcela ${i+1}/${n}`})}reb();draw()};
   q("#nX").onclick=()=>m.remove();
   q("#nS").onclick=async()=>{
     const b=q("#nS");b.disabled=true;b.textContent="Salvando…";
