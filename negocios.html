@@ -230,6 +230,13 @@ img.logo{width:auto;height:38px;border-radius:0;object-fit:contain;background:no
 @keyframes chg{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px var(--accent,#5aa9e6)}}.card.chegou{animation:chg .7s ease 3}
 .txf{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.tfc{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);border-radius:8px;padding:3px 6px;font-size:12px}.tfc img{height:34px;border-radius:4px}.tfc button{border:0;background:transparent;cursor:pointer}
 .manx{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.manx img{max-width:240px;max-height:180px;border-radius:8px;display:block}.mfile{display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:8px;text-decoration:none;color:inherit}.comp.drop{outline:2px dashed var(--accent)}
+.card.negoc{background:#e4f6ec;border-color:#2e9e62}.card.negoc:hover{border-color:#1f8a4c}
+.nbn{font-weight:800;letter-spacing:.14em;font-size:15px;color:#fff;background:#1f8a4c;border-radius:6px;padding:4px 8px;text-align:center;margin:-2px 0 2px}
+.bnn{background:#1f8a4c!important;color:#fff!important;font-size:20px;font-weight:800;letter-spacing:.12em;text-align:center;padding:10px!important;border-radius:8px}
+.bnn small{display:block;font-size:12px;font-weight:500;letter-spacing:0;opacity:.95;margin-top:3px}
+.hb2.nego{background:#1f8a4c;color:#fff;border-color:#1f8a4c;font-weight:700}
+.prow{display:grid;grid-template-columns:130px 1fr 110px 28px;gap:6px;align-items:center;margin-bottom:6px}.prow input,.prow select{padding:7px;border:1px solid var(--line);border-radius:7px;background:var(--bg);font-size:13px;min-width:0}
+@media (max-width:640px){.prow{grid-template-columns:1fr 1fr}.prow .xb{grid-column:2}}
 </style>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
@@ -420,7 +427,7 @@ function cardHtml(c){
   const atr=c.prazo&&new Date(c.prazo+"T23:59:00")<new Date();
   const nl=naoLidasCard(c.id),lb=lembCard(c.id),fant=fantasma(c);
   const onde=fant?(()=>{const col=COLS.find(x=>x.id===c.coluna);const a=col&&areaDe(col.area);return(a?a.nome+" · ":"")+(col?col.nome:"outra etapa")})():"";
-  return `<article class="card ${fant?"fantasma":""} ${nl.men?"mencao":""}" data-id="${c.id}" draggable="${!fant&&podeMover(c)}" tabindex="0">${nl.n?`<span class="cdot ${nl.men?"men":""}" title="${nl.n} mensagem(ns) não lida(s)${nl.men?" · você foi mencionado":""}">${nl.n}</span>`:""}
+  const ng=(c.cadastro||{}).negociada;return `<article class="card ${fant?"fantasma":""} ${nl.men?"mencao":""} ${ng?"negoc":""}" data-id="${c.id}" draggable="${!fant&&podeMover(c)}" tabindex="0">${ng?'<div class="nbn">NEGOCIADA</div>':""}${nl.n?`<span class="cdot ${nl.men?"men":""}" title="${nl.n} mensagem(ns) não lida(s)${nl.men?" · você foi mencionado":""}">${nl.n}</span>`:""}
    ${fant?`<span class="onde">🔒 Em ${esc(onde)}</span>`:""}
    ${c.etiquetas.length?`<div class="lbls">${c.etiquetas.map(i=>{const e=etqDe(c.quadro,i);return e?`<span class="lbl" style="background:${e.cor}">${esc(e.nome)}</span>`:""}).join("")}</div>`:""}
    <h3>${esc(c.titulo)}</h3><div class="c">${esc(c.cliente||"Sem cliente")}${c.cidade?" · "+esc(c.cidade):""}${c.tipo?` · ${esc(c.tipo)}`:""}${c.pot?` · ${esc(c.pot)} ${esc(c.un||"")}`:""}</div>
@@ -638,11 +645,11 @@ async function abrir(id,manter){
    <div class="gvh"><div class="grab">⠿ arraste para mover · puxe o canto inferior direito para redimensionar</div><div class="row"><div><span class="tipo ${c.quadro}">${esc(QUADROS[c.quadro].nome)}</span>${c.obra_id?' <span class="tipo eletrica">⚡ No Gerenciador de obras</span>':c.no_mapa?' <span class="tipo solar">📍 No mapa</span>':""}<h2>${esc(c.titulo)}</h2><span class="note">${esc(c.cliente||"Sem cliente")}${c.cidade?" · "+esc(c.cidade):""} · ${brl(c.valor)}</span></div><span style="display:flex;gap:6px">${(ADM||c.criado_por===eu)?'<button class="btn" id="del" style="color:var(--bad)">Excluir</button>':""}<button class="btn" id="bTopo" title="Mostrar/recolher etapas e avisos">▾ Etapas</button><button class="btn" id="bFx" title="Mostrar/recolher fluxograma ao lado">🧭</button><button class="btn" id="bCheia" title="Tela cheia / janela">⤢</button><button class="btn" id="x">Fechar</button></span></div>
     <div class="topo">
     <div class="flow">${cols.map((x,j)=>`<span class="${j<i?"feito":j===i?"aqui":""}" title="${esc((areaDe(x.area)||{}).nome||"")}">${esc(x.nome)}</span>`).join("")}</div>
-    ${((c.cadastro||{}).vendido||{}).sim?`<div class="banner" style="background:#e4f6ec;color:#0d7a45">✅ <b>Vendido</b>${((c.cadastro||{}).vendido||{}).em?" em "+esc(String(c.cadastro.vendido.em).split("-").reverse().join("/")):""}</div>`:""}
+    ${(c.cadastro||{}).negociada?`<div class="banner bnn">✅ NEGOCIADA<small>${esc(((c.cadastro.negociada.forma)||""))}${c.cadastro.negociada.valor?" · "+brl(c.cadastro.negociada.valor):""}${(c.cadastro.negociada.parcelas||[]).length?" · "+c.cadastro.negociada.parcelas.length+" lançamento(s) com lembrete":""}</small></div>`:""}${((c.cadastro||{}).vendido||{}).sim?`<div class="banner" style="background:#e4f6ec;color:#0d7a45">✅ <b>Vendido</b>${((c.cadastro||{}).vendido||{}).em?" em "+esc(String(c.cadastro.vendido.em).split("-").reverse().join("/")):""}</div>`:""}
     ${c.motivo_tipo?`<div class="banner" style="background:var(--warn-soft,#fbf0dc)">📝 <b>${esc(c.motivo_tipo)}</b>${c.motivo?" · "+esc(c.motivo):""}</div>`:""}
     ${fantasma(c)?`<div class="banner ro">🔒 Este negócio já saiu da sua área e está agora em <b>${esc((()=>{const col=COLS.find(x=>x.id===c.coluna);const a=col&&areaDe(col.area);return(a?a.nome+" · ":"")+(col?col.nome:"")})())}</b>. Você acompanha e pode conversar, mas não pode alterar. <button class="btn sm" id="bPuxar" style="margin-left:6px" title="Esqueceu algum ajuste? Traz o card de volta para a última etapa dele na sua área">↩ Trazer de volta para minha área</button></div>`:ed?"":`<div class="banner ro">🔒 ${podeMover(c)?"Nesta etapa você pode mover o card e conversar, mas não editar os dados.":"Nesta etapa seu acesso é só leitura, mas pode conversar no chat."}</div>`}
     </div>
-    <div class="acoes">${c.quadro!=="solar"?`${ORCN?`<a class="hb2" href="orcarede.html?neg=${c.id}" title="Orçamento no OrçaRede${ORCN==="ver"?" (só ver)":""}">📐 Orçamento</a>`:""}${COMPRAS?`<a class="hb2" href="compras.html?neg=${c.id}" title="Cotações e pedidos">🛒 Compras</a>`:""}${c.obra_id?`<a class="hb2 ok" href="obra.html?id=${c.obra_id}" title="Abrir no Gerenciador de obras">⚡ Obra</a>`:podeMover(c)&&cols.find(x=>x.gatilho)?`<button class="hb2" id="hubObra" title="Enviar ao Gerenciador de obras">⚡ Obras</button>`:`<span class="hb2 off" title="Ainda não enviada ao Gerenciador">⚡ Obras</span>`}<span class="sep"></span>`:""}${podeMover(c)&&(prox||ant)?`<span class="note">Mover:</span>${prox?`<button class="btn sm pri" id="go">${esc(prox.nome)}${!veCol(prox.id)&&areaDe(prox.area)?" · "+esc(areaDe(prox.area).nome):""} →</button>`:""}${ant?`<button class="btn sm" id="back">← ${esc(ant.nome)}</button>`:""}<select id="mv" class="btn sm"><option value="">Outra etapa…</option>${cols.filter(x=>x.id!==c.coluna).map(x=>`<option value="${x.id}">${esc(x.nome)}${areaDe(x.area)?" ("+esc(areaDe(x.area).nome)+")":""}</option>`).join("")}</select>`:`<span class="note">Etapa: <b>${esc(cols[i]?cols[i].nome:"")}</b></span>`}</div>
+    <div class="acoes">${podeMover(c)&&!c.motivo_tipo?`<button class="hb2 nego" id="bNeg" title="Registrar como foi negociado, gerar lembretes e enviar ao Administrativo">${(c.cadastro||{}).negociada?"✅ Negociada · editar":"✅ Negociada"}</button>`:""}${c.quadro!=="solar"?`${ORCN?`<a class="hb2" href="orcarede.html?neg=${c.id}" title="Orçamento no OrçaRede${ORCN==="ver"?" (só ver)":""}">📐 Orçamento</a>`:""}${COMPRAS?`<a class="hb2" href="compras.html?neg=${c.id}" title="Cotações e pedidos">🛒 Compras</a>`:""}${c.obra_id?`<a class="hb2 ok" href="obra.html?id=${c.obra_id}" title="Abrir no Gerenciador de obras">⚡ Obra</a>`:podeMover(c)&&cols.find(x=>x.gatilho)?`<button class="hb2" id="hubObra" title="Enviar ao Gerenciador de obras">⚡ Obras</button>`:`<span class="hb2 off" title="Ainda não enviada ao Gerenciador">⚡ Obras</span>`}<span class="sep"></span>`:""}${podeMover(c)&&(prox||ant)?`<span class="note">Mover:</span>${prox?`<button class="btn sm pri" id="go">${esc(prox.nome)}${!veCol(prox.id)&&areaDe(prox.area)?" · "+esc(areaDe(prox.area).nome):""} →</button>`:""}${ant?`<button class="btn sm" id="back">← ${esc(ant.nome)}</button>`:""}<select id="mv" class="btn sm"><option value="">Outra etapa…</option>${cols.filter(x=>x.id!==c.coluna).map(x=>`<option value="${x.id}">${esc(x.nome)}${areaDe(x.area)?" ("+esc(areaDe(x.area).nome)+")":""}</option>`).join("")}</select>`:`<span class="note">Etapa: <b>${esc(cols[i]?cols[i].nome:"")}</b></span>`}</div>
    </div>
    <div class="tabs">${[["resumo","Resumo"+(extras.lemb&&extras.lemb.some(l=>!l.feito)?" ⏰":"")],["chat","Conversa ("+extras.msgs.length+")"+(naoLidasCard(c.id).n?` <b class="tdot">${naoLidasCard(c.id).n}</b>`:"")],["anx","Anexos ("+extras.anx.length+")"],["hist","Histórico"]].map(([k,l])=>`<button class="${abaCard===k?"on":""}" data-t="${k}">${l}</button>`).join("")}</div>
    <div class="gvb" id="gb"></div>
@@ -659,7 +666,7 @@ async function abrir(id,manter){
   if($("#del",g))$("#del",g).onclick=async e=>{const b=e.target;if(!b.dataset.c){b.dataset.c=1;b.textContent="Confirmar exclusão";return}const {data:dx,error}=await sb.from("negocios").delete().eq("id",c.id).select("id");if(error){toast(error.message);return}if(!dx||!dx.length){toast("Sem permissão para excluir este negócio.");return}fechar();await recarregar();toast("Negócio excluído.")};
   g.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{abaCard=b.dataset.t;abrir(id,true)});
   if($("#go",g))$("#go",g).onclick=()=>mover(id,prox.id);
-  if($("#hubObra",g))$("#hubObra",g).onclick=()=>mover(id,cols.find(x=>x.gatilho).id);
+  if($("#bNeg",g))$("#bNeg",g).onclick=()=>negociadaDialog(c);if($("#hubObra",g))$("#hubObra",g).onclick=()=>mover(id,cols.find(x=>x.gatilho).id);
   if($("#back",g))$("#back",g).onclick=()=>mover(id,ant.id);
   if($("#mv",g))$("#mv",g).onchange=e=>{if(e.target.value)mover(id,e.target.value)};
   const gb=$("#gb",g),dis=ed?"":"disabled";
@@ -890,6 +897,60 @@ async function novo(){
   CARDS.unshift(data);abaCard="resumo";render();abrir(data.id);
   if(ini.gc){if(!ini.cliente){toast("Negócio criado. Para cadastrar no Gestão Click, preencha o nome do cliente no card.");return}
     const msg=await gcCriar(data,ini.orc);toast(msg);abrir(data.id,true)}
+}
+
+async function negociadaDialog(c){
+  const ng=(c.cadastro||{}).negociada||{};const cand=U.filter(u=>u.papel!=="pendente");
+  const aAdm=AREAS.find(a=>/administr/i.test(a.nome));const uAdm=aAdm&&cand.find(u=>ACESSO[u.id]&&ACESSO[u.id].has(aAdm.id));
+  const para0=ng.para||(uAdm?uAdm.id:eu);
+  const TIPOS=["Parcela","Emissão de NF","Cobrança","Outro"];
+  let P=(ng.parcelas||[]).map(x=>({...x}));
+  const pg=[...new Set([...(LISTAS.pagto||[]),ng.forma||c.pagto||""].filter(Boolean))];
+  const m=document.createElement("div");m.className="modal";
+  m.innerHTML=`<div class="box" style="width:min(680px,100%);max-height:92vh;overflow:auto"><h2 style="margin:0">✅ Negociada · ${esc(c.titulo)}</h2>
+   <p class="note" style="margin:0">Ao salvar: o card fica verde, vai para o <b>Administrativo</b> e cada data abaixo vira um lembrete.</p>
+   <label class="fld">Como foi negociado<textarea id="nT" rows="3" placeholder="Condições combinadas, desconto, prazos, acordos…">${esc(ng.resumo||"")}</textarea></label>
+   <div class="grid2"><label class="fld">Valor negociado (R$)<input id="nV" inputmode="decimal" value="${(ng.valor||+c.valor)?brlTxt(ng.valor||c.valor):""}" placeholder="R$ 0,00"></label>
+   <label class="fld">Forma de pagamento<input id="nF" list="nFl" value="${esc(ng.forma||c.pagto||"")}" placeholder="PIX, boleto, transferência…"><datalist id="nFl">${pg.map(x=>`<option value="${esc(x)}">`).join("")}</datalist></label></div>
+   <label class="fld">Emissão de NF (como será)<input id="nN" value="${esc(ng.nf||"")}" placeholder="Ex.: NF única na entrega · NF por medição"></label>
+   <div class="sec" style="margin-top:4px"><b>Datas previstas (cada uma gera um lembrete)</b>
+    <div class="note" style="margin:4px 0">Gerar parcelas iguais: <input id="gN" type="number" min="1" max="60" value="3" style="width:56px"> × a partir de <input id="gD" type="date" style="width:140px"> a cada <input id="gI" type="number" min="1" value="30" style="width:56px"> dias <button class="btn sm" type="button" id="gB">Gerar</button></div>
+    <div id="pL"></div><button class="btn sm" type="button" id="pA">+ Adicionar data</button></div>
+   <label class="fld">Lembretes para<select id="nP">${cand.map(u=>`<option value="${u.id}" ${u.id===para0?"selected":""}>${esc(u.nome)}${u.id===eu?" (eu)":""}</option>`).join("")}</select></label>
+   <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px"><button class="btn" id="nX">Cancelar</button><button class="btn pri" id="nS" style="background:#1f8a4c;border-color:#1f8a4c">${ng.em?"Salvar alterações":"Confirmar negociada"}</button></div></div>`;
+  document.body.appendChild(m);const q=x=>m.querySelector(x);
+  const draw=()=>{q("#pL").innerHTML=P.map((x,i)=>`<div class="prow"><input type="date" value="${esc(x.data||"")}" data-pk="data" data-i="${i}"><input value="${esc(x.desc||"")}" data-pk="desc" data-i="${i}" placeholder="Descrição (opcional)"><input value="${x.valor?brlTxt(x.valor):""}" data-pk="valor" data-i="${i}" inputmode="decimal" placeholder="R$ valor"><select data-pk="tipo" data-i="${i}" style="grid-column:1/-1;max-width:200px">${TIPOS.map(t=>`<option ${t===x.tipo?"selected":""}>${t}</option>`).join("")}</select><button class="xb" type="button" data-px="${i}" title="Remover" style="justify-self:end">×</button></div>`).join("")||'<p class="note">Nenhuma data ainda.</p>';
+    m.querySelectorAll("[data-pk]").forEach(el=>el.onchange=()=>{const x=P[+el.dataset.i],k=el.dataset.pk;if(k==="valor"){x.valor=lerBrl(el.value)||0;el.value=x.valor?brlTxt(x.valor):""}else x[k]=el.value});
+    m.querySelectorAll("[data-px]").forEach(b=>b.onclick=()=>{P.splice(+b.dataset.px,1);draw()})};
+  draw();
+  q("#pA").onclick=()=>{P.push({data:"",tipo:"Parcela",valor:0,desc:""});draw()};
+  q("#gB").onclick=()=>{const n=Math.max(1,Math.min(60,+q("#gN").value||1)),d0=q("#gD").value,iv=Math.max(1,+q("#gI").value||30);if(!d0){toast("Escolha a data da 1ª parcela.");return}
+    const tot=lerBrl(q("#nV").value)||0;const vp=tot?Math.round(tot/n*100)/100:0;const [y,mo,d]=d0.split("-").map(Number);
+    for(let i=0;i<n;i++){const dt=new Date(y,mo-1,d+i*iv);P.push({data:`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`,tipo:"Parcela",valor:i===n-1&&tot?Math.round((tot-vp*(n-1))*100)/100:vp,desc:`Parcela ${i+1}/${n}`})}draw()};
+  q("#nX").onclick=()=>m.remove();
+  q("#nS").onclick=async()=>{
+    const b=q("#nS");b.disabled=true;b.textContent="Salvando…";
+    try{
+      const val=lerBrl(q("#nV").value)||0,forma=q("#nF").value.trim(),para=q("#nP").value;
+      const PV=P.filter(x=>x.data);if(P.some(x=>!x.data)&&!confirm("Há linhas sem data; elas não gerarão lembrete e serão descartadas. Continuar?")){b.disabled=false;b.textContent="Confirmar negociada";return}
+      // remove lembretes antigos (se já havia)
+      const velhos=(ng.parcelas||[]).map(x=>x.lemb_id).filter(Boolean);
+      if(velhos.length)await sb.from("neg_lembretes").delete().in("id",velhos).eq("feito",false);
+      for(const x of PV){
+        const tx=`💰 ${x.tipo}${x.desc?" · "+x.desc:""} — ${c.cliente||c.titulo}${x.valor?" · "+brlTxt(x.valor):""}`;
+        const r=await sb.from("neg_lembretes").insert({negocio_id:c.id,para,quando:new Date(x.data+"T09:00").toISOString(),texto:tx}).select("id").single();
+        if(r.error)throw r.error;x.lemb_id=r.data.id}
+      const neg={em:ng.em||new Date().toISOString(),por:ng.por||eu,resumo:q("#nT").value.trim(),valor:val,forma,nf:q("#nN").value.trim(),para,parcelas:PV};
+      const campos={cadastro:{...(c.cadastro||{}),negociada:neg}};if(val>0)campos.valor=val;if(forma)campos.pagto=forma;
+      if(!await salvarCampos(c,campos))throw new Error("salvar");
+      sb.from("neg_historico").insert({negocio_id:c.id,texto:`✅ Negociada${val?" · "+brlTxt(val):""}${forma?" · "+forma:""}${PV.length?" · "+PV.length+" lembrete(s)":""}${neg.resumo?"\n"+neg.resumo:""}`,autor_nome:(uById(eu)||{}).nome||""}).then(()=>{});
+      m.remove();
+      const cols=colsDe(c.quadro);const atual=cols.find(x=>x.id===c.coluna);const ehAdm=x=>x&&/administr/i.test((areaDe(x.area)||{}).nome||"");
+      const alvo=cols.find(ehAdm);
+      if(alvo&&!ehAdm(atual)){await mover(c.id,alvo.id)}else{await recarregar()}
+      toast("Negociada! "+(PV.length?PV.length+" lembrete(s) criado(s). ":"")+(alvo&&!ehAdm(atual)?"Card enviado ao Administrativo.":""));
+      await carregarTudo();render();if(aberto===c.id)abrir(c.id);if(window.ON_LEMBRETES)window.ON_LEMBRETES.checar();
+    }catch(e){console.error(e);toast("Não foi possível concluir: "+(e.message||e));b.disabled=false;b.textContent="Confirmar negociada"}};
 }
 async function gcCriar(c,comOrc){ // cadastra o cliente (ou vincula) e, se pedido, cria o orçamento no Gestão Click
   try{const cd=c.cadastro||{};let cid=cd.gc_id;
