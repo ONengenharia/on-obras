@@ -308,7 +308,11 @@ const nomeCol=id=>(colunas.find(c=>c.id===id)||{}).nome||"";
 const corCol=id=>(colunas.find(c=>c.id===id)||{}).cor||"#8a96a3";
 const corPino=o=>corPor==="tipo"?corTipo(o.tipo):corCol(o.coluna);
 
-let negs={},etqs={};
+let negs={},etqs={},NMAP={},RMAP={};
+const NOME_G={"A Iniciar":"liberado","Execução":"andamento","Concluído":"finalizado"};
+/* Gerenciador = espelho dos Negócios (elétrica) na área "Obras": só entram cards que estão nessas colunas */
+const espelho=o=>{const n=o.negocio&&negs[o.negocio];return n?(NMAP[n.coluna]||null):null};
+const colunasV=()=>colunas.filter(c=>["liberado","andamento","finalizado"].includes(c.id));
 async function carregar(){
   const [rc,ro]=await Promise.all([
     sb.from("colunas").select("*").order("ordem"),
@@ -317,7 +321,8 @@ async function carregar(){
   colunas=rc.data||[];obras=(ro.data||[]).filter(x=>x.tipo!=="demo"); /* obra de demonstração não entra nas contas do painel */
   try{const rs=await sb.from("negocios").select("id,titulo,cliente,cidade,pot,un,valor,lat,lng,coluna").eq("quadro","solar").eq("no_mapa",true);solares=(rs.data||[]).filter(n=>n.lat!=null)}catch(e){solares=[]}
   negs={};etqs={};
-  try{const ids=obras.map(o=>o.negocio).filter(Boolean);if(ids.length){const [rn,re]=await Promise.all([sb.from("negocios").select("id,titulo,valor,etiquetas,tipo,cidade,prazo").in("id",ids),sb.from("neg_etiquetas").select("*")]);(rn.data||[]).forEach(n=>negs[n.id]=n);(re.data||[]).forEach(e=>etqs[e.id]=e)}}catch(e){}
+  try{const ids=obras.map(o=>o.negocio).filter(Boolean);if(ids.length){const [rn,re]=await Promise.all([sb.from("negocios").select("id,titulo,valor,etiquetas,tipo,cidade,prazo,coluna").in("id",ids),sb.from("neg_etiquetas").select("*")]);(rn.data||[]).forEach(n=>negs[n.id]=n);(re.data||[]).forEach(e=>etqs[e.id]=e)}}catch(e){}
+  try{const [rk,ra]=await Promise.all([sb.from("neg_colunas").select("id,nome,area,quadro").eq("quadro","eletrica"),sb.from("neg_areas").select("id,nome")]);const aid=((ra.data||[]).find(a=>/^obras$/i.test(a.nome))||{}).id;NMAP={};RMAP={};(rk.data||[]).filter(c=>c.area===aid&&NOME_G[c.nome]).forEach(c=>{NMAP[c.id]=NOME_G[c.nome];RMAP[NOME_G[c.nome]]=c.id})}catch(e){}
   render();autoLocalizar();contarAvisos();
 }
 let solares=[],verSolar=true;
@@ -756,19 +761,19 @@ async function renderEquipe(){
 let mapaQ="",soArea=false,mapSel=null,marcando=null;
 function renderInicio(){
   const tipos=[...new Set(obras.map(o=>o.tipo).filter(Boolean))].sort();
-  const vis=obras.filter(o=>(!fTipo||(fTipo==="_"?!o.tipo:o.tipo===fTipo))&&(!fCol||o.coluna===fCol));
+  const vis=obras.filter(o=>espelho(o)&&(!fTipo||(fTipo==="_"?!o.tipo:o.tipo===fTipo))&&(!fCol||espelho(o)===fCol));
   const comPos=vis.filter(o=>posObra(o)),semPos=vis.filter(o=>!posObra(o));
   const media=vis.length?vis.reduce((a,o)=>a+(+o.avanco||0),0)/vis.length:0;
   let W=380,rec=false;try{W=+localStorage.getItem("on.mapaW")||380;rec=localStorage.getItem("on.mapaRec")==="1"}catch(e){}
   $("#corpo").innerHTML=`<section class="resumo fino">
      <button class="kp main ${!fCol?"sel":""}" data-fc="" title="Todas"><span>Obras</span><b>${vis.length}</b><small>avanço médio ${Math.round(media)}%</small></button>
-     ${colunas.map(c=>`<button class="kp ${fCol===c.id?"sel":""}" data-fc="${c.id}" style="--c:${c.cor}" title="Mostrar só ${esc(c.nome)}"><span>${esc(c.nome)}</span><b>${obras.filter(o=>o.coluna===c.id&&(!fTipo||(fTipo==="_"?!o.tipo:o.tipo===fTipo))).length}</b></button>`).join("")}
+     ${colunasV().map(c=>`<button class="kp ${fCol===c.id?"sel":""}" data-fc="${c.id}" style="--c:${c.cor}" title="Mostrar só ${esc(c.nome)}"><span>${esc(c.nome)}</span><b>${obras.filter(o=>espelho(o)===c.id&&(!fTipo||(fTipo==="_"?!o.tipo:o.tipo===fTipo))).length}</b></button>`).join("")}
    </section>
    <section class="mlay ${rec?"rec":""}" style="--mw:${W}px"><div class="mapabox"><div id="mapa"></div><button class="mrec" id="mRec" title="${rec?"Mostrar lista":"Esconder lista (mapa em tela cheia)"}">${rec?"◂ Lista":"▸"}</button></div>
     <div class="mdiv" id="mDiv" title="Arraste para ajustar · duplo clique volta ao padrão"></div>
     <aside class="mpan">
      <input class="inp" id="mQ" placeholder="Buscar obra, cliente ou cidade" value="${esc(mapaQ)}">
-     <div class="filt"><span class="note">Situação:</span><button class="chip ${!fCol?"on":""}" data-fc="">Todas</button>${colunas.map(c=>`<button class="chip ${fCol===c.id?"on":""}" data-fc="${c.id}"><i style="background:${c.cor}"></i>${esc(c.nome)}</button>`).join("")}</div>
+     <div class="filt"><span class="note">Situação:</span><button class="chip ${!fCol?"on":""}" data-fc="">Todas</button>${colunasV().map(c=>`<button class="chip ${fCol===c.id?"on":""}" data-fc="${c.id}"><i style="background:${c.cor}"></i>${esc(c.nome)}</button>`).join("")}</div>
      <div class="filt"><span class="note">Tipo:</span><button class="chip ${!fTipo?"on":""}" data-t="">Todos</button>${tipos.map(t=>`<button class="chip ${fTipo===t?"on":""}" data-t="${esc(t)}"><i style="background:${corTipo(t)}"></i>${esc(t)}</button>`).join("")}${obras.some(o=>!o.tipo)?`<button class="chip ${fTipo==="_"?"on":""}" data-t="_"><i style="background:#8a96a3"></i>Sem tipo</button>`:""}${solares.length?`<button class="chip ${verSolar?"on":""}" id="cSol">☀ Solar (${solares.length})</button>`:""}</div>
      <div class="filt"><span class="note">Cor dos pinos:</span><span class="seg2"><button class="${corPor==="coluna"?"on":""}" data-cp="coluna">Situação</button><button class="${corPor==="tipo"?"on":""}" data-cp="tipo">Tipo</button></span><label class="note" style="margin-left:auto;display:flex;gap:4px;align-items:center"><input type="checkbox" id="mArea" ${soArea?"checked":""}> só as da área visível</label></div>
      <div id="mSelBox"></div>
@@ -816,13 +821,13 @@ function renderInicio(){
 /* ---------- kanban ---------- */
 function renderKanban(){
   const f=filtro.trim().toLowerCase();
-  const vis=obras.filter(o=>(!f||(o.titulo+" "+o.cliente+" "+o.local+" "+o.tipo).toLowerCase().includes(f)));
-  $("#corpo").innerHTML=`<div class="filt"><input id="fQ" placeholder="Buscar obra, cliente, cidade ou tipo" value="${esc(filtro)}"><span class="note">${obras.length} obra${obras.length===1?"":"s"}${ADM()?" · arraste os cartões entre as colunas":""}</span>${ADM()?'<button class="btn" id="bCol" style="margin-left:auto">Colunas</button>':""}</div>
-   <div class="board" style="grid-template-columns:repeat(${Math.max(1,colunas.length)},minmax(250px,1fr))">${colunas.map(c=>{const Lc=vis.filter(o=>o.coluna===c.id);return `<section class="col" style="--c:${c.cor}"><div class="colh"><b>${esc(c.nome)}</b><span>${Lc.length}</span></div><div class="list" data-col="${c.id}">${Lc.map(cartao).join("")||'<p class="empty">Nenhuma obra</p>'}</div></section>`}).join("")}</div>`;
+  const vis=obras.filter(o=>espelho(o)&&(!f||(o.titulo+" "+o.cliente+" "+o.local+" "+o.tipo).toLowerCase().includes(f)));
+  $("#corpo").innerHTML=`<div class="filt"><input id="fQ" placeholder="Buscar obra, cliente, cidade ou tipo" value="${esc(filtro)}"><span class="note">${vis.length} obra${vis.length===1?"":"s"} · espelho dos Negócios (A Iniciar, Execução, Concluído)${ADM()?" · arraste para mover (move o negócio também)":""}</span></div>
+   <div class="board" style="grid-template-columns:repeat(${Math.max(1,colunasV().length)},minmax(250px,1fr))">${colunasV().map(c=>{const Lc=vis.filter(o=>espelho(o)===c.id);return `<section class="col" style="--c:${c.cor}"><div class="colh"><b>${esc(c.nome)}</b><span>${Lc.length}</span></div><div class="list" data-col="${c.id}">${Lc.map(cartao).join("")||'<p class="empty">Nenhuma obra</p>'}</div></section>`}).join("")}</div>`;
   const q=$("#fQ");q.oninput=()=>{filtro=q.value;const p=q.selectionStart;renderKanban();const n=$("#fQ");n.focus();n.setSelectionRange(p,p)};
   document.querySelectorAll(".cardo").forEach(c=>{c.onclick=e=>{if(e.target.closest("[data-act]"))return;mural(obras.find(x=>x.id===c.dataset.id))};c.onkeydown=e=>{if(e.key==="Enter")c.click()}});
   document.querySelectorAll("[data-act]").forEach(b=>b.onclick=e=>{e.stopPropagation();const o=obras.find(x=>x.id===b.dataset.id);({link:linkObra,equipe:equipeObra,editar:editarObra})[b.dataset.act](o)});
-  if(ADM()){$("#bCol").onclick=gerirColunas;
+  if(ADM()){
     document.querySelectorAll(".list").forEach(el=>Sortable.create(el,{group:"obras",animation:150,delay:180,delayOnTouchOnly:true,draggable:".cardo",onEnd:mover}))}
 }
 function cartao(o){
@@ -839,9 +844,12 @@ async function mover(ev){
   const ord=i=>{const o=obras.find(x=>x.id===irmaos[i]);return o?+o.ordem:null};
   const antes=idx>0?ord(idx-1):null,depois=idx<irmaos.length-1?ord(idx+1):null;
   const nova=antes==null&&depois==null?Date.now()/1000:antes==null?depois-1:depois==null?antes+1:(antes+depois)/2;
-  const o=obras.find(x=>x.id===id);const old={coluna:o.coluna,ordem:o.ordem};o.coluna=col;o.ordem=nova;
-  const {error}=await sb.from("obras").update({coluna:col,ordem:nova}).eq("id",id);
-  if(error){Object.assign(o,old);toast("Não foi possível mover: "+error.message)}
+  const o=obras.find(x=>x.id===id);const nid=RMAP[col];const n=o.negocio&&negs[o.negocio];
+  if(!n||!nid){toast("Esta obra não está vinculada a um negócio; mova pelo quadro de Negócios.");renderKanban();return}
+  const old={coluna:o.coluna,ordem:o.ordem,nc:n.coluna};o.coluna=col;o.ordem=nova;n.coluna=nid;
+  const {error}=await sb.from("negocios").update({coluna:nid}).eq("id",n.id);
+  if(error){Object.assign(o,{coluna:old.coluna,ordem:old.ordem});n.coluna=old.nc;toast("Não foi possível mover: "+error.message)}
+  else{sb.from("neg_historico").insert({negocio_id:n.id,texto:"Movido pelo Gerenciador de obras para "+nomeCol(col),autor_nome:""}).then(()=>{})}
   obras.sort((a,b)=>a.ordem-b.ordem);renderKanban();
 }
 function gerirColunas(){
