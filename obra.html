@@ -280,6 +280,7 @@ const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth
 const PST={previsto:"Previsto",andamento:"Em andamento",executado:"Executado"};
 const TIPOS=["Poste","Transformador","Luminária","Ocorrência","Outro"];
 const NETC={MT:"#c2185b",BT50:"#1565c0",BT70:"#00897b"};
+const corRede=k=>(S.cores&&/^#[0-9a-f]{6}$/i.test(S.cores[k]||"")?S.cores[k]:NETC[k]);
 const netKey=g=>g.tipo==="MT"?"MT":"BT"+(g.bt||"50");
 const NETN={MT:"Rede MT",BT50:"Rede BT 3×50",BT70:"Rede BT 3×70"};
 const AUTON={"":"Lançamento manual",postes:"Postes executados no mapa",lum:"Luminárias executadas no mapa",trafo:"Transformadores executados no mapa",MT:"Metros de rede MT executada no mapa",BT50:"Metros de BT 3×50 executada no mapa",BT70:"Metros de BT 3×70 executada no mapa"};
@@ -645,7 +646,7 @@ function renderMapbar(){
   if(!edit){b.innerHTML="";return}
   b.innerHTML=`<button class="btn ${placing?"on":""}" id="bPlace">${placing?"Cancelar":"+ Ponto"}</button>`
    +(massa?`<button class="btn on" id="bMassa">Concluir em massa · ${massa.feitos.length} criado(s) · próximo ${esc(massa.pref)}${massa.n}</button><button class="btn" id="bMassaUn" ${massa.feitos.length?"":"disabled"}>↶ Desfazer último</button>`:`<button class="btn" id="bMassa" title="Marcar vários postes seguidos no mapa, sem abrir janela a cada um">⚡ Postes em massa</button>`)
-   +["MT","BT50","BT70"].map(k=>[k,netN(k).replace(/^Rede\s+/i,"")]).map(([k,l])=>`<button class="btn ${tracing===k?"on":""}" data-tr="${k}">${tracing===k?"Concluir "+l:"Traçar "+l}</button>`).join("");
+   +["MT","BT50","BT70"].map(k=>[k,netN(k).replace(/^Rede\s+/i,"")]).map(([k,l])=>`<span style="display:inline-flex;align-items:center;gap:2px"><button class="btn ${tracing===k?"on":""}" data-tr="${k}">${tracing===k?"Concluir "+l:"Traçar "+l}</button><input type="color" data-cor="${k}" value="${corRede(k)}" title="Cor desta rede no mapa" aria-label="Cor ${esc(l)}" style="width:26px;height:30px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer"></span>`).join("");
   $("#bPlace").onclick=()=>{placing=!placing;tracing=null;anchor=null;massa=null;renderMapbar();updHint();renderPins()};
   $("#bMassa").onclick=()=>{if(massa){const n=massa.feitos.length;massa=null;renderMapbar();updHint();renderStats();toast(n+" poste(s) criado(s).");return}
     const ult=S.pontos.filter(isPoste).map(x=>String(x.titulo||"").match(/^(\D*)(\d+)$/)).filter(Boolean).pop();
@@ -653,6 +654,7 @@ function renderMapbar(){
       massa={pref:v.pref||"",n:Math.max(0,parseInt(v.ini)||1),status:v.status,data:v.data,lum:!!v.lum,feitos:[]};placing=false;tracing=null;anchor=null;renderMapbar();updHint();renderPins()})};
   $("#bMassaUn")&&($("#bMassaUn").onclick=()=>{const id=massa.feitos.pop();const i=S.pontos.findIndex(x=>x.id===id);if(i>=0){S.pontos.splice(i,1);massa.n=Math.max(0,massa.n-1);touch();renderPins();renderStats()}renderMapbar();updHint()});
   b.querySelectorAll("[data-tr]").forEach(x=>x.onclick=()=>{tracing=tracing===x.dataset.tr?null:x.dataset.tr;anchor=null;placing=false;renderMapbar();updHint();renderPins()});
+  b.querySelectorAll("[data-cor]").forEach(i=>{i.oninput=()=>{(S.cores=S.cores||{})[i.dataset.cor]=i.value;renderPins()};i.onchange=()=>{touch()}});
   b.onpointerdown=e=>e.stopPropagation();
 }
 function renderPins(){
@@ -681,10 +683,10 @@ function renderNet(){
   const svg=$("#net");svg.setAttribute("width",S.mapW);svg.setAttribute("height",S.mapH);
   const w=Math.min(1/T.s,40);
   svg.innerHTML=S.redes.map(g=>{const a=ptById(g.a),b=ptById(g.b);if(!a||!b)return"";
-    const prev=g.status!=="executado",key=netKey(g),col=NETC[key],sel=g.id===selSeg;
+    const prev=g.status!=="executado",key=netKey(g),col=corRede(key),sel=g.id===selSeg;
     /* MT passa no centro do poste; BT corre paralela, deslocada para a lateral */
     let ax=a.x,ay=a.y,bx=b.x,by=b.y;
-    if(key!=="MT"){const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1;let nx=-dy/L,ny=dx/L;if(ny<0||(ny===0&&nx<0)){nx=-nx;ny=-ny}const off=(key==="BT70"?-9:9)*w;ax+=nx*off;ay+=ny*off;bx+=nx*off;by+=ny*off}
+    if(key!=="MT"){const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy)||1;let nx=-dy/L,ny=dx/L;if(ny<0||(ny===0&&nx<0)){nx=-nx;ny=-ny}const off=9*w; /* toda a BT do mesmo lado do poste */ax+=nx*off;ay+=ny*off;bx+=nx*off;by+=ny*off}
     return `<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="${col}" stroke-width="${(sel?7:4.5)*w}" ${prev?`stroke-dasharray="${10*w} ${7*w}" opacity=".55"`:""}/><line class="hit" data-seg="${g.id}" x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke-width="${14*w}"/>`}).join("");
   svg.querySelectorAll("[data-seg]").forEach(l=>{l.onpointerdown=e=>e.stopPropagation();l.onclick=e=>{e.stopPropagation();if(tracing)return;selSeg=l.dataset.seg;selId=null;renderPins();showCard()}});
 }
