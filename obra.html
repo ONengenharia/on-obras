@@ -303,16 +303,19 @@ const qExec=q=>q.auto?mapCount(q.auto):(+q.exec||0);
 const qConta=q=>q.auto?mapCount(q.auto,false,"exec"):(+q.exec||0);
 const qAnd=q=>q.auto?mapCount(q.auto,false,"and"):0;
 const andTxt=(n,un)=>n>0?` <span class="andm" title="Em andamento (conta 50% no avanço)">+${un==="m"?fmt0(n):fmt(n)} em andamento</span>`:"";
-const qPct=q=>q.prev>0?Math.min(100,qExec(q)/q.prev*100):0;
+/* previsto: o digitado; se vazio e o item é "mapa", vale o total desenhado no mapa (previsto + andamento + executado) */
+const qPrev=q=>+q.prev>0?+q.prev:(q.auto?Math.round(mapCount(q.auto,true)*10)/10:0);
+const netN=k=>{const q=(S.quant||[]).find(x=>x.auto===k);return q&&q.nome?String(q.nome).replace(/\(\d+\)\s*$/,"").trim():NETN[k]};
+const qPct=q=>qPrev(q)>0?Math.min(100,qExec(q)/qPrev(q)*100):0;
 const PESO0={postes:30,MT:20,BT50:20,BT70:20,lum:18,trafo:12};
 /* avanço físico: média ponderada pelos pesos (só itens com previsto). Sem pesos definidos, média simples como antes */
 const pesoOn=()=>S.quant.some(q=>q.peso!=null&&q.peso!=="");
 const pesoTot=()=>S.quant.reduce((a,q)=>a+pesoEf(q),0);
-const pesoEf=q=>pesoOn()?(+(q.prev>0?q.peso:0)||0):1;
+const pesoEf=q=>pesoOn()?(+(qPrev(q)>0?q.peso:0)||0):1;
 const overall=()=>{if(!S.quant.length)return 0;if(!pesoOn())return S.quant.reduce((a,q)=>a+qPct(q),0)/S.quant.length;const W=S.quant.reduce((a,q)=>a+pesoEf(q),0);return W?S.quant.reduce((a,q)=>a+qPct(q)*pesoEf(q),0)/W:0};
 function linkPct(l){
   const Q=l==="BT"?kpiItens("BT"):S.quant.filter(q=>q.id===l);
-  const prev=Q.reduce((s,q)=>s+(+q.prev||0),0);return prev?Math.min(100,Q.reduce((s,q)=>s+qExec(q),0)/prev*100):0}
+  const prev=Q.reduce((s,q)=>s+qPrev(q),0);return prev?Math.min(100,Q.reduce((s,q)=>s+qExec(q),0)/prev*100):0}
 const mpct=m=>m.link?linkPct(m.link):Math.max(0,Math.min(100,+m.pct||0));
 const linkName=l=>l==="BT"?"Rede BT (todas)":((S.quant.find(q=>q.id===l)||{}).nome||"");
 const allPhotos=()=>{const out=[];S.pontos.forEach(p=>(p.fotos||[]).forEach(u=>out.push({u,cap:(p.titulo||p.tipo)+(p.data?" · "+fdate(p.data):"")})));S.log.forEach(l=>(l.fotos||[]).forEach(u=>out.push({u,cap:fdate(l.data)+" · "+l.texto})));return out};
@@ -380,7 +383,7 @@ function renderKpis(){
   const card=c=>{const cat=KPI_CAT[c],Q=kpiItens(c);
     const v=Q.length?Q.reduce((a,q)=>a+qExec(q),0):cat.autos.reduce((a,k)=>a+mapCount(k),0);
     const vc=Q.length?Q.reduce((a,q)=>a+qConta(q),0):cat.autos.reduce((a,k)=>a+mapCount(k,false,"exec"),0),va=Q.length?Q.reduce((a,q)=>a+qAnd(q),0):cat.autos.reduce((a,k)=>a+mapCount(k,false,"and"),0);
-    const prev=Q.reduce((a,q)=>a+(+q.prev||0),0);
+    const prev=Q.reduce((a,q)=>a+qPrev(q),0);
     const pc=prev?Math.min(100,v/prev*100):0;
     return `<div class="kpi"><span class="k">${cat.nome}</span><span class="v">${cat.un==="m"?fmt0(vc):fmt(vc)}<small> / ${fmt0(prev)} ${cat.un}${andTxt(va,cat.un)}</small><span class="pc">${Math.round(pc)}%</span></span><div class="bar ${pc>=100?"full":""}"><b style="width:${pc}%"></b></div></div>`};
   $("#kpis").innerHTML=`<div class="kpi main"><span class="k">Avanço físico</span><span class="v">${Math.round(p)}<small>%</small></span><div class="bar"><b style="width:${p}%"></b></div></div>`
@@ -500,7 +503,7 @@ function renderSide(){
   const pane=$("#pane");
   if(tab==="quant"){const edit=admEd();
     pane.innerHTML=(edit?'<div class="row"><span class="note">Itens com “mapa” são contados sozinhos a partir dos pontos e da rede executados.</span><span><button class="lnk" id="qPeso" title="Define pesos: postes 30, MT 20, BT 20, luminárias 18, transformadores 12">Pesos sugeridos</button> <button class="lnk" id="qAdd">+ Item</button></span></div>':"")
-    +S.quant.map(q=>{const p=qPct(q),v=qConta(q);return `<div class="q"><div class="r1"><span class="nm">${esc(q.nome)}${q.auto?'<span class="tag">mapa</span>':""}</span><span class="val">${q.un==="m"?fmt0(v):fmt(v)} / ${fmt(q.prev)} ${esc(q.un)} · <b>${Math.round(p)}%</b>${andTxt(qAnd(q),q.un)}</span></div><div class="spec">${esc(q.spec)}${pesoOn()?`${q.spec?" · ":""}<b title="Peso no avanço da obra (considera só itens com previsto)">${Math.round(pesoTot()?pesoEf(q)/pesoTot()*100:0)}% do avanço da obra</b>`:""}</div><div class="bar ${p>=100?"full":""}"><b style="width:${p}%"></b></div>${edit?`<div class="qe">${q.auto?"":`<label>Exec. <input type="number" step="any" min="0" id="qe-${q.id}" data-q="${q.id}" value="${q.exec}"></label>`}<button class="lnk" data-qedit="${q.id}">Editar</button><button class="lnk del" data-qdel="${q.id}">Remover</button></div>`:""}</div>`}).join("")
+    +S.quant.map(q=>{const p=qPct(q),v=qConta(q);return `<div class="q"><div class="r1"><span class="nm">${esc(q.nome)}${q.auto?'<span class="tag">mapa</span>':""}</span><span class="val">${q.un==="m"?fmt0(v):fmt(v)} / ${q.un==="m"?fmt0(qPrev(q)):fmt(qPrev(q))} ${esc(q.un)} · <b>${Math.round(p)}%</b>${andTxt(qAnd(q),q.un)}</span></div><div class="spec">${esc(q.spec)}${pesoOn()?`${q.spec?" · ":""}<b title="Peso no avanço da obra (considera só itens com previsto)">${Math.round(pesoTot()?pesoEf(q)/pesoTot()*100:0)}% do avanço da obra</b>`:""}</div><div class="bar ${p>=100?"full":""}"><b style="width:${p}%"></b></div>${edit?`<div class="qe">${q.auto?"":`<label>Exec. <input type="number" step="any" min="0" id="qe-${q.id}" data-q="${q.id}" value="${q.exec}"></label>`}<button class="lnk" data-qedit="${q.id}">Editar</button><button class="lnk del" data-qdel="${q.id}">Remover</button></div>`:""}</div>`}).join("")
     +(S.quant.some(q=>q.auto==="MT"||q.auto==="BT50"||q.auto==="BT70")?'<p class="note">Metragem de rede medida sobre a planta, pela escala do desenho. Valor aproximado.</p>':"");
     if(edit){pane.querySelectorAll("input[data-q]").forEach(i=>i.onchange=()=>{S.quant.find(x=>x.id===i.dataset.q).exec=Math.max(0,parseFloat(i.value)||0);touch();renderStats()});
       pane.querySelectorAll("[data-qedit]").forEach(b=>b.onclick=()=>editQuant(b.dataset.qedit));
@@ -641,7 +644,7 @@ function renderMapbar(){
   if(!edit){b.innerHTML="";return}
   b.innerHTML=`<button class="btn ${placing?"on":""}" id="bPlace">${placing?"Cancelar":"+ Ponto"}</button>`
    +(massa?`<button class="btn on" id="bMassa">Concluir em massa · ${massa.feitos.length} criado(s) · próximo ${esc(massa.pref)}${massa.n}</button><button class="btn" id="bMassaUn" ${massa.feitos.length?"":"disabled"}>↶ Desfazer último</button>`:`<button class="btn" id="bMassa" title="Marcar vários postes seguidos no mapa, sem abrir janela a cada um">⚡ Postes em massa</button>`)
-   +[["MT","MT"],["BT50","BT 3×50"],["BT70","BT 3×70"]].map(([k,l])=>`<button class="btn ${tracing===k?"on":""}" data-tr="${k}">${tracing===k?"Concluir "+l:"Traçar "+l}</button>`).join("");
+   +["MT","BT50","BT70"].map(k=>[k,netN(k).replace(/^Rede\s+/i,"")]).map(([k,l])=>`<button class="btn ${tracing===k?"on":""}" data-tr="${k}">${tracing===k?"Concluir "+l:"Traçar "+l}</button>`).join("");
   $("#bPlace").onclick=()=>{placing=!placing;tracing=null;anchor=null;massa=null;renderMapbar();updHint();renderPins()};
   $("#bMassa").onclick=()=>{if(massa){const n=massa.feitos.length;massa=null;renderMapbar();updHint();renderStats();toast(n+" poste(s) criado(s).");return}
     const ult=S.pontos.filter(isPoste).map(x=>String(x.titulo||"").match(/^(\D*)(\d+)$/)).filter(Boolean).pop();
@@ -688,9 +691,9 @@ function showCard(){
   const c=$("#card");c.onpointerdown=e=>e.stopPropagation();c.onwheel=e=>e.stopPropagation();
   const g=S.redes.find(x=>x.id===selSeg);
   if(g){const a=ptById(g.a),b=ptById(g.b);c.hidden=false;
-    c.innerHTML=`<div class="row"><span class="chip ${g.status}">${PST[g.status]}</span><button class="lnk del" id="cX">Fechar</button></div><h3>${NETN[netKey(g)]} · ${fmt(segLen(g))} m</h3><div class="meta">${esc((a&&(a.titulo||a.tipo))||"?")} → ${esc((b&&(b.titulo||b.tipo))||"?")}${g.data?" · "+fdate(g.data):""}</div>${edit?'<div class="row"><button class="btn" id="cE">Editar trecho</button><button class="lnk del" id="cD">Excluir</button></div>':""}`;
+    c.innerHTML=`<div class="row"><span class="chip ${g.status}">${PST[g.status]}</span><button class="lnk del" id="cX">Fechar</button></div><h3>${netN(netKey(g))} · ${fmt(segLen(g))} m</h3><div class="meta">${esc((a&&(a.titulo||a.tipo))||"?")} → ${esc((b&&(b.titulo||b.tipo))||"?")}${g.data?" · "+fdate(g.data):""}</div>${edit?'<div class="row"><button class="btn" id="cE">Editar trecho</button><button class="lnk del" id="cD">Excluir</button></div>':""}`;
     $("#cX").onclick=()=>{selSeg=null;renderPins();showCard()};
-    if(edit){$("#cE").onclick=()=>modal("Trecho de rede",[{k:"rede",label:"Rede",type:"select",v:netKey(g),opts:Object.entries(NETN)},{k:"status",label:"Situação",type:"select",v:g.status,opts:Object.entries(PST)},{k:"data",label:"Data",type:"date",v:g.data}],v=>{g.tipo=v.rede==="MT"?"MT":"BT";g.bt=v.rede==="MT"?"":v.rede.slice(2);g.status=v.status;g.data=v.data;touch();renderPins();showCard();renderStats()});
+    if(edit){$("#cE").onclick=()=>modal("Trecho de rede",[{k:"rede",label:"Rede",type:"select",v:netKey(g),opts:Object.keys(NETN).map(k=>[k,netN(k)])},{k:"status",label:"Situação",type:"select",v:g.status,opts:Object.entries(PST)},{k:"data",label:"Data",type:"date",v:g.data}],v=>{g.tipo=v.rede==="MT"?"MT":"BT";g.bt=v.rede==="MT"?"":v.rede.slice(2);g.status=v.status;g.data=v.data;touch();renderPins();showCard();renderStats()});
       $("#cD").onclick=()=>{S.redes=S.redes.filter(x=>x.id!==g.id);selSeg=null;touch();renderPins();showCard();renderStats()}}
     return}
   const p=ptById(selId);
@@ -904,7 +907,7 @@ const up=e=>{const had=ptrs.has(e.pointerId);ptrs.delete(e.pointerId);if(ptrs.si
     else if(selId||selSeg){selId=null;selSeg=null;renderPins();showCard()}}};
 wrap.addEventListener("pointerup",up);wrap.addEventListener("pointercancel",up);
 function updHint(){wrap.classList.toggle("place",placing||!!massa);wrap.classList.toggle("trace",!!tracing);const h=$("#hint");
-  h.hidden=!(placing||tracing||massa);h.textContent=massa?`Em massa: toque em cada poste (${massa.pref}${massa.n} é o próximo) · “Concluir em massa” ao terminar`:placing?"Toque no mapa onde fica o ponto":tracing?(anchor?`${NETN[tracing]}: toque no próximo poste · toque no vazio para começar outro ramal`:`${NETN[tracing]}: toque no poste de início`):""}
+  h.hidden=!(placing||tracing||massa);h.textContent=massa?`Em massa: toque em cada poste (${massa.pref}${massa.n} é o próximo) · “Concluir em massa” ao terminar`:placing?"Toque no mapa onde fica o ponto":tracing?(anchor?`${netN(tracing)}: toque no próximo poste · toque no vazio para começar outro ramal`:`${netN(tracing)}: toque no poste de início`):""}
 new ResizeObserver(()=>{if(!wrap._fitted&&wrap.clientWidth){wrap._fitted=1;fit()}}).observe(wrap);
 const appEl=$(".app");
 const sw=lsGet("sidew"),mh=lsGet("maph"),mhm=lsGet("maphm");
