@@ -243,6 +243,27 @@ img.logo{width:auto;height:38px;border-radius:0;object-fit:contain;background:no
 .col .card .val{font-size:10.5px}.col .card .meta{font-size:10px;gap:6px}
 .col .card .av span{width:18px;height:18px;font-size:8px;border-width:1.5px;margin-left:-5px}.col .card .av span:first-child{margin-left:0}
 .col .card .tipo{font-size:9px;padding:0 5px}.col .nbn{font-size:12px;padding:2px 6px;margin:-1px 0 1px}.col .list{gap:6px;padding:7px}
+/* Resumo em 3 colunas */
+.gvb{container-type:inline-size}.gvb:has(>.rz){display:block}
+.rz{display:grid;gap:14px;grid-template-columns:1fr;min-height:100%;align-items:start}
+.rzL,.rzC,.rzR{display:grid;gap:12px;align-content:start;min-width:0}
+.rzL .obs{display:flex;flex-direction:column}.rzL .obs textarea{min-height:200px;resize:vertical}
+.rzC .sec,.rzR .sec{margin:0}.rzC h4{margin:0 0 8px}
+.g12>label>input,.g12>label>select{min-width:0;width:100%;box-sizing:border-box}.rzL .lform{display:grid;grid-template-columns:1fr;gap:6px}.rzL .lform input,.rzL .lform select{width:100%;box-sizing:border-box}.rzL .lform .btn{justify-self:start}.etqdd[hidden]{display:none!important}.g12{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:8px}
+.g12>.s1{grid-column:span 1}.g12>.s2{grid-column:span 2}.g12>.s3{grid-column:span 3}.g12>.s4{grid-column:span 4}.g12>.s5{grid-column:span 5}.g12>.s6{grid-column:span 6}.g12>.s7{grid-column:span 7}
+@container (max-width:620px){.g12>[class*=s]{grid-column:span 6}.g12>.s1{grid-column:span 3}.g12>.s2{grid-column:span 3}}
+.rz .fld{font-size:10.5px}.rz .fld input,.rz .fld select{padding:6px 8px;font-size:12.5px}
+.rz .ttl{font-size:10px}.rz .ttl input{font-size:17px;font-weight:700;padding:6px 8px}
+.orc{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(135deg,#143bad,#2f6f9f);color:#fff;border-radius:10px;padding:10px 14px}
+.orc small{display:block;opacity:.85;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.orc .orcn{background:transparent;border:0;border-bottom:1px dashed rgba(255,255,255,.5);color:#fff;font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:.04em;width:170px;padding:0 0 2px;border-radius:0}
+.orc .orcn::placeholder{color:rgba(255,255,255,.55);font-size:16px}
+.orc .btn{color:var(--ink)}.orc .orcr{margin-left:auto;display:grid;gap:4px;justify-items:end;font-size:11px}.orc .orcr .note{color:rgba(255,255,255,.9)}
+.rzR .pick{display:flex;flex-wrap:wrap;gap:5px}
+.fxe,#fxe{padding:10px;border-top:1px solid var(--line);display:grid;gap:10px}#fxe:empty{display:none}
+@container (min-width:760px){.rz{grid-template-columns:minmax(230px,1fr) minmax(0,2.3fr)}.rzR{grid-column:1/-1;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
+@container (min-width:1120px){.rz{grid-template-columns:minmax(260px,1fr) minmax(0,2.5fr) minmax(210px,.75fr);align-items:stretch}.rzR{grid-column:auto;grid-template-columns:1fr}
+ .rzL{grid-template-rows:minmax(0,3fr) minmax(0,2fr);align-content:stretch}.rzL .obs textarea{flex:1;height:100%;min-height:260px}.rzL .lembs{display:flex;flex-direction:column;min-height:0;overflow:auto}.rzL .lembs .lista-l{flex:1}}
 </style>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
@@ -662,7 +683,7 @@ async function abrir(id,manter){
    <div class="tabs">${[["resumo","Resumo"+(extras.lemb&&extras.lemb.some(l=>!l.feito)?" ⏰":"")],["chat","Conversa ("+extras.msgs.length+")"+(naoLidasCard(c.id).n?` <b class="tdot">${naoLidasCard(c.id).n}</b>`:"")],["anx","Anexos ("+extras.anx.length+")"],["hist","Histórico"]].map(([k,l])=>`<button class="${abaCard===k?"on":""}" data-t="${k}">${l}</button>`).join("")}</div>
    <div class="gvb" id="gb"></div>
    ${abaCard==="chat"?`<div class="comp"><div class="mwrap"><div class="ment" id="ment" hidden></div><textarea id="tx" placeholder="Escreva para a equipe… @ chama alguém · cole um print (Ctrl+V) ou arraste arquivos"></textarea><div class="txf" id="txf"></div></div><label class="btn" title="Anexar arquivo ou foto" style="position:relative;overflow:hidden">📎<input type="file" id="txA" multiple style="position:absolute;inset:0;opacity:0"></label><button class="btn pri" id="env">Enviar</button></div>`:""}
-  </div><div class="fxside" id="fxs"><p class="note" style="padding:10px">Carregando fluxo…</p></div></aside>`;
+  </div><div class="fxside"><div id="fxs"><p class="note" style="padding:10px">Carregando fluxo…</p></div><div id="fxe"></div></div></aside>`;
   document.body.appendChild(g);
   janela($(".gvp",g));
   {const P=$(".gvp",g);const tg=(cls,k,inv)=>()=>{const on=P.classList.toggle(cls);setPrefN(k,(inv?!on:on)?"1":"0");if(cls==="cheia"&&!on)janela(P)};
@@ -681,54 +702,50 @@ async function abrir(id,manter){
   const opts=(arr,v)=>(v&&!arr.includes(v)?[...arr,v]:arr).map(x=>`<option ${x===v?"selected":""}>${esc(x)}</option>`).join("");
   clearInterval(pollChat);
   if(abaCard==="resumo"){
-    gb.innerHTML=`<label class="fld obs">Observações · contexto do orçamento<textarea rows="4" ${dis} data-f="obs" placeholder="O que o cliente quer, condições do local, pendências, combinados…">${esc(c.obs)}</textarea></label>
-     ${lembretesHtml(c)}
-     <div class="grid2">
-      <label class="fld">Título do negócio<input value="${esc(c.titulo)}" ${dis} data-f="titulo"></label>
-      <label class="fld">Tipo de obra<select ${dis} data-f="tipo"><option value="">—</option>${opts(LISTAS.tipo,c.tipo)}<option value="__tipo">+ Adicionar outro…</option></select></label>
-      <label class="fld">Nº do orçamento <small class="note">(Gestão Click)</small><input value="${esc(((c.cadastro||{}).gc_orc||{}).codigo||"")}" ${dis} data-gcnum placeholder="vem do Gestão Click"></label>
-      <label class="fld">Vendido<select ${dis} data-vend="sim"><option value="">Não</option><option value="1" ${((c.cadastro||{}).vendido||{}).sim?"selected":""}>Sim · vendido</option></select></label>
-      <label class="fld">Data da venda<input type="date" value="${esc(((c.cadastro||{}).vendido||{}).em||"")}" ${dis} data-vend="em"></label>
-      <label class="fld">Cliente<input value="${esc(c.cliente)}" ${dis} data-f="cliente" list="dlCli" autocomplete="off">${cliDl("dlCli",c.id)}</label>
-      <label class="fld">Telefone / WhatsApp<input value="${esc(fmtFone(c.fone))}" ${dis} data-f="fone" inputmode="tel" placeholder="(54) 00000-0000"></label>
-      <label class="fld">Cidade<input value="${esc(c.cidade)}" ${dis} data-f="cidade"></label>
-      <label class="fld">Concessionária<select ${dis} data-f="conc"><option value="">—</option>${opts(LISTAS.conc,c.conc)}<option value="__conc">+ Adicionar outra…</option></select></label>
-      <label class="fld">Origem do contato<select ${dis} data-f="origem"><option value="">—</option>${opts(LISTAS.origem,c.origem)}${ADM?'<option value="__origem">+ Nova origem…</option>':""}</select></label>
-      <label class="fld">Parceiro de negócio<select ${dis} data-f="parceiro">${opts([...new Set(["ON",...(LISTAS.parceiro||[])])],c.parceiro||"ON")}<option value="__parceiro">+ Novo parceiro…</option></select></label>
-      ${ADM||ed?`<label class="fld">Comissão <small class="note">(só adm e consultores)</small><span style="display:flex;gap:6px"><input style="width:90px" value="${c.comissao_pct!=null?String(c.comissao_pct).replace(".",","):""}" ${dis} data-f="comissao_pct" inputmode="decimal" placeholder="%"><input style="flex:1;min-width:0" value="${c.comissao_valor!=null?brlTxt(c.comissao_valor):""}" ${dis} data-f="comissao_valor" inputmode="decimal" placeholder="R$ 0,00"></span><span class="note">${c.comissao_pct!=null&&+c.valor?"= "+brlTxt(c.valor*c.comissao_pct/100)+" sobre o valor estimado":c.comissao_valor!=null&&+c.valor?"= "+(c.comissao_valor/c.valor*100).toFixed(2).replace(".",",")+"% do valor estimado":""}</span></label>`:""}
-      <label class="fld">Potência<span style="display:flex;gap:6px"><input type="number" step="any" style="flex:1;min-width:0" value="${esc(c.pot)}" ${dis} data-f="pot"><select ${dis} data-f="un">${opts(c.quadro==="solar"?["kWp","kW"]:["kVA","kW","kWp"],c.un||(c.quadro==="solar"?"kWp":"kVA"))}</select></span></label>
-      <label class="fld">Forma de pagamento<select ${dis} data-f="pagto"><option value="">—</option>${opts(LISTAS.pagto,c.pagto)}${ADM?'<option value="__pagto">+ Nova forma…</option>':""}</select></label>
-      <label class="fld">Valor estimado (R$)<input value="${+c.valor?brlTxt(c.valor):""}" ${dis} data-f="valor" inputmode="decimal" placeholder="R$ 0,00"></label>
-      <label class="fld">Prazo desta etapa<input type="date" value="${c.prazo||""}" ${dis} data-f="prazo"></label>
-      <label class="fld">Responsável<select ${dis} data-f="resp"><option value="">—</option>${U.map(u=>`<option value="${u.id}" ${u.id===c.resp?"selected":""}>${esc(u.nome)}</option>`).join("")}</select></label>
-      <label class="fld" style="grid-column:1/-1">Localização (link do Google Maps)<span style="display:flex;gap:6px"><input style="flex:1;min-width:0" value="${esc(c.maps)}" ${dis} data-f="maps" placeholder="https://maps.app.goo.gl/…">${c.maps?`<a class="btn" href="${esc(c.maps)}" target="_blank" rel="noopener">Abrir ↗</a>`:""}</span><span class="note">${c.lat!=null?`Ponto: ${(+c.lat).toFixed(5)}, ${(+c.lng).toFixed(5)}`:c.maps?"Ponto ainda não identificado no link.":""}</span></label></div>
-     <div class="sec"><h4>Cadastro do cliente <small class="note">(opcional · usado no Gestão Click)</small></h4>
-      <div class="grid2">
-       <label class="fld">Tipo de pessoa<select ${dis} data-cad="tipo_pessoa"><option value="">—</option><option value="PF" ${(c.cadastro||{}).tipo_pessoa==="PF"?"selected":""}>Pessoa física</option><option value="PJ" ${(c.cadastro||{}).tipo_pessoa==="PJ"?"selected":""}>Pessoa jurídica</option></select></label>
-       <label class="fld">CPF ou CNPJ<input value="${esc(fmtDoc((c.cadastro||{}).doc))}" ${dis} data-cad="doc" inputmode="numeric" maxlength="18" placeholder="000.000.000-00 ou 00.000.000/0000-00"></label>
-       <label class="fld">Razão social <small class="note">(PJ)</small><input value="${esc((c.cadastro||{}).razao||"")}" ${dis} data-cad="razao"></label>
-       <label class="fld">E-mail<input type="email" value="${esc((c.cadastro||{}).email||"")}" ${dis} data-cad="email"></label>
-       <label class="fld">CEP<input value="${esc(fmtCep((c.cadastro||{}).cep))}" ${dis} data-cad="cep" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
-       <label class="fld">Endereço<input value="${esc((c.cadastro||{}).endereco||"")}" ${dis} data-cad="endereco"></label>
-       <label class="fld">Número<input value="${esc((c.cadastro||{}).numero||"")}" ${dis} data-cad="numero"></label>
-       <label class="fld">Bairro<input value="${esc((c.cadastro||{}).bairro||"")}" ${dis} data-cad="bairro"></label>
-       <label class="fld">UF<input maxlength="2" value="${esc((c.cadastro||{}).uf||"")}" ${dis} data-cad="uf" style="text-transform:uppercase"></label>
+    gb.innerHTML=`<div class="rz">
+     <div class="rzL"><label class="fld obs">Observações · contexto do orçamento<textarea rows="4" ${dis} data-f="obs" placeholder="O que o cliente quer, condições do local, pendências, combinados…">${esc(c.obs)}</textarea></label>
+      ${lembretesHtml(c)}</div>
+     <div class="rzC">
+      <label class="fld ttl">Título do negócio<input value="${esc(c.titulo)}" ${dis} data-f="titulo"></label>
+      <div class="orc"><div class="orcl"><small>Nº do orçamento · Gestão Click</small><input class="orcn" value="${esc(((c.cadastro||{}).gc_orc||{}).codigo||"")}" ${dis} data-gcnum placeholder="— sem nº —"></div><div class="orcr"><button class="btn" type="button" id="gcOrc" ${dis}>${((c.cadastro||{}).gc_orc||{}).id?"Atualizar valor do orçamento no Gestão Click":"Criar orçamento no Gestão Click"}</button><span class="note" id="gcOrcSt">${((c.cadastro||{}).gc_orc||{}).codigo?"✓ Orçamento nº <b>"+esc((c.cadastro||{}).gc_orc.codigo)+"</b> no Gestão Click":"Usa o valor estimado do negócio, em uma linha só."}</span></div></div>
+      <div class="sec"><h4>Cadastro do cliente <small class="note">· Gestão Click</small></h4>
+       <div class="g12">
+        <label class="fld s5">Cliente<input value="${esc(c.cliente)}" ${dis} data-f="cliente" list="dlCli" autocomplete="off">${cliDl("dlCli",c.id)}</label>
+        <label class="fld s3">Tipo de pessoa<select ${dis} data-cad="tipo_pessoa"><option value="">—</option><option value="PF" ${(c.cadastro||{}).tipo_pessoa==="PF"?"selected":""}>Pessoa física</option><option value="PJ" ${(c.cadastro||{}).tipo_pessoa==="PJ"?"selected":""}>Pessoa jurídica</option></select></label>
+        <label class="fld s4">CPF ou CNPJ<input value="${esc(fmtDoc((c.cadastro||{}).doc))}" ${dis} data-cad="doc" inputmode="numeric" maxlength="18" placeholder="000.000.000-00 ou 00.000.000/0000-00"></label>
+        <label class="fld s4">Razão social (PJ)<input value="${esc((c.cadastro||{}).razao||"")}" ${dis} data-cad="razao"></label>
+        <label class="fld s4">E-mail<input type="email" value="${esc((c.cadastro||{}).email||"")}" ${dis} data-cad="email"></label>
+        <label class="fld s4">Telefone / WhatsApp<input value="${esc(fmtFone(c.fone))}" ${dis} data-f="fone" inputmode="tel" placeholder="(54) 00000-0000"></label>
+        <label class="fld s2">CEP<input value="${esc(fmtCep((c.cadastro||{}).cep))}" ${dis} data-cad="cep" inputmode="numeric" maxlength="9" placeholder="00000-000"></label>
+        <label class="fld s7">Endereço<input value="${esc((c.cadastro||{}).endereco||"")}" ${dis} data-cad="endereco"></label>
+        <label class="fld s3">Número<input value="${esc((c.cadastro||{}).numero||"")}" ${dis} data-cad="numero"></label>
+        <label class="fld s3">Complemento<input value="${esc((c.cadastro||{}).complemento||"")}" ${dis} data-cad="complemento" placeholder="apto, sala, bloco…"></label>
+        <label class="fld s3">Bairro<input value="${esc((c.cadastro||{}).bairro||"")}" ${dis} data-cad="bairro"></label>
+        <label class="fld s5">Cidade<input value="${esc(c.cidade)}" ${dis} data-f="cidade"></label>
+        <label class="fld s1">UF<input maxlength="2" value="${esc((c.cadastro||{}).uf||"")}" ${dis} data-cad="uf" style="text-transform:uppercase"></label>
+       </div>
+       <div class="note" style="margin:6px 0">Nome, telefone e cidade vêm dos campos acima. Tudo aqui é opcional; para cadastrar no Gestão Click basta o nome. Depois de cadastrado, se você mudar algum dado, clique em “Atualizar no Gestão Click”.</div>
+       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" type="button" id="gcEnviar" ${dis}>${(c.cadastro||{}).gc_id?"Atualizar no Gestão Click":"Cadastrar no Gestão Click"}</button><span class="note" id="gcSt">${(c.cadastro||{}).gc_id?"✓ Cadastrado no Gestão Click · código "+esc((c.cadastro||{}).gc_id):"⚠ Ainda não cadastrado no Gestão Click"}</span></div>
       </div>
-      <div class="note" style="margin:6px 0">Nome, telefone e cidade vêm dos campos acima. Tudo aqui é opcional; para cadastrar no Gestão Click basta o nome. Depois de cadastrado, se você mudar algum dado, clique em “Atualizar no Gestão Click”.</div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" type="button" id="gcEnviar" ${dis}>${(c.cadastro||{}).gc_id?"Atualizar no Gestão Click":"Cadastrar no Gestão Click"}</button><span class="note" id="gcSt">${(c.cadastro||{}).gc_id?"✓ Cadastrado no Gestão Click · código "+esc((c.cadastro||{}).gc_id):"⚠ Ainda não cadastrado no Gestão Click"}</span></div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="btn" type="button" id="gcOrc" ${dis}>${((c.cadastro||{}).gc_orc||{}).id?"Atualizar valor do orçamento no Gestão Click":"Criar orçamento no Gestão Click"}</button><span class="note" id="gcOrcSt">${((c.cadastro||{}).gc_orc||{}).codigo?"✓ Orçamento nº <b>"+esc((c.cadastro||{}).gc_orc.codigo)+"</b> no Gestão Click":"Usa o valor estimado do negócio, em uma linha só."}</span></div>
+      <div class="sec"><h4>Dados do negócio</h4>
+       <div class="g12"><label class="fld s3">Tipo de obra<select ${dis} data-f="tipo"><option value="">—</option>${opts(LISTAS.tipo,c.tipo)}<option value="__tipo">+ Adicionar outro…</option></select></label><label class="fld s3">Concessionária<select ${dis} data-f="conc"><option value="">—</option>${opts(LISTAS.conc,c.conc)}<option value="__conc">+ Adicionar outra…</option></select></label><label class="fld s3">Origem do contato<select ${dis} data-f="origem"><option value="">—</option>${opts(LISTAS.origem,c.origem)}${ADM?'<option value="__origem">+ Nova origem…</option>':""}</select></label><label class="fld s3">Parceiro de negócio<select ${dis} data-f="parceiro">${opts([...new Set(["ON",...(LISTAS.parceiro||[])])],c.parceiro||"ON")}<option value="__parceiro">+ Novo parceiro…</option></select></label><label class="fld s3">Potência<span style="display:flex;gap:6px"><input type="number" step="any" style="flex:1;min-width:0" value="${esc(c.pot)}" ${dis} data-f="pot"><select ${dis} data-f="un">${opts(c.quadro==="solar"?["kWp","kW"]:["kVA","kW","kWp"],c.un||(c.quadro==="solar"?"kWp":"kVA"))}</select></span></label><label class="fld s3">Forma de pagamento<select ${dis} data-f="pagto"><option value="">—</option>${opts(LISTAS.pagto,c.pagto)}${ADM?'<option value="__pagto">+ Nova forma…</option>':""}</select></label><label class="fld s3">Valor estimado (R$)<input value="${+c.valor?brlTxt(c.valor):""}" ${dis} data-f="valor" inputmode="decimal" placeholder="R$ 0,00"></label><label class="fld s3">Prazo desta etapa<input type="date" value="${c.prazo||""}" ${dis} data-f="prazo"></label><label class="fld s3">Responsável<select ${dis} data-f="resp"><option value="">—</option>${U.map(u=>`<option value="${u.id}" ${u.id===c.resp?"selected":""}>${esc(u.nome)}</option>`).join("")}</select></label><label class="fld s2">Vendido<select ${dis} data-vend="sim"><option value="">Não</option><option value="1" ${((c.cadastro||{}).vendido||{}).sim?"selected":""}>Sim · vendido</option></select></label><label class="fld s2">Data da venda<input type="date" value="${esc(((c.cadastro||{}).vendido||{}).em||"")}" ${dis} data-vend="em"></label>${ADM||ed?`<label class="fld s6">Comissão <small class="note">(só adm e consultores)</small><span style="display:flex;gap:6px"><input style="width:90px" value="${c.comissao_pct!=null?String(c.comissao_pct).replace(".",","):""}" ${dis} data-f="comissao_pct" inputmode="decimal" placeholder="%"><input style="flex:1;min-width:0" value="${c.comissao_valor!=null?brlTxt(c.comissao_valor):""}" ${dis} data-f="comissao_valor" inputmode="decimal" placeholder="R$ 0,00"></span><span class="note">${c.comissao_pct!=null&&+c.valor?"= "+brlTxt(c.valor*c.comissao_pct/100)+" sobre o valor estimado":c.comissao_valor!=null&&+c.valor?"= "+(c.comissao_valor/c.valor*100).toFixed(2).replace(".",",")+"% do valor estimado":""}</span></label>`:""}</div>
+      </div>
+      <div class="sec"><h4>Links</h4><div class="g12"><label class="fld s6">Localização (link do Google Maps)<span style="display:flex;gap:6px"><input style="flex:1;min-width:0" value="${esc(c.maps)}" ${dis} data-f="maps" placeholder="https://maps.app.goo.gl/…">${c.maps?`<a class="btn" href="${esc(c.maps)}" target="_blank" rel="noopener">Abrir ↗</a>`:""}</span><span class="note">${c.lat!=null?`Ponto: ${(+c.lat).toFixed(5)}, ${(+c.lng).toFixed(5)}`:c.maps?"Ponto ainda não identificado no link.":""}</span></label><label class="fld s6">Link da pasta do cliente (Google Drive, OneDrive…)<span style="display:flex;gap:6px"><input style="flex:1;min-width:0" value="${esc(c.pasta)}" ${dis} data-f="pasta" placeholder="https://drive.google.com/…">${c.pasta?`<a class="btn" href="${esc(c.pasta)}" target="_blank" rel="noopener">Abrir pasta ↗</a>`:""}</span></label></div></div>
+      <div class="sec"><h4>Arquivos e áudio</h4>
+       <div class="aviso">📁 Para não sobrecarregar o sistema, salve os arquivos grandes (projetos, fotos em quantidade, documentos) <b>direto na pasta do cliente</b> e cole o link abaixo. Anexe aqui só o essencial.</div>
+       ${anexosLista()}${ed?botoesAnexo():""}${ed?botoesAnexo():""}
+      </div>
      </div>
-     <div class="sec"><h4>Arquivos e áudio</h4>
-      <div class="aviso">📁 Para não sobrecarregar o sistema, salve os arquivos grandes (projetos, fotos em quantidade, documentos) <b>direto na pasta do cliente</b> e cole o link abaixo. Anexe aqui só o essencial.</div>
-      <label class="fld">Link da pasta do cliente (Google Drive, OneDrive…)<span style="display:flex;gap:6px"><input style="flex:1;min-width:0" value="${esc(c.pasta)}" ${dis} data-f="pasta" placeholder="https://drive.google.com/…">${c.pasta?`<a class="btn" href="${esc(c.pasta)}" target="_blank" rel="noopener">Abrir pasta ↗</a>`:""}</span></label>
-      ${anexosLista()}${ed?botoesAnexo():""}
+     <div class="rzR">
+      ${ADM||(c.editores||[]).length?`<div class="sec"><h4>Consultores com edição <span class="note" style="font-weight:400">· editam este negócio em qualquer etapa${ADM?"":" (definido pelo admin)"}</span></h4><div class="pick">${U.filter(u=>u.papel!=="admin").map(u=>`<button data-ed="${u.id}" class="${(c.editores||[]).includes(u.id)?"on":""}" ${ADM?"":"disabled"}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")||'<span class="note">Nenhum usuário além dos admins.</span>'}</div></div>`:""}
+      <div class="sec"><h4>Pessoas no card</h4><div class="pick">${U.map(u=>`<button data-m="${u.id}" class="${c.membros.includes(u.id)?"on":""}" ${dis}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")}</div></div>
+      <div id="etqHome"><div class="sec" id="secEtq"><h4>Etiquetas</h4><div class="pick etqsel">${ETQ.filter(e=>e.quadro===c.quadro&&c.etiquetas.includes(e.id)).map(e=>`<button class="lb on" style="background:${e.cor}" data-l="${e.id}" ${dis} title="Clique para tirar">${esc(e.nome)} ✕</button>`).join("")||'<span class="note">Nenhuma etiqueta.</span>'}
+</div>${dis?"":`<div class="etqw"><input id="etqQ" placeholder="＋ Etiqueta: buscar, marcar ou criar…" autocomplete="off"><div class="etqdd" id="etqDd" hidden><div id="etqL"></div></div></div>`}</div></div>
+      <div class="sec"><h4>Ao chegar em ${esc((cols.find(x=>x.gatilho)||{nome:"(coluna ⚡ não definida)"}).nome)}</h4><p class="note" style="margin:0">${c.quadro==="solar"?"O card vira um ponto no mapa de obras (sem acompanhamento de postes e rede).":"Com o negócio fechado, o card é enviado ao Gerenciador de obras (com confirmação), com planta, postes, rede, fotos, diário e link do cliente."}</p></div>
      </div>
-     ${ADM||(c.editores||[]).length?`<div class="sec"><h4>Consultores com edição <span class="note" style="font-weight:400">· editam este negócio em qualquer etapa${ADM?"":" (definido pelo admin)"}</span></h4><div class="pick">${U.filter(u=>u.papel!=="admin").map(u=>`<button data-ed="${u.id}" class="${(c.editores||[]).includes(u.id)?"on":""}" ${ADM?"":"disabled"}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")||'<span class="note">Nenhum usuário além dos admins.</span>'}</div></div>`:""}
-     <div class="sec"><h4>Pessoas no card</h4><div class="pick">${U.map(u=>`<button data-m="${u.id}" class="${c.membros.includes(u.id)?"on":""}" ${dis}><span class="dot" style="background:${u.cor}">${u.sig}</span>${esc(u.nome)}</button>`).join("")}</div></div>
-     <div class="sec"><h4>Etiquetas</h4><div class="pick etqsel">${ETQ.filter(e=>e.quadro===c.quadro&&c.etiquetas.includes(e.id)).map(e=>`<button class="lb on" style="background:${e.cor}" data-l="${e.id}" ${dis} title="Clique para tirar">${esc(e.nome)} ✕</button>`).join("")||'<span class="note">Nenhuma etiqueta.</span>'}
-      </div>${dis?"":`<div class="etqw"><input id="etqQ" placeholder="＋ Etiqueta: buscar, marcar ou criar…" autocomplete="off"><div class="etqdd" id="etqDd" hidden><div id="etqL"></div></div></div>`}</div>
-     <div class="sec"><h4>Ao chegar em ${esc((cols.find(x=>x.gatilho)||{nome:"(coluna ⚡ não definida)"}).nome)}</h4><p class="note" style="margin:0">${c.quadro==="solar"?"O card vira um ponto no mapa de obras (sem acompanhamento de postes e rede).":"Com o negócio fechado, o card é enviado ao Gerenciador de obras (com confirmação), com planta, postes, rede, fotos, diário e link do cliente."}</p></div>`;
+    </div>`;
 
+    {const P0=$(".gvp",g);const placeEtq=()=>{const sec=$("#secEtq",g);if(!sec)return;const fx=$(".fxside",g);const vis=!P0.classList.contains("semfx")&&fx&&getComputedStyle(fx).display!=="none";const t=vis?$("#fxe",g):$("#etqHome",g);if(t&&sec.parentNode!==t)t.appendChild(sec)};placeEtq();const bf=$("#bFx",g);if(bf)bf.addEventListener("click",()=>setTimeout(placeEtq,0))}
     {const bp=g.querySelector("#bPuxar");if(bp)bp.onclick=()=>{const m=document.createElement("div");m.className="modal fxm";
       m.innerHTML=`<div class="mbox" style="width:min(460px,100%)"><h2>Trazer “${esc(c.titulo)}” de volta?</h2><p class="note">O card volta para a última etapa em que esteve na sua área. Quem estava com ele recebe o aviso no histórico e na caixa de entrada.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-x3>Cancelar</button><button class="btn pri" data-ok3>↩ Trazer de volta</button></div></div>`;
       document.body.appendChild(m);m.querySelector("[data-x3]").onclick=()=>m.remove();
@@ -791,7 +808,7 @@ async function abrir(id,manter){
     gb.querySelectorAll("[data-ed]").forEach(b=>b.onclick=async()=>{if(!ADM)return;const k=b.dataset.ed;const ed=(c.editores||[]).includes(k)?c.editores.filter(x=>x!==k):[...(c.editores||[]),k];const campos={editores:ed};if(ed.includes(k)&&!c.membros.includes(k))campos.membros=[...c.membros,k];
       if(await salvarCampos(c,campos)){render();abrir(id,true);toast(ed.includes(k)?"Agora pode editar este negócio.":"Edição removida.")}});
     gb.querySelectorAll("[data-m]").forEach(b=>b.onclick=async()=>{const k=b.dataset.m;const mem=c.membros.includes(k)?c.membros.filter(x=>x!==k):[...c.membros,k];if(await salvarCampos(c,{membros:mem})){render();abrir(id,true)}});
-    if($("#etqQ",gb)){const dd=$("#etqDd",gb),q=$("#etqQ",gb),L=$("#etqL",gb),chips=gb.querySelector(".etqsel");
+    if($("#etqQ",g)){const dd=$("#etqDd",g),q=$("#etqQ",g),L=$("#etqL",g),chips=g.querySelector(".etqsel");
       const chipsHtml=()=>ETQ.filter(e=>e.quadro===c.quadro&&c.etiquetas.includes(e.id)).map(e=>`<button class="lb on" style="background:${e.cor}" data-l="${e.id}" title="Clique para tirar">${esc(e.nome)} ✕</button>`).join("")||'<span class="note">Nenhuma etiqueta.</span>';
       const bindChips=()=>chips.querySelectorAll("[data-l]").forEach(b=>b.onclick=async()=>{const k=b.dataset.l;if(await salvarCampos(c,{etiquetas:c.etiquetas.filter(x=>x!==k)})){chips.innerHTML=chipsHtml();bindChips();render();if(!dd.hidden)lista()}});
       const lista=()=>{const t=q.value.trim().toLowerCase();const E=ETQ.filter(e=>e.quadro===c.quadro&&(!t||e.nome.toLowerCase().includes(t)));
