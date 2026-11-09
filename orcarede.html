@@ -1139,7 +1139,9 @@ async function novoOrc(pre){
 }
 async function deNegocio(nid){
   const ja=await O.from("pastas").select("id").eq("negocio_id",nid).limit(1);
-  if(ja.data&&ja.data[0]){location.replace("orcarede.html?pasta="+ja.data[0].id);return}
+  if(ja.data&&ja.data[0]){
+    if(new URLSearchParams(location.search).get("etapa")==="proposta"){const ov=await O.from("orcamentos").select("id,vigente,versao").eq("pasta_id",ja.data[0].id).order("versao",{ascending:false});const L2=ov.data||[];const o=L2.find(x=>x.vigente!==false)||L2[0];if(o){location.replace("orcarede.html?id="+o.id+"&etapa=proposta");return}}
+    location.replace("orcarede.html?pasta="+ja.data[0].id);return}
   if(SOVER){falha("Este negócio ainda não tem orçamento vinculado. Peça para a engenharia vincular ou criar.");return}
   const {data:n}=await sb.from("negocios").select("id,titulo,cliente,cidade,conc").eq("id",nid).single();
   await lista(null);
