@@ -227,6 +227,7 @@ button.kp:hover{border-color:var(--c)}
 <script src="js/db.js"></script>
 <script src="js/atalhos.js?v=3"></script>
 <script src="js/global.js?v=12" defer></script>
+<style>.fgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}.fch{display:grid;gap:14px}@media(max-width:1100px){.fgrid{grid-template-columns:1fr}}.fch h3{margin:0 0 10px;font-size:15px}.fch .dn{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.fch .lg{display:grid;gap:6px;font-size:13px}.fch .lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px}.fch .lg small{color:#9fc4e3;margin-left:6px}.fch .cols{display:flex;gap:18px;align-items:flex-end;height:130px}.fch .cols>div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}.fch .cb{width:100%;max-width:60px;border-radius:6px 6px 0 0;display:block}.fch .cols small{color:#9fc4e3;font-size:11px}</style>
 </head>
 <body>
 <div id="app"></div>
@@ -469,7 +470,23 @@ async function renderPainel(){
     const m=document.createElement("div");m.className="fmod";
     m.innerHTML=`<button class="bk" id="fmX">← Voltar ao início</button><h1>${nome}</h1><div style="color:#9fc4e3">${at.length} negócios ativos · ${brl(at.reduce((t,n)=>t+(+n.valor||0),0))} em carteira</div>
      <div class="nums"><div class="n g"><span>Proposta / negociação (valor real)</span><b>${brl(vl(isProp))}</b><small>${ct(isProp)} negócio(s) · valor puxado da proposta</small></div><div class="n o"><span>Em orçamento (estimado)</span><b>${brl(vl(isOrc))}</b><small>${ct(isOrc)} negócio(s) · estimativa</small></div><div class="n"><span>Fechados</span><b>${brl(vl(isFech))}</b><small>${ct(isFech)} negócio(s)</small></div><div class="n"><span>Parados há +15 dias</span><b>${par}</b><small>precisam de atenção</small></div></div>
-     <div class="pn2"><h3 style="margin:0 0 10px">Etapas do funil <small style="font-weight:400;color:#9fc4e3">· clique para abrir a lista e reordenar</small></h3>${funil(qd)}</div>`;
+     <div class="fgrid"><div class="pn2"><h3 style="margin:0 0 10px">Etapas do funil <small style="font-weight:400;color:#9fc4e3">· clique para abrir a lista e reordenar</small></h3>${funil(qd)}</div><div class="fch">${(()=>{
+      const cor=["#4da3ff","#ffb347","#3ddc97","#b07cff","#ff6b81","#5ad1e6","#e6c84d","#8a96a3"];
+      const por=(fn)=>{const o={};at.forEach(n=>{const k=fn(n);(o[k]=o[k]||{n:0,v:0});o[k].n++;o[k].v+=+n.valor||0});return Object.entries(o).sort((a,b)=>b[1].v-a[1].v)};
+      const pA=por(n=>{const c=colN(n.coluna),ar=A.find(a=>a.id===c.area);return ar?ar.nome:"Sem área"});
+      const pR=por(n=>nomeU(n.resp)||"Sem responsável").slice(0,8);
+      const tot=pA.reduce((t,x)=>t+x[1].v,0)||1;let ac=0;
+      const R=54,C=2*Math.PI*R;
+      const donut=pA.map(([k,x],i)=>{const f=x.v/tot,seg=`<circle r="${R}" cx="70" cy="70" fill="none" stroke="${cor[i%cor.length]}" stroke-width="22" stroke-dasharray="${f*C} ${C}" stroke-dashoffset="${-ac*C}" transform="rotate(-90 70 70)"/>`;ac+=f;return seg}).join("");
+      const mxR=Math.max(1,...pR.map(x=>x[1].v));
+      const fases=[["Em orçamento",ct(isOrc),vl(isOrc),"#ffb347"],["Proposta / negociação",ct(isProp),vl(isProp),"#4da3ff"],["Fechados",ct(isFech),vl(isFech),"#3ddc97"]];
+      const mxF=Math.max(1,...fases.map(f=>f[2]));
+      const faixa=[["0–7 d",0,7],["8–15 d",8,15],["16–30 d",16,30],["+30 d",31,1e9]].map(([l,a1,b1])=>[l,at.filter(n=>{const d=Math.floor((Date.now()-new Date(n.atualizado_em))/864e5);return d>=a1&&d<=b1}).length]);
+      const mxD=Math.max(1,...faixa.map(f=>f[1]));
+      return `<div class="pn2"><h3>Valor por área</h3><div class="dn"><svg viewBox="0 0 140 140" width="140" height="140">${donut}<text x="70" y="66" text-anchor="middle" fill="#9fc4e3" font-size="9">carteira</text><text x="70" y="82" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">${brl(tot===1?0:tot)}</text></svg><div class="lg">${pA.map(([k,x],i)=>`<div><i style="background:${cor[i%cor.length]}"></i>${esc(k)} <small>${x.n} · ${brl(x.v)}</small></div>`).join("")}</div></div></div>
+       <div class="pn2"><h3>Valor por etapa comercial</h3>${fases.map(f=>`<div class="dr"><span>${f[0]} <small>(${f[1]})</small></span><span class="db"><b style="width:${f[2]/mxF*100}%;background:${f[3]}"></b></span><span class="dv">${brl(f[2])}</span></div>`).join("")}</div>
+       <div class="pn2"><h3>Por responsável</h3>${pR.map(([k,x])=>`<div class="dr"><span>${esc(k)} <small>(${x.n})</small></span><span class="db"><b style="width:${x.v/mxR*100}%;background:var(--accent)"></b></span><span class="dv">${brl(x.v)}</span></div>`).join("")}</div>
+       <div class="pn2"><h3>Tempo parado na etapa</h3><div class="cols">${faixa.map(([l,n],i)=>`<div><b>${n}</b><span class="cb" style="height:${n/mxD*80+4}px;background:${i>1?"#ff6b81":i?"#ffb347":"#3ddc97"}"></span><small>${l}</small></div>`).join("")}</div></div>`})()}</div></div>`;
     document.body.appendChild(m);m.querySelector("#fmX").onclick=()=>m.remove();document.addEventListener("keydown",function k(e){if(e.key==="Escape"){m.remove();document.removeEventListener("keydown",k)}});
     m.querySelectorAll("[data-fcol]").forEach(a=>a.onclick=e=>{e.preventDefault();listaEtapa(a.dataset.fcol)})}
   const bM=corpo.querySelector("#bMetas");if(bM)bM.onclick=()=>{const ano=hj0.getFullYear(),MS=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
