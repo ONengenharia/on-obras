@@ -1451,7 +1451,7 @@ async function editor(id){
       <div class="lbl">Grupos de itens (estruturas)</div>
       ${pes.map((e,k)=>{const its=IT.filter(i=>i.ponto_estrutura_id===e.id);const ed=its.some(i=>i.editado);const s=soma(its.map(i=>({c:i.material_codigo,q:+i.quantidade})));
         return `<details class="est" data-k="${k}"><summary><span>${esc((ESTM[e.estrutura_id]||{}).codigo||"?")} <span class="note">(${its.length})</span>${ed?'<span class="ed">editada</span>':""}</span><span style="display:flex;gap:8px;align-items:center"><select class="seg" data-segpe="${e.id}" title="Segmento desta estrutura" aria-label="Segmento da estrutura">${segOpts(e.segmento_id,"seg. do ponto")}</select><span class="mono">${num(s)}</span><button class="xb" data-de="${e.id}" title="Remover estrutura">×</button></span></summary>
-         <table class="its">${its.map(itRow).join("")}</table><div style="padding:6px 8px"><button class="lnk" data-addm="${e.id}">+ material nesta estrutura</button> <button class="lnk" data-upbase="${e.id}" title="Grava os materiais desta estrutura no grupo de itens da base">⬆ atualizar base</button></div></details>`}).join("")||'<p class="note">Nenhuma estrutura.</p>'}
+         <table class="its">${its.map(itRow).join("")}</table><div style="padding:6px 8px"><button class="lnk" data-addm="${e.id}">+ material nesta estrutura</button> <button class="lnk" data-upbase="${e.id}" title="Grava os materiais desta estrutura no grupo de itens da base">⬆ atualizar base</button> <button class="lnk" data-dnbase="${e.id}" title="Traz os materiais do grupo de itens da base para esta estrutura (substitui os atuais)">⬇ puxar da base</button></div></details>`}).join("")||'<p class="note">Nenhuma estrutura.</p>'}
       <div class="esSel" id="pEstSel"></div>
       <div class="seq acw"><input class="inp" id="pEst" placeholder="Adicionar estruturas: digite, marque várias (ou cole CE3-2;IT_50)" aria-label="Adicionar estrutura" autocomplete="off"><button class="btn" id="pEstOk">Adicionar</button><div class="acl" id="pEstAc" hidden></div></div>
       ${cintaHtml(pt)}
@@ -1509,6 +1509,19 @@ async function editor(id){
     $$("[data-de]",a).forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();await chk(O.from("orc_ponto_estruturas").delete().eq("id",b.dataset.de));
       for(let i=PE.length-1;i>=0;i--)if(PE[i].id===b.dataset.de)PE.splice(i,1);for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_estrutura_id===b.dataset.de)IT.splice(i,1);await recalcCintas(pt);renderHead();renderSide()});
     $$("[data-addm]",a).forEach(b=>b.onclick=()=>addMaterial(pt,b.dataset.addm||null));
+    $$("[data-dnbase]",a).forEach(b=>b.onclick=async()=>{const e=PE.find(x=>x.id===b.dataset.dnbase);if(!e)return;const est=ESTM[e.estrutura_id]||{};
+      const ag={};IT.filter(i=>i.ponto_estrutura_id===e.id).forEach(i=>ag[i.material_codigo]=(ag[i.material_codigo]||0)+(+i.quantidade||0));
+      const bas=await chk(O.from("estrutura_itens").select("material_codigo,quantidade").eq("estrutura_id",e.estrutura_id));const ab={};bas.forEach(i=>ab[i.material_codigo]=(ab[i.material_codigo]||0)+(+i.quantidade||0));
+      const nm=c=>c+" · "+((MAT[c]||{}).nome||"");const L=[];
+      Object.keys(ab).forEach(c=>{if(!(c in ag))L.push("+ "+nm(c)+" ("+ab[c]+")");else if(ab[c]!==ag[c])L.push("~ "+nm(c)+": "+ag[c]+" → "+ab[c])});Object.keys(ag).forEach(c=>{if(!(c in ab))L.push("− "+nm(c))});
+      if(!L.length){toast("Esta estrutura já está igual à base.");return}
+      if(!Object.keys(ab).length){toast("O grupo da base está sem materiais; nada a puxar.");return}
+      if(!confirm("Puxar da base o grupo “"+(est.codigo||"?")+"” para ESTE ponto?\nOs materiais desta estrutura serão substituídos pelos da base.\n\n"+L.join("\n")))return;
+      const pt=e.ponto_id;
+      await chk(O.from("orc_ponto_itens").delete().eq("ponto_estrutura_id",e.id));
+      for(let i=IT.length-1;i>=0;i--)if(IT[i].ponto_estrutura_id===e.id)IT.splice(i,1);
+      const rows=await chk(O.from("orc_ponto_itens").insert(Object.entries(ab).map(([c,q])=>({ponto_id:pt,ponto_estrutura_id:e.id,material_codigo:c,quantidade:q,editado:false}))).select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado,auto"));
+      IT.push(...(rows||[]));renderHead();renderSide();toast("Ponto atualizado a partir da base: "+(est.codigo||"estrutura")+".")});
     $$("[data-upbase]",a).forEach(b=>b.onclick=async()=>{const e=PE.find(x=>x.id===b.dataset.upbase);if(!e)return;const est=ESTM[e.estrutura_id]||{};
       const ag={};IT.filter(i=>i.ponto_estrutura_id===e.id).forEach(i=>ag[i.material_codigo]=(ag[i.material_codigo]||0)+(+i.quantidade||0));
       const bas=await chk(O.from("estrutura_itens").select("material_codigo,quantidade").eq("estrutura_id",e.estrutura_id));const ab={};bas.forEach(i=>ab[i.material_codigo]=(ab[i.material_codigo]||0)+(+i.quantidade||0));
