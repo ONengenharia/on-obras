@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Licitações · ON Engenharia</title>
+<link rel="icon" href="assets/on-logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Mesma paleta do OrçaRede. Layout: cabeçalho, filtros, resumo, lista de editais em cartões, condições no fim. */
+:root{
+  --bg:#eef2f6; --panel:#ffffff; --ink:#1e2f40; --muted:#5a6f83; --line:#d6e1ea;
+  --accent:#2f6f9f; --accent-soft:#e8f1f9; --navy:#1e2f40; --navy2:#2b4157; --onblue:#62a8dc;
+  --ok:#1f8a4c; --ok-soft:#e2f4e9; --warn:#b7791f; --warn-soft:#fbf0dc; --idle-soft:#edf1f5; --danger:#b3261e; --danger-soft:#fbe9e7;
+  --f-body:Montserrat,system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101b26; --panel:#172534; --ink:#e8f1f9; --muted:#9fb8cc; --line:#2b4157;
+  --accent:#62a8dc; --accent-soft:#1d3a52; --navy:#0b141d; --navy2:#1e2f40;
+  --ok:#52c47f; --ok-soft:#173326; --warn:#e3a94b; --warn-soft:#3a2d16; --idle-soft:#1e2f40; --danger:#f2867d; --danger-soft:#3a1d1b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101b26; --panel:#172534; --ink:#e8f1f9; --muted:#9fb8cc; --line:#2b4157;
+  --accent:#62a8dc; --accent-soft:#1d3a52; --navy:#0b141d; --navy2:#1e2f40;
+  --ok:#52c47f; --ok-soft:#173326; --warn:#e3a94b; --warn-soft:#3a2d16; --idle-soft:#1e2f40; --danger:#f2867d; --danger-soft:#3a1d1b; color-scheme:dark}
+*{box-sizing:border-box} [hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;padding-bottom:70px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,select,textarea{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:7px 10px;width:100%}
+textarea{resize:vertical;min-height:70px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:7px 12px;font-weight:600;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:disabled{opacity:.5;cursor:default}
+.lnk{background:none;border:0;color:var(--accent);padding:0;font-size:12.5px;font-weight:600}
+.note{font-size:12px;color:var(--muted);margin:0;line-height:1.45}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.page{max-width:1180px;margin:0 auto;padding:16px;display:grid;gap:14px}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;background:var(--navy);color:#e8f1f9;border-radius:12px;padding:12px 16px}
+header.top img{height:44px;border-radius:4px;display:block}
+.ttl{flex:1;min-width:200px}.eye{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--onblue)}
+.ttl h1{margin:0;font-size:20px}.ttl .sub{font-size:12px;color:#b9cde0}
+header.top .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:10px;align-content:start}
+.filtros{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));align-items:end}
+.filtros label,.cond label{display:grid;gap:4px;font-size:11.5px;font-weight:600;color:var(--muted)}
+.filtros .chk{display:flex;gap:6px;align-items:center;padding-bottom:8px}.filtros .chk input{width:auto}
+.kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:grid;gap:2px}
+.kpi span{font-size:11.5px;color:var(--muted);font-weight:600}.kpi b{font-size:20px}
+.kpi.warn b{color:var(--warn)}
+.lista{display:grid;gap:10px}
+.lc{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:12px 14px;display:grid;gap:8px}
+.lc.urg{border-left-color:var(--warn)}.lc.enc{border-left-color:var(--line);opacity:.7}
+.lc.neg{opacity:.6}
+.lc .obj{margin:0;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere}
+.chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.03em;background:var(--idle-soft);color:var(--muted);white-space:nowrap}
+.chip.sol{background:var(--warn-soft);color:var(--warn)}.chip.ele{background:var(--accent-soft);color:var(--accent)}
+.chip.nov{background:var(--ok-soft);color:var(--ok)}.chip.urg{background:var(--warn-soft);color:var(--warn)}.chip.enc{background:var(--danger-soft);color:var(--danger)}
+.lc-top,.tags,.acoes{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tags .chip{font-weight:600;text-transform:none;letter-spacing:0}
+.meta{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:12px;color:var(--muted)}.meta b{color:var(--ink);font-weight:600}
+.acoes select{width:auto;padding:5px 8px;font-size:12.5px}
+.acoes .push{margin-left:auto}
+.nota{display:grid;gap:6px}
+.cond{display:grid;gap:10px}.cond .g2{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.cond .mods{display:flex;flex-wrap:wrap;gap:6px 14px}.cond .mods label{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--ink);font-weight:500}.cond .mods input{width:auto}
+.vazio{text-align:center;padding:30px 16px;color:var(--muted)}
+.erro{max-width:520px;margin:60px auto;padding:24px;background:var(--panel);border:1px solid var(--line);border-radius:12px;text-align:center;display:grid;gap:10px}
+.erro img{height:48px;margin:0 auto}
+.toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;z-index:1300}
+summary{cursor:pointer;font-weight:700}
+@media (max-width:640px){.acoes .push{margin-left:0}}
+</style>
+</head>
+<body>
+<div id="root"><p class="note" style="padding:24px">Carregando…</p></div>
+<script src="vendor/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/atalhos.js?v=3"></script>
+<script>
+(async()=>{
+const sb=DB.sb, O=sb.schema("orcarede");
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const brl=n=>n==null?"não informado":Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const fdt=d=>d?new Date(d).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"}):"—";
+const seguro=u=>/^https:\/\//i.test(u||"")?u:"";
+const root=$("#root");
+function falha(msg){root.innerHTML=`<div class="erro"><img src="assets/on-logo.png" alt="ON Engenharia"><h1>Licitações</h1><p>${esc(msg)}</p><a href="index.html">Ir para o início</a></div>`}
+function aviso(t){const e=document.createElement("div");e.className="toast";e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),2600)}
+
+const sess=await DB.sessao();
+if(!sess){location.href="index.html?volta="+encodeURIComponent(location.pathname+location.search);return}
+const perfil=await DB.meuPerfil();
+const NIVEL=perfil?(await O.rpc("meu_nivel")).data:null;
+if(!NIVEL){falha("Você ainda não tem acesso ao OrçaRede. Peça a um administrador para liberar (ver ou editar).");return}
+const EDITA=NIVEL!=="ver";
+
+const [ed,co]=await Promise.all([
+  O.from("licitacao_editais").select("id,orgao,municipio,uf,objeto,modalidade,valor_estimado,abertura_propostas,encerramento_propostas,link_pncp,link_origem,palavras,unidade,status,nota,criado_em,atualizado_em").order("encerramento_propostas",{ascending:true,nullsFirst:false}).limit(2000),
+  O.from("licitacao_condicoes").select("dados").eq("id",1).maybeSingle()]);
+if(ed.error){falha("Não foi possível ler as licitações: "+ed.error.message+". Se a tabela ainda não existe, aplique o arquivo sql/licitacoes.sql no Supabase.");return}
+const EDITAIS=ed.data||[];
+const COND=(co.data&&co.data.dados)||{};
+const MODS={4:"Concorrência eletrônica",5:"Concorrência presencial",6:"Pregão eletrônico",8:"Dispensa"};
+const STATUS={novo:"Novo",em_triagem:"Em triagem",aprovado:"Aprovado para disputar",descartado:"Descartado",proposta:"Proposta enviada",ganhou:"Ganhou",perdeu:"Perdeu"};
+const DIAS_MIN=Number(COND.dias_minimos)||7;
+const F={q:"",unidade:"",status:"",mod:"",abertos:true,escDesc:true,ord:"prazo"};
+const ultima=EDITAIS.reduce((m,e)=>e.atualizado_em&&e.atualizado_em>m?e.atualizado_em:m,"");
+
+const dias=e=>e.encerramento_propostas?(new Date(e.encerramento_propostas)-Date.now())/864e5:null;
+const rotuloPrazo=e=>{const d=dias(e);if(d==null)return["sem data",""];if(d<0)return["encerrado","enc"];if(d<1)return["encerra hoje","urg"];const n=Math.ceil(d);return[n+(n===1?" dia":" dias"),n<=DIAS_MIN?"urg":""]};
+
+root.innerHTML=`<div class="page">
+<header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div class="ttl"><div class="eye">OrçaRede</div><h1>Licitações</h1><div class="sub">Editais abertos no PNCP que combinam com as condições da empresa</div></div><a class="btn" href="orcarede.html">Orçamentos</a><a class="btn" href="index.html">Início</a></header>
+<section class="card"><div class="filtros">
+  <label>Buscar no objeto, órgão ou município<input id="fq" type="search" placeholder="ex.: subestação, Santo Ângelo"></label>
+  <label>Unidade<select id="fu"><option value="">Todas</option><option value="eletrica">Elétrica</option><option value="solar">Solar</option></select></label>
+  <label>Modalidade<select id="fm"><option value="">Todas</option>${Object.entries(MODS).map(([k,v])=>`<option>${v}</option>`).join("")}</select></label>
+  <label>Situação no funil<select id="fs"><option value="">Todas</option>${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select></label>
+  <label>Ordenar por<select id="fo"><option value="prazo">Prazo mais próximo</option><option value="valor">Maior valor</option><option value="novos">Mais recentes</option></select></label>
+  <label class="chk"><input id="fa" type="checkbox" checked>Só com prazo aberto</label>
+  <label class="chk"><input id="fd" type="checkbox" checked>Esconder descartados</label>
+</div></section>
+<div class="kpis" id="kpis"></div>
+<div class="lista" id="lista"></div>
+<details class="card" id="cond"><summary>Condições da busca</summary>
+  <div class="cond">
+    <p class="note">Estas condições valem para a próxima coleta diária. O coletor lê daqui, busca no PNCP e grava os editais que combinam.${ultima?` Última coleta: ${esc(fdt(ultima))}.`:" Ainda não houve coleta."}</p>
+    <div class="g2">
+      <label>Estado (UF)<input id="cUf" maxlength="2" value="${esc(COND.uf||"RS")}"></label>
+      <label>Propostas encerram em até (dias)<input id="cDias" type="number" min="1" max="365" value="${esc(COND.dias_busca??60)}"></label>
+      <label>Valor mínimo (R$)<input id="cVmin" type="number" min="0" step="1000" value="${esc(COND.valor_min??"")}"></label>
+      <label>Valor máximo (R$)<input id="cVmax" type="number" min="0" step="1000" value="${esc(COND.valor_max??"")}"></label>
+      <label>Dias mínimos para orçar<input id="cMin" type="number" min="0" max="60" value="${esc(COND.dias_minimos??7)}"></label>
+    </div>
+    <div class="mods" id="cMods">${Object.entries(MODS).map(([k,v])=>`<label><input type="checkbox" value="${k}" ${(COND.modalidades||[4,5,6]).map(Number).includes(Number(k))?"checked":""}>${v}</label>`).join("")}</div>
+    <label>Palavras-chave (separe por vírgula; basta uma para o edital entrar)<textarea id="cPal">${esc((COND.palavras||[]).join(", "))}</textarea></label>
+    <label>Excluir se contiver (separe por vírgula)<textarea id="cExc">${esc((COND.excluir||[]).join(", "))}</textarea></label>
+    <div class="acoes">${EDITA?`<button class="btn pri" id="cSalvar">Salvar condições</button>`:`<span class="note">Seu acesso é só de visualização.</span>`}</div>
+  </div>
+</details>
+</div>`;
+
+const lista=s=>s.split(/[,\n;]/).map(x=>x.trim()).filter(Boolean);
+const norm=s=>(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+
+function filtrados(){
+  const q=norm(F.q);
+  let a=EDITAIS.filter(e=>{
+    if(F.abertos&&dias(e)!=null&&dias(e)<0)return false;
+    if(F.escDesc&&e.status==="descartado"&&F.status!=="descartado")return false;
+    if(F.unidade&&e.unidade!==F.unidade)return false;
+    if(F.mod&&e.modalidade!==F.mod)return false;
+    if(F.status&&e.status!==F.status)return false;
+    if(q&&!norm([e.objeto,e.orgao,e.municipio].join(" ")).includes(q))return false;
+    return true});
+  if(F.ord==="valor")a.sort((x,y)=>(y.valor_estimado||0)-(x.valor_estimado||0));
+  else if(F.ord==="novos")a.sort((x,y)=>String(y.criado_em).localeCompare(String(x.criado_em)));
+  else a.sort((x,y)=>(x.encerramento_propostas?new Date(x.encerramento_propostas):8e15)-(y.encerramento_propostas?new Date(y.encerramento_propostas):8e15));
+  return a}
+
+function cartao(e){
+  const [pz,pc]=rotuloPrazo(e), novo=Date.now()-new Date(e.criado_em)<2*864e5&&e.status==="novo";
+  const origem=seguro(e.link_origem), pncp=seguro(e.link_pncp);
+  return `<article class="lc ${pc==="urg"?"urg":pc==="enc"?"enc":""} ${e.status==="descartado"?"neg":""}" data-id="${esc(e.id)}">
+  <div class="lc-top"><span class="chip ${e.unidade==="solar"?"sol":"ele"}">${e.unidade==="solar"?"Solar":"Elétrica"}</span><span class="chip">${esc(e.modalidade||"—")}</span><span class="chip ${pc}">${esc(pz)}</span>${novo?'<span class="chip nov">Novo</span>':""}</div>
+  <p class="obj">${esc(e.objeto)}</p>
+  <div class="meta"><span><b>${esc(e.orgao||"—")}</b></span><span>${esc(e.municipio||"—")}/${esc(e.uf||"")}</span><span class="mono">Valor estimado <b>${esc(brl(e.valor_estimado))}</b></span><span>Propostas até <b class="mono">${esc(fdt(e.encerramento_propostas))}</b></span></div>
+  <div class="tags">${(e.palavras||[]).map(p=>`<span class="chip">${esc(p)}</span>`).join("")}</div>
+  <div class="acoes">
+    ${pncp?`<a class="btn pri" href="${esc(pncp)}" target="_blank" rel="noopener noreferrer">Abrir no PNCP</a>`:""}
+    ${origem?`<a class="btn" href="${esc(origem)}" target="_blank" rel="noopener noreferrer">Abrir no portal de origem</a>`:""}
+    <select data-st ${EDITA?"":"disabled"} aria-label="Situação no funil">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${k===e.status?"selected":""}>${v}</option>`).join("")}</select>
+    <button class="lnk push" data-nota>${e.nota?"Ver nota":"Adicionar nota"}</button>
+  </div>
+  <div class="nota" hidden><textarea data-nt ${EDITA?"":"readonly"} placeholder="Observações sobre este edital">${esc(e.nota||"")}</textarea>${EDITA?'<div><button class="btn" data-salvanota>Salvar nota</button></div>':""}</div>
+</article>`}
+
+function desenhar(){
+  const a=filtrados();
+  const aberto=EDITAIS.filter(e=>(dias(e)==null||dias(e)>=0)&&e.status!=="descartado");
+  const urg=aberto.filter(e=>dias(e)!=null&&dias(e)<=DIAS_MIN).length;
+  const novos=EDITAIS.filter(e=>Date.now()-new Date(e.criado_em)<2*864e5&&e.status==="novo"&&(dias(e)==null||dias(e)>=0)).length;
+  $("#kpis").innerHTML=`<div class="kpi"><span>Editais abertos</span><b>${aberto.length}</b></div><div class="kpi"><span>Novos (2 dias)</span><b>${novos}</b></div><div class="kpi warn"><span>Encerram em até ${DIAS_MIN} dias</span><b>${urg}</b></div><div class="kpi"><span>Valor estimado (abertos)</span><b class="mono" style="font-size:16px">${esc(brl(aberto.reduce((s,e)=>s+(e.valor_estimado||0),0)))}</b></div>`;
+  $("#lista").innerHTML=a.length?a.map(cartao).join(""):`<div class="card vazio">${EDITAIS.length?"Nenhum edital com esses filtros.":"Ainda não há editais. A primeira coleta grava os editais aqui."}</div>`}
+
+const ligar=(id,k,t)=>$(id).addEventListener(t||"input",ev=>{F[k]=ev.target.type==="checkbox"?ev.target.checked:ev.target.value;desenhar()});
+ligar("#fq","q");ligar("#fu","unidade","change");ligar("#fm","mod","change");ligar("#fs","status","change");ligar("#fo","ord","change");ligar("#fa","abertos","change");ligar("#fd","escDesc","change");
+
+$("#lista").addEventListener("click",async ev=>{
+  const c=ev.target.closest(".lc");if(!c)return;
+  const e=EDITAIS.find(x=>x.id===c.dataset.id);if(!e)return;
+  if(ev.target.closest("[data-nota]")){const n=$(".nota",c);n.hidden=!n.hidden;return}
+  if(ev.target.closest("[data-salvanota]")){
+    const nota=$("[data-nt]",c).value.trim()||null;
+    const r=await O.from("licitacao_editais").update({nota}).eq("id",e.id);
+    if(r.error)return aviso("Não foi possível salvar: "+r.error.message);
+    e.nota=nota;aviso("Nota salva");desenhar()}});
+$("#lista").addEventListener("change",async ev=>{
+  const s=ev.target.closest("[data-st]");if(!s)return;
+  const c=s.closest(".lc"), e=EDITAIS.find(x=>x.id===c.dataset.id);if(!e)return;
+  const r=await O.from("licitacao_editais").update({status:s.value}).eq("id",e.id);
+  if(r.error){s.value=e.status;return aviso("Não foi possível salvar: "+r.error.message)}
+  e.status=s.value;aviso("Situação atualizada");desenhar()});
+
+if(EDITA)$("#cSalvar").addEventListener("click",async()=>{
+  const num=v=>v===""?null:Number(v);
+  const dados={
+    uf:$("#cUf").value.trim().toUpperCase(),
+    dias_busca:Number($("#cDias").value)||60,
+    modalidades:[...document.querySelectorAll("#cMods input:checked")].map(i=>Number(i.value)),
+    palavras:lista($("#cPal").value), excluir:lista($("#cExc").value),
+    valor_min:num($("#cVmin").value), valor_max:num($("#cVmax").value),
+    dias_minimos:Number($("#cMin").value)||0};
+  if(dados.uf.length!==2)return aviso("Informe a sigla do estado com 2 letras.");
+  if(!dados.modalidades.length)return aviso("Marque ao menos uma modalidade.");
+  if(!dados.palavras.length)return aviso("Informe ao menos uma palavra-chave.");
+  const r=await O.from("licitacao_condicoes").update({dados,atualizado_em:new Date().toISOString(),atualizado_por:sess.user.id}).eq("id",1);
+  aviso(r.error?"Não foi possível salvar: "+r.error.message:"Condições salvas. Valem a partir da próxima coleta.")});
+
+desenhar();
+})();
+</script>
+</body>
+</html>
