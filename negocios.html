@@ -777,11 +777,15 @@ async function abrir(id,manter){
     if(abaCard==="resumo"&&c.quadro!=="solar"){(async()=>{try{const O=sb.schema("orcarede");const {data:pa}=await O.from("pastas").select("id").eq("negocio_id",c.id);const ids=(pa||[]).map(x=>x.id);
       let q=O.from("orcamentos").select("id,versao,vigente").eq("vigente",true);q=ids.length?q.or(`negocio_id.eq.${c.id},pasta_id.in.(${ids.join(",")})`):q.eq("negocio_id",c.id);
       const {data:os}=await q;if(!os||!os.length)return;
-      const {data:ps}=await O.from("propostas").select("orcamento_id,versao,dados,atualizado_em").in("orcamento_id",os.map(o=>o.id)).order("atualizado_em",{ascending:false}).limit(1);
-      const pr=(ps||[])[0];const t=pr&&pr.dados&&pr.dados.valores?+pr.dados.valores.total:0;if(!(t>0))return;
+      let t=0,orig="",pr=null;
+      {const ids2=os.map(o=>o.id);const {data:pc}=await O.from("precificacao").select("orcamento_id,travado,travado_em").in("orcamento_id",ids2).eq("travado",true).order("travado_em",{ascending:false}).limit(1);
+       if(pc&&pc[0]){const {data:lg}=await O.from("precificacao_log").select("total_depois,acao,quando").eq("orcamento_id",pc[0].orcamento_id).eq("acao","travar").order("quando",{ascending:false}).limit(1);const v=lg&&lg[0]?+lg[0].total_depois:0;if(v>0){t=v;orig="precificação travada"}}}
+      if(!(t>0)){const {data:ps}=await O.from("propostas").select("orcamento_id,versao,dados,atualizado_em").in("orcamento_id",os.map(o=>o.id)).order("atualizado_em",{ascending:false}).limit(1);
+        pr=(ps||[])[0];t=pr&&pr.dados&&pr.dados.valores?+pr.dados.valores.total:0;orig=pr?"proposta v"+pr.versao:""}
+      if(!(t>0))return;
       const inp=gb.querySelector('[data-f="valor"]');if(!inp||!document.body.contains(inp))return;
-      inp.value=brlTxt(t);inp.readOnly=true;inp.title="Igual ao valor do orçamento realizado (proposta v"+pr.versao+" no OrçaRede)";
-      const lb=inp.closest("label");if(lb&&!lb.querySelector(".vorc"))lb.insertAdjacentHTML("beforeend",`<small class="note vorc">= orçamento realizado · proposta v${pr.versao}</small>`);
+      inp.value=brlTxt(t);inp.readOnly=true;inp.title="Igual ao valor do orçamento realizado ("+orig+" no OrçaRede)";
+      const lb=inp.closest("label");if(lb&&!lb.querySelector(".vorc"))lb.insertAdjacentHTML("beforeend",`<small class="note vorc">= orçamento realizado · ${orig}</small>`);
       if(ed&&Math.abs((+c.valor||0)-t)>0.009){if(await salvarCampos(c,{valor:t}))render()}}catch(e){}})()}
     {const bp=g.querySelector("#bPuxar");if(bp)bp.onclick=()=>{const m=document.createElement("div");m.className="modal fxm";
       m.innerHTML=`<div class="mbox" style="width:min(460px,100%)"><h2>Trazer “${esc(c.titulo)}” de volta?</h2><p class="note">O card volta para a última etapa em que esteve na sua área. Quem estava com ele recebe o aviso no histórico e na caixa de entrada.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-x3>Cancelar</button><button class="btn pri" data-ok3>↩ Trazer de volta</button></div></div>`;
