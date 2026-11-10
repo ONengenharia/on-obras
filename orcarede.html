@@ -2297,12 +2297,32 @@ async function editor(id){
     const w=norm(nome).split(" ").filter(t=>/^[A-Z]{2,}$/.test(t));if(!w.length)return null;const best=o=>{if(!o)return null;const t=Object.values(o).reduce((a,b)=>a+b,0);const [s,n]=Object.entries(o).sort((a,b)=>b[1]-a[1])[0];return{s,n,sh:n/t}};
     const b=w[1]&&best(_RS.k2[w[0]+" "+w[1]]);if(b&&b.n>=2&&b.sh>=.7)return b.s;const a=best(_RS.k1[w[0]]);return a&&a.n>=3&&a.sh>=.8?a.s:null}
   async function editaMatBase(cod){const m=MAT[cod];if(!m)return;const SB=(await O.from("subgrupos").select("nome").order("ordem")).data||[];
-    modal(`<h2>Editar material da base</h2><p class="note">Vale para a base geral e todos os orçamentos.</p>
+    const mdE=modal(`<h2>Editar material da base</h2><p class="note">Vale para a base geral e todos os orçamentos. <button type="button" class="btn sm" id="mDup" title="Cria outro item na base, copiando este (ex.: versão em alumínio)">⧉ Duplicar como novo material</button></p>
       <label class="fld">Código<input name="cod" value="${esc(cod)}" readonly style="opacity:.7" title="Para trocar o código use Configurações → Materiais → Duplicados/Unificar"></label>
       <label class="fld">Nome<input name="nome" required value="${esc(m.nome)}"></label>
       <div class="grid2"><label class="fld">Unidade${unSel(m.unidade)}</label><label class="fld">Subgrupo<select name="sub"><option value="">—</option>${SB.map(x=>`<option ${m.subgrupo===x.nome?"selected":""}>${esc(x.nome)}</option>`).join("")}</select></label></div>`,
       async f=>{const up={nome:f.nome.trim(),unidade:(f.unidade||"").trim()||null,subgrupo:f.sub||null,atualizado_em:new Date().toISOString()};
-        await chk(O.from("materiais").update(up).eq("codigo",cod));Object.assign(m,up);const mm=MATS.find(x=>x.codigo===cod);mm&&Object.assign(mm,up);toast("Material atualizado na base.");renderHead();telaMateriais()},"Salvar")}
+        await chk(O.from("materiais").update(up).eq("codigo",cod));Object.assign(m,up);const mm=MATS.find(x=>x.codigo===cod);mm&&Object.assign(mm,up);toast("Material atualizado na base.");renderHead();telaMateriais()},"Salvar");
+    const dup=mdE&&mdE.querySelector("#mDup");if(dup)dup.onclick=()=>{mdE.remove();duplicaMat(cod,SB)}}
+  function duplicaMat(cod,SB){const m=MAT[cod];const nomes=SB.map(x=>x.nome);const sug="FERRAGEM DE ALUMÍNIO";const jaTem=nomes.some(n=>norm(n)===norm(sug));
+    const mdN=modal(`<h2>Duplicar material</h2><p class="note">Cria um <b>item novo</b> na base, copiado de “${esc(m.nome)}”. O preço do novo você lança depois, na cotação.</p>
+      <div class="grid2">${campoCod(codAleat())}<label class="fld">Unidade${unSel(m.unidade)}</label></div>
+      <label class="fld">Nome<input name="nome" required value="${esc(m.nome)} (ALUMÍNIO)"></label>
+      <div class="grid2"><label class="fld">Subgrupo<select name="sub"><option value="">—</option>${nomes.map(n=>`<option ${jaTem&&norm(n)===norm(sug)?"selected":""}>${esc(n)}</option>`).join("")}${jaTem?"":`<option value="__novo" selected>＋ ${esc(sug)} (criar)</option>`}</select></label>
+      <label class="fld">Ou criar subgrupo novo<input name="subnovo" placeholder="deixe vazio para usar o da lista"></label></div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" name="gc" value="1" checked style="width:auto"> Cadastrar também como produto no Gestão Click</label>`,async f=>{
+      const c2=f.codigo.trim().toUpperCase(),nome=f.nome.trim();if(!c2||!nome){toast("Informe código e nome.");return false}
+      if(MAT[c2]||MATS.some(x=>x.codigo===c2)){toast("Já existe um material com esse código.");return false}
+      let sub=f.sub||null;const novo=(f.subnovo||"").trim().toUpperCase()||(f.sub==="__novo"?sug:"");
+      if(novo){const ex=SB.find(x=>norm(x.nome)===norm(novo));if(ex)sub=ex.nome;else{const ord=await O.from("subgrupos").select("ordem").order("ordem",{ascending:false}).limit(1);
+        const r0=await chk(O.from("subgrupos").insert({nome:novo,cor:"#8a96a3",ordem:((ord.data&&ord.data[0]&&ord.data[0].ordem)||0)+1}).select("*").single());SUBS.push(r0);sub=r0.nome}}
+      else if(f.sub==="__novo")sub=null;
+      const r=await chk(O.from("materiais").insert({codigo:c2,nome,unidade:(f.unidade||"").trim()||null,subgrupo:sub}).select("codigo,nome,unidade,subgrupo").single());
+      MATS.push(r);MAT[r.codigo]=r;rankMat.N=null;
+      if(f.gc){try{const {data,error}=await sb.functions.invoke("gestaoclick",{body:{acao:"produto_criar",produto:{codigo:c2,nome}}});
+        if(error||!data||!data.ok)toast("Material criado aqui, mas não consegui criar no Gestão Click: "+((data&&(data.erro||JSON.stringify(data.resposta||"")))||(error&&error.message)||"erro"));else toast(data.novo===false?"Material criado. Produto já existia no Gestão Click.":"Material criado e cadastrado no Gestão Click.")}catch(e){toast("Material criado aqui; falhou o Gestão Click.")}}
+      else toast("Material criado.");
+      renderHead();telaMateriais()},"Criar material");ligaRnd(mdN)}
   const ORIG={orcamento:"Orçamento importado",manual:"Manual",compra:"Ordem de compra",proposta:"Proposta de fornecedor",importacao:"Importação"};
   // ===== Proposta em revista =====
   let PROP=null,PROPOK=true,PEV=[],propTimer=null,propSujo=false;
