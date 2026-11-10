@@ -88,7 +88,8 @@
       const [n, c] = await Promise.all([O.rpc("meu_nivel"), O.rpc("pode_compras")]);
       if (n.data) ex.push(["🧮", "OrçaRede", "orcarede.html", pg === "orcarede.html"]);
       if (c.data) ex.push(["🛒", "Compras", "compras.html", pg === "compras.html"]);
-      const p = await DB.meuPerfil(); if (p && p.papel === "admin") ex.push(["🗑", "Lixeira", "lixeira.html", pg === "lixeira.html"]);
+      const p = await DB.meuPerfil(); if (p && p.papel === "admin") ex.push(["📈", "Relatórios", "relatorios.html", pg === "relatorios.html"]);
+      if (p && p.papel === "admin") ex.push(["🗑", "Lixeira", "lixeira.html", pg === "lixeira.html"]);
       draw(ex);
     } catch (e) {}
   })();
