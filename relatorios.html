@@ -56,6 +56,10 @@ header.top img{height:44px;border-radius:4px;display:block}header.top h1{margin:
 .lg{display:flex;gap:12px;font-size:11.5px;color:var(--muted);margin-bottom:6px;flex-wrap:wrap}.lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
 .vz{color:var(--muted);font-size:12.5px;padding:18px 0;text-align:center}
 @media(max-width:900px){.kp{grid-template-columns:repeat(2,1fr)}.g{grid-template-columns:1fr}.r,.r.c3{grid-template-columns:90px 1fr}.r i+i,.r em{grid-column:2}}
+.cb{display:grid;grid-template-columns:290px minmax(0,1fr);gap:14px;align-items:start}.cfg{display:grid;gap:10px}.cfg label{display:grid;gap:4px;font-size:12px;color:var(--muted)}.cfg .inp{width:100%}.cfg .dd{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cfg .ck{display:flex;align-items:center;gap:6px}.fl{display:grid;grid-template-columns:1fr 1fr auto;gap:5px;align-items:center}.fl select{min-width:0}
+.tb{border-collapse:collapse;width:100%;font-size:12.5px}.tb th,.tb td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:right}.tb th:first-child,.tb td:first-child{text-align:left}.tb th{color:var(--muted);font-weight:600}
+.sv{margin-top:14px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:4px}.svr{display:flex;gap:10px;align-items:center}
+@media(max-width:900px){.cb{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -76,13 +80,15 @@ function falha(m){root.innerHTML=`<div class="erro"><img src="assets/on-logo.png
 async function todos(q){let out=[],i=0;for(;;){const {data,error}=await q().range(i,i+999);if(error)throw error;out=out.concat(data);if(data.length<1000)return out;i+=1000}}
 const sess=await DB.sessao();if(!sess){location.href="index.html?volta="+encodeURIComponent(location.pathname);return}
 const perfil=await DB.meuPerfil();if(!perfil||perfil.papel!=="admin"){falha("Os relatórios estão disponíveis só para administradores.");return}
-let NEG,ORC,PAS,PRO,PER;
+let NEG,ORC,PAS,PRO,PER,COL=[],ARE=[];
 try{[NEG,ORC,PAS,PRO,PER]=await Promise.all([
   todos(()=>sb.from("negocios").select("id,quadro,coluna,titulo,tipo,origem,parceiro,valor,resp,criado_em,motivo_tipo,motivo_em,cadastro")),
   todos(()=>O.from("orcamentos").select("id,negocio_id,pasta_id,criado_em")),
   todos(()=>O.from("pastas").select("id,negocio_id")),
   todos(()=>O.from("propostas").select("orcamento_id,enviada_em").not("enviada_em","is",null)),
   todos(()=>sb.from("perfis").select("id,nome"))])}catch(e){falha("Não foi possível ler os dados: "+(e.message||e));return}
+try{const [c,ar]=await Promise.all([sb.from("neg_colunas").select("id,nome,area"),sb.from("neg_areas").select("id,nome")]);COL=c.data||[];ARE=ar.data||[]}catch(e){}
+const CN={};COL.forEach(c=>CN[c.id]=c);const AN={};ARE.forEach(a=>AN[a.id]=a.nome);
 const NM={};PER.forEach(p=>NM[p.id]=p.nome);const NB={};NEG.forEach(n=>NB[n.id]=n);const PS={};PAS.forEach(p=>PS[p.id]=p.negocio_id);
 const negDe=o=>o.negocio_id||PS[o.pasta_id]||null;
 /* eventos: 1 por negócio, na data mais antiga */
@@ -135,13 +141,113 @@ function desenha(){
   </div>
   <p class="note">Orçamento feito = criação do orçamento no OrçaRede (1 por negócio, a mais antiga). Proposta enviada = envio da proposta. Negociada = data do botão Negociada. Perdido = data em que o card foi marcado como perdido. Valores seguem o valor do card (precificação travada).</p>`}
 root.innerHTML=`<div class="page"><header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div style="flex:1"><div class="eye"><a href="index.html">← Início</a></div><h1>📈 Relatórios</h1></div></header>
- <div class="bar"><div class="seg" id="sg">${[["dia","Dia"],["mes","Mês"],["ano","Ano"]].map(([k,l])=>`<button data-g="${k}" class="${k===grupo?"on":""}">${l}</button>`).join("")}</div>
+ <div class="bar"><div class="seg" id="tabs"><button data-t="painel" class="on">📊 Painel</button><button data-t="cons">🧩 Construtor livre</button></div></div>
+ <div id="vpainel"><div class="bar"><div class="seg" id="sg">${[["dia","Dia"],["mes","Mês"],["ano","Ano"]].map(([k,l])=>`<button data-g="${k}" class="${k===grupo?"on":""}">${l}</button>`).join("")}</div>
  <label class="note">De <input class="inp" type="date" id="di" value="${ini}"></label><label class="note">Até <input class="inp" type="date" id="df" value="${fim}"></label>
  <div class="seg" id="sq">${[["eletrica","Elétrica"],["solar","Solar"],["todos","Todos"]].map(([k,l])=>`<button data-q="${k}" class="${k===quadro?"on":""}">${l}</button>`).join("")}</div></div>
- <div id="rel"></div></div>`;
+ <div id="rel"></div></div><div id="vcons" hidden></div></div>`;
+document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-t]").forEach(x=>x.classList.toggle("on",x===b));$("#vpainel").hidden=b.dataset.t!=="painel";$("#vcons").hidden=b.dataset.t!=="cons";if(b.dataset.t==="cons")construtor()});
 document.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{grupo=b.dataset.g;document.querySelectorAll("[data-g]").forEach(x=>x.classList.toggle("on",x===b));desenha()});
 document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{quadro=b.dataset.q;document.querySelectorAll("[data-q]").forEach(x=>x.classList.toggle("on",x===b));desenha()});
 $("#di").onchange=e=>{if(e.target.value){ini=e.target.value;desenha()}};$("#df").onchange=e=>{if(e.target.value){fim=e.target.value;desenha()}};
+
+/* ============ CONSTRUTOR LIVRE ============ */
+const LINHAS=NEG.map(n=>{const c=n.cadastro||{},col=CN[n.coluna]||{};const st=dPerd[n.id]?"Perdido":dNeg[n.id]?"Negociada":"Em aberto";
+  return {id:n.id,titulo:n.titulo||"",Quadro:n.quadro==="solar"?"Solar":"Elétrica",Consultor:NM[n.resp]||"Sem responsável",Tipo:n.tipo||"(não informado)",Origem:n.origem||"(não informado)",Parceiro:n.parceiro||"ON",
+   Concessionária:n.conc||"(não informado)",Cidade:c.cidade||n.cidade||"(não informado)",Pagamento:n.pagto||"(não informado)",Etapa:col.nome||"(sem etapa)",Área:AN[col.area]||"(sem área)",Situação:st,
+   valor:+n.valor||0,valorNeg:valN(n,true),
+   "Criação do negócio":n.criado_em?new Date(n.criado_em):null,"Orçamento feito":dOrc[n.id]||null,"Proposta enviada":dProp[n.id]||null,"Negociada":dNeg[n.id]||null,"Perdido":dPerd[n.id]||null}});
+const CAMPOS=["Consultor","Tipo","Origem","Parceiro","Concessionária","Cidade","Pagamento","Etapa","Área","Situação","Quadro"];
+const DATAS=["Criação do negócio","Orçamento feito","Proposta enviada","Negociada","Perdido"];
+const MEDIDAS=[["cont","Quantidade de negócios"],["soma","Soma do valor (card)"],["media","Média do valor (card)"],["somaNeg","Soma do valor negociado"]];
+const PAL=["#4da3ff","#ffb347","#3ddc97","#b07cff","#ff6b81","#5ad1e6","#e6c84d","#8a96a3","#f78fb3","#7bd88f"];
+let CFG={medida:"cont",dim:"@periodo",serie:"",base:"Orçamento feito",gran:"mes",ini:iso(new Date(hoje.getFullYear(),hoje.getMonth()-5,1)),fim:iso(new Date(hoje.getFullYear(),hoje.getMonth()+1,0)),tipo:"barras",emp:true,filtros:[]};
+let SALVOS=[];
+const LS="rel.salvos";
+async function carregaSalvos(){try{const r=await sb.from("relatorios_salvos").select("id,nome,config").order("criado_em");if(r.error)throw r.error;SALVOS=r.data||[];return"db"}catch(e){try{SALVOS=JSON.parse(localStorage.getItem(LS)||"[]")}catch(x){SALVOS=[]}return"local"}}
+let MODO="local";
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function kPer(d,g){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0");return g==="ano"?String(y):g==="dia"?iso(d):y+"-"+m}
+function rPer(k,g){return g==="ano"?k:g==="dia"?k.slice(8)+"/"+k.slice(5,7):MES[+k.slice(5,7)-1]+"/"+k.slice(2,4)}
+function perLista(g,ini,fim){const out=[];const a=new Date(ini+"T12:00"),b=new Date(fim+"T12:00");if(isNaN(a)||isNaN(b)||a>b)return out;const d=new Date(a);if(g==="mes")d.setDate(1);if(g==="ano"){d.setMonth(0);d.setDate(1)}let n=0;while(d<=b&&n++<800){out.push(kPer(d,g));if(g==="dia")d.setDate(d.getDate()+1);else if(g==="mes")d.setMonth(d.getMonth()+1);else d.setFullYear(d.getFullYear()+1)}return out}
+function calcula(C){
+  const R=LINHAS.filter(r=>{const d=r[C.base];if(!d)return false;const t=iso(d);if(t<C.ini||t>C.fim)return false;return C.filtros.every(f=>!f.f||!f.v||String(r[f.f])===f.v)});
+  const val=r=>C.medida==="somaNeg"?r.valorNeg:r.valor;
+  const dimK=r=>C.dim==="@periodo"?kPer(r[C.base],C.gran):String(r[C.dim]);
+  const serK=r=>C.serie?(C.serie==="@periodo"?kPer(r[C.base],C.gran):String(r[C.serie])):"Total";
+  const M={},ts={};
+  R.forEach(r=>{const x=dimK(r),y=serK(r);(M[x]=M[x]||{});(M[x][y]=M[x][y]||{q:0,v:0});M[x][y].q++;M[x][y].v+=val(r);ts[y]=(ts[y]||0)+1});
+  const f=c=>C.medida==="cont"?c.q:C.medida==="media"?(c.q?c.v/c.q:0):c.v;
+  let cats=C.dim==="@periodo"?perLista(C.gran,C.ini,C.fim):Object.keys(M);
+  const tot=k=>Object.values(M[k]||{}).reduce((t,c)=>t+f(c),0);
+  if(C.dim!=="@periodo")cats=cats.sort((a,b)=>tot(b)-tot(a));
+  let ser=Object.keys(ts).sort((a,b)=>ts[b]-ts[a]);if(C.serie==="@periodo")ser.sort();
+  if(ser.length>9&&C.serie!=="@periodo"){const top=ser.slice(0,8);const rest=ser.slice(8);Object.values(M).forEach(m=>{rest.forEach(k=>{if(m[k]){m["Outros"]=m["Outros"]||{q:0,v:0};m["Outros"].q+=m[k].q;m["Outros"].v+=m[k].v;delete m[k]}})});ser=[...top,"Outros"]}
+  const V=cats.map(k=>ser.map(s=>M[k]&&M[k][s]?f(M[k][s]):0));
+  return {cats:cats.map(k=>C.dim==="@periodo"?rPer(k,C.gran):k),ser:ser.map(s=>C.serie==="@periodo"?rPer(s,C.gran):s),V,n:R.length,valorTot:R.reduce((t,r)=>t+val(r),0)}
+}
+const fmtM=(C,v)=>C.medida==="cont"?String(Math.round(v)):brl(v);
+const fmtC=(C,v)=>C.medida==="cont"?String(Math.round(v)):curto(v);
+function svgGrafico(C,D){
+  const W=Math.max(760,D.cats.length*(D.ser.length>1&&!C.emp?D.ser.length*16+18:46)+90),H=340,L=56,B=64,T=14,R2=10,pw=W-L-R2,ph=H-T-B;
+  if(!D.cats.length||D.V.every(r=>r.every(x=>!x)))return '<div class="vz">Nenhum dado com esses filtros e período.</div>';
+  if(C.tipo==="rosca"){const tot=D.V.map(r=>r.reduce((a,b)=>a+b,0));const T0=tot.reduce((a,b)=>a+b,0)||1;let ac=0;const R0=70,Cc=2*Math.PI*R0;
+    const seg=tot.map((v,i)=>{const f=v/T0,s=`<circle r="${R0}" cx="100" cy="100" fill="none" stroke="${PAL[i%PAL.length]}" stroke-width="34" stroke-dasharray="${f*Cc} ${Cc}" stroke-dashoffset="${-ac*Cc}" transform="rotate(-90 100 100)"><title>${esc(D.cats[i])}: ${fmtM(C,v)}</title></circle>`;ac+=f;return s}).join("");
+    return `<div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap"><svg viewBox="0 0 200 200" width="240" height="240">${seg}<text x="100" y="96" text-anchor="middle" fill="var(--muted)" font-size="11">total</text><text x="100" y="114" text-anchor="middle" fill="var(--ink)" font-size="15" font-weight="700">${fmtC(C,T0)}</text></svg><div style="display:grid;gap:6px;font-size:13px">${tot.map((v,i)=>`<div><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${PAL[i%PAL.length]};margin-right:7px"></i>${esc(D.cats[i])} <small style="color:var(--muted)">${fmtM(C,v)} · ${Math.round(v/T0*100)}%</small></div>`).join("")}</div></div>`}
+  const emp=C.emp&&C.tipo==="barras"&&D.ser.length>1;
+  const mx=Math.max(1e-9,...D.V.map(r=>emp?r.reduce((a,b)=>a+b,0):Math.max(...r)));
+  const y=v=>T+ph-v/mx*ph,bw=pw/D.cats.length;
+  let g="";for(let i=0;i<=4;i++){const v=mx*i/4,yy=y(v);g+=`<line x1="${L}" x2="${W-R2}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="10.5" fill="var(--muted)">${fmtC(C,v)}</text>`}
+  const rot=D.cats.length>10;
+  D.cats.forEach((c,i)=>{const cx=L+bw*i+bw/2;g+=`<text transform="translate(${cx},${H-B+14}) rotate(${rot?-40:0})" text-anchor="${rot?"end":"middle"}" font-size="10.5" fill="var(--muted)">${esc(c.length>18?c.slice(0,17)+"…":c)}</text>`});
+  if(C.tipo==="linhas"){D.ser.forEach((s,j)=>{const pts=D.V.map((r,i)=>`${L+bw*i+bw/2},${y(r[j])}`);g+=`<polyline fill="none" stroke="${PAL[j%PAL.length]}" stroke-width="2.5" points="${pts.join(" ")}"/>`+D.V.map((r,i)=>`<circle cx="${L+bw*i+bw/2}" cy="${y(r[j])}" r="3.5" fill="${PAL[j%PAL.length]}"><title>${esc(s)} · ${esc(D.cats[i])}: ${fmtM(C,r[j])}</title></circle>`).join("")})}
+  else{D.V.forEach((r,i)=>{const gw=Math.min(bw*.72,emp?60:D.ser.length*26),x0=L+bw*i+(bw-gw)/2;let acc=0;r.forEach((v,j)=>{const h=v/mx*ph;if(emp){g+=`<rect x="${x0}" y="${y(acc+v)}" width="${gw}" height="${h}" fill="${PAL[j%PAL.length]}" rx="2"><title>${esc(D.ser[j])} · ${esc(D.cats[i])}: ${fmtM(C,v)}</title></rect>`;acc+=v}else{const w=gw/D.ser.length;g+=`<rect x="${x0+w*j}" y="${y(v)}" width="${Math.max(2,w-2)}" height="${h}" fill="${PAL[j%PAL.length]}" rx="2"><title>${esc(D.ser[j])} · ${esc(D.cats[i])}: ${fmtM(C,v)}</title></rect>`}});
+    if(D.cats.length<=14&&D.ser.length<=1){const v=r[0];if(v)g+=`<text x="${L+bw*i+bw/2}" y="${y(v)-4}" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--ink)">${fmtC(C,v)}</text>`}})}
+  const lg=D.ser.length>1?`<div class="lg" style="margin-top:6px">${D.ser.map((s,j)=>`<span><i style="background:${PAL[j%PAL.length]}"></i>${esc(s)}</span>`).join("")}</div>`:"";
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:none">${g}</svg></div>${lg}`}
+function tabela(C,D){if(!D.cats.length)return '<div class="vz">Nenhum dado.</div>';const multi=D.ser.length>1;
+  return `<div style="overflow:auto"><table class="tb"><thead><tr><th></th>${D.ser.map(s=>`<th>${esc(s)}</th>`).join("")}${multi?"<th>Total</th>":""}</tr></thead><tbody>${D.cats.map((c,i)=>`<tr><td>${esc(c)}</td>${D.V[i].map(v=>`<td>${fmtM(C,v)}</td>`).join("")}${multi?`<td><b>${fmtM(C,D.V[i].reduce((a,b)=>a+b,0))}</b></td>`:""}</tr>`).join("")}</tbody></table></div>`}
+async function construtor(){
+  const box=$("#vcons");if(!box.dataset.pronto){MODO=await carregaSalvos();box.dataset.pronto="1"}
+  const valores=f=>[...new Set(LINHAS.map(r=>String(r[f])))].sort((a,b)=>a.localeCompare(b,"pt"));
+  const sel=(id,opts,v)=>`<select class="inp" id="${id}">${opts.map(([k,l])=>`<option value="${esc(k)}" ${k===v?"selected":""}>${esc(l)}</option>`).join("")}</select>`;
+  const dimOpts=[["@periodo","📅 Período"],...CAMPOS.map(c=>[c,c])];
+  const serOpts=[["","— nenhum —"],...dimOpts];
+  const filtroLinha=(f,i)=>`<div class="fl"><select class="inp" data-ff="${i}"><option value="">Filtrar por…</option>${CAMPOS.map(c=>`<option ${c===f.f?"selected":""}>${c}</option>`).join("")}</select><select class="inp" data-fv="${i}" ${f.f?"":"disabled"}><option value="">Todos</option>${f.f?valores(f.f).map(v=>`<option value="${esc(v)}" ${v===f.v?"selected":""}>${esc(v)}</option>`).join(""):""}</select><button class="lnk" data-fx="${i}" title="Remover filtro">✕</button></div>`;
+  const D=calcula(CFG);
+  box.innerHTML=`<div class="cb">
+   <aside class="p cfg"><h3>Montar gráfico</h3>
+    <label>O que medir${sel("cMed",MEDIDAS,CFG.medida)}</label>
+    <label>Agrupar por (eixo)${sel("cDim",dimOpts,CFG.dim)}</label>
+    <label>Dividir em séries (cruzar com)${sel("cSer",serOpts,CFG.serie)}</label>
+    <label>Data de referência${sel("cBase",DATAS.map(d=>[d,d]),CFG.base)}</label>
+    <div class="dd"><label>De<input class="inp" type="date" id="cIni" value="${CFG.ini}"></label><label>Até<input class="inp" type="date" id="cFim" value="${CFG.fim}"></label></div>
+    ${CFG.dim==="@periodo"||CFG.serie==="@periodo"?`<label>Por${sel("cGran",[["dia","Dia"],["mes","Mês"],["ano","Ano"]],CFG.gran)}</label>`:""}
+    <label>Tipo de gráfico${sel("cTipo",[["barras","Barras"],["linhas","Linhas"],["rosca","Rosca"],["tabela","Tabela"]],CFG.tipo)}</label>
+    ${CFG.tipo==="barras"&&CFG.serie?`<label class="ck"><input type="checkbox" id="cEmp" ${CFG.emp?"checked":""}> Empilhar barras</label>`:""}
+    <div class="note" style="margin-top:6px">Filtros</div>${CFG.filtros.map(filtroLinha).join("")}<button class="btn sm" id="cAddF">+ filtro</button>
+   </aside>
+   <section class="p"><div class="row"><h3 style="margin:0">${esc((MEDIDAS.find(m=>m[0]===CFG.medida)||[])[1])} por ${CFG.dim==="@periodo"?{dia:"dia",mes:"mês",ano:"ano"}[CFG.gran]:esc(CFG.dim)}${CFG.serie?" × "+(CFG.serie==="@periodo"?"período":esc(CFG.serie)):""}</h3>
+     <span style="display:flex;gap:6px"><button class="btn sm" id="cSalvar">💾 Salvar gráfico</button></span></div>
+     <div class="n">${D.n} negócio(s) · base: ${esc(CFG.base)} · ${CFG.filtros.filter(f=>f.f&&f.v).map(f=>esc(f.f)+": "+esc(f.v)).join(" · ")||"sem filtros"} · total ${CFG.medida==="cont"?D.n:brl(D.valorTot)}</div>
+     ${CFG.tipo==="tabela"?tabela(CFG,D):svgGrafico(CFG,D)}
+     <div class="sv"><b>Gráficos salvos</b>${MODO==="local"?' <span class="note">(salvos só neste navegador — peça a criação da tabela para valer em qualquer computador)</span>':""}
+      ${SALVOS.length?SALVOS.map(s=>`<div class="svr"><button class="lnk" data-sv="${s.id}">${esc(s.nome)}</button><button class="lnk" data-sx="${s.id}" title="Excluir">🗑</button></div>`).join(""):'<div class="note">Nenhum ainda.</div>'}</div>
+   </section></div>`;
+  const re=()=>construtor();
+  $("#cMed").onchange=e=>{CFG.medida=e.target.value;re()};$("#cDim").onchange=e=>{CFG.dim=e.target.value;if(CFG.serie===CFG.dim)CFG.serie="";re()};
+  $("#cSer").onchange=e=>{CFG.serie=e.target.value;if(CFG.serie===CFG.dim)CFG.dim=CAMPOS.find(c=>c!==CFG.serie);re()};
+  $("#cBase").onchange=e=>{CFG.base=e.target.value;re()};$("#cIni").onchange=e=>{if(e.target.value){CFG.ini=e.target.value;re()}};$("#cFim").onchange=e=>{if(e.target.value){CFG.fim=e.target.value;re()}};
+  if($("#cGran"))$("#cGran").onchange=e=>{CFG.gran=e.target.value;re()};$("#cTipo").onchange=e=>{CFG.tipo=e.target.value;re()};if($("#cEmp"))$("#cEmp").onchange=e=>{CFG.emp=e.target.checked;re()};
+  $("#cAddF").onclick=()=>{CFG.filtros.push({f:"",v:""});re()};
+  box.querySelectorAll("[data-ff]").forEach(s=>s.onchange=()=>{CFG.filtros[+s.dataset.ff]={f:s.value,v:""};re()});
+  box.querySelectorAll("[data-fv]").forEach(s=>s.onchange=()=>{CFG.filtros[+s.dataset.fv].v=s.value;re()});
+  box.querySelectorAll("[data-fx]").forEach(b=>b.onclick=()=>{CFG.filtros.splice(+b.dataset.fx,1);re()});
+  box.querySelectorAll("[data-sv]").forEach(b=>b.onclick=()=>{const s=SALVOS.find(x=>String(x.id)===b.dataset.sv);if(s){CFG=JSON.parse(JSON.stringify(s.config));re()}});
+  box.querySelectorAll("[data-sx]").forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este gráfico salvo?"))return;const id=b.dataset.sx;if(MODO==="db"){const r=await sb.from("relatorios_salvos").delete().eq("id",id);if(r.error){alert(r.error.message);return}}SALVOS=SALVOS.filter(x=>String(x.id)!==id);if(MODO==="local")try{localStorage.setItem(LS,JSON.stringify(SALVOS))}catch(e){}re()});
+  $("#cSalvar").onclick=async()=>{const nome=prompt("Nome do gráfico:");if(!nome)return;const cfg=JSON.parse(JSON.stringify(CFG));
+    if(MODO==="db"){const r=await sb.from("relatorios_salvos").insert({nome,config:cfg}).select("id,nome,config").single();if(r.error){alert(r.error.message);return}SALVOS.push(r.data)}
+    else{SALVOS.push({id:"l"+Date.now(),nome,config:cfg});try{localStorage.setItem(LS,JSON.stringify(SALVOS))}catch(e){}}re()}}
 desenha();
 })();
 </script>
