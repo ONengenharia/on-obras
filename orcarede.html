@@ -1868,9 +1868,28 @@ async function editor(id){
     const inp=document.createElement("input");inp.type="file";inp.accept=".xlsx,.xls,.csv";inp.onchange=async()=>{const file=inp.files[0];if(!file)return;
       try{if(!window.XLSX)await loadScript("vendor/xlsx.full.min.js");
         const wb=XLSX.read(await file.arrayBuffer());let best=null;
+        {const pp=lePorPoste(wb);if(pp){revisaPontosXl(pp);return}}
         for(const nm of wb.SheetNames){const A=XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,defval:""});const r=detectaXl(A);if(r&&(!best||r.n>best.n))best=r}
         if(!best){toast("Não reconheci as colunas. Use cabeçalhos como Poste, Estrutura (pontos) ou Código, Descrição, Qtd (materiais).");return}
         if(best.tipo==="pontos")revisaPontosXl(best);else revisaMatsXl(best)}catch(e){console.error(e);toast("Não consegui ler a planilha: "+(e.message||e))}};inp.click()}
+  /* planilha exportada com a aba "Por Poste": POSTE n: rótulo → GRUPO (estrutura) → materiais; materiais avulsos por ponto */
+  function lePorPoste(wb){
+    const nm=wb.SheetNames.find(n=>/POR POSTE/.test(norm(n)));if(!nm)return null;
+    const A=XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,defval:""});const L=[];let cur=null,modo="",ign=0;
+    for(const r of A){const a=String(r[0]??"").trim();
+      let m=a.match(/^POSTE\s+(\d+)\s*:\s*(.+)$/i);
+      if(m){const lab=m[2].trim(),k=lab.match(/^(.*?)\s+-\s+(.*)$/);const nome=k?k[1].trim():lab,tipo=k?k[2].trim():"";
+        cur={num:/^\d+$/.test(nome)?parseInt(nome,10):null,tit:/^\d+$/.test(nome)?"":nome,tipo,grupos:[],extras:[],seg:"",px:null,py:null};L.push(cur);modo="";continue}
+      if(!cur)continue;
+      if(m=a.match(/^Localiza[cç][aã]o:\s*X:\s*(-?[\d.,]+)\s*,\s*Y:\s*(-?[\d.,]+)/i)){cur.px=pnum(m[1]);cur.py=pnum(m[2]);continue}
+      if(m=a.match(/^Segmento da obra:\s*(.+)$/i)){cur.seg=/^n[aã]o segmentado$/i.test(m[1].trim())?"":m[1].trim();continue}
+      if(m=a.match(/^GRUPO:\s*(.+)$/i)){cur.grupos.push(m[1].trim());modo="g";continue}
+      if(/^MATERIAIS AVULSOS$/i.test(a)){modo="a";continue}
+      if(/^C[oó]digo$/i.test(a)||/TOTAL DO POSTE/i.test(String(r[4]))||!a)continue;
+      if(modo==="a"){const q=pnum(r[3]);if(q>0)cur.extras.push({cod:a,q})}}
+    const out=L.map(x=>{const toks=[];if(acharPoste(x.tipo))toks.push(x.tipo);x.grupos.forEach(g=>{if(!toks.includes(g))toks.push(g)});
+      return{num:x.num,tit:x.tit,seq:toks.join(";"),seg:x.seg,px:x.px,py:x.py,extras:x.extras}}).filter(x=>x.seq||x.extras.length);
+    return out.length?{tipo:"pontos",L:out,n:out.length,porPoste:true}:null}
   function detectaXl(A){
     for(let h=0;h<Math.min(A.length,30);h++){const H=A[h].map(c=>norm(String(c)));const ix=re=>H.findIndex(c=>re.test(c));
       const iE=ix(/ESTRUT|SEQUENC|LANCAMENTO/),iP=ix(/^POSTE$|TIPO DE POSTE|TIPO POSTE|^POSTE /),iN=ix(/^(PONTO|N|NO|NUM|NUMERO|N PONTO|ITEM|CONTADOR)$/),iL=ix(/LUMIN|^IP$|ILUMIN/),iS=ix(/SEGMENT/),iLat=ix(/^LAT/),iLng=ix(/^(LON|LNG)/);
@@ -1883,19 +1902,29 @@ async function editor(id){
       if((iC>=0||iD>=0)&&iQ>=0){const L=rows.map(r=>({cod:iC>=0?String(r[iC]).trim():"",txt:iD>=0?String(r[iD]).trim():"",q:pnum(r[iQ]),p:iPr>=0?pnum(r[iPr]):null})).filter(x=>(x.cod||x.txt)&&x.q>0);
         if(L.length)return{tipo:"materiais",L,n:L.length}}}
     return null}
-  function revisaPontosXl({L}){
+  function revisaPontosXl({L,porPoste}){
+    const temXY=L.some(x=>x.px!=null),nEx=L.reduce((t,x)=>t+(x.extras?x.extras.length:0),0);
     const tokOk=t=>!!(acharPoste(t)||acharEstrutura(t));
-    const md=modal(`<h2>Importar pontos do Excel · ${L.length} linha(s)</h2><p class="note">Cada linha vira um ponto com o poste e as estruturas. <span style="color:var(--danger)">Em vermelho</span>: código que não existe na base — corrija no texto (separado por “;”) ou desmarque a linha.</p>
+    const md=modal(`<h2>Importar pontos do Excel · ${L.length} linha(s)</h2><p class="note">Cada linha vira um ponto com o poste e as estruturas. <span style="color:var(--danger)">Em vermelho</span>: código que não existe na base — corrija no texto (separado por “;”) ou desmarque a linha.${porPoste?" Os materiais e <b>preços vêm da nossa base</b> (estruturas já cadastradas); da planilha entram só os materiais avulsos de cada ponto.":""}</p>
+      ${temXY?`<label class="note"><input type="checkbox" id="xXY" checked> usar as posições X,Y da planilha no mapa</label>`:""}${nEx?`<label class="note" style="margin-left:14px"><input type="checkbox" id="xEx" checked> importar os ${nEx} material(is) avulso(s) dos pontos</label>`:""}
       <div style="max-height:58vh;overflow:auto"><table class="tbl"><thead><tr><th></th><th>Nº</th><th>Poste e estruturas</th><th>Segmento</th></tr></thead><tbody>${L.map((x,i)=>`<tr><td><input type="checkbox" data-xk="${i}" checked></td><td class="mono">${x.num||"—"}</td><td><input class="inp" data-xs="${i}" value="${esc(x.seq)}" style="width:100%"><div class="sm" data-xv="${i}"></div></td><td class="sm">${esc(x.seg||"")}</td></tr>`).join("")}</tbody></table></div>`,async()=>{
       const sel=L.map((x,i)=>({...x,seq:md.querySelector(`[data-xs="${i}"]`).value.trim(),on:md.querySelector(`[data-xk="${i}"]`).checked})).filter(x=>x.on&&x.seq);if(!sel.length)return false;
       const ov=document.createElement("div");ov.className="modal";ov.innerHTML=`<div class="mbox" style="width:min(380px,100%);text-align:center"><h2>Criando pontos…</h2><p class="note" id="xp">0 de ${sel.length}</p></div>`;document.body.appendChild(ov);
-      let n=PTS.reduce((m,p)=>Math.max(m,p.numero),0);const cols=Math.max(5,Math.floor((D.w-80)/90));const nok=new Set();
+      let n=PTS.reduce((m,p)=>Math.max(m,p.numero),0);const cols=Math.max(5,Math.floor((D.w-80)/90));const nok=new Set(),exNok=new Set();
       try{for(let k=0;k<sel.length;k++){const x=sel[k];const num=x.num&&!PTS.some(p=>p.numero===x.num)?x.num:++n;n=Math.max(n,num);
           const seg=x.seg?SEGS.find(s=>norm(s.nome)===norm(x.seg)):null;
-          const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:num,...(()=>{const g=satGeo();if(g&&x.lat&&x.lng){const n=256*2**g.z,sn=Math.sin(x.lat*Math.PI/180);return{x:(x.lng+180)/360*n-g.x0,y:(.5-Math.log((1+sn)/(1-sn))/(4*Math.PI))*n-g.y0}}return{x:60+(k%cols)*90,y:60+Math.floor(k/cols)*90}})(),segmento_id:seg?seg.id:null}).select("*").single());PTS.push(pt);
-          const r=await aplicarSequencia(pt,x.seq);r.nok.forEach(t=>nok.add(t));$("#xp",ov).textContent=`${k+1} de ${sel.length}`}}
+          const usaXY=$("#xXY",md)&&$("#xXY",md).checked&&x.px!=null;
+          const pt=await chk(O.from("orc_pontos").insert({orcamento_id:ORC.id,numero:num,...(x.tit?{titulo:x.tit}:{}),...(()=>{if(usaXY)return{x:x.px,y:x.py};const g=satGeo();if(g&&x.lat&&x.lng){const n=256*2**g.z,sn=Math.sin(x.lat*Math.PI/180);return{x:(x.lng+180)/360*n-g.x0,y:(.5-Math.log((1+sn)/(1-sn))/(4*Math.PI))*n-g.y0}}return{x:60+(k%cols)*90,y:60+Math.floor(k/cols)*90}})(),segmento_id:seg?seg.id:null}).select("*").single());PTS.push(pt);
+          const r=x.seq?await aplicarSequencia(pt,x.seq):{nok:[]};r.nok.forEach(t=>nok.add(t));
+          if(x.extras&&x.extras.length&&$("#xEx",md)&&$("#xEx",md).checked){const posteMat=((POSTES.find(p=>p.id===pt.poste_id)||{}).material_codigo)||"";const U={};
+            x.extras.forEach(e=>{const m=MAT[e.cod];if(!m){exNok.add(e.cod);return}if(e.cod===posteMat||String(m.subgrupo||"").toUpperCase()==="POSTE"||POSTES.some(p=>p.codigo===e.cod))return;U[e.cod]=(U[e.cod]||0)+e.q});
+            const rowsI=Object.entries(U).map(([c,q])=>({ponto_id:pt.id,ponto_estrutura_id:null,material_codigo:c,quantidade:q,editado:true}));
+            if(rowsI.length){const ins=await chk(O.from("orc_ponto_itens").insert(rowsI).select("id,ponto_id,ponto_estrutura_id,material_codigo,quantidade,editado,auto"));IT.push(...(ins||[]));
+              if(Object.keys(U).some(c=>/CINTA CIRCULAR/i.test((MAT[c]||{}).nome||""))&&!pt.cintas_manual){await chk(O.from("orc_pontos").update({cintas_manual:true}).eq("id",pt.id));pt.cintas_manual=true;
+                const rm=IT.filter(i=>i.ponto_id===pt.id&&i.auto==="cinta");if(rm.length){await chk(O.from("orc_ponto_itens").delete().eq("ponto_id",pt.id).eq("auto","cinta"));rm.forEach(i=>IT.splice(IT.indexOf(i),1))}}}}
+          $("#xp",ov).textContent=`${k+1} de ${sel.length}`}}
       finally{ov.remove()}
-      D=dims();toast(`${sel.length} ponto(s) criado(s).`+(nok.size?` Não encontrados: ${[...nok].slice(0,8).join(", ")}`:""));renderHead();if(typeof renderPins==="function"&&$("#pins"))renderPins();renderSide()},"Criar pontos");
+      D=dims();toast(`${sel.length} ponto(s) criado(s).`+(nok.size?` Não encontrados: ${[...nok].slice(0,8).join(", ")}`:"")+(exNok.size?` Avulsos fora da base: ${[...exNok].slice(0,6).join(", ")}`:""));renderHead();if(typeof renderPins==="function"&&$("#pins"))renderPins();renderSide()},"Criar pontos");
     md.querySelector(".mbox").style.width="min(1100px,96vw)";
     const val=i=>{const v=md.querySelector(`[data-xs="${i}"]`).value;md.querySelector(`[data-xv="${i}"]`).innerHTML=v.split(/[;,]/).map(t=>t.trim()).filter(Boolean).map(t=>`<span style="${tokOk(t)?"":"color:var(--danger);font-weight:700"}">${esc(t)}</span>`).join(" ; ")};
     L.forEach((x,i)=>{val(i);md.querySelector(`[data-xs="${i}"]`).oninput=()=>val(i)})}
