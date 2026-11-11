@@ -2349,7 +2349,17 @@ async function editor(id){
     const G={};A.forEach(l=>{const k=sg(l.c)||"OUTROS";const v=l.q*(preco(l.c)||0);(G[k]=G[k]||{k,v:0,its:[]}).v+=v;G[k].its.push({n:nm(l.c),q:l.q,u:un(l.c),v})});
     const gs=Object.values(G).filter(g=>g.v>0).sort((a,b)=>b.v-a.v);
     const cap=s=>s.charAt(0)+s.slice(1).toLowerCase();
-    const itens=gs.slice(0,6).map(g=>({t:cap(g.k),d:g.its.sort((a,b)=>b.v-a.v).slice(0,4).map(i=>`${fm(i.q)} ${i.u?i.u.toLowerCase()+" ":""}${i.n.toLowerCase()}`).join("; ")+"."}));
+    const DIC={trifasico:"trifásico",monofasico:"monofásico",bifasico:"bifásico",aluminio:"alumínio",braco:"braço",armacao:"armação",luminaria:"luminária",luminarias:"luminárias",ancoragem:"ancoragem",conexao:"conexão",derivacao:"derivação",derivacoes:"derivações",isolacao:"isolação",preformada:"preformada",alca:"alça",laco:"laço",abracadeira:"abraçadeira",fixacao:"fixação",ferragem:"ferragem",protecao:"proteção",cobertura:"cobertura",secundaria:"secundária",metalico:"metálico",metalica:"metálica",galvanizado:"galvanizado",padrao:"padrão",tracao:"tração","dist.":"distribuição",trif:"trifásico",monof:"monofásico",isolador:"isolador",pecas:"peças",rele:"relé",fotoeletrico:"fotoelétrico",eletrica:"elétrica",eletrico:"elétrico",condutor:"condutor",cabeca:"cabeça",rosca:"rosca",gravatai:"Gravataí"};
+    const SIG={kva:"kVA",kv:"kV",kn:"kN",xlpe:"XLPE",led:"LED",pvc:"PVC",epr:"EPR",ca:"CA",caa:"CAA",pde:"PDE",nf:"NF",sp:"SP",rd:"RD",dt:"DT",tc:"TC",ip:"IP",bt:"BT",mt:"MT",cc:"CC",al:"AL",cu:"Cu",mcm:"MCM",awg:"AWG",tau:"TAU",rgs:"RGS",cpfl:"CPFL"};
+    const fmNome=n=>{let t=String(n||"").replace(/[´`]/g,"").replace(/\s+/g," ").trim();if(!t)return"";
+      t=t.replace(/(\d)\s*MT\b/gi,"$1 m").replace(/(\d+)\s*MM2\b/gi,"$1 mm²").replace(/(\d+)\s*MM\b/gi,"$1 mm").replace(/(\d)\s*W\b/gi,"$1 W").replace(/(\d)\s*K\b/gi,"$1 K");
+      let w=t.split(" ").map(x=>{const l=x.toLowerCase();if(DIC[l])return DIC[l];if(SIG[l])return SIG[l];if(/^\d+(?:[.,]\d+)?$/.test(x))return x.replace(".",",");if(/^\d+\/\d+v$/i.test(x))return x.slice(0,-1)+" V";if(/^[ltu]$/i.test(x))return x.toUpperCase();if(/^(m|mm|mm²|w|k)$/i.test(x)){return/^(w|k)$/i.test(x)?x.toUpperCase():l}
+        if(/^[a-z]+\d+[a-z0-9-]*$/i.test(x)||/^[a-z]+-\d+$/i.test(x))return x.toUpperCase();if(/^\d+[a-z]+$/i.test(x)&&!/^\d+(kv|kva|kn)$/i.test(x))return x.toLowerCase();
+        const m=l.match(/^(\d+(?:[.,]\d+)?)(kva|kv|kn)$/);if(m)return m[1]+SIG[m[2]];return l});
+      let r=w.join(" ");return r};
+    const fmUn=u=>{u=String(u||"").trim();if(!u)return"";const l=u.toLowerCase().replace("²","2").replace("³","3");return({un:"UN",und:"UN",unid:"UN",m:"m",mt:"m",m2:"m²",m3:"m³",kg:"kg",cx:"cx",pc:"PÇ",pç:"PÇ",jg:"JG",cj:"CJ",par:"PAR",rl:"RL",l:"L"})[l]||u};
+    const fmIt=i=>{const u=fmUn(i.u);return `${fm(i.q)} ${u?u+" de ":"de "}${fmNome(i.n)}`};
+    const itens=gs.slice(0,6).map(g=>({t:cap(g.k),d:g.its.sort((a,b)=>b.v-a.v).slice(0,4).map(fmIt).join("; ")+"."}));
     let ac=0;const linhas=gs.map(g=>{const p=M?g.v/M*100:0;const c=ac<80?"A":ac<95?"B":"C";ac+=p;return{n:cap(g.k),v:+g.v.toFixed(2),p:+p.toFixed(2),c}});
     const hoje=new Date(),val=new Date(Date.now()+30*864e5);
     const tt=String(ORC.titulo||""),cl0=String(ORC.cliente||"");const mnum=tt.match(/^\s*0*(\d{1,6})(?=\D|$)/)||cl0.match(/^\s*0*(\d{1,6})(?=\D|$)/);const limpa=s=>s.replace(/_/g," ").replace(/^\s*\d+\s+/,"").replace(/\s+/g," ").trim();
