@@ -2450,8 +2450,13 @@ async function editor(id){
     const r=await chk(O.from("propostas").upsert(row,{onConflict:"orcamento_id"}).select("*").single());
     PROP=r;propSujo=false;return r;
   }
-  const linkProp=()=>{const d=PROP.dados||{},c=d.cliente||{},o=d.orc||{};const sl=[((c.nome||c.projeto||"").trim().split(/\s+/)[0]||"").slice(0,14),o.numero,PROP.versao?"v"+PROP.versao:""].filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40);
-    return new URL("proposta.html?c="+PROP.codigo+(sl?"&n="+sl:""),location.href).href};
+  const linkProp=()=>{const d=PROP.dados||{},c=d.cliente||{},o=d.orc||{};
+    const sg=t=>String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+    const numM=String(o.numero||"").match(/^0*(\d+)/),num=numM?numM[1]:"";
+    const ver="v"+String(PROP.versao||1).padStart(2,"0");
+    const proj=sg(String(c.projeto||c.nome||"").replace(/\(.*?\)/g,"")).slice(0,50).replace(/-+$/,"");
+    const sl=[num,ver,proj].filter(Boolean).join(".");
+    return new URL("proposta.html?n="+sl+"&c="+PROP.codigo,location.href).href};
 
   async function telaProposta(){
     const el=$("#full");el.innerHTML=`<div class="pload">Carregando a proposta…</div>`;
