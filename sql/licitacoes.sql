@@ -50,7 +50,7 @@ insert into orcarede.licitacao_condicoes(id, dados) values (1, jsonb_build_objec
 )) on conflict (id) do nothing;
 
 -- Registra quem mexeu no status ou na nota (o coletor, que não tem usuário, não conta).
-create or replace function orcarede.licitacao_editais_alterado() returns trigger language plpgsql as $$
+create or replace function orcarede.licitacao_editais_alterado() returns trigger language plpgsql set search_path = '' as $$
 begin
   if new.status is distinct from old.status or new.nota is distinct from old.nota then
     new.alterado_em := now();
