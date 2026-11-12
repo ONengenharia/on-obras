@@ -2470,14 +2470,14 @@ async function editor(id){
     desenhaProp();
   }
   function desenhaProp(){
-    const el=$("#full"),d=PROP.dados,st=PROP.status||"rascunho",ro=st!=="rascunho";
+    const el=$("#full"),d=PROP.dados,st=PROP.status||"rascunho",ro=st==="aceita",aj=st==="enviada";
     const abriu=PEV.filter(e=>e.tipo==="abriu"),ult=abriu[0];
     const TP={};PEV.filter(e=>e.tipo==="pagina"&&e.info&&e.info.t).forEach(e=>Object.entries(e.info.t).forEach(([k,s])=>TP[k]=(TP[k]||0)+(+s||0)));
     const NOMES=Object.fromEntries(PROP_PAGINAS.concat([["fim","Contracapa"]]));const nmP=k=>NOMES[k]||(/^base(\d+)$/.test(k)?`Apresentação ON · página ${+k.slice(4)+1}`:k);
     const ordK=k=>{if(k==="capa")return -200;const i=PROP_PAGINAS.findIndex(x=>x[0]===k);return /^base/.test(k)?+k.slice(4)-100:i<0?999:i};
     const fmtS=s=>s>=3600?`${Math.floor(s/3600)}h ${Math.round(s%3600/60)}min`:s>=60?`${Math.floor(s/60)}min ${s%60}s`:`${s}s`;
     const TPk=Object.keys(TP).sort((a,b)=>ordK(a)-ordK(b)),TPtot=TPk.reduce((s,k)=>s+TP[k],0),TPmax=Math.max(1,...TPk.map(k=>TP[k]));
-    const ROT={abriu:"👁 Abriu a proposta",pdf:"⬇ Baixou o PDF",whats:"💬 Pediu contato (WhatsApp)",aceite:"✅ Aceitou a proposta"};
+    const ROT={editada:"✏️ Proposta ajustada",abriu:"👁 Abriu a proposta",pdf:"⬇ Baixou o PDF",whats:"💬 Pediu contato (WhatsApp)",aceite:"✅ Aceitou a proposta"};
     const stChip=st==="aceita"?`<span class="chip finalizado">Aceita por ${esc((PROP.aceite||{}).nome||"")}</span>`:st==="enviada"?`<span class="chip finalizado">Enviada ${PROP.enviada_em?dtHora(PROP.enviada_em):""}</span>`:`<span class="chip">Rascunho</span>`;
     el.innerHTML=`<style>
       .pw{display:grid;grid-template-columns:minmax(340px,min(46%,760px)) 1fr;gap:16px;padding:14px 18px;align-items:start}
@@ -2494,13 +2494,13 @@ async function editor(id){
     </style>
     <div class="pw"><div class="col1">
       <div class="pbar">${stChip}<span style="flex:1"></span>
-        ${ro?`<button class="btn" id="pNova">Nova versão</button>`:`<button class="btn" id="pSalv">Salvar</button><button class="btn pri" id="pEnv">Enviar ao cliente</button>`}
+        ${PROP.id&&st!=="rascunho"?`<button class="btn" id="pVer" title="Abre como o cliente vê, sem contar como abertura">👁 Ver como o cliente vê</button>`:""}${ro?`<button class="btn" id="pNova">Nova versão</button>`:aj?`<button class="btn" id="pNova">Nova versão</button><button class="btn pri" id="pSalv">Salvar ajuste</button>`:`<button class="btn" id="pSalv">Salvar</button><button class="btn pri" id="pEnv">Enviar ao cliente</button>`}
       </div>
-      <div class="pbar">${ro?"":`<select class="inp" id="pModelo" style="padding:5px 8px;font-size:12.5px" aria-label="Tipo de proposta"><option value="revista" ${d.modelo!=="curta"?"selected":""}>Proposta completa (revista)</option><option value="curta" ${d.modelo==="curta"?"selected":""}>Proposta curta (1 página)</option></select>`}${d.modelo==="curta"?"":`<button class="btn sm" id="pMod">Usar modelo…</button><button class="btn sm" id="pSM">Salvar como modelo</button>`}<button class="btn sm" id="pRef">Refazer a partir do orçamento</button>${PROP.id&&st!=="rascunho"?`<button class="btn sm" id="pLink">Copiar link</button>`:""}${PROP.pdf_path?`<a class="btn sm" href="${urlPub(PROP.pdf_path)}" target="_blank" rel="noopener">PDF enviado</a>`:""}${PROP.id&&st!=="rascunho"&&!PROP.pdf_path?`<button class="btn sm" id="pGPdf">Gerar PDF desta versão</button>`:""}<button class="btn sm" id="pPdf">Prévia em PDF</button></div>
+      <div class="pbar">${ro?"":`<select class="inp" id="pModelo" style="padding:5px 8px;font-size:12.5px" aria-label="Tipo de proposta"><option value="revista" ${d.modelo!=="curta"?"selected":""}>Proposta completa (revista)</option><option value="curta" ${d.modelo==="curta"?"selected":""}>Proposta curta (1 página)</option></select>`}${d.modelo==="curta"?"":`<button class="btn sm" id="pMod">Usar modelo…</button><button class="btn sm" id="pSM">Salvar como modelo</button>`}${aj?"":`<button class="btn sm" id="pRef">Refazer a partir do orçamento</button>`}${PROP.id&&st!=="rascunho"?`<button class="btn sm" id="pLink">Copiar link</button>`:""}${PROP.pdf_path?`<a class="btn sm" href="${urlPub(PROP.pdf_path)}" target="_blank" rel="noopener">PDF enviado</a>`:""}${PROP.id&&st!=="rascunho"&&!PROP.pdf_path?`<button class="btn sm" id="pGPdf">Gerar PDF desta versão</button>`:""}<button class="btn sm" id="pPdf">Prévia em PDF</button></div>
       ${PROP.id&&st!=="rascunho"?`<div class="ptrk"><b>Acompanhamento do cliente</b> · <a href="#" id="pAtu">atualizar</a><br>${abriu.length?`👁 Aberta <b>${abriu.length}×</b> · última ${dtHora(ult.criado_em)}`:"Ainda não foi aberta."}<br><small>Link: <a href="${esc(linkProp())}" target="_blank" rel="noopener">${esc(linkProp())}</a></small>
         ${TPk.length?`<div style="margin-top:8px"><b>Tempo em cada página</b> · total ${fmtS(TPtot)}${TPk.map(k=>`<div style="display:grid;grid-template-columns:150px 1fr 56px;gap:6px;align-items:center;font-size:12px"><span>${esc(nmP(k))}</span><span style="background:var(--line);border-radius:4px;height:8px"><i style="display:block;height:100%;width:${Math.round(TP[k]/TPmax*100)}%;background:var(--accent);border-radius:4px"></i></span><span style="text-align:right">${fmtS(TP[k])}</span></div>`).join("")}</div>`:`<div style="margin-top:6px"><small>O tempo por página aparece aqui depois que o cliente navegar.</small></div>`}
-        <ul>${PEV.filter(e=>e.tipo!=="pagina").slice(0,40).map(e=>`<li>${dtHora(e.criado_em)} · ${ROT[e.tipo]||esc(e.tipo)}${e.tipo==="aceite"&&e.info?` · ${esc(e.info.nome||"")}`:""}${e.tipo==="abriu"&&e.info&&e.info.local&&e.info.local.cidade?` · 📍 ${esc(e.info.local.cidade)}${e.info.local.regiao?"/"+esc(e.info.local.regiao):""} <small>(aprox.)</small>`:""}</li>`).join("")}</ul></div>`:""}
-      ${ro?`<p class="note">Esta versão foi enviada e está congelada. Para alterar, crie uma nova versão (gera um novo link).</p>`:""}
+        <ul>${PEV.filter(e=>e.tipo!=="pagina").slice(0,40).map(e=>`<li>${dtHora(e.criado_em)} · ${ROT[e.tipo]||esc(e.tipo)}${e.tipo==="aceite"&&e.info?` · ${esc(e.info.nome||"")}`:""}${e.tipo==="editada"&&e.info&&e.info.por?` · ${esc(e.info.por)}`:""}${e.tipo==="abriu"&&e.info&&e.info.local&&e.info.local.cidade?` · 📍 ${esc(e.info.local.cidade)}${e.info.local.regiao?"/"+esc(e.info.local.regiao):""} <small>(aprox.)</small>`:""}</li>`).join("")}</ul></div>`:""}
+      ${ro?`<p class="note">Esta versão foi aceita pelo cliente e está congelada. Para alterar, crie uma nova versão (gera um novo link).</p>`:aj?`<p class="note">Proposta enviada: você pode fazer ajustes (textos, descrições). Ao clicar em <b>Salvar ajuste</b> o cliente passa a ver a correção no mesmo link, o PDF é refeito e a alteração fica no histórico. Para mudanças maiores, use <b>Nova versão</b>.</p>`:""}
       <p class="note" style="margin:0">Dica: use <b>&lt;b&gt;texto&lt;/b&gt;</b> para destacar em negrito nos títulos e textos.</p><div id="pForm">${propFormHtml(d,ro)}</div>
     </div><div class="col2"><iframe class="pprev" id="pPrev" src="proposta.html?prev=1&v=${Date.now()}" title="Prévia da proposta"></iframe></div></div>`;
     ligaProp(ro);
@@ -2529,6 +2529,7 @@ async function editor(id){
     const _g=$("#pGPdf");if(_g)_g.onclick=async()=>{_g.disabled=true;const path=await propGuardaPdf();if(path){await propSalvar({pdf_path:path});await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp();toast("PDF gerado e disponível para o cliente.")}else _g.disabled=false};
     $("#pPdf").onclick=()=>propPdf().then(b=>{if(b){const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="proposta-previa.pdf";a.click()}});
     $("#pMod")&&($("#pMod").onclick=propModelos);$("#pSM")&&($("#pSM").onclick=propSalvarModelo);
+    const _v=$("#pVer");if(_v)_v.onclick=()=>window.open(linkProp()+"&int=1","_blank","noopener");
     if(ro){return}
     const F=$("#pForm");
     $("#pModelo")&&($("#pModelo").onchange=async e=>{const D=d(),v=e.target.value;
@@ -2569,9 +2570,9 @@ async function editor(id){
       if(b.dataset.gadd!==undefined){D.cron.rows.push({a:"",x:D.cron.cols.map(()=>0)});redraw("cron");return}
       if(b.dataset.gr!==undefined){D.cron.rows.splice(+b.dataset.gr,1);redraw("cron");return}});
     F.addEventListener("toggle",e=>{const s=e.target;if(s.open&&s.dataset&&s.dataset.sec)irPara(s.dataset.sec)},true);
-    $("#pSalv").onclick=async()=>{try{await propSalvar();toast("Proposta salva.");desenhaProp()}catch(e){}};
-    $("#pEnv").onclick=()=>propEnviar();
-    $("#pRef").onclick=async()=>{if(d().modelo==="curta"){if(!confirm("Refazer os dados da proposta curta a partir do orçamento e do negócio? Os campos editados serão substituídos."))return;const D=d(),c=await propBaseCurta();Object.keys(D).forEach(k=>delete D[k]);Object.assign(D,c);propSujo=true;desenhaProp();return}
+    $("#pSalv").onclick=async()=>{if(PROP.status==="enviada")return propAjuste();try{await propSalvar();toast("Proposta salva.");desenhaProp()}catch(e){}};
+    ($("#pEnv")||{}).onclick=()=>propEnviar();
+    ($("#pRef")||{}).onclick=async()=>{if(d().modelo==="curta"){if(!confirm("Refazer os dados da proposta curta a partir do orçamento e do negócio? Os campos editados serão substituídos."))return;const D=d(),c=await propBaseCurta();Object.keys(D).forEach(k=>delete D[k]);Object.assign(D,c);propSujo=true;desenhaProp();return}
       if(!confirm("Refazer os números, itens e curva a partir do orçamento atual? Os textos que você editou nessas partes serão substituídos."))return;const b=propBase(),D=d();["resumo.stats","materiais.itens","valores.material","valores.mao","valores.total","valores.lotes","valores.porLote","curva.linhas","cron.parcelas","_ref"].forEach(p=>setv(D,p,gp(b,p)));desenhaProp();setTimeout(envia,300);propSujo=true};
   }
   async function propUpFoto(file){
@@ -2609,6 +2610,18 @@ async function editor(id){
       await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp();
       try{await navigator.clipboard.writeText(linkProp());toast("Proposta enviada. Link copiado.")}catch(_){toast("Proposta enviada.")}
     }catch(e){console.error(e);toast("Não foi possível enviar a proposta.")}
+  }
+  async function propAjuste(){
+    const D=PROP.dados;if(!D.cliente.nome&&!D.cliente.projeto){toast("Preencha o cliente e o projeto na capa.");return}
+    if(!confirm("Salvar o ajuste? O cliente verá a versão corrigida no mesmo link e o PDF será refeito."))return;
+    try{
+      await propSalvar();
+      const pdfPath=await propGuardaPdf();
+      if(pdfPath)await propSalvar({pdf_path:pdfPath});
+      let nome="";try{const {data:u}=await sb.auth.getUser();const id=u&&u.user&&u.user.id;if(id){const r=await sb.from("perfis").select("nome").eq("id",id).maybeSingle();nome=(r.data&&r.data.nome)||(u.user.email||"")}}catch(_){}
+      try{await O.from("proposta_eventos").insert({proposta_id:PROP.id,tipo:"editada",info:{por:nome,pdf:!!pdfPath}})}catch(_){}
+      await propCarregar();PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});desenhaProp();toast("Ajuste salvo. O cliente já vê a correção no mesmo link.")
+    }catch(e){console.error(e);toast("Não foi possível salvar o ajuste.")}
   }
   async function propNovaVersao(){
     if(!confirm("Criar uma nova versão? Ela volta para rascunho e terá um novo link; o link anterior deixa de abrir."))return;
