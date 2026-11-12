@@ -1692,7 +1692,7 @@ async function editor(id){
   function apply(){if(!stage||!stage.isConnected)return;stage.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`;$("#pins").style.setProperty("--inv",inv());renderNet();renderKml()}
   function fit(){if(!wrap)return;const r=wrap.getBoundingClientRect();if(!r.width)return;const s=Math.min(r.width/D.w,r.height/D.h)*.98;T={s,x:(r.width-D.w*s)/2,y:(r.height-D.h*s)/2};apply()}
   function centrar(p){if(!p||!wrap)return;const r=wrap.getBoundingClientRect();T.x=r.width/2-p.x*T.s;T.y=r.height/2-p.y*T.s;apply()}
-  function zoomAt(f,cx,cy){const r=wrap.getBoundingClientRect();const minS=Math.min(r.width/D.w,r.height/D.h)*.5;const ns=Math.max(minS,Math.min(4,T.s*f));f=ns/T.s;T.x=cx-(cx-T.x)*f;T.y=cy-(cy-T.y)*f;T.s=ns;apply()}
+  function zoomAt(f,cx,cy){const r=wrap.getBoundingClientRect();const minS=Math.min(r.width/D.w,r.height/D.h)*.5;const ns=Math.max(minS,Math.min(12,T.s*f));f=ns/T.s;T.x=cx-(cx-T.x)*f;T.y=cy-(cy-T.y)*f;T.s=ns;apply()}
   function renderMapbar(){
     const b=$("#mapbar");if(!b)return;
     b.innerHTML=(colando?`<button class="btn on" id="mStopCol">⧉ Parar de colar</button>`:"")+`<button class="btn" id="bPlanta">Planta</button>${ORC.planta_url?`<button class="btn ${plantaOculta()?"on":""}" id="bOculta" title="Esconder a imagem da planta para a tela ficar mais leve (os pontos continuam)">${plantaOculta()?"👁 Mostrar planta":"🙈 Ocultar planta"}</button>`:""}<button class="btn ${placing?"on":""}" id="mPlace">${placing?"Cancelar":"+ Ponto"}</button>`
@@ -1995,7 +1995,7 @@ async function editor(id){
     $("#zin").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1.5,r.width/2,r.height/2)};
     $("#zout").onclick=()=>{const r=wrap.getBoundingClientRect();zoomAt(1/1.5,r.width/2,r.height/2)};
     $("#zfit").onclick=fit;["zin","zout","zfit"].forEach(i=>$("#"+i).onpointerdown=e=>e.stopPropagation());
-    wrap.addEventListener("wheel",e=>{e.preventDefault();const r=wrap.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
+    wrap.addEventListener("wheel",e=>{e.preventDefault();const r=wrap.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.0022),e.clientX-r.left,e.clientY-r.top)},{passive:false});
     wrap.addEventListener("contextmenu",e=>{e.preventDefault();if(e.target.closest(".pin,.mapbar,.mapui"))return;const r=wrap.getBoundingClientRect();if(colando)return colarPonto(colando,Math.round((e.clientX-r.left-T.x)/T.s),Math.round((e.clientY-r.top-T.y)/T.s));novoPonto(Math.round((e.clientX-r.left-T.x)/T.s),Math.round((e.clientY-r.top-T.y)/T.s))});
     const ptrs=new Map();let moved=0,pinch=null;
     wrap.addEventListener("pointerdown",e=>{if(e.button===2)return;wrap.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptrs.size===2){const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}}wrap.classList.add("drag")});
