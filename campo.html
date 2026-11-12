@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Campo ON</title>
+<meta name="theme-color" content="#165c3a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Campo ON">
+<link rel="manifest" href="campo-manifest.webmanifest">
+<link rel="icon" href="assets/pwa/campo-192.png">
+<link rel="apple-touch-icon" href="assets/pwa/campo-180.png">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#101b26;--panel:#172534;--ink:#e8f1f9;--muted:#9fb8cc;--line:#2b4157;--accent:#62a8dc;--ok:#52c47f;--warn:#e3a94b;--bad:#f2867d;--navy:#165c3a}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:Montserrat,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+#app{display:flex;flex-direction:column;height:100dvh}
+.top{background:var(--navy);padding:calc(12px + env(safe-area-inset-top,0px)) 14px 10px;display:flex;align-items:center;gap:10px}
+.top b{flex:1;font-size:16px}.top small{color:#cfe8da}
+.tabs{display:flex;background:#0b141d}.tabs button{flex:1;border:0;background:none;color:var(--muted);padding:11px 6px;font:600 13px Montserrat,system-ui,sans-serif;border-bottom:3px solid transparent}.tabs button.on{color:#fff;border-color:var(--ok)}
+.pg{flex:1;overflow:auto;padding:14px 14px calc(110px + env(safe-area-inset-bottom,0px))}
+label{display:grid;gap:5px;font-size:11.5px;color:var(--muted);font-weight:600}
+input,select,textarea{width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px;font:500 15px Montserrat,system-ui,sans-serif}
+textarea{min-height:84px;resize:vertical}
+.f{display:grid;gap:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}.seg button{flex:1;border:0;background:var(--panel);color:var(--muted);padding:11px;font:700 13px Montserrat,system-ui,sans-serif}.seg button.on{background:var(--accent);color:#06203a}
+.btn{border:0;border-radius:12px;padding:14px;font:700 14px Montserrat,system-ui,sans-serif;background:var(--accent);color:#06203a;width:100%}
+.btn.sec{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+.ok{background:#173326;border:1px solid var(--ok);color:var(--ok);border-radius:10px;padding:10px 12px;font-size:12.5px}
+.warn{background:#3a2d16;border:1px solid var(--warn);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:12.5px}
+.ths{display:flex;gap:8px;flex-wrap:wrap}.th{position:relative;width:74px;height:74px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}.th img{width:100%;height:100%;object-fit:cover}.th button{position:absolute;top:2px;right:2px;border:0;background:#000a;color:#fff;border-radius:50%;width:22px;height:22px}
+.save{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,var(--bg) 35%);z-index:5}
+.save .btn{background:#1f8a4c;color:#fff;font-size:16px;padding:16px}
+#mapa{height:100%;min-height:300px}.mp{display:flex;flex-direction:column;height:100%;padding:0}
+.chips{display:flex;gap:6px;padding:8px 10px;overflow:auto;background:#0b141d}.chips button{border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:16px;padding:6px 12px;font:600 12px Montserrat,system-ui,sans-serif;white-space:nowrap}.chips button.on{background:var(--accent);color:#06203a}
+.rg{display:grid;gap:8px;margin-top:6px}.rg div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}.rg small{color:var(--muted)}
+.leaflet-popup-content{font:500 13px Montserrat,system-ui,sans-serif;color:#1e2f40}
+.tela{display:grid;place-items:center;height:100%;text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<div id="app" hidden>
+ <div class="top"><b>📍 Prospecção em campo</b><small id="quem"></small></div>
+ <div class="tabs"><button data-t="novo" class="on">➕ Novo</button><button data-t="mapa">🗺️ Mapa</button></div>
+ <div class="pg" id="pNovo">
+  <div class="f">
+   <div id="fila" class="warn" hidden></div>
+   <div class="seg" id="sq"><button data-q="eletrica" class="on">Elétrica</button><button data-q="solar">Solar</button></div>
+   <label>Nome do negócio / empreendimento *<input id="nome" placeholder="Ex.: Loteamento Reserva do Parque" autocomplete="off"></label>
+   <button class="btn" id="gps" type="button">📡 Usar minha localização agora</button>
+   <div id="loc" class="ok" hidden></div>
+   <label>Ou cole um link do Google Maps<input id="maps" placeholder="https://maps.app.goo.gl/…" inputmode="url" autocomplete="off"></label>
+   <div class="g2"><label>Cidade<input id="cid" placeholder="Cidade / UF" autocomplete="off"></label>
+   <label>Tipo de obra<select id="tipo"><option value="">—</option></select></label></div>
+   <div class="g2"><label>Contato no local<input id="ctt" placeholder="Nome" autocomplete="off"></label><label>Telefone / WhatsApp<input id="fone" inputmode="tel" placeholder="(51) 9…"></label></div>
+   <label>Observações<textarea id="obs" placeholder="Fase da obra, quem está tocando, o que viu no local…"></textarea></label>
+   <div class="g2"><label class="btn sec" style="text-align:center;cursor:pointer;gap:0">📷 Foto ou galeria<input id="fotos" type="file" accept="image/*" multiple hidden></label><button class="btn sec" id="rec" type="button">🎤 Gravar áudio</button></div>
+   <div class="ths" id="ths"></div><div id="aud"></div>
+  </div>
+ </div>
+ <div class="pg mp" id="pMapa" hidden><div class="chips" id="chips"></div><div id="mapa"></div></div>
+ <div class="save" id="sv"><button class="btn" id="salvar" type="button">Salvar prospecção</button></div>
+</div>
+<div class="tela" id="tela"><div><p>Abrindo…</p></div></div>
+<script src="vendor/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script>
+(async()=>{
+const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+if("serviceWorker" in navigator)try{navigator.serviceWorker.register("sw-chat.js")}catch(e){}
+const sess=await DB.sessao();if(!sess){location.href="index.html?volta="+encodeURIComponent(location.pathname);return}
+const sb=DB.sb,eu=sess.user.id,perfil=await DB.meuPerfil();
+if(!perfil||perfil.papel==="pendente"){$("#tela").innerHTML="<div><p>Seu acesso ainda não foi liberado.</p></div>";return}
+$("#tela").hidden=true;$("#app").hidden=false;$("#quem").textContent=(perfil.nome||"").split(" ")[0];
+let quadro="eletrica",pos=null,FOTOS=[],AUDIO=null,gravando=null;
+/* ---- listas ---- */
+try{const {data}=await sb.from("neg_listas").select("valor").eq("lista","tipo").order("valor");$("#tipo").innerHTML='<option value="">—</option>'+(data||[]).map(x=>`<option>${esc(x.valor)}</option>`).join("")}catch(e){}
+/* ---- abas ---- */
+let mapaOk=false;
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));const m=b.dataset.t==="mapa";$("#pNovo").hidden=m;$("#pMapa").hidden=!m;$("#sv").hidden=m;if(m)abreMapa()});
+$("#sq").querySelectorAll("button").forEach(b=>b.onclick=()=>{quadro=b.dataset.q;$("#sq").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))});
+/* ---- localização ---- */
+const coordsDe=t=>{if(!t)return null;const P=[/@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/,/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/,/[?&](?:q|query|ll|center|destination)=(-?\d{1,2}\.\d+)(?:,|%2C)\s*(-?\d{1,3}\.\d+)/i,/^\s*(-?\d{1,2}\.\d+)\s*[,;]\s*(-?\d{1,3}\.\d+)\s*$/];for(const p of P){const m=String(t).match(p);if(m)return{lat:+m[1],lng:+m[2]}}return null};
+const linkMaps=p=>`https://www.google.com/maps?q=${p.lat.toFixed(6)},${p.lng.toFixed(6)}`;
+function mostraLoc(){const l=$("#loc");if(!pos){l.hidden=true;return}l.hidden=false;l.textContent="✓ "+pos.lat.toFixed(5)+", "+pos.lng.toFixed(5)+(pos.prec?" (±"+Math.round(pos.prec)+" m)":"")}
+$("#gps").onclick=()=>{const b=$("#gps");if(!navigator.geolocation){alert("Este aparelho não oferece localização.");return}b.textContent="Buscando sinal de GPS…";b.disabled=true;
+  navigator.geolocation.getCurrentPosition(p=>{pos={lat:p.coords.latitude,lng:p.coords.longitude,prec:p.coords.accuracy};$("#maps").value=linkMaps(pos);mostraLoc();b.textContent="📡 Atualizar minha localização";b.disabled=false},
+   e=>{b.textContent="📡 Usar minha localização agora";b.disabled=false;alert("Não consegui pegar a localização. Verifique a permissão de localização do navegador.")},{enableHighAccuracy:true,timeout:20000,maximumAge:0})};
+$("#maps").addEventListener("change",async()=>{const v=$("#maps").value.trim();if(!v){pos=null;mostraLoc();return}let p=coordsDe(v);
+  if(!p&&/^https:/i.test(v)){try{const {data}=await sb.functions.invoke("resolver-link",{body:{url:v}});if(data&&data.lat!=null)p={lat:+data.lat,lng:+data.lng}}catch(e){}}
+  pos=p?{...p}:null;mostraLoc()});
+/* ---- fotos ---- */
+function reduz(f){return new Promise(res=>{const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{const m=1600,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>res(b||f),"image/jpeg",.82)};im.onerror=()=>res(f);im.src=u})}
+function desenhaFotos(){$("#ths").innerHTML=FOTOS.map((f,i)=>`<div class="th"><img src="${URL.createObjectURL(f)}" alt=""><button data-x="${i}" type="button">✕</button></div>`).join("");$("#ths").querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{FOTOS.splice(+b.dataset.x,1);desenhaFotos()})}
+$("#fotos").onchange=async e=>{for(const f of [...e.target.files])FOTOS.push(await reduz(f));e.target.value="";desenhaFotos()};
+/* ---- áudio ---- */
+$("#rec").onclick=async()=>{const b=$("#rec");
+  if(gravando){gravando.stop();return}
+  try{const st=await navigator.mediaDevices.getUserMedia({audio:true}),ch=[];const mr=new MediaRecorder(st);gravando=mr;
+    mr.ondataavailable=e=>e.data.size&&ch.push(e.data);
+    mr.onstop=()=>{st.getTracks().forEach(t=>t.stop());AUDIO=new Blob(ch,{type:mr.mimeType||"audio/webm"});gravando=null;b.textContent="🎤 Regravar áudio";$("#aud").innerHTML=`<audio controls src="${URL.createObjectURL(AUDIO)}" style="width:100%"></audio>`};
+    mr.start();b.textContent="⏹ Parar gravação"}catch(e){alert("Não consegui acessar o microfone.")}};
+/* ---- fila offline (IndexedDB) ---- */
+const idb=()=>new Promise((ok,er)=>{const r=indexedDB.open("campo-on",1);r.onupgradeneeded=()=>r.result.createObjectStore("fila",{keyPath:"id",autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>er(r.error)});
+const fx=async(modo,fn)=>{const d=await idb();return new Promise((ok,er)=>{const t=d.transaction("fila",modo),s=t.objectStore("fila"),r=fn(s);t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>er(t.error)})};
+const filaAdd=it=>fx("readwrite",s=>s.add(it)),filaTodos=()=>fx("readonly",s=>s.getAll()),filaDel=id=>fx("readwrite",s=>s.delete(id));
+async function pintaFila(){let n=0;try{n=(await filaTodos()).length}catch(e){}const f=$("#fila");f.hidden=!n;if(n)f.textContent="📤 "+n+" cadastro(s) aguardando sinal para enviar. Eles serão enviados sozinhos."}
+/* ---- criar negócio ---- */
+async function subir(negId,blob,nome,audio){const ext=audio?(/mp4|aac/.test(blob.type)?"m4a":"webm"):"jpg";const path=negId+"/"+Date.now().toString(36)+Math.random().toString(36).slice(2,7)+"."+ext;
+  const {error}=await sb.storage.from("negocios").upload(path,blob,{contentType:blob.type||"application/octet-stream"});if(error)throw error;
+  const url=sb.storage.from("negocios").getPublicUrl(path).data.publicUrl;
+  const r=await sb.from("neg_anexos").insert({negocio_id:negId,nome,tipo:blob.type||"",tam:blob.size,url,...(audio?{audio:true}:{})});if(r.error)throw r.error}
+async function criar(it){
+  const {data:cols,error:e0}=await sb.from("neg_colunas").select("id,nome,ordem").eq("quadro",it.quadro).order("ordem");if(e0)throw e0;
+  const col=(cols||[]).find(c=>/prospec/i.test(c.nome))||(cols||[])[0];if(!col)throw new Error("O quadro não tem colunas.");
+  const {data:mx}=await sb.from("negocios").select("ordem").eq("coluna",col.id).order("ordem",{ascending:false}).limit(1);
+  const d=it.dados;const obs=[d.ctt?("Contato: "+d.ctt+(d.fone?" · "+d.fone:"")):"",d.obs].filter(Boolean).join("\n");
+  const row={quadro:it.quadro,coluna:col.id,ordem:((mx&&mx[0]&&+mx[0].ordem)||0)+1,titulo:d.nome,cliente:d.nome,un:it.quadro==="solar"?"kWp":"kVA",membros:[eu],resp:eu,origem:"Prospecção",
+    ...(d.cid?{cidade:d.cid}:{}),...(d.tipo?{tipo:d.tipo}:{}),...(d.fone?{fone:d.fone}:{}),...(obs?{obs}:{}),...(d.lat!=null?{lat:d.lat,lng:d.lng,maps:d.maps||""}:(d.maps?{maps:d.maps}:{}))};
+  const {data,error}=await sb.from("negocios").insert(row).select("id").single();if(error)throw error;
+  let falhou=0;for(let i=0;i<(it.fotos||[]).length;i++){try{await subir(data.id,it.fotos[i],"foto-campo-"+(i+1)+".jpg",false)}catch(e){falhou++}}
+  if(it.audio){try{await subir(data.id,it.audio,"audio-campo",true)}catch(e){falhou++}}
+  return falhou}
+const ehRede=e=>!navigator.onLine||/failed to fetch|network|load failed|timeout/i.test(String(e&&(e.message||e)));
+async function enviaFila(){let L=[];try{L=await filaTodos()}catch(e){}for(const it of L){try{await criar(it);await filaDel(it.id)}catch(e){if(ehRede(e))break}}pintaFila()}
+window.addEventListener("online",enviaFila);
+$("#salvar").onclick=async()=>{
+  const nome=$("#nome").value.trim();if(!nome){alert("Informe o nome do negócio ou empreendimento.");$("#nome").focus();return}
+  if(gravando)gravando.stop();
+  const dados={nome,cid:$("#cid").value.trim(),tipo:$("#tipo").value,ctt:$("#ctt").value.trim(),fone:$("#fone").value.trim(),obs:$("#obs").value.trim(),maps:$("#maps").value.trim(),lat:pos?pos.lat:null,lng:pos?pos.lng:null};
+  const it={quadro,dados,fotos:[...FOTOS],audio:AUDIO};const b=$("#salvar");b.disabled=true;b.textContent="Salvando…";
+  try{const f=await criar(it);alert(f?"Prospecção salva, mas "+f+" anexo(s) não subiram. Anexe de novo pelo card.":"Prospecção salva! O card está na coluna Prospecção.");limpa()}
+  catch(e){if(ehRede(e)){try{await filaAdd(it);alert("Sem sinal agora. O cadastro ficou guardado no aparelho e será enviado quando a internet voltar.");limpa();pintaFila()}catch(x){alert("Não foi possível guardar o cadastro: "+x)}}
+  else alert("Não foi possível salvar: "+(e.message||e))}
+  b.disabled=false;b.textContent="Salvar prospecção"};
+function limpa(){["nome","cid","ctt","fone","obs","maps"].forEach(i=>$("#"+i).value="");$("#tipo").value="";pos=null;mostraLoc();FOTOS=[];AUDIO=null;desenhaFotos();$("#aud").innerHTML="";$("#rec").textContent="🎤 Gravar áudio";window.scrollTo(0,0);$("#pNovo").scrollTop=0}
+/* ---- mapa ---- */
+let M=null,camada=null,filtro="prosp",DADOS=[],COLP={};
+async function abreMapa(){
+  if(!M){const ruas=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap"}),sat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Imagens &copy; Esri"});
+    M=L.map("mapa",{layers:[ruas]}).setView([-30,-52],6);L.control.layers({"Mapa":ruas,"Satélite":sat}).addTo(M);camada=L.layerGroup().addTo(M);
+    $("#chips").innerHTML=[["prosp","Prospecção"],["meus","Meus"],["todos","Todos"]].map(([k,l])=>`<button data-f="${k}" class="${k===filtro?"on":""}">${l}</button>`).join("");
+    $("#chips").querySelectorAll("button").forEach(b=>b.onclick=()=>{filtro=b.dataset.f;$("#chips").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));pinta(true)})}
+  setTimeout(()=>M.invalidateSize(),50);
+  try{const [r,c,p]=await Promise.all([sb.from("negocios").select("id,titulo,cliente,cidade,tipo,quadro,coluna,resp,lat,lng,maps,criado_em").not("lat","is",null).limit(2000),sb.from("neg_colunas").select("id,nome"),sb.from("perfis").select("id,nome")]);
+    DADOS=r.data||[];(c.data||[]).forEach(x=>COLP[x.id]=x.nome);DADOS.forEach(d=>d._r=((p.data||[]).find(u=>u.id===d.resp)||{}).nome||"");pinta(true)}catch(e){}
+}
+function pinta(ajusta){camada.clearLayers();const L0=DADOS.filter(d=>filtro==="todos"||(filtro==="meus"?d.resp===eu:/prospec/i.test(COLP[d.coluna]||"")));const pts=[];
+  L0.forEach(d=>{const pr=/prospec/i.test(COLP[d.coluna]||"");const dt=new Date(d.criado_em).toLocaleDateString("pt-BR");
+    const m=L.circleMarker([d.lat,d.lng],{radius:9,color:"#fff",weight:2,fillColor:pr?"#ffb347":"#4da3ff",fillOpacity:.95}).addTo(camada);
+    m.bindPopup(`<b>${esc(d.titulo)}</b><br>${esc([d.cidade,d.tipo].filter(Boolean).join(" · "))}<br><small>${esc(COLP[d.coluna]||"")} · ${esc(d._r)} · ${dt}</small><br><a href="https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}" target="_blank" rel="noopener">🧭 Rota</a>`);pts.push([d.lat,d.lng])});
+  if(ajusta&&pts.length)M.fitBounds(pts,{padding:[30,30],maxZoom:15})}
+pintaFila();enviaFila();
+})();
+</script>
+</body>
+</html>
