@@ -1832,7 +1832,7 @@ async function editor(id){
       window.addEventListener("pointermove",mv);window.addEventListener("pointerup",up)});
     svg.addEventListener("pointerdown",e=>{if(e.target.closest("[data-pl]"))e.stopPropagation()});
     svg.addEventListener("click",e=>{const g=e.target.closest("[data-pl]");if(g){const pt=ptById(g.dataset.pl);if(pt)legendaPonto(pt)}});
-    document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key.toLowerCase()==="z"&&camHist.length&&!/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||"")&&!$(".modal")&&$("#kml")){e.preventDefault();camDesfaz();return}if(e.key==="Escape"&&camSel&&!$(".modal")){camSel=null;renderKml()}})}
+    document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key.toLowerCase()==="z"&&camHist.length&&!/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||"")&&!$(".modal")&&$("#kml")){e.preventDefault();camDesfaz();return}if(e.key==="Escape"&&camSel&&!$(".modal")){camSel=null;renderKml()}if(e.key==="Delete"&&camSel&&!SOVER&&!/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||"")&&!$(".modal")){e.preventDefault();kExcluiVertice(camSel.li,camSel.i)}})}
   function kPop(){let b=$("#kpop");if(!camSel||!CAM.vis.kml){b&&b.remove();return}const L=CAM.L[camSel.li],v=L&&L.V[camSel.i];if(!v){camSel=null;b&&b.remove();return}
     const key=`v:${camSel.li}:${camSel.i}`,ang=kAng(L,camSel.i),segK=`s:${camSel.li}:${camSel.i}`,ult=camSel.i>=L.V.length-1;
     const dist=j=>j<0||j>=L.V.length?null:Math.round(Math.hypot(L.V[j].x-L.V[camSel.i].x,L.V[j].y-L.V[camSel.i].y));
@@ -1846,6 +1846,7 @@ async function editor(id){
        ${sym?`<label class="fld">Ângulo do símbolo (°)<span class="row" style="gap:6px;justify-content:flex-start"><button type="button" class="btn sm" id="kAm">−15</button><input class="inp" id="kAng" value="${String(Math.round((CAM.sang[key]||0)*10)/10).replace(".",",")}" inputmode="decimal" style="width:70px"><button type="button" class="btn sm" id="kAp">+15</button><button type="button" class="btn sm" id="kAl" title="Gira o símbolo para a direção da linha">Alinhar à linha</button></span></label>`:""}
        <div class="row"><span>Símbolo: <b>${sym?esc(SIM[sym][0]):"nenhum"}</b></span><button class="btn sm" id="kSim">▣ Escolher</button></div>
        ${ult?"":`<label class="fld">Trecho seguinte<select class="inp" id="kSeg">${Object.entries(LIN).map(([k,s])=>`<option value="${k}" ${(CAM.seg[segK]||"kml")===k?"selected":""}>${s.n}</option>`).join("")}</select></label>`}
+       ${SOVER?"":`<div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn sm" id="kDelV" title="Remove este vértice; a linha liga o anterior ao seguinte (Delete)">🗑 Excluir vértice</button>${ult?"":`<button class="btn sm" id="kCut" title="Remove o trecho entre este vértice e o seguinte; a linha vira duas">✂ Cortar trecho seguinte</button>`}<button class="btn sm" id="kDelL" title="Remove a linha inteira">🗑 Excluir linha</button></div>`}
        <div class="row">${pt?`<span class="note">Ponto <b>${pt.numero}</b> criado aqui</span><button class="btn sm" id="kVer">Abrir ponto</button>`:SOVER?"":`<button class="btn sm pri" id="kCria">Criar ponto aqui</button>`}</div>`;
       $("#kX",b).onclick=()=>{camSel=null;renderKml()};
       const setA=n=>{if(!isFinite(n))return;camPush();CAM.sang[key]=((n%360)+360)%360;camSalva();renderKml()};
@@ -1853,6 +1854,7 @@ async function editor(id){
         $("#kAl",b).onclick=()=>{const j=camSel.i<L.V.length-1?camSel.i:camSel.i-1,A=kP(L.V[j].x,L.V[j].y),B=kP(L.V[j+1].x,L.V[j+1].y);setA(Math.round(Math.atan2(B.Y-A.Y,B.X-A.X)*1800/Math.PI)/10)}}
       $("#kSim",b).onclick=()=>escolheSimbolo(key);
       const sg=$("#kSeg",b);if(sg)sg.onchange=()=>{camPush();CAM.seg[segK]=sg.value==="kml"?undefined:sg.value;if(!CAM.seg[segK])delete CAM.seg[segK];camSalva();renderKml()};
+      const dv=$("#kDelV",b);if(dv){const li=camSel.li,i=camSel.i;dv.onclick=()=>kExcluiVertice(li,i);const ct=$("#kCut",b);if(ct)ct.onclick=()=>kCortaTrecho(li,i);$("#kDelL",b).onclick=()=>{if(confirm("Excluir a linha inteira ("+(L.nome||"sem nome")+", "+L.V.length+" vértices)? Dá para desfazer."))kExcluiLinha(li)}}
       const cr=$("#kCria",b);if(cr)cr.onclick=()=>kCriaPonto(camSel.li,camSel.i);
       const vr=$("#kVer",b);if(vr)vr.onclick=()=>{selP=pt.id;renderPins();renderSide();centrar(pt)}}
     const p=kP(v.x,v.y),r=wrap.getBoundingClientRect();let x=p.X*T.s+T.x+16,y=p.Y*T.s+T.y-20;x=Math.max(8,Math.min(r.width-290,x));y=Math.max(60,Math.min(r.height-b.offsetHeight-8,y));b.style.left=x+"px";b.style.top=y+"px"}
@@ -1870,6 +1872,12 @@ async function editor(id){
       <div class="row"><span></span><span style="display:flex;gap:8px"><button type="button" class="btn" data-x>Cancelar</button><button class="btn pri">Salvar</button></span></div></form>`;
     document.body.appendChild(m);m.querySelector("[data-x]").onclick=()=>m.remove();
     m.querySelector("form").onsubmit=e=>{e.preventDefault();camPush();const f=new FormData(e.target),t=(f.get("t")||"").trim(),oc=!!f.get("oc");if(!t&&!oc)delete CAM.leg[pt.id];else CAM.leg[pt.id]={t,oc};camSalva();m.remove();renderKml();renderSide()}}
+  function camRemap(fn){["simb","sang","seg"].forEach(m=>{const o=CAM[m],n={};Object.keys(o).forEach(k=>{if(!/^[vs]:/.test(k)){n[k]=o[k];return}const [t,li,j]=k.split(":"),r=fn(t,+li,+j);if(r)n[`${t}:${r[0]}:${r[1]}`]=o[k]});CAM[m]=n})}
+  function kExcluiLinha(li){camPush();CAM.L.splice(li,1);camRemap((t,l,j)=>l===li?null:[l>li?l-1:l,j]);camSel=null;camSalva();renderKml()}
+  function kExcluiVertice(li,i){const L=CAM.L[li];if(!L)return;if(L.V.length<=2){if(!confirm("Essa linha ficaria com um vértice só. Excluir a linha inteira?"))return;kExcluiLinha(li);return}
+    camPush();L.V.splice(i,1);camRemap((t,l,j)=>{if(l!==li)return[l,j];if(t==="v")return j===i?null:[l,j>i?j-1:j];if(j===i)return null;return[l,j>i?j-1:j]});camSel=null;camSalva();renderKml()}
+  function kCortaTrecho(li,i){const L=CAM.L[li];if(!L||i>=L.V.length-1)return;camPush();const B={nome:L.nome,V:L.V.splice(i+1)};CAM.L.splice(li+1,0,B);
+    camRemap((t,l,j)=>{if(l<li)return[l,j];if(l>li)return[l+1,j];if(t==="v")return j<=i?[l,j]:[l+1,j-i-1];if(j<i)return[l,j];if(j===i)return null;return[l+1,j-i-1]});camSel=null;camSalva();renderKml()}
   function kFit(){const pts=[];CAM.L.forEach(l=>l.V.forEach(v=>pts.push(kP(v.x,v.y))));if(!pts.length||!wrap)return;
     const x0=Math.min(...pts.map(p=>p.X)),x1=Math.max(...pts.map(p=>p.X)),y0=Math.min(...pts.map(p=>p.Y)),y1=Math.max(...pts.map(p=>p.Y)),r=wrap.getBoundingClientRect();
     const s=Math.min(4,Math.max(.02,Math.min(r.width/Math.max(40,x1-x0),r.height/Math.max(40,y1-y0))*.8));T.s=s;T.x=r.width/2-(x0+x1)/2*s;T.y=r.height/2-(y0+y1)/2*s;apply()}
