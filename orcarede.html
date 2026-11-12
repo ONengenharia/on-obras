@@ -1841,7 +1841,7 @@ async function editor(id){
         if(camMover){if(!moved)camPush();moved=true;CAM.ox=ini.ox+dx;CAM.oy=ini.oy+dy;renderKml()}else if(isV&&wasSel){if(!moved)camPush();moved=true;const d=kInv(dx,dy);vi.v.x=v0.x+d.x;vi.v.y=v0.y+d.y;renderKml()}};
       const up=()=>{window.removeEventListener("pointermove",mv);window.removeEventListener("pointerup",up);
         if(moved){camSalva();renderKml();return}
-        if(isV){camSel={li:vi.li,i:vi.i};renderKml()}};
+        if(isV){camSel={li:vi.li,i:vi.i};const lp=vi.v.pid&&ptById(vi.v.pid);if(lp){selP=lp.id;selV=null;rolou=0;renderPins();renderSide()}renderKml()}};
       window.addEventListener("pointermove",mv);window.addEventListener("pointerup",up)});
     svg.addEventListener("pointerdown",e=>{if(e.target.closest("[data-pl]"))e.stopPropagation()});
     svg.addEventListener("click",e=>{const g=e.target.closest("[data-pl]");if(g){const pt=ptById(g.dataset.pl);if(pt)legendaPonto(pt)}});
