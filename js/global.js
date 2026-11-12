@@ -100,6 +100,8 @@
   function pintarFab() {
     const t = totalNaoLidas();
     fab.innerHTML = "💬" + (t ? `<span class="gc-dot">${t > 99 ? "99+" : t}</span>` : "");
+    try { if (navigator.setAppBadge) { t ? navigator.setAppBadge(t) : navigator.clearAppBadge(); } } catch (e) {}
+    try { const b0 = document.title.replace(/^\(\d+\+?\)\s*/, ""); document.title = (t ? "(" + (t > 99 ? "99+" : t) + ") " : "") + b0; } catch (e) {}
   }
   async function contar() {
     const { data } = await sb.rpc("chat_nao_lidas");

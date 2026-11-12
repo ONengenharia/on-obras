@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Chat ON</title>
+<meta name="theme-color" content="#1e2f40">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chat ON">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="chat-manifest.webmanifest">
+<link rel="icon" href="assets/pwa/chat-192.png">
+<link rel="apple-touch-icon" href="assets/pwa/chat-180.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<style>
+html,body{height:100%;margin:0;background:#1e2f40;font-family:Montserrat,system-ui,sans-serif;color:#e8f1f9}
+.tela{display:grid;place-items:center;height:100%;text-align:center;padding:24px}.tela img{height:64px;border-radius:8px}
+/* o chat ocupa a tela toda; sem botão flutuante nem minimizar/fechar */
+.gc-fab{display:none!important}
+.gc-win{inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;border-radius:0!important;bottom:0!important;right:0!important;border:0!important}
+.gc-top button[data-x]{display:none!important}
+.gc-top{padding-top:calc(10px + env(safe-area-inset-top,0px))!important}
+</style>
+</head>
+<body>
+<div class="tela" id="tela"><div><img src="assets/on-logo.png" alt="ON Engenharia"><p>Abrindo o chat…</p></div></div>
+<script src="vendor/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script>
+(async()=>{
+  if("serviceWorker" in navigator)try{navigator.serviceWorker.register("sw-chat.js")}catch(e){}
+  const s=await DB.sessao();
+  if(!s){location.href="index.html?volta="+encodeURIComponent(location.pathname);return}
+  const g=document.createElement("script");g.src="js/global.js";document.body.appendChild(g);
+  let n=0;const t=setInterval(()=>{const f=document.querySelector(".gc-fab");n++;
+    if(f){f.click();const w=document.querySelector(".gc-win");if(w&&!w.hidden){clearInterval(t);document.getElementById("tela").hidden=true}}
+    if(n>100){clearInterval(t);document.getElementById("tela").innerHTML="<div><p>Não foi possível abrir o chat. Verifique seu acesso e recarregue.</p></div>"}},150);
+})();
+</script>
+</body>
+</html>
