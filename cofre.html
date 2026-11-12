@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cofre · ON Engenharia</title>
+<link rel="icon" href="assets/on-logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Mesma paleta do OrçaRede. Cofre: documentos da empresa, CATs com quantitativos, validade e alertas. */
+:root{
+  --bg:#eef2f6; --panel:#ffffff; --ink:#1e2f40; --muted:#5a6f83; --line:#d6e1ea;
+  --accent:#2f6f9f; --accent-soft:#e8f1f9; --navy:#1e2f40; --navy2:#2b4157; --onblue:#62a8dc;
+  --ok:#1f8a4c; --ok-soft:#e2f4e9; --warn:#b7791f; --warn-soft:#fbf0dc; --idle-soft:#edf1f5; --danger:#b3261e; --danger-soft:#fbe9e7;
+  --f-body:Montserrat,system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101b26; --panel:#172534; --ink:#e8f1f9; --muted:#9fb8cc; --line:#2b4157;
+  --accent:#62a8dc; --accent-soft:#1d3a52; --navy:#0b141d; --navy2:#1e2f40;
+  --ok:#52c47f; --ok-soft:#173326; --warn:#e3a94b; --warn-soft:#3a2d16; --idle-soft:#1e2f40; --danger:#f2867d; --danger-soft:#3a1d1b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101b26; --panel:#172534; --ink:#e8f1f9; --muted:#9fb8cc; --line:#2b4157;
+  --accent:#62a8dc; --accent-soft:#1d3a52; --navy:#0b141d; --navy2:#1e2f40;
+  --ok:#52c47f; --ok-soft:#173326; --warn:#e3a94b; --warn-soft:#3a2d16; --idle-soft:#1e2f40; --danger:#f2867d; --danger-soft:#3a1d1b; color-scheme:dark}
+*{box-sizing:border-box} [hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;padding-bottom:70px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,select,textarea{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:7px 10px;width:100%}
+textarea{resize:vertical;min-height:60px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:7px 12px;font-weight:600;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--ink)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.del{color:var(--danger)}
+.btn:disabled{opacity:.5;cursor:default}
+.note{font-size:12px;color:var(--muted);margin:0;line-height:1.45}
+.page{max-width:1180px;margin:0 auto;padding:16px;display:grid;gap:14px}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;background:var(--navy);color:#e8f1f9;border-radius:12px;padding:12px 16px}
+header.top img{height:44px;border-radius:4px;display:block}
+.ttl{flex:1;min-width:200px}.eye{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--onblue)}
+.ttl h1{margin:0;font-size:20px}.ttl .sub{font-size:12px;color:#b9cde0}
+header.top .btn{background:var(--navy2);border-color:#3b5670;color:#e8f1f9}
+header.top .btn.pri{background:var(--accent);border-color:var(--accent)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:10px;align-content:start}
+.filtros{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));align-items:end}
+label.f{display:grid;gap:4px;font-size:11.5px;font-weight:600;color:var(--muted)}
+.kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:grid;gap:2px}
+.kpi span{font-size:11.5px;color:var(--muted);font-weight:600}.kpi b{font-size:20px}
+.kpi.warn b{color:var(--warn)}.kpi.bad b{color:var(--danger)}
+.lista{display:grid;gap:10px}
+.dc{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:10px;padding:12px 14px;display:grid;gap:8px}
+.dc.venc{border-left-color:var(--warn)}.dc.vencido{border-left-color:var(--danger)}.dc.semval{border-left-color:var(--accent)}
+.dc h3{margin:0;font-size:14px;overflow-wrap:anywhere}
+.dc p{margin:0;font-size:12.5px;line-height:1.45;overflow-wrap:anywhere}
+.chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.03em;background:var(--idle-soft);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}.chip.warn{background:var(--warn-soft);color:var(--warn)}.chip.bad{background:var(--danger-soft);color:var(--danger)}.chip.info{background:var(--accent-soft);color:var(--accent)}
+.dc-top,.tags,.acoes{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.meta{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:12px;color:var(--muted)}.meta b{color:var(--ink);font-weight:600}
+.acoes .push{margin-left:auto}
+table.it{width:100%;border-collapse:collapse;font-size:12.5px}
+table.it th,table.it td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+table.it th{font-size:11px;color:var(--muted);font-weight:700}
+table.it td.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.vazio{text-align:center;padding:30px 16px;color:var(--muted)}
+.erro{max-width:520px;margin:60px auto;padding:24px;background:var(--panel);border:1px solid var(--line);border-radius:12px;text-align:center;display:grid;gap:10px}
+.erro img{height:48px;margin:0 auto}
+.toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 16px;border-radius:8px;font-size:13px;z-index:1300}
+summary{cursor:pointer;font-weight:700}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:0;width:min(680px,96vw);max-height:92vh}
+dialog::backdrop{background:rgba(10,20,30,.55)}
+.dlg{display:grid;gap:12px;padding:16px;overflow:auto;max-height:92vh}
+.dlg h2{margin:0;font-size:17px}
+.g2{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.mods{display:flex;flex-wrap:wrap;gap:6px 14px}.mods label{display:flex;gap:6px;align-items:center;font-size:12.5px;font-weight:500}.mods input{width:auto}
+.linhaitem{display:grid;gap:6px;grid-template-columns:2fr .8fr .9fr 1.2fr auto;align-items:center}
+.linhaitem button{padding:5px 9px}
+@media (max-width:640px){.acoes .push{margin-left:0}.linhaitem{grid-template-columns:1fr 1fr}.linhaitem input:first-child{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div id="root"><p class="note" style="padding:24px">Carregando…</p></div>
+<script src="vendor/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/db.js"></script>
+<script src="js/atalhos.js?v=3"></script>
+<script>
+(async()=>{
+const sb=DB.sb, O=sb.schema("orcarede");
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fd=d=>d?d.split("-").reverse().join("/"):"—";
+const fnum=n=>n==null?"—":Number(n).toLocaleString("pt-BR",{maximumFractionDigits:2});
+const root=$("#root");
+function falha(msg){root.innerHTML=`<div class="erro"><img src="assets/on-logo.png" alt="ON Engenharia"><h1>Cofre</h1><p>${esc(msg)}</p><a href="index.html">Ir para o início</a></div>`}
+function aviso(t){const e=document.createElement("div");e.className="toast";e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),2600)}
+
+const sess=await DB.sessao();
+if(!sess){location.href="index.html?volta="+encodeURIComponent(location.pathname+location.search);return}
+const perfil=await DB.meuPerfil();
+const NIVEL=perfil?(await O.rpc("meu_nivel")).data:null;
+if(!NIVEL){falha("Você ainda não tem acesso ao OrçaRede. Peça a um administrador para liberar (ver ou editar).");return}
+const EDITA=NIVEL!=="ver";
+const BUCKET="cofre";
+
+const TIPOS={cat:"CAT / atestado",certidao:"Certidão",habilitacao:"Habilitação",societario:"Societário",financeiro:"Financeiro",outro:"Outro"};
+const UNID={eletrica:"Elétrica",solar:"Solar",servicos:"Serviços"};
+const ALERTA_DIAS=30;
+let DOCS=[],ITENS=[];
+const F={q:"",tipo:"",unidade:"",sit:""};
+
+async function carregar(){
+  const [d,i]=await Promise.all([
+    O.from("cofre_documentos").select("*").order("criado_em",{ascending:false}).limit(2000),
+    O.from("cofre_cat_itens").select("*").order("criado_em",{ascending:true}).limit(10000)]);
+  if(d.error){falha("Não foi possível ler o cofre: "+d.error.message+". Se a tabela ainda não existe, aplique o arquivo sql/cofre.sql no Supabase.");return false}
+  DOCS=d.data||[];ITENS=i.data||[];return true;
+}
+const hoje=()=>{const h=new Date();return new Date(h.getFullYear(),h.getMonth(),h.getDate())};
+function situacao(d){
+  if(!d.validade)return{k:"semval",t:"Não vence",c:"info"};
+  const dias=Math.round((new Date(d.validade+"T00:00:00")-hoje())/864e5);
+  if(dias<0)return{k:"vencido",t:"Vencido há "+(-dias)+(dias===-1?" dia":" dias"),c:"bad",dias};
+  if(dias===0)return{k:"venc",t:"Vence hoje",c:"warn",dias};
+  if(dias<=ALERTA_DIAS)return{k:"venc",t:"Vence em "+dias+(dias===1?" dia":" dias"),c:"warn",dias};
+  return{k:"ok",t:"Válido · "+dias+" dias",c:"ok",dias};
+}
+const itensDe=id=>ITENS.filter(x=>x.documento_id===id);
+
+function desenhar(){
+  const sit=DOCS.map(situacao);
+  const nVenc=sit.filter(s=>s.k==="venc").length, nVd=sit.filter(s=>s.k==="vencido").length;
+  const nCat=DOCS.filter(d=>d.tipo==="cat").length;
+  // Acervo técnico: soma dos quantitativos de todas as CATs, por categoria e unidade de medida.
+  const acervo={};
+  for(const it of ITENS){const d=DOCS.find(x=>x.id===it.documento_id);if(!d||d.tipo!=="cat"||it.quantidade==null)continue;
+    const k=(it.categoria||it.descricao||"sem categoria").trim().toLowerCase()+"|"+(it.unidade_medida||"").trim();
+    (acervo[k]=acervo[k]||{nome:(it.categoria||it.descricao||"sem categoria").trim(),um:(it.unidade_medida||"").trim(),q:0,n:0});acervo[k].q+=Number(it.quantidade);acervo[k].n++}
+  const ac=Object.values(acervo).sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));
+  const q=F.q.trim().toLowerCase();
+  const vis=DOCS.filter((d,i)=>{
+    if(F.tipo&&d.tipo!==F.tipo)return false;
+    if(F.unidade&&!(d.unidades||[]).includes(F.unidade))return false;
+    if(F.sit&&situacao(d).k!==F.sit)return false;
+    if(q){const t=[d.titulo,d.numero,d.emissor,d.responsavel,d.contratante,d.objeto,...itensDe(d.id).map(x=>x.descricao+" "+(x.categoria||""))].join(" ").toLowerCase();if(!t.includes(q))return false}
+    return true}).sort((a,b)=>{const sa=situacao(a),sb2=situacao(b);const ra={vencido:0,venc:1,ok:2,semval:3}[sa.k],rb={vencido:0,venc:1,ok:2,semval:3}[sb2.k];return ra-rb||(a.validade||"9").localeCompare(b.validade||"9")});
+
+  $("#kpis").innerHTML=`<div class="kpi"><span>Documentos</span><b>${DOCS.length}</b></div>
+    <div class="kpi"><span>CATs / atestados</span><b>${nCat}</b></div>
+    <div class="kpi ${nVenc?"warn":""}"><span>Vencem em ${ALERTA_DIAS} dias</span><b>${nVenc}</b></div>
+    <div class="kpi ${nVd?"bad":""}"><span>Vencidos</span><b>${nVd}</b></div>`;
+  $("#acervo").innerHTML=ac.length?`<summary>Acervo técnico somado das CATs (${ac.length})</summary>
+    <table class="it"><thead><tr><th>Categoria / serviço</th><th>Unid.</th><th style="text-align:right">Total</th><th style="text-align:right">CATs</th></tr></thead><tbody>${ac.map(a=>`<tr><td>${esc(a.nome)}</td><td>${esc(a.um)}</td><td class="n">${fnum(a.q)}</td><td class="n">${a.n}</td></tr>`).join("")}</tbody></table>
+    <p class="note">Soma simples dos quantitativos cadastrados. Para comprovar uma exigência de edital, vale conferir se o edital aceita somar atestados.</p>`:`<summary>Acervo técnico somado das CATs</summary><p class="note">Cadastre uma CAT com quantitativos e o total aparece aqui.</p>`;
+  $("#lista").innerHTML=vis.length?vis.map(d=>{const s=situacao(d),its=itensDe(d.id);
+    return `<article class="dc ${s.k}" data-id="${d.id}">
+      <div class="dc-top"><span class="chip info">${esc(TIPOS[d.tipo]||d.tipo)}</span><span class="chip ${s.c}">${esc(s.t)}</span>${(d.unidades||[]).map(u=>`<span class="chip">${esc(UNID[u]||u)}</span>`).join("")}</div>
+      <h3>${esc(d.titulo)}</h3>
+      ${d.objeto?`<p>${esc(d.objeto)}</p>`:""}
+      <div class="meta">${d.numero?`<span>Nº <b>${esc(d.numero)}</b></span>`:""}${d.emissor?`<span>Emissor <b>${esc(d.emissor)}</b></span>`:""}${d.responsavel?`<span>Resp. técnico <b>${esc(d.responsavel)}</b></span>`:""}${d.contratante?`<span>Contratante <b>${esc(d.contratante)}</b></span>`:""}<span>Emissão <b>${fd(d.emissao)}</b></span><span>Validade <b>${d.validade?fd(d.validade):"não vence"}</b></span></div>
+      ${its.length?`<table class="it"><thead><tr><th>Quantitativo</th><th>Categoria</th><th>Unid.</th><th style="text-align:right">Qtd.</th></tr></thead><tbody>${its.map(x=>`<tr><td>${esc(x.descricao)}</td><td>${esc(x.categoria||"")}</td><td>${esc(x.unidade_medida||"")}</td><td class="n">${fnum(x.quantidade)}</td></tr>`).join("")}</tbody></table>`:""}
+      ${d.nota?`<p class="note">${esc(d.nota)}</p>`:""}
+      <div class="acoes">${d.arquivo_path?`<button class="btn" data-abrir="${d.id}">📎 Abrir arquivo${d.arquivo_nome?" · "+esc(d.arquivo_nome):""}</button>`:`<span class="note">Sem arquivo anexado</span>`}
+        ${EDITA?`<span class="push" style="display:flex;gap:6px"><button class="btn" data-edit="${d.id}">Editar</button><button class="btn del" data-del="${d.id}">Apagar</button></span>`:""}</div>
+    </article>`}).join(""):`<div class="vazio card">${DOCS.length?"Nenhum documento com esses filtros.":"O cofre está vazio."+(EDITA?" Toque em “+ Novo documento” para começar pelas CATs.":"")}</div>`;
+  $$("[data-abrir]").forEach(b=>b.onclick=()=>abrir(b.dataset.abrir));
+  $$("[data-edit]").forEach(b=>b.onclick=()=>formulario(b.dataset.edit));
+  $$("[data-del]").forEach(b=>b.onclick=()=>apagar(b.dataset.del));
+}
+
+async function abrir(id){
+  const d=DOCS.find(x=>x.id===id);if(!d||!d.arquivo_path)return;
+  const w=window.open("","_blank");
+  const r=await sb.storage.from(BUCKET).createSignedUrl(d.arquivo_path,600);
+  if(r.error||!r.data){if(w)w.close();aviso("Não foi possível abrir o arquivo.");return}
+  if(w)w.location=r.data.signedUrl;else location.href=r.data.signedUrl;
+}
+async function apagar(id){
+  const d=DOCS.find(x=>x.id===id);if(!d)return;
+  if(!confirm("Apagar “"+d.titulo+"” e o arquivo anexado? Isso não pode ser desfeito."))return;
+  const r=await O.from("cofre_documentos").delete().eq("id",id);
+  if(r.error){aviso("Erro ao apagar: "+r.error.message);return}
+  if(d.arquivo_path)await sb.storage.from(BUCKET).remove([d.arquivo_path]);
+  await carregar();desenhar();aviso("Documento apagado.");
+}
+
+function linhaItem(x={}){
+  return `<div class="linhaitem"><input class="i-d" placeholder="Descrição (ex.: rede de distribuição)" value="${esc(x.descricao||"")}"><input class="i-u" placeholder="Unid." value="${esc(x.unidade_medida||"")}"><input class="i-q" type="number" step="any" placeholder="Qtd." value="${x.quantidade??""}"><input class="i-c" placeholder="Categoria" value="${esc(x.categoria||"")}"><button type="button" class="btn del i-x" title="Remover linha" aria-label="Remover linha">✕</button></div>`;
+}
+function formulario(id){
+  const d=id?DOCS.find(x=>x.id===id):null;
+  const its=d?itensDe(d.id):[];
+  const dlg=document.createElement("dialog");
+  dlg.innerHTML=`<form class="dlg" method="dialog"><h2>${d?"Editar documento":"Novo documento"}</h2>
+    <div class="g2">
+      <label class="f">Tipo<select id="f-tipo">${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}" ${d&&d.tipo===k?"selected":""}>${v}</option>`).join("")}</select></label>
+      <label class="f">Título<input id="f-titulo" required placeholder="ex.: CAT 123456 · Rede de distribuição urbana" value="${esc(d?.titulo||"")}"></label>
+      <label class="f">Número<input id="f-numero" value="${esc(d?.numero||"")}"></label>
+      <label class="f">Emissor<input id="f-emissor" placeholder="CREA-RS, Receita Federal…" value="${esc(d?.emissor||"")}"></label>
+      <label class="f">Emissão<input id="f-emissao" type="date" value="${d?.emissao||""}"></label>
+      <label class="f">Validade (vazio = não vence)<input id="f-validade" type="date" value="${d?.validade||""}"></label>
+    </div>
+    <div id="bloco-cat" class="g2">
+      <label class="f">Responsável técnico<input id="f-resp" value="${esc(d?.responsavel||"")}"></label>
+      <label class="f">Contratante<input id="f-contr" value="${esc(d?.contratante||"")}"></label>
+    </div>
+    <label class="f">Objeto / descrição do serviço<textarea id="f-obj">${esc(d?.objeto||"")}</textarea></label>
+    <div><div class="note" style="margin-bottom:4px"><b>Unidades de negócio</b></div><div class="mods">${Object.entries(UNID).map(([k,v])=>`<label><input type="checkbox" name="f-un" value="${k}" ${d&&(d.unidades||[]).includes(k)?"checked":""}>${v}</label>`).join("")}</div></div>
+    <div id="bloco-itens"><div class="note" style="margin-bottom:6px"><b>Quantitativos da CAT</b> · o que o atestado comprova (metros de rede, kWp, kVA…)</div><div id="itens" style="display:grid;gap:6px">${its.map(linhaItem).join("")}</div><button type="button" class="btn" id="f-maisitem" style="margin-top:6px">+ Adicionar quantitativo</button></div>
+    <label class="f">Arquivo (PDF ou imagem, até 50 MB)${d&&d.arquivo_nome?` · atual: ${esc(d.arquivo_nome)}`:""}<input id="f-arq" type="file" accept=".pdf,image/*,.doc,.docx"></label>
+    <label class="f">Observações<textarea id="f-nota">${esc(d?.nota||"")}</textarea></label>
+    <div class="acoes"><button type="button" class="btn" id="f-cancel">Cancelar</button><button class="btn pri push" id="f-ok" value="ok">Salvar</button></div></form>`;
+  document.body.append(dlg);dlg.showModal();
+  const fecha=()=>{dlg.close();dlg.remove()};
+  $("#f-cancel",dlg).onclick=fecha;
+  dlg.addEventListener("cancel",()=>setTimeout(()=>dlg.remove(),0));
+  const ehCat=()=>$("#f-tipo",dlg).value==="cat";
+  const alterna=()=>{$("#bloco-cat",dlg).hidden=!ehCat();$("#bloco-itens",dlg).hidden=!ehCat()};
+  $("#f-tipo",dlg).onchange=alterna;alterna();
+  const itensEl=$("#itens",dlg);
+  const liga=()=>$$(".i-x",itensEl).forEach(b=>b.onclick=()=>b.parentElement.remove());
+  $("#f-maisitem",dlg).onclick=()=>{itensEl.insertAdjacentHTML("beforeend",linhaItem());liga()};
+  if(!its.length)itensEl.insertAdjacentHTML("beforeend",linhaItem());
+  liga();
+  $("#f-ok",dlg).onclick=async ev=>{
+    ev.preventDefault();
+    const titulo=$("#f-titulo",dlg).value.trim();
+    if(!titulo){aviso("Informe o título.");return}
+    const btn=ev.currentTarget;btn.disabled=true;btn.textContent="Salvando…";
+    try{
+      const reg={tipo:$("#f-tipo",dlg).value,titulo,numero:$("#f-numero",dlg).value.trim()||null,emissor:$("#f-emissor",dlg).value.trim()||null,
+        emissao:$("#f-emissao",dlg).value||null,validade:$("#f-validade",dlg).value||null,
+        responsavel:ehCat()?($("#f-resp",dlg).value.trim()||null):null,contratante:ehCat()?($("#f-contr",dlg).value.trim()||null):null,
+        objeto:$("#f-obj",dlg).value.trim()||null,nota:$("#f-nota",dlg).value.trim()||null,
+        unidades:$$("[name=f-un]:checked",dlg).map(x=>x.value)};
+      const fl=$("#f-arq",dlg).files[0];
+      if(fl&&fl.size>52428800)throw new Error("Arquivo maior que 50 MB.");
+      let novoPath=null;
+      if(fl){
+        novoPath=`${new Date().getFullYear()}/${Date.now().toString(36)}-${fl.name.replace(/[^\w.\-]+/g,"_")}`;
+        const up=await sb.storage.from(BUCKET).upload(novoPath,fl,{contentType:fl.type||"application/octet-stream",upsert:false});
+        if(up.error)throw up.error;
+        reg.arquivo_path=novoPath;reg.arquivo_nome=fl.name;
+      }
+      let docId=id;
+      if(id){const r=await O.from("cofre_documentos").update(reg).eq("id",id);if(r.error)throw r.error}
+      else{const r=await O.from("cofre_documentos").insert(reg).select("id").single();if(r.error)throw r.error;docId=r.data.id}
+      if(fl&&d&&d.arquivo_path)await sb.storage.from(BUCKET).remove([d.arquivo_path]);
+      // Quantitativos: regrava o conjunto (poucas linhas por CAT).
+      const dels=await O.from("cofre_cat_itens").delete().eq("documento_id",docId);if(dels.error)throw dels.error;
+      if(ehCat()){
+        const novos=$$(".linhaitem",itensEl).map(l=>({documento_id:docId,descricao:$(".i-d",l).value.trim(),unidade_medida:$(".i-u",l).value.trim()||null,
+          quantidade:$(".i-q",l).value===""?null:Number($(".i-q",l).value),categoria:$(".i-c",l).value.trim()||null})).filter(x=>x.descricao);
+        if(novos.length){const r=await O.from("cofre_cat_itens").insert(novos);if(r.error)throw r.error}
+      }
+      fecha();await carregar();desenhar();aviso("Documento salvo.");
+    }catch(e){btn.disabled=false;btn.textContent="Salvar";aviso("Erro: "+(e.message||e))}
+  };
+}
+
+root.innerHTML=`<div class="page">
+<header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div class="ttl"><div class="eye">OrçaRede</div><h1>Cofre da empresa</h1><div class="sub">CATs, certidões e documentos de habilitação, com validade</div></div>${EDITA?'<button class="btn pri" id="bNovo">+ Novo documento</button>':""}<a class="btn" href="licitacoes.html">Licitações</a><a class="btn" href="orcarede.html">Orçamentos</a></header>
+<div class="kpis" id="kpis"></div>
+<section class="card"><div class="filtros">
+  <label class="f">Buscar<input id="fq" type="search" placeholder="título, número, contratante, serviço…"></label>
+  <label class="f">Tipo<select id="ft"><option value="">Todos</option>${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select></label>
+  <label class="f">Unidade<select id="fu"><option value="">Todas</option>${Object.entries(UNID).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select></label>
+  <label class="f">Situação<select id="fs"><option value="">Todas</option><option value="ok">Válidos</option><option value="venc">Vencendo</option><option value="vencido">Vencidos</option><option value="semval">Não vencem</option></select></label>
+</div></section>
+<details class="card" id="acervo"></details>
+<div class="lista" id="lista"></div>
+</div>`;
+if(!(await carregar()))return;
+$("#fq").oninput=e=>{F.q=e.target.value;desenhar()};
+$("#ft").onchange=e=>{F.tipo=e.target.value;desenhar()};
+$("#fu").onchange=e=>{F.unidade=e.target.value;desenhar()};
+$("#fs").onchange=e=>{F.sit=e.target.value;desenhar()};
+if($("#bNovo"))$("#bNovo").onclick=()=>formulario(null);
+desenhar();
+})();
+</script>
+</body>
+</html>

@@ -115,7 +115,7 @@ const dias=e=>e.encerramento_propostas?(new Date(e.encerramento_propostas)-Date.
 const rotuloPrazo=e=>{const d=dias(e);if(d==null)return["sem data",""];if(d<0)return["encerrado","enc"];if(d<1)return["encerra hoje","urg"];const n=Math.ceil(d);return[n+(n===1?" dia":" dias"),n<=DIAS_MIN?"urg":""]};
 
 root.innerHTML=`<div class="page">
-<header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div class="ttl"><div class="eye">OrçaRede</div><h1>Licitações</h1><div class="sub">Editais abertos no PNCP que combinam com as condições da empresa</div></div><a class="btn" href="orcarede.html">Orçamentos</a><a class="btn" href="index.html">Início</a></header>
+<header class="top"><img src="assets/on-logo.png" alt="ON Engenharia"><div class="ttl"><div class="eye">OrçaRede</div><h1>Licitações</h1><div class="sub">Editais abertos no PNCP que combinam com as condições da empresa</div></div><a class="btn" href="cofre.html">🗄️ Cofre</a><a class="btn" href="orcarede.html">Orçamentos</a><a class="btn" href="index.html">Início</a></header>
 <section class="card"><div class="filtros">
   <label>Buscar no objeto, órgão ou município<input id="fq" type="search" placeholder="ex.: subestação, Santo Ângelo"></label>
   <label>Unidade<select id="fu"><option value="">Todas</option><option value="eletrica">Elétrica</option><option value="solar">Solar</option></select></label>
