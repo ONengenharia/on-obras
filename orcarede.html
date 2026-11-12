@@ -1832,7 +1832,10 @@ async function editor(id){
     camSalva();renderKml();renderPins();renderHead();renderSide();toast(`${L.length} ponto(s) ligados aos vértices.`)}
   async function kCriaPonto(li,i){const v=CAM.L[li].V[i],p=kP(v.x,v.y);const pt=await novoPonto(Math.round(p.X),Math.round(p.Y));if(pt){kmlLiga({li,i},pt)}}
   function bindKml(){const svg=$("#kml");if(!svg||svg._b)return;svg._b=1;
-    svg.addEventListener("pointerdown",e=>{const el=e.target.closest("[data-k]");if(!el||e.button!==0)return;if(placing||tracing||calib||colando)return;
+    svg.addEventListener("pointerdown",e=>{const el=e.target.closest("[data-k]");if(!el||e.button!==0)return;
+      if(colando){const kk=el.dataset.k;if(kk[0]!=="v")return;e.stopPropagation();e.preventDefault();const vi=kV(kk);if(!vi)return;
+        if(vi.v.pid&&ptById(vi.v.pid))colarEm(colando,vi.v.pid);else{const q=kP(vi.v.x,vi.v.y);colarPonto(colando,Math.round(q.X),Math.round(q.Y)).then(pt=>pt&&kmlLiga({li:vi.li,i:vi.i},pt))}return}
+      if(placing||tracing||calib)return;
       e.stopPropagation();const k=el.dataset.k,isV=k[0]==="v",sx=e.clientX,sy=e.clientY;let moved=false;const ini={ox:CAM.ox,oy:CAM.oy},vi=isV?kV(k):null,v0=vi?{x:vi.v.x,y:vi.v.y}:null,wasSel=isV&&camSel&&camSel.li===vi.li&&camSel.i===vi.i;
       const mv=ev=>{const dx=(ev.clientX-sx)/T.s,dy=(ev.clientY-sy)/T.s;if(!moved&&Math.hypot(ev.clientX-sx,ev.clientY-sy)<5)return;
         if(camMover){if(!moved)camPush();moved=true;CAM.ox=ini.ox+dx;CAM.oy=ini.oy+dy;renderKml()}else if(isV&&wasSel){if(!moved)camPush();moved=true;const d=kInv(dx,dy);vi.v.x=v0.x+d.x;vi.v.y=v0.y+d.y;renderKml()}};
@@ -1994,7 +1997,7 @@ async function editor(id){
       if(its.length)await chk(O.from("orc_ponto_itens").insert(its))}
     const av=IT.filter(i=>i.ponto_id===src.id&&!i.ponto_estrutura_id&&!i.auto).map(i=>({ponto_id:pt.id,ponto_estrutura_id:null,material_codigo:i.material_codigo,quantidade:i.quantidade,editado:true}));
     if(av.length)await chk(O.from("orc_ponto_itens").insert(av));
-    await recarregaPonto(pt.id);renderHead();renderPins();renderSide();toast(`Colado como ponto ${n}.`)}
+    await recarregaPonto(pt.id);renderHead();renderPins();renderSide();toast(`Colado como ponto ${n}.`);return pt}
   async function colarEm(srcId,dstId){const src=ptById(srcId),pt=ptById(dstId);if(!src||!pt)return;
     const tem=PE.some(e=>e.ponto_id===pt.id)||IT.some(i=>i.ponto_id===pt.id&&!i.auto);
     if(tem&&!confirm(`O ponto ${nomePonto(pt)} já tem estruturas/materiais. Substituir pelo conteúdo de ${nomePonto(src)}?`))return;
