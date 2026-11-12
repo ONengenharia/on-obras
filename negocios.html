@@ -784,8 +784,16 @@ async function abrir(id,manter){
         pr=(ps||[])[0];t=pr&&pr.dados&&pr.dados.valores?+pr.dados.valores.total:0;orig=pr?"proposta v"+pr.versao:""}
       if(!(t>0))return;
       const inp=gb.querySelector('[data-f="valor"]');if(!inp||!document.body.contains(inp))return;
+      const lb=inp.closest("label"),vm=(c.cadastro||{}).valor_manual,manual=!!(vm&&vm.ativo);
+      if(manual){
+        inp.value=brlTxt(c.valor);inp.readOnly=!(ADM&&ed);inp.title=ADM?"Valor ajustado manualmente (só administradores editam)":"Valor ajustado manualmente por um administrador";
+        if(lb&&!lb.querySelector(".vorc"))lb.insertAdjacentHTML("beforeend",`<small class="note vorc">Valor real (${orig}): <b>${brl(t)}</b></small><small class="note vorc">Valor manual (ajustado): <b>${brl(c.valor)}</b>${vm.por?" · "+esc(vm.por):""}</small>${ADM&&ed?`<small class="vorc"><a href="#" id="vAuto" style="color:#fff;text-decoration:underline">↩ voltar ao valor do orçamento</a></small>`:""}`);
+        const va=lb&&lb.querySelector("#vAuto");if(va)va.onclick=async e=>{e.preventDefault();if(!confirm("Voltar ao valor real do orçamento ("+brl(t)+")? O valor manual será descartado."))return;const cad={...(c.cadastro||{})};delete cad.valor_manual;if(await salvarCampos(c,{valor:t,cadastro:cad}))render()};
+        return}
       inp.value=brlTxt(t);inp.readOnly=true;inp.title="Igual ao valor do orçamento realizado ("+orig+" no OrçaRede)";
-      const lb=inp.closest("label");if(lb&&!lb.querySelector(".vorc"))lb.insertAdjacentHTML("beforeend",`<small class="note vorc">= orçamento realizado · ${orig}</small>`);
+      if(lb&&!lb.querySelector(".vorc"))lb.insertAdjacentHTML("beforeend",`<small class="note vorc">= orçamento realizado · ${orig}</small>${ADM&&ed?`<small class="vorc"><a href="#" id="vMan" style="color:#fff;text-decoration:underline">✏️ ajustar valor manualmente</a></small>`:""}`);
+      const vmn=lb&&lb.querySelector("#vMan");if(vmn)vmn.onclick=async e=>{e.preventDefault();if(!confirm("Ajustar o valor deste negócio manualmente? O valor real do orçamento continua aparecendo abaixo, e só administradores editam o valor manual."))return;
+        const cad={...(c.cadastro||{}),valor_manual:{ativo:true,por:(typeof perfil!=="undefined"&&perfil.nome)||"",em:new Date().toISOString()}};if(await salvarCampos(c,{valor:+c.valor>0?c.valor:t,cadastro:cad})){render();setTimeout(()=>{const i=document.querySelector('[data-f="valor"]');if(i){i.focus();i.select()}},120)}};
       if(ed&&Math.abs((+c.valor||0)-t)>0.009){if(await salvarCampos(c,{valor:t}))render()}}catch(e){}})()}
     {const bp=g.querySelector("#bPuxar");if(bp)bp.onclick=()=>{const m=document.createElement("div");m.className="modal fxm";
       m.innerHTML=`<div class="mbox" style="width:min(460px,100%)"><h2>Trazer “${esc(c.titulo)}” de volta?</h2><p class="note">O card volta para a última etapa em que esteve na sua área. Quem estava com ele recebe o aviso no histórico e na caixa de entrada.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-x3>Cancelar</button><button class="btn pri" data-ok3>↩ Trazer de volta</button></div></div>`;
