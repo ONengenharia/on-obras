@@ -1816,10 +1816,13 @@ async function editor(id){
     if(V.leg)PTS.forEach(p=>{const g=CAM.leg[p.id]||{};if(g.oc)return;const t=(g.t||"").trim()||seqDoPonto(p);if(!t)return;
       const tx=t.split(/[;\n]/).map(l=>l.trim()).filter(Boolean).join("  ·  "),W=(tx.length*5.3+12)*w,Hh=17*w,x0=p.x+17*w,y0=p.y-Hh/2;
       o.push(`<g class="klg" data-pl="${p.id}"><rect x="${x0}" y="${y0}" width="${W}" height="${Hh}" rx="${3*w}" fill="#fff" stroke="#243447" stroke-width="${1*w}"/><text x="${x0+6*w}" y="${p.y+3.8*w}" font-size="${10.5*w}" font-weight="600" fill="#0f2233" pointer-events="none">${esc(tx)}</text></g>`)});
-    if(V.simb)PTS.forEach(p=>{const s=CAM.simb["p:"+p.id];if(s)o.push(symG(s,p.x,p.y,1.3*w,CAM.sang["p:"+p.id]))});
+    if(V.simb)PTS.forEach(p=>{const s=CAM.simb["p:"+p.id];if(s)o.push(symG(s,p.x,p.y,1.3*w,CAM.sang["p:"+p.id])+`<g pointer-events="none"><circle cx="${p.x+13*w}" cy="${p.y-13*w}" r="${7.5*w}" fill="#fff" stroke="#243447" stroke-width="${1.2*w}"/><text x="${p.x+13*w}" y="${p.y-13*w+3.4*w}" font-size="${9.5*w}" font-weight="700" fill="#0f2233" text-anchor="middle" stroke="none">${esc(p.numero)}</text></g>`)});
     svg.innerHTML=o.join("");kPop()}
   function kmlSnap(x,y){if(!CAM.vis.kml||!CAM.L.length)return null;let best=null,bd=16/T.s;CAM.L.forEach((ln,li)=>ln.V.forEach((v,i)=>{const p=kP(v.x,v.y),d=Math.hypot(p.X-x,p.Y-y);if(d<bd){bd=d;best={li,i,X:p.X,Y:p.Y}}}));return best}
   function kmlLiga(sn,pt){if(!sn||!pt)return;camPush();CAM.L[sn.li].V[sn.i].pid=pt.id;const k=`v:${sn.li}:${sn.i}`;if(CAM.simb[k]&&!CAM.simb["p:"+pt.id]){CAM.simb["p:"+pt.id]=CAM.simb[k];if(CAM.sang[k]!=null)CAM.sang["p:"+pt.id]=CAM.sang[k];delete CAM.simb[k];delete CAM.sang[k]}camSalva();renderKml();renderPins()}
+  const kLigados=()=>{const S=new Set();CAM.L.forEach(l=>l.V.forEach(v=>{if(v.pid&&ptById(v.pid))S.add(v.pid)}));return S};
+  function kPerto(li,i){const v=CAM.L[li].V[i],q=kP(v.x,v.y),S=kLigados();let best=null,bd=250;PTS.forEach(p=>{if(S.has(p.id))return;const d=Math.hypot(p.x-q.X,p.y-q.Y);if(d<bd){bd=d;best={p,m:Math.round(d*(escala||0))}}});return best}
+  async function kLigaPonto(li,i,pt){const v=CAM.L[li].V[i],q=kP(v.x,v.y);pt.x=Math.round(q.X);pt.y=Math.round(q.Y);await chk(O.from("orc_pontos").update({x:pt.x,y:pt.y}).eq("id",pt.id));await remedir(pt.id);kmlLiga({li,i},pt);renderHead();renderSide();toast(`Ponto ${pt.numero} ligado ao vértice ${v.n||""}.`)}
   async function kCriaPonto(li,i){const v=CAM.L[li].V[i],p=kP(v.x,v.y);const pt=await novoPonto(Math.round(p.X),Math.round(p.Y));if(pt){kmlLiga({li,i},pt)}}
   function bindKml(){const svg=$("#kml");if(!svg||svg._b)return;svg._b=1;
     svg.addEventListener("pointerdown",e=>{const el=e.target.closest("[data-k]");if(!el||e.button!==0)return;if(placing||tracing||calib||colando)return;
@@ -1847,7 +1850,7 @@ async function editor(id){
        <div class="row"><span>Símbolo: <b>${sym?esc(SIM[sym][0]):"nenhum"}</b></span><button class="btn sm" id="kSim">▣ Escolher</button></div>
        ${ult?"":`<label class="fld">Trecho seguinte<select class="inp" id="kSeg">${Object.entries(LIN).map(([k,s])=>`<option value="${k}" ${(CAM.seg[segK]||"kml")===k?"selected":""}>${s.n}</option>`).join("")}</select></label>`}
        ${SOVER?"":`<div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn sm" id="kDelV" title="Remove este vértice; a linha liga o anterior ao seguinte (Delete)">🗑 Excluir vértice</button>${ult?"":`<button class="btn sm" id="kCut" title="Remove o trecho entre este vértice e o seguinte; a linha vira duas">✂ Cortar trecho seguinte</button>`}<button class="btn sm" id="kDelL" title="Remove a linha inteira">🗑 Excluir linha</button></div>`}
-       <div class="row">${pt?`<span class="note">Ponto <b>${pt.numero}</b> criado aqui</span><button class="btn sm" id="kVer">Abrir ponto</button>`:SOVER?"":`<button class="btn sm pri" id="kCria">Criar ponto aqui</button>`}</div>`;
+       <div class="row" style="gap:6px;flex-wrap:wrap">${pt?`<span class="note">Ponto <b>${pt.numero}</b> ligado a este vértice</span><button class="btn sm" id="kVer">Abrir ponto</button>`:SOVER?"":`<button class="btn sm pri" id="kCria">Criar ponto aqui</button>${(()=>{const n=kPerto(camSel.li,camSel.i);return n?`<button class="btn sm" id="kLiga" title="O ponto é movido para este vértice">🔗 Ligar ao ponto ${n.p.numero}${n.m?` (a ${n.m} m)`:""}</button>`:""})()}`}</div>`;
       $("#kX",b).onclick=()=>{camSel=null;renderKml()};
       const setA=n=>{if(!isFinite(n))return;camPush();CAM.sang[key]=((n%360)+360)%360;camSalva();renderKml()};
       const ia=$("#kAng",b);if(ia){ia.onchange=()=>setA(pnum(ia.value));$("#kAm",b).onclick=()=>setA((CAM.sang[key]||0)-15);$("#kAp",b).onclick=()=>setA((CAM.sang[key]||0)+15);
@@ -1855,6 +1858,7 @@ async function editor(id){
       $("#kSim",b).onclick=()=>escolheSimbolo(key);
       const sg=$("#kSeg",b);if(sg)sg.onchange=()=>{camPush();CAM.seg[segK]=sg.value==="kml"?undefined:sg.value;if(!CAM.seg[segK])delete CAM.seg[segK];camSalva();renderKml()};
       const dv=$("#kDelV",b);if(dv){const li=camSel.li,i=camSel.i;dv.onclick=()=>kExcluiVertice(li,i);const ct=$("#kCut",b);if(ct)ct.onclick=()=>kCortaTrecho(li,i);$("#kDelL",b).onclick=()=>{if(confirm("Excluir a linha inteira ("+(L.nome||"sem nome")+", "+L.V.length+" vértices)? Dá para desfazer."))kExcluiLinha(li)}}
+      const lg=$("#kLiga",b);if(lg)lg.onclick=()=>{const n=kPerto(camSel.li,camSel.i);if(n&&confirm(`Ligar este vértice ao ponto ${n.p.numero}? O ponto será movido para a posição do vértice e os vãos são remedidos.`))kLigaPonto(camSel.li,camSel.i,n.p)};
       const cr=$("#kCria",b);if(cr)cr.onclick=()=>kCriaPonto(camSel.li,camSel.i);
       const vr=$("#kVer",b);if(vr)vr.onclick=()=>{selP=pt.id;renderPins();renderSide();centrar(pt)}}
     const p=kP(v.x,v.y),r=wrap.getBoundingClientRect();let x=p.X*T.s+T.x+16,y=p.Y*T.s+T.y-20;x=Math.max(8,Math.min(r.width-290,x));y=Math.max(60,Math.min(r.height-b.offsetHeight-8,y));b.style.left=x+"px";b.style.top=y+"px"}
