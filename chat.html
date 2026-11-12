@@ -21,19 +21,40 @@ html,body{height:100%;margin:0;background:#1e2f40;font-family:Montserrat,system-
 .gc-win{inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;border-radius:0!important;bottom:0!important;right:0!important;border:0!important}
 .gc-top button[data-x]{display:none!important}
 .gc-top{padding-top:calc(10px + env(safe-area-inset-top,0px))!important}
+#bell{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:10px;z-index:1300;background:#62a8dc;color:#0b1a29;border:0;border-radius:18px;padding:7px 12px;font:600 12px Montserrat,system-ui,sans-serif;display:none}
+#bell.on{display:block}
 </style>
 </head>
 <body>
 <div class="tela" id="tela"><div><img src="assets/on-logo.png" alt="ON Engenharia"><p>Abrindo o chat…</p></div></div>
+<button id="bell" type="button">🔔 Ativar notificações</button>
 <script src="vendor/supabase.js"></script>
 <script src="js/config.js"></script>
 <script src="js/db.js"></script>
 <script>
 (async()=>{
-  if("serviceWorker" in navigator)try{navigator.serviceWorker.register("sw-chat.js")}catch(e){}
+  const reg=("serviceWorker" in navigator)?await navigator.serviceWorker.register("sw-chat.js").then(()=>navigator.serviceWorker.ready).catch(()=>null):null;
   const s=await DB.sessao();
   if(!s){location.href="index.html?volta="+encodeURIComponent(location.pathname);return}
   const g=document.createElement("script");g.src="js/global.js";document.body.appendChild(g);
+  /* notificações push */
+  const VAPID="BLLGVZQZ24rrf6fmo1ENEPsZcrSSQMj1Pm3i_YlKjE6DTZTd-zpM5cleGPkG10zOw4_x4l1UmoWb977yksEZcXo";
+  const u8=b64=>{const p="=".repeat((4-b64.length%4)%4),r=atob((b64+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from([...r].map(c=>c.charCodeAt(0)))};
+  const bell=document.getElementById("bell");
+  const suportado=reg&&"PushManager" in window&&"Notification" in window;
+  async function inscrever(){
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(VAPID)});
+    const j=sub.toJSON();
+    const {error}=await DB.sb.from("push_subs").upsert({user_id:s.user.id,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,ua:navigator.userAgent.slice(0,200)},{onConflict:"endpoint"});
+    if(error)throw error;
+  }
+  if(suportado){
+    if(Notification.permission==="granted"){try{await inscrever()}catch(e){}}
+    else if(Notification.permission!=="denied"){bell.classList.add("on");bell.onclick=async()=>{
+      try{const r=await Notification.requestPermission();if(r==="granted"){await inscrever();bell.classList.remove("on")}else bell.textContent="🔕 Notificações bloqueadas"}catch(e){bell.textContent="Não foi possível ativar"}}}
+  }else{const ios=/iphone|ipad/i.test(navigator.userAgent);if(ios&&!navigator.standalone){bell.textContent="Para receber avisos: instale na Tela de Início";bell.classList.add("on");bell.onclick=null}}
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&reg)reg.getNotifications().then(L=>L.forEach(n=>n.close())).catch(()=>{})});
   let n=0;const t=setInterval(()=>{const f=document.querySelector(".gc-fab");n++;
     if(f){f.click();const w=document.querySelector(".gc-win");if(w&&!w.hidden){clearInterval(t);document.getElementById("tela").hidden=true}}
     if(n>100){clearInterval(t);document.getElementById("tela").innerHTML="<div><p>Não foi possível abrir o chat. Verifique seu acesso e recarregue.</p></div>"}},150);
