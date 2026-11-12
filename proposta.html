@@ -427,7 +427,7 @@ book.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY;st=Date.now()}
 book.addEventListener('pointerup',e=>{if(Math.hypot(e.clientX-sx,e.clientY-sy)>8||Date.now()-st>450)return;const t=e.target.closest('.ph,.fit,.bezel,.floatcard,.wmimg');if(!t)return;const im=t.querySelector('img');if(!im)return;
 if(t.classList.contains('wmimg')&&!t.closest('.page.show'))return;li.src=im.src;ot=Date.now();lb.classList.add('on');e.preventDefault();e.stopPropagation()},true);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')lb.classList.remove('on')});})();
-let PG=[...document.querySelectorAll('#book .page')];document.body.classList.add('book-ready');
+let PG=[...document.querySelectorAll('#book .page')];document.body.classList.add('book-ready');if(new URLSearchParams(location.search).get('prev')==='1'&&new URLSearchParams(location.search).get('pdf')!=='1'){const st=document.createElement('style');st.textContent='html{zoom:.8}body:not(.pdf) #book{height:calc(125vh - 66px)!important;height:calc(125dvh - 66px)!important}';document.head.appendChild(st)}
 function deco(p){p.querySelectorAll('.pad,.cvtxt').forEach(c=>[...c.children].forEach((e,k)=>e.style.setProperty('--i',k)));
 p.querySelectorAll('.svl,.steps,.ct,.stats,.pillars,.feat').forEach(c=>{c.classList.add('stg');[...c.children].forEach((e,k)=>e.style.setProperty('--j',k))});
 p.querySelectorAll('.tags,.vals,.logos').forEach(c=>{c.classList.add('pop');[...c.children].forEach((e,k)=>e.style.setProperty('--j',k))});
