@@ -57,7 +57,8 @@ textarea{min-height:84px;resize:vertical}
    <label>Tipo de obra<select id="tipo"><option value="">—</option></select></label></div>
    <div class="g2"><label>Contato no local<input id="ctt" placeholder="Nome" autocomplete="off"></label><label>Telefone / WhatsApp<input id="fone" inputmode="tel" placeholder="(51) 9…"></label></div>
    <label>Observações<textarea id="obs" placeholder="Fase da obra, quem está tocando, o que viu no local…"></textarea></label>
-   <div class="g2"><label class="btn sec" style="text-align:center;cursor:pointer;gap:0">📷 Foto ou galeria<input id="fotos" type="file" accept="image/*" multiple hidden></label><button class="btn sec" id="rec" type="button">🎤 Gravar áudio</button></div>
+   <div class="g2"><label class="btn sec" style="text-align:center;cursor:pointer;gap:0">📷 Tirar foto<input id="fotoCam" type="file" accept="image/*" capture="environment" hidden></label><label class="btn sec" style="text-align:center;cursor:pointer;gap:0">🖼️ Galeria<input id="fotos" type="file" accept="image/*" multiple hidden></label></div>
+   <button class="btn sec" id="rec" type="button">🎤 Gravar áudio</button>
    <div class="ths" id="ths"></div><div id="aud"></div>
   </div>
  </div>
@@ -97,7 +98,8 @@ $("#maps").addEventListener("change",async()=>{const v=$("#maps").value.trim();i
 /* ---- fotos ---- */
 function reduz(f){return new Promise(res=>{const im=new Image(),u=URL.createObjectURL(f);im.onload=()=>{const m=1600,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>res(b||f),"image/jpeg",.82)};im.onerror=()=>res(f);im.src=u})}
 function desenhaFotos(){$("#ths").innerHTML=FOTOS.map((f,i)=>`<div class="th"><img src="${URL.createObjectURL(f)}" alt=""><button data-x="${i}" type="button">✕</button></div>`).join("");$("#ths").querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{FOTOS.splice(+b.dataset.x,1);desenhaFotos()})}
-$("#fotos").onchange=async e=>{for(const f of [...e.target.files])FOTOS.push(await reduz(f));e.target.value="";desenhaFotos()};
+const addFotos=async e=>{for(const f of [...e.target.files])FOTOS.push(await reduz(f));e.target.value="";desenhaFotos()};
+$("#fotos").onchange=addFotos;$("#fotoCam").onchange=addFotos;
 /* ---- áudio ---- */
 $("#rec").onclick=async()=>{const b=$("#rec");
   if(gravando){gravando.stop();return}
