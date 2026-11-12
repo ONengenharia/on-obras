@@ -174,7 +174,7 @@ aside{background:var(--panel);border:1px solid var(--line);border-radius:10px;mi
 .pin.sel{outline:3px solid #c2185b;outline-offset:2px;z-index:2;cursor:move}
 .pin.anchor{outline:3px dashed #c2185b;outline-offset:3px}
 svg.net{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
-svg.net .kv{pointer-events:all;cursor:pointer}svg.net .klg{pointer-events:all;cursor:pointer}svg.net .kl{pointer-events:none}svg.net.kmover .kl{pointer-events:stroke;cursor:move}svg.net.kmover .kv{cursor:move}
+svg.kscr{width:100%;height:100%;z-index:1}.mapbar,.mapui{z-index:4}svg.net .kv{pointer-events:all;cursor:pointer}svg.net .klg{pointer-events:all;cursor:pointer}svg.net .kl{pointer-events:none}svg.net.kmover .kl{pointer-events:stroke;cursor:move}svg.net.kmover .kv{cursor:move}
 .kpanel,.kpop{position:absolute;z-index:7;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 6px 22px rgba(0,0,0,.35);font-size:12.5px;display:grid;gap:8px;width:280px}.kpanel{left:10px;top:56px}
 .kchk{display:grid;gap:4px}.kchk label{display:flex;gap:6px;align-items:center}.ksim{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.ks{display:grid;gap:3px;justify-items:center;padding:6px 4px;border:1px solid var(--line);border-radius:8px;background:#fff;color:#243447;font-size:10px;cursor:pointer;text-align:center}.ks.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
 svg.net line{pointer-events:stroke;cursor:pointer;stroke-linecap:round}
@@ -1309,7 +1309,7 @@ async function editor(id){
       <div class="tools"><span class="navb"><button class="btn" data-nav="-1" title="Voltar" aria-label="Voltar">←</button><button class="btn" data-nav="1" title="Avançar" aria-label="Avançar">→</button></span><button class="btn" id="bVer">+ Nova versão</button>${ORC.vigente?"":'<button class="btn" id="bVig">Tornar vigente</button>'}<button class="btn" id="bFin"></button><button class="btn" id="bDados">Dados</button><button class="btn" id="bCompras" title="Abrir o painel de compras desta obra com o previsto deste orçamento">🛒 Compras</button></div>
       <nav class="steps">${[["projeto","1","Projeto"],["materiais","2","Materiais"],["precificacao","3","Precificação"],["proposta","4","Proposta"]].map(([k,n,l])=>`<button data-e="${k}" class="${etapa===k?"on":""}" ><b>${n}</b>${l}</button>`).join("")}</nav></header>
      ${etapa==="projeto"?`<div class="proj" id="proj"><aside id="side"></aside><div class="split" id="split" title="Arraste para ajustar a largura · duplo clique volta ao padrão"><button class="spbtn" id="sp1b" title="Recolher/expandir a lista">«</button></div>
-      <div class="mapwrap" id="map"><div class="stage" id="stage"><img id="img" alt="" hidden><div class="blank" id="blank"></div><svg class="net" id="lbls"></svg><svg class="net" id="net"></svg><svg class="net" id="kml"></svg><div id="pins"></div></div>
+      <div class="mapwrap" id="map"><div class="stage" id="stage"><img id="img" alt="" hidden><div class="blank" id="blank"></div><svg class="net" id="lbls"></svg><svg class="net" id="net"></svg><div id="pins"></div></div><svg class="net kscr" id="kml"></svg>
        <div class="mapbar" id="mapbar"></div><div class="mapui"><button id="zmax" aria-label="Expandir mapa" title="Expandir o mapa (Esc volta)" style="font-size:15px">⛶</button><button id="zin" aria-label="Aproximar">+</button><button id="zout" aria-label="Afastar">−</button><button id="zfit" aria-label="Enquadrar" style="font-size:13px">⤢</button></div>
        <div class="hint" id="hint" hidden></div><div class="leg" id="leg" hidden></div><div class="esc" id="esc"></div></div><div class="split" id="split2" hidden title="Arraste para ajustar a largura · duplo clique volta ao padrão"><button class="spbtn" id="sp2b" title="Recolher/expandir o painel">»</button></div><aside id="ptpanel" hidden></aside></div>`:`<div class="full-pane" id="full"></div>`}</div>`;
     $$("[data-e]").forEach(b=>b.onclick=()=>{if(b.dataset.e===etapa)return;if(typeof sujoP!=="undefined"&&sujoP&&!confirm("Há alterações não salvas na precificação. Sair mesmo assim?"))return;if(etapa==="proposta"&&propSujo&&!confirm("Há alterações não salvas na proposta. Sair mesmo assim?"))return;propSujo=false;etapa=b.dataset.e;history.pushState(null,"","?id="+ORC.id+(etapa==="projeto"?"":"&etapa="+etapa));shell()});
@@ -1800,9 +1800,9 @@ async function editor(id){
   const kAng=(L,i)=>{if(i<=0||i>=L.V.length-1)return null;const a=kP(L.V[i-1].x,L.V[i-1].y),b=kP(L.V[i].x,L.V[i].y),c=kP(L.V[i+1].x,L.V[i+1].y);
     let d=(Math.atan2(c.Y-b.Y,c.X-b.X)-Math.atan2(b.Y-a.Y,b.X-a.X))*180/Math.PI;d=((d+540)%360)-180;return d};
   const symG=(id,X,Y,s,a)=>SIM[id]?`<g transform="translate(${X} ${Y}) rotate(${a||0}) scale(${s})" pointer-events="none">${SIM[id][1]}</g>`:"";
-  function renderKml(){const svg=$("#kml");if(!svg)return;svg.setAttribute("width",D.w);svg.setAttribute("height",D.h);svg.classList.toggle("kmover",camMover);
-    const w=inv(),V=CAM.vis,o=[];
-    if(V.kml)CAM.L.forEach((ln,li)=>{const P=ln.V.map(v=>kP(v.x,v.y));
+  function renderKml(){const svg=$("#kml");if(!svg)return;svg.classList.toggle("kmover",camMover);
+    const w=1,V=CAM.vis,o=[],SX=x=>x*T.s+T.x,SY=y=>y*T.s+T.y,kS=(x,y)=>{const q=kP(x,y);return{X:SX(q.X),Y:SY(q.Y)}};
+    if(V.kml)CAM.L.forEach((ln,li)=>{const P=ln.V.map(v=>kS(v.x,v.y));
       for(let i=0;i<P.length-1;i++){const key=`s:${li}:${i}`,st=LIN[CAM.seg[key]]||LIN.kml;
         o.push(`<line class="kl" data-k="${key}" x1="${P[i].X}" y1="${P[i].Y}" x2="${P[i+1].X}" y2="${P[i+1].Y}" stroke="${st.c}" stroke-width="${2.2*w}" ${st.d?`stroke-dasharray="${st.d.split(" ").map(n=>n*w).join(" ")}"`:""} opacity=".9"/>`)}
       if(V.vaos||camSel)for(let i=0;i<P.length-1;i++){const sel=camSel&&camSel.li===li&&(camSel.i===i||camSel.i===i+1);if(!(V.vaos||sel))continue;
@@ -1813,10 +1813,10 @@ async function editor(id){
         o.push(`<circle class="kv" data-k="${key}" cx="${X}" cy="${Y}" r="${10*w}" fill="transparent"/>`);
         if(sel)o.push(`<circle cx="${X}" cy="${Y}" r="${10*w}" fill="none" stroke="#ffd54a" stroke-width="${2*w}" pointer-events="none"/>`);
         if(V.nomes&&v.n)o.push(`<text x="${X+7*w}" y="${Y-7*w}" font-size="${11*w}" fill="#243447" stroke="#fff" stroke-width="${3*w}" paint-order="stroke">${esc(v.n)}</text>`)})});
-    if(V.leg)PTS.forEach(p=>{const g=CAM.leg[p.id]||{};if(g.oc)return;const t=(g.t||"").trim()||seqDoPonto(p);if(!t)return;
+    if(V.leg)PTS.forEach(p0=>{const p={id:p0.id,x:SX(p0.x),y:SY(p0.y)},g=CAM.leg[p.id]||{};if(g.oc)return;const t=(g.t||"").trim()||seqDoPonto(p0);if(!t)return;
       const tx=t.split(/[;\n]/).map(l=>l.trim()).filter(Boolean).join("  ·  "),W=(tx.length*5.3+12)*w,Hh=17*w,x0=p.x+17*w,y0=p.y-Hh/2;
       o.push(`<g class="klg" data-pl="${p.id}"><rect x="${x0}" y="${y0}" width="${W}" height="${Hh}" rx="${3*w}" fill="#fff" stroke="#243447" stroke-width="${1*w}"/><text x="${x0+6*w}" y="${p.y+3.8*w}" font-size="${10.5*w}" font-weight="600" fill="#0f2233" pointer-events="none">${esc(tx)}</text></g>`)});
-    if(V.simb)PTS.forEach(p=>{const s=CAM.simb["p:"+p.id];if(s)o.push(symG(s,p.x,p.y,1.3*w,CAM.sang["p:"+p.id])+`<g pointer-events="none"><circle cx="${p.x+13*w}" cy="${p.y-13*w}" r="${7.5*w}" fill="#fff" stroke="#243447" stroke-width="${1.2*w}"/><text x="${p.x+13*w}" y="${p.y-13*w+3.4*w}" font-size="${9.5*w}" font-weight="700" fill="#0f2233" text-anchor="middle" stroke="none">${esc(p.numero)}</text></g>`)});
+    if(V.simb)PTS.forEach(p0=>{const p={id:p0.id,numero:p0.numero,x:SX(p0.x),y:SY(p0.y)},s=CAM.simb["p:"+p.id];if(s)o.push(symG(s,p.x,p.y,1.3*w,CAM.sang["p:"+p.id])+`<g pointer-events="none"><circle cx="${p.x+13*w}" cy="${p.y-13*w}" r="${7.5*w}" fill="#fff" stroke="#243447" stroke-width="${1.2*w}"/><text x="${p.x+13*w}" y="${p.y-13*w+3.4*w}" font-size="${9.5*w}" font-weight="700" fill="#0f2233" text-anchor="middle" stroke="none">${esc(p.numero)}</text></g>`)});
     svg.innerHTML=o.join("");kPop()}
   function kmlSnap(x,y){if(!CAM.vis.kml||!CAM.L.length)return null;let best=null,bd=16/T.s;CAM.L.forEach((ln,li)=>ln.V.forEach((v,i)=>{const p=kP(v.x,v.y),d=Math.hypot(p.X-x,p.Y-y);if(d<bd){bd=d;best={li,i,X:p.X,Y:p.Y}}}));return best}
   function kmlLiga(sn,pt){if(!sn||!pt)return;camPush();CAM.L[sn.li].V[sn.i].pid=pt.id;const k=`v:${sn.li}:${sn.i}`;if(CAM.simb[k]&&!CAM.simb["p:"+pt.id]){CAM.simb["p:"+pt.id]=CAM.simb[k];if(CAM.sang[k]!=null)CAM.sang["p:"+pt.id]=CAM.sang[k];delete CAM.simb[k];delete CAM.sang[k]}camSalva();renderKml();renderPins()}
