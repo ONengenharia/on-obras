@@ -401,7 +401,7 @@ async function salvarCampos(c,campos){
 }
 
 /* ---------- tela ---------- */
-function navHtml(){return `<nav class="areas"><a href="index.html#painel"><b>🏠 Início</b><small>Painel geral</small></a><a class="on" href="negocios.html"><b>💼 Negócios</b><small>Elétrica e Solar · do comercial às compras</small></a><a href="index.html#kanban" data-aba="kanban"><b>🏗️ Obras</b><small>Obras elétricas · postes, rede, fotos, diário</small></a><a href="index.html#inicio" data-aba="inicio"><b>📍 Mapa</b><small>Todas as obras e instalações</small></a>${ADM?'<a href="orcarede.html"><b>🧮 OrçaRede</b><small>Orçamentos de rede por ponto</small></a>':""}${COMPRAS?'<a href="compras.html"><b>🛒 Compras</b><small>Previsto × realizado</small></a>':""}</nav>`}
+function navHtml(){return `<nav class="areas"><a href="index.html#painel"><b>🏠 Início</b><small>Painel geral</small></a><a class="on" href="negocios.html"><b>💼 Negócios</b><small>Elétrica e Solar · do comercial às compras</small></a><a href="index.html#kanban" data-aba="kanban"><b>🏗️ Obras</b><small>Obras elétricas · postes, rede, fotos, diário</small></a><a href="index.html#inicio" data-aba="inicio"><b>📍 Mapa</b><small>Todas as obras e instalações</small></a>${ADM?'<a href="licitacoes.html"><b>📑 Licitações</b><small>Radar de editais · PNCP</small></a>':""}${ADM?'<a href="orcarede.html"><b>🧮 OrçaRede</b><small>Orçamentos de rede por ponto</small></a>':""}${COMPRAS?'<a href="compras.html"><b>🛒 Compras</b><small>Previsto × realizado</small></a>':""}</nav>`}
 let COLW=(()=>{try{return JSON.parse(localStorage.getItem("neg.colW")||"{}")}catch(e){return{}}})();
 function salvaColW(){try{localStorage.setItem("neg.colW",JSON.stringify(COLW))}catch(e){}}
 function render(){
