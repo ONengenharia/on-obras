@@ -98,9 +98,10 @@ const perfil=await DB.meuPerfil();
 const NIVEL=perfil?(await O.rpc("meu_nivel")).data:null;
 if(!NIVEL){falha("Você ainda não tem acesso ao OrçaRede. Peça a um administrador para liberar (ver ou editar).");return}
 const EDITA=NIVEL!=="ver";
+const PODE_NEG=EDITA&&perfil&&(perfil.papel==="admin"||perfil.papel==="executor");
 
 const [ed,co]=await Promise.all([
-  O.from("licitacao_editais").select("id,orgao,municipio,uf,objeto,modalidade,valor_estimado,abertura_propostas,encerramento_propostas,link_pncp,link_origem,palavras,unidade,status,nota,criado_em,atualizado_em").order("encerramento_propostas",{ascending:true,nullsFirst:false}).limit(2000),
+  O.from("licitacao_editais").select("id,orgao,municipio,uf,objeto,modalidade,valor_estimado,abertura_propostas,encerramento_propostas,link_pncp,link_origem,palavras,unidade,status,nota,negocio_id,criado_em,atualizado_em").order("encerramento_propostas",{ascending:true,nullsFirst:false}).limit(2000),
   O.from("licitacao_condicoes").select("dados").eq("id",1).maybeSingle()]);
 if(ed.error){falha("Não foi possível ler as licitações: "+ed.error.message+". Se a tabela ainda não existe, aplique o arquivo sql/licitacoes.sql no Supabase.");return}
 const EDITAIS=ed.data||[];
@@ -174,6 +175,7 @@ function cartao(e){
   <div class="acoes">
     ${pncp?`<a class="btn pri" href="${esc(pncp)}" target="_blank" rel="noopener noreferrer">Abrir no PNCP</a>`:""}
     ${origem?`<a class="btn" href="${esc(origem)}" target="_blank" rel="noopener noreferrer">Abrir no portal de origem</a>`:""}
+    ${e.negocio_id?`<a class="btn pri" href="negocios.html?q=licitacao&n=${esc(e.negocio_id)}">Ver negócio</a>`:PODE_NEG&&e.status!=="descartado"?`<button class="btn pri" data-negocio>Abrir negócio</button>`:""}
     <select data-st ${EDITA?"":"disabled"} aria-label="Situação no funil">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${k===e.status?"selected":""}>${v}</option>`).join("")}</select>
     <button class="lnk push" data-nota>${e.nota?"Ver nota":"Adicionar nota"}</button>
   </div>
@@ -194,6 +196,18 @@ ligar("#fq","q");ligar("#fu","unidade","change");ligar("#fm","mod","change");lig
 $("#lista").addEventListener("click",async ev=>{
   const c=ev.target.closest(".lc");if(!c)return;
   const e=EDITAIS.find(x=>x.id===c.dataset.id);if(!e)return;
+  if(ev.target.closest("[data-negocio]")){
+    const b=ev.target.closest("[data-negocio]");if(b.disabled||e.negocio_id)return;b.disabled=true;b.textContent="Abrindo…";
+    const dia=e.encerramento_propostas?new Date(e.encerramento_propostas).toLocaleDateString("en-CA",{timeZone:"America/Sao_Paulo"}):null;
+    const obs=["Objeto: "+e.objeto,e.modalidade?"Modalidade: "+e.modalidade:"",e.valor_estimado!=null?"Valor estimado: "+brl(e.valor_estimado):"",
+      e.encerramento_propostas?"Propostas até: "+fdt(e.encerramento_propostas):"",seguro(e.link_pncp)?"PNCP: "+e.link_pncp:"",seguro(e.link_origem)?"Portal de origem: "+e.link_origem:""].filter(Boolean).join("\n");
+    const titulo=((e.orgao||"Licitação")+" · "+e.objeto).slice(0,120);
+    const uid=sess.user.id;
+    const ins=await sb.from("negocios").insert({quadro:"licitacao",coluna:"lic_triagem",titulo,cliente:e.orgao||"",cidade:e.municipio||"",valor:e.valor_estimado||0,prazo:dia,origem:"Licitação",obs,membros:[uid],resp:uid}).select("id").single();
+    if(ins.error){b.disabled=false;b.textContent="Abrir negócio";return aviso("Não foi possível abrir o negócio: "+ins.error.message)}
+    const upd=await O.from("licitacao_editais").update({negocio_id:ins.data.id,...(e.status==="novo"?{status:"em_triagem"}:{})}).eq("id",e.id);
+    if(upd.error){aviso("Negócio criado, mas o vínculo falhou: "+upd.error.message);b.disabled=false;b.textContent="Abrir negócio";return}
+    location.href="negocios.html?q=licitacao&n="+encodeURIComponent(ins.data.id);return}
   if(ev.target.closest("[data-nota]")){const n=$(".nota",c);n.hidden=!n.hidden;return}
   if(ev.target.closest("[data-salvanota]")){
     const nota=$("[data-nt]",c).value.trim()||null;
