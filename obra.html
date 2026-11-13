@@ -527,7 +527,16 @@ function renderSide(){
         S.log.push({id:uid(),data:draft.data||today(),ts:new Date().toTimeString().slice(0,8),texto:txt,fotos:draft.fotos.slice()});draft={txt:"",fotos:[],data:""};touch();renderSide();toast("Registro adicionado. Clique em Salvar para o cliente ver.")};
       pane.querySelectorAll("[data-ldel]").forEach(b=>b.onclick=()=>confirmBox("Excluir este registro e suas fotos?",()=>{(window.__logDel||(window.__logDel=new Set())).add(b.dataset.ldel);S.log=S.log.filter(l=>l.id!==b.dataset.ldel);touch();renderSide()}))}
   }else if(tab==="docs"){
-    pane.innerHTML=anexosHtml("docs","Documentações da empresa",admEd()?"Anexe alvarás, certidões, ART e outros documentos da empresa. Marque “Visível ao cliente” nos que devem aparecer no link do cliente.":"Nenhum documento disponível.");bindAnexos(pane,"docs");
+    const sha=async t=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("on-docs|"+t)))].map(x=>x.toString(16).padStart(2,"0")).join("");
+    const chave="docsOk_"+(S.id||location.search);let liberado=!S.docsHash;try{if(sessionStorage.getItem(chave)===S.docsHash)liberado=true}catch(_){}
+    if(!liberado&&role==="cliente"){
+      pane.innerHTML='<div class="mh"><span class="lbl">Documentações da empresa</span></div><p class="note">Esta área é protegida. Digite a senha informada pela ON Engenharia.</p><div class="row" style="gap:6px"><input type="password" id="dcPw" placeholder="Senha" autocomplete="off" style="flex:1"><button class="btn pri" id="dcOk">Entrar</button></div><p class="note" id="dcErr" style="color:var(--bad,#c2185b)"></p>';
+      const ir=async()=>{const h=await sha($("#dcPw").value.trim());if(h===S.docsHash){try{sessionStorage.setItem(chave,h)}catch(_){}renderSide()}else $("#dcErr").textContent="Senha incorreta."};
+      $("#dcOk").onclick=ir;$("#dcPw").onkeydown=e=>{if(e.key==="Enter")ir()};
+    }else{
+      pane.innerHTML=(admEd()?`<div class="row"><span class="note">🔒 Senha de acesso do cliente a esta aba: <b>${S.docsHash?"definida":"não definida (acesso livre)"}</b></span><button class="lnk" id="dcSenha">${S.docsHash?"Alterar / remover":"Definir senha"}</button></div>`:"")+anexosHtml("docs","Documentações da empresa",admEd()?"Anexe alvarás, certidões, ART e outros documentos da empresa. Marque “Visível ao cliente” nos que devem aparecer no link do cliente.":"Nenhum documento disponível.");bindAnexos(pane,"docs");
+      const sb2=$("#dcSenha");if(sb2)sb2.onclick=()=>modal("Senha da aba Documentações",[{k:"pw",label:"Nova senha (deixe em branco para remover)",type:"text",v:""},{k:"n",type:"note",label:"Vale só para esta aba, neste link do cliente. O cliente digita a senha uma vez por sessão."}],async v=>{const t=(v.pw||"").trim();if(t)S.docsHash=await sha(t);else delete S.docsHash;touch();renderSide();toast(t?"Senha definida. Clique em Salvar.":"Senha removida. Clique em Salvar.")});
+    }
   }else if(tab==="proj"){
     pane.innerHTML=anexosHtml();bindAnexos(pane,"anexos");
   }else if(tab==="apr"){renderApr(pane);
