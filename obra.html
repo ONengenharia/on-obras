@@ -498,7 +498,7 @@ async function aprPdf(a){
   d.save(`APR ${S.obra.titulo} ${a.data}.pdf`)}
 function renderSide(){
   const n=allPhotos().length;
-  $("#tabs").innerHTML=[["quant","Quantitativos"],["mat","Materiais"],["proj","Projeto"+((S.anexos||[]).length?` (${S.anexos.length})`:"")],["diario","Diário"],["fotos","Fotos"+(n?` (${n})`:"")],["obra","Obra"],...(role!=="cliente"?[["apr","APR"]]:[])].map(([k,l])=>`<button class="${tab===k?"on":""}" data-tab="${k}">${l}</button>`).join("");
+  $("#tabs").innerHTML=[["quant","Quantitativos"],["mat","Materiais"],["proj","Projeto"+((S.anexos||[]).length?` (${S.anexos.length})`:"")],["diario","Diário"],...((role!=="cliente"||(S.docs||[]).some(d=>d.visivel))?[["docs","Documentações"+(role!=="cliente"&&(S.docs||[]).length?` (${S.docs.length})`:"")]]:[]),["fotos","Fotos"+(n?` (${n})`:"")],["obra","Obra"],...(role!=="cliente"?[["apr","APR"]]:[])].map(([k,l])=>`<button class="${tab===k?"on":""}" data-tab="${k}">${l}</button>`).join("");
   $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;renderSide()});
   const pane=$("#pane");
   if(tab==="quant"){const edit=admEd();
@@ -526,6 +526,8 @@ function renderSide(){
       $("#cSend").onclick=()=>{const txt=draft.txt.trim();if(!txt&&!draft.fotos.length){toast("Escreva uma mensagem ou anexe uma foto.");return}
         S.log.push({id:uid(),data:draft.data||today(),ts:new Date().toTimeString().slice(0,8),texto:txt,fotos:draft.fotos.slice()});draft={txt:"",fotos:[],data:""};touch();renderSide();toast("Registro adicionado. Clique em Salvar para o cliente ver.")};
       pane.querySelectorAll("[data-ldel]").forEach(b=>b.onclick=()=>confirmBox("Excluir este registro e suas fotos?",()=>{(window.__logDel||(window.__logDel=new Set())).add(b.dataset.ldel);S.log=S.log.filter(l=>l.id!==b.dataset.ldel);touch();renderSide()}))}
+  }else if(tab==="docs"){
+    pane.innerHTML=anexosHtml("docs","Documentações da empresa",admEd()?"Anexe alvarás, certidões, ART e outros documentos da empresa. Marque “Visível ao cliente” nos que devem aparecer no link do cliente.":"Nenhum documento disponível.");bindAnexos(pane,"docs");
   }else if(tab==="proj"){
     pane.innerHTML=anexosHtml();bindAnexos(pane,"anexos");
   }else if(tab==="apr"){renderApr(pane);
@@ -613,15 +615,16 @@ const ficon=n=>/\.pdf$/i.test(n)?"PDF":/\.(png|jpe?g|webp|gif)$/i.test(n)?"IMG":
 const urlBaixar=a=>/supabase\.co\/storage\//.test(a.url)?a.url+(a.url.includes("?")?"&":"?")+"download="+encodeURIComponent(a.nome||"arquivo"):a.url;
 function anexosHtml(key="anexos",tit="Arquivos do projeto",vazio){
   const edit=admEd();
-  const A=S[key]||[];
+  const A=(S[key]||[]).filter(a=>key!=="docs"||edit||a.visivel);
   return `<div class="mh" style="margin-top:${key==="anexos"?6:18}px"><span class="lbl">${tit}</span>${edit?`<label class="btn" style="position:relative;overflow:hidden">+ Anexar arquivo<input type="file" multiple id="axUp_${key}" style="position:absolute;inset:0;opacity:0"></label>`:""}</div>`
-   +(A.length?`<div class="axl">${A.map(a=>`<div class="ax"><span class="axi">${ficon(a.nome)}</span><button class="axn" data-axo="${a.id}">${esc(a.nome)}<small>${a.tam?fsize(a.tam):""}${a.data?" · "+fdate(a.data):""}</small></button><a class="btn" href="${esc(urlBaixar(a))}" download="${esc(a.nome)}" target="_blank" rel="noopener" title="Baixar">⬇ Baixar</a>${edit?`<button class="lnk del" data-axd="${a.id}">Excluir</button>`:""}</div>`).join("")}</div>`
+   +(A.length?`<div class="axl">${A.map(a=>`<div class="ax"><span class="axi">${ficon(a.nome)}</span><button class="axn" data-axo="${a.id}">${esc(a.nome)}<small>${a.tam?fsize(a.tam):""}${a.data?" · "+fdate(a.data):""}</small></button><a class="btn" href="${esc(urlBaixar(a))}" download="${esc(a.nome)}" target="_blank" rel="noopener" title="Baixar">⬇ Baixar</a>${key==="docs"&&edit?`<label class="note" style="display:flex;gap:4px;align-items:center;white-space:nowrap" title="Se marcado, o cliente vê este documento no link dele"><input type="checkbox" data-axv="${a.id}" ${a.visivel?"checked":""}> Visível ao cliente</label>`:""}${edit?`<button class="lnk del" data-axd="${a.id}">Excluir</button>`:""}</div>`).join("")}</div>`
    :`<p class="empty">${vazio?vazio:edit?"Anexe PDFs, fotos, plantas, memorial, ART e outros documentos. Eles ficam disponíveis para visualizar e baixar, inclusive pelo cliente.":"Nenhum arquivo do projeto ainda."}</p>`);
 }
 function bindAnexos(pane,key="anexos"){
   const edit=admEd();
   pane.querySelectorAll("[data-axo]").forEach(b=>b.onclick=()=>openAnexo((S[key]||[]).find(a=>a.id===b.dataset.axo)));
   if(!edit)return;
+  pane.querySelectorAll("[data-axv]").forEach(c=>c.onchange=()=>{const a=(S[key]||[]).find(x=>x.id===c.dataset.axv);if(a){a.visivel=c.checked;touch();toast(c.checked?"Visível ao cliente. Clique em Salvar.":"Oculto do cliente. Clique em Salvar.")}});
   pane.querySelectorAll("[data-axd]").forEach(b=>b.onclick=()=>confirmBox("Excluir este arquivo?",()=>{S[key]=(S[key]||[]).filter(a=>a.id!==b.dataset.axd);touch();renderSide()}));
   const up=$("#axUp_"+key,pane);if(up)up.onchange=async()=>{const fs=[...up.files];up.value="";if(!fs.length)return;
     if(!assetsNs){toast("Envio de arquivos indisponível nesta visualização.");return}
