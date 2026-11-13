@@ -266,6 +266,7 @@ if(!S.linkMig){S.linkMig=1;const L={m4:"q4",m5:"q1",m6:"BT",m7:"q5",m8:"q6"};S.m
 let VOC=new Set(),massa=null,edit=false,canEdit=false,dirty=false,placing=false,selId=null,selSeg=null,tracing=null,anchor=null,tab="quant";
 let artifactNs=null,assetsNs=null;
 const admEd=()=>edit&&role==="admin";
+const SENHA_DOC="ONdoc";
 let draft={txt:"",fotos:[],data:""},matQ="";
 const lsGet=k=>{try{return localStorage.getItem("obra."+k)}catch(e){return null}};
 const lsSet=(k,v)=>{try{localStorage.setItem("obra."+k,v)}catch(e){}};
@@ -498,7 +499,7 @@ async function aprPdf(a){
   d.save(`APR ${S.obra.titulo} ${a.data}.pdf`)}
 function renderSide(){
   const n=allPhotos().length;
-  $("#tabs").innerHTML=[["quant","Quantitativos"],["mat","Materiais"],["proj","Projeto"+((S.anexos||[]).length?` (${S.anexos.length})`:"")],["diario","Diário"],...((role!=="cliente"||(S.docs||[]).some(d=>d.visivel))?[["docs","Documentações"+(role!=="cliente"&&(S.docs||[]).length?` (${S.docs.length})`:"")]]:[]),["fotos","Fotos"+(n?` (${n})`:"")],["obra","Obra"],...(role!=="cliente"?[["apr","APR"]]:[])].map(([k,l])=>`<button class="${tab===k?"on":""}" data-tab="${k}">${l}</button>`).join("");
+  $("#tabs").innerHTML=[["quant","Quantitativos"],["mat","Materiais"],["proj","Projeto"+((S.anexos||[]).length?` (${S.anexos.length})`:"")],["diario","Diário"],...((role!=="cliente"||(S.docs||[]).some(d=>d.visivel))?[["docs","Documentos"+(role!=="cliente"?` (senha: ${SENHA_DOC})`:"")]]:[]),["fotos","Fotos"+(n?` (${n})`:"")],["obra","Obra"],...(role!=="cliente"?[["apr","APR"]]:[])].map(([k,l])=>`<button class="${tab===k?"on":""}" data-tab="${k}">${l}</button>`).join("");
   $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;renderSide()});
   const pane=$("#pane");
   if(tab==="quant"){const edit=admEd();
@@ -527,16 +528,18 @@ function renderSide(){
         S.log.push({id:uid(),data:draft.data||today(),ts:new Date().toTimeString().slice(0,8),texto:txt,fotos:draft.fotos.slice()});draft={txt:"",fotos:[],data:""};touch();renderSide();toast("Registro adicionado. Clique em Salvar para o cliente ver.")};
       pane.querySelectorAll("[data-ldel]").forEach(b=>b.onclick=()=>confirmBox("Excluir este registro e suas fotos?",()=>{(window.__logDel||(window.__logDel=new Set())).add(b.dataset.ldel);S.log=S.log.filter(l=>l.id!==b.dataset.ldel);touch();renderSide()}))}
   }else if(tab==="docs"){
+    (async()=>{
     const sha=async t=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("on-docs|"+t)))].map(x=>x.toString(16).padStart(2,"0")).join("");
-    const chave="docsOk_"+(S.id||location.search);let liberado=!S.docsHash;try{if(sessionStorage.getItem(chave)===S.docsHash)liberado=true}catch(_){}
+    const H=S.docsHash||await sha(SENHA_DOC);if(tab!=="docs")return;const chave="docsOk_"+(S.id||location.search);let liberado=false;try{if(sessionStorage.getItem(chave)===H)liberado=true}catch(_){}
     if(!liberado&&role==="cliente"){
       pane.innerHTML='<div class="mh"><span class="lbl">Documentações da empresa</span></div><p class="note">Esta área é protegida. Digite a senha informada pela ON Engenharia.</p><div class="row" style="gap:6px"><input type="password" id="dcPw" placeholder="Senha" autocomplete="off" style="flex:1"><button class="btn pri" id="dcOk">Entrar</button></div><p class="note" id="dcErr" style="color:var(--bad,#c2185b)"></p>';
-      const ir=async()=>{const h=await sha($("#dcPw").value.trim());if(h===S.docsHash){try{sessionStorage.setItem(chave,h)}catch(_){}renderSide()}else $("#dcErr").textContent="Senha incorreta."};
+      const ir=async()=>{const h=await sha($("#dcPw").value.trim());if(h===H){try{sessionStorage.setItem(chave,h)}catch(_){}renderSide()}else $("#dcErr").textContent="Senha incorreta."};
       $("#dcOk").onclick=ir;$("#dcPw").onkeydown=e=>{if(e.key==="Enter")ir()};
     }else{
-      pane.innerHTML=(admEd()?`<div class="row"><span class="note">🔒 Senha de acesso do cliente a esta aba: <b>${S.docsHash?"definida":"não definida (acesso livre)"}</b></span><button class="lnk" id="dcSenha">${S.docsHash?"Alterar / remover":"Definir senha"}</button></div>`:"")+anexosHtml("docs","Documentações da empresa",admEd()?"Anexe alvarás, certidões, ART e outros documentos da empresa. Marque “Visível ao cliente” nos que devem aparecer no link do cliente.":"Nenhum documento disponível.");bindAnexos(pane,"docs");
-      const sb2=$("#dcSenha");if(sb2)sb2.onclick=()=>modal("Senha da aba Documentações",[{k:"pw",label:"Nova senha (deixe em branco para remover)",type:"text",v:""},{k:"n",type:"note",label:"Vale só para esta aba, neste link do cliente. O cliente digita a senha uma vez por sessão."}],async v=>{const t=(v.pw||"").trim();if(t)S.docsHash=await sha(t);else delete S.docsHash;touch();renderSide();toast(t?"Senha definida. Clique em Salvar.":"Senha removida. Clique em Salvar.")});
+      pane.innerHTML=(admEd()?`<div class="row"><span class="note">🔒 Senha do cliente nesta aba: <b>${S.docsHash?"personalizada desta obra":SENHA_DOC+" (padrão)"}</b></span><button class="lnk" id="dcSenha">${S.docsHash?"Voltar à padrão / alterar":"Usar senha própria nesta obra"}</button></div>`:"")+anexosHtml("docs","Documentações da empresa",admEd()?"Anexe alvarás, certidões, ART e outros documentos da empresa. Marque “Visível ao cliente” nos que devem aparecer no link do cliente.":"Nenhum documento disponível.");bindAnexos(pane,"docs");
+      const sb2=$("#dcSenha");if(sb2)sb2.onclick=()=>modal("Senha da aba Documentações",[{k:"pw",label:"Nova senha (deixe em branco para voltar à padrão)",type:"text",v:""},{k:"n",type:"note",label:"Vale só para esta aba, neste link do cliente. O cliente digita a senha uma vez por sessão."}],async v=>{const t=(v.pw||"").trim();if(t)S.docsHash=await sha(t);else delete S.docsHash;touch();renderSide();toast(t?"Senha definida. Clique em Salvar.":"Voltou à senha padrão. Clique em Salvar.")});
     }
+    })();
   }else if(tab==="proj"){
     pane.innerHTML=anexosHtml();bindAnexos(pane,"anexos");
   }else if(tab==="apr"){renderApr(pane);
