@@ -1800,8 +1800,8 @@ async function editor(id){
   const kAng=(L,i)=>{if(i<=0||i>=L.V.length-1)return null;const a=kP(L.V[i-1].x,L.V[i-1].y),b=kP(L.V[i].x,L.V[i].y),c=kP(L.V[i+1].x,L.V[i+1].y);
     let d=(Math.atan2(c.Y-b.Y,c.X-b.X)-Math.atan2(b.Y-a.Y,b.X-a.X))*180/Math.PI;d=((d+540)%360)-180;return d};
   const symG=(id,X,Y,s,a)=>SIM[id]?`<g transform="translate(${X} ${Y}) rotate(${a||0}) scale(${s})" pointer-events="none">${SIM[id][1]}</g>`:"";
-  function renderKml(){const svg=$("#kml");if(!svg)return;svg.classList.toggle("kmover",camMover);
-    const w=1,V=CAM.vis,o=[],SX=x=>x*T.s+T.x,SY=y=>y*T.s+T.y,kS=(x,y)=>{const q=kP(x,y);return{X:SX(q.X),Y:SY(q.Y)}},LV={};CAM.L.forEach(l=>l.V.forEach(v=>{if(v.pid&&ptById(v.pid))LV[v.pid]=v}));const posP=p0=>{const v=LV[p0.id];return v?kS(v.x,v.y):{X:SX(p0.x),Y:SY(p0.y)}};
+  function renderKml(ex){const svg=ex?null:$("#kml");if(!ex&&!svg)return;if(svg)svg.classList.toggle("kmover",camMover);
+    const TT=ex?{x:0,y:0,s:1}:T,w=ex?ex.w:1,V=ex?Object.assign({},CAM.vis,{leg:ex.leg,nomes:false,vaos:false}):CAM.vis,o=[],SX=x=>x*TT.s+TT.x,SY=y=>y*TT.s+TT.y,kS=(x,y)=>{const q=kP(x,y);return{X:SX(q.X),Y:SY(q.Y)}},LV={};CAM.L.forEach(l=>l.V.forEach(v=>{if(v.pid&&ptById(v.pid))LV[v.pid]=v}));const posP=p0=>{const v=LV[p0.id];return v?kS(v.x,v.y):{X:SX(p0.x),Y:SY(p0.y)}};
     if(V.kml)CAM.L.forEach((ln,li)=>{const P=ln.V.map(v=>kS(v.x,v.y));
       for(let i=0;i<P.length-1;i++){const key=`s:${li}:${i}`,st=LIN[CAM.seg[key]]||LIN.kml;
         o.push(`<line class="kl" data-k="${key}" x1="${P[i].X}" y1="${P[i].Y}" x2="${P[i+1].X}" y2="${P[i+1].Y}" stroke="${st.c}" stroke-width="${2.2*w}" ${st.d?`stroke-dasharray="${st.d.split(" ").map(n=>n*w).join(" ")}"`:""} opacity=".9"/>`)}
@@ -1817,7 +1817,24 @@ async function editor(id){
       const tx=t.split(/[;\n]/).map(l=>l.trim()).filter(Boolean).join("  ·  "),W=(tx.length*5.3+12)*w,Hh=17*w,x0=p.x+17*w,y0=p.y-Hh/2;
       o.push(`<g class="klg" data-pl="${p.id}"><rect x="${x0}" y="${y0}" width="${W}" height="${Hh}" rx="${3*w}" fill="#fff" stroke="#243447" stroke-width="${1*w}"/><text x="${x0+6*w}" y="${p.y+3.8*w}" font-size="${10.5*w}" font-weight="600" fill="#0f2233" pointer-events="none">${esc(tx)}</text></g>`)});
     if(V.simb&&CAM.L.length)PTS.forEach(p0=>{const pp=posP(p0),p={id:p0.id,numero:p0.numero,x:pp.X,y:pp.Y},s=simbPonto(p0);if(s)o.push(symG(s,p.x,p.y,1.3*w,CAM.sang["p:"+p.id])+`<g pointer-events="none"><circle cx="${p.x+13*w}" cy="${p.y-13*w}" r="${7.5*w}" fill="#fff" stroke="#243447" stroke-width="${1.2*w}"/><text x="${p.x+13*w}" y="${p.y-13*w+3.4*w}" font-size="${9.5*w}" font-weight="700" fill="#0f2233" text-anchor="middle" stroke="none">${esc(p.numero)}</text></g>`)});
-    svg.innerHTML=o.join("");kPop()}
+    if(ex)return o.join("").replace(/<circle class="kv"[^>]*fill="transparent"\/>/g,"");svg.innerHTML=o.join("");kPop()}
+  async function kmlComposta(leg){
+    const W=ORC.planta_w,H=ORC.planta_h;if(!ORC.planta_url||!W||!H)throw new Error("Este projeto não tem planta/satélite de fundo.");
+    const u=await urlPlanta(ORC.planta_url);if(!u)throw new Error("Não consegui abrir a imagem de fundo.");
+    const im=await new Promise((ok,er)=>{const i=new Image();i.crossOrigin="anonymous";i.onload=()=>ok(i);i.onerror=()=>er(new Error("Não consegui carregar a imagem de fundo."));i.src=u});
+    const k=Math.min(1,2400/Math.max(W,H)),cw=Math.round(W*k),ch=Math.round(H*k);
+    const cv=document.createElement("canvas");cv.width=cw;cv.height=ch;const cx=cv.getContext("2d");cx.drawImage(im,0,0,cw,ch);
+    const sel=camSel;camSel=null;let g;try{g=renderKml({w:Math.max(1,W/820),leg})}finally{camSel=sel}
+    let lg="";if(leg){const usados=[...new Set(PTS.map(p0=>simbPonto(p0)).filter(Boolean))],linhas=[...new Set(CAM.L.flatMap((ln,li)=>ln.V.slice(0,-1).map((v,i)=>CAM.seg[`s:${li}:${i}`]||"kml")))];
+      const ww=Math.max(1,W/820),it=[];linhas.forEach(id=>{const st=LIN[id]||LIN.kml;it.push(`<line x1="0" y1="0" x2="${30*ww}" y2="0" stroke="${st.c}" stroke-width="${2.6*ww}" ${st.d?`stroke-dasharray="${st.d.split(" ").map(n=>n*ww).join(" ")}"`:""}/><text x="${40*ww}" y="${4*ww}" font-size="${11*ww}" fill="#0f2233">${esc(st.n)}</text>`)});
+      usados.forEach(id=>it.push(`<g transform="translate(${15*ww} 0)">${symG(id,0,0,1.3*ww,0)}</g><text x="${40*ww}" y="${4*ww}" font-size="${11*ww}" fill="#0f2233">${esc(SIM[id][0])}</text>`));
+      if(it.length){const rh=21*ww,bw=250*ww,bh=(it.length*rh+30*ww),x0=W-bw-14*ww,y0=H-bh-14*ww;
+        lg=`<g transform="translate(${x0} ${y0})"><rect width="${bw}" height="${bh}" rx="${6*ww}" fill="#fff" fill-opacity=".94" stroke="#9fb3c3"/><text x="${12*ww}" y="${19*ww}" font-size="${12*ww}" font-weight="700" fill="#16324a">Legenda</text>${it.map((x,i)=>`<g transform="translate(${14*ww} ${(34+i*21)*ww})">${x}</g>`).join("")}</g>`}}
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" viewBox="0 0 ${W} ${H}" font-family="Arial,Helvetica,sans-serif">${g}${lg}</svg>`;
+    const si=await new Promise((ok,er)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>er(new Error("Falha ao desenhar o traçado."));i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)});
+    cx.drawImage(si,0,0,cw,ch);
+    const blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",.9));if(!blob)throw new Error("Não consegui gerar a imagem.");
+    const path=`orcarede/propostas/${ORC.id}/kml_${Date.now()}.jpg`;const up=await sb.storage.from("negocios").upload(path,blob,{contentType:"image/jpeg",upsert:false});if(up.error)throw up.error;return urlPub(path)}
   function kmlSnap(x,y){if(!CAM.vis.kml||!CAM.L.length)return null;let best=null,bd=16/T.s;CAM.L.forEach((ln,li)=>ln.V.forEach((v,i)=>{const p=kP(v.x,v.y),d=Math.hypot(p.X-x,p.Y-y);if(d<bd){bd=d;best={li,i,X:p.X,Y:p.Y}}}));return best}
   function kmlLiga(sn,pt,np){if(!sn||!pt)return;if(!np)camPush();CAM.L[sn.li].V[sn.i].pid=pt.id;const k=`v:${sn.li}:${sn.i}`;if(CAM.simb[k]&&!CAM.simb["p:"+pt.id]){CAM.simb["p:"+pt.id]=CAM.simb[k];if(CAM.sang[k]!=null)CAM.sang["p:"+pt.id]=CAM.sang[k];delete CAM.simb[k];delete CAM.sang[k]}camSalva();renderKml();renderPins()}
   const kmlOn=()=>CAM.L.length>0;
@@ -2615,7 +2632,7 @@ async function editor(id){
       return `<label class="fld">${l}<input data-p="${p}" value="${esc(v)}" ${dis}></label>`};
     return (CURTA?FIELDS_CURTA:FIELDS).map(([id,tt,fs])=>{const on=!(d.paginas&&d.paginas[id]===false);
       return `<details class="psec" data-sec="${id}"><summary><span>${tt}</span>${CURTA||id==="capa"||id==="aceite"?"":`<label class="pon" title="Mostrar esta página na proposta"><input type="checkbox" data-pg="${id}" ${on?"checked":""} ${dis}> mostrar</label>`}</summary>
-      <div class="pbody">${fs.map(campo).join("")}<label class="fld"><span>Observação interna <small>(não aparece para o cliente)</small></span><textarea data-obs="${id}" rows="2" ${dis}>${esc((d.obs||{})[id]||"")}</textarea></label></div></details>`}).join("");
+      <div class="pbody">${id==="projeto"&&kmlOn()?`<div class="fld" style="border:1px dashed #62a8dc88;border-radius:8px;padding:8px"><span><b>Traçado do KML na imagem do projeto</b></span><small class="note">Gera a imagem com o fundo (satélite ou planta), o traçado importado, os símbolos e as legendas dos pontos, e coloca na proposta.</small><label class="pon" style="margin:6px 0"><input type="checkbox" data-kleg ${(d.projeto||{}).kmlLeg===false?"":"checked"} ${dis}> mostrar caixa de legenda</label><button class="btn" data-kmlimg="1" ${dis}>🗺 Gerar imagem com traçado e símbolos</button></div>`:""}${fs.map(campo).join("")}<label class="fld"><span>Observação interna <small>(não aparece para o cliente)</small></span><textarea data-obs="${id}" rows="2" ${dis}>${esc((d.obs||{})[id]||"")}</textarea></label></div></details>`}).join("");
   }
 
   async function propCarregar(){
@@ -2745,6 +2762,7 @@ async function editor(id){
       const keep=()=>[...F.querySelectorAll("details[open]")].map(x=>x.dataset.sec);
       const redraw=op=>{const ab=keep();desenhaProp();ab.concat(op?[op]:[]).forEach(s=>{const x=$(`[data-sec="${s}"]`);x&&(x.open=true)});mudou(op)};
       if(!b)return;
+      if(b.dataset.kmlimg){const leg=!F.querySelector("[data-kleg]")||F.querySelector("[data-kleg]").checked;b.disabled=true;toast("Gerando a imagem do projeto…");kmlComposta(leg).then(u=>{D.projeto=D.projeto||{};D.projeto.kmlLeg=leg;const sat=/^satelite/.test(String(ORC.planta_tipo||""));setv(D,sat?"projeto.sat":"projeto.planta",u);propSujo=true;redraw("projeto");setTimeout(envia,200);toast("Imagem gerada e aplicada na proposta. Clique em Salvar.")}).catch(er=>{console.error(er);b.disabled=false;toast(er.message||"Não foi possível gerar a imagem.")});return}
       if(b.dataset.fx){setv(D,b.dataset.fx,"");redraw(secDe(b));return}
       if(b.dataset.add){const arr=gp(D,b.dataset.add)||[];const mod={"resumo.stats":{n:"",l:""},"materiais.itens":{t:"",d:""},"mao.itens":{t:"",d:""},"curva.linhas":{n:"",v:0,p:0,c:"C"},"cron.parcelas":{pct:"10",valor:0,quando:""},"valores.linhas":{n:"",v:0},"curta.blocos":{t:"",itens:""},"curta.itens":{nome:"",und:"UN",qtd:1,unit:0},"curta.parcelas":{venc:"",valor:0,forma:"",obs:""}}[b.dataset.add];arr.push({...mod});setv(D,b.dataset.add,arr);propRecalc(D);redraw(secDe(b));return}
       if(b.dataset.rm){const [p,i]=b.dataset.rm.split("|");gp(D,p).splice(+i,1);propRecalc(D);redraw(secDe(b));return}
