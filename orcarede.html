@@ -2665,6 +2665,7 @@ async function editor(id){
   async function telaProposta(){
     const el=$("#full");el.innerHTML=`<div class="pload">Carregando a proposta…</div>`;
     await propCarregar();
+    if(!kmlOn())await camCarrega();
     if(!PROPOK){el.innerHTML=`<div class="pload"><b>A proposta em revista ainda não foi liberada no banco de dados.</b><br>Assim que a estrutura for criada, esta aba abre aqui, já preenchida com os dados do orçamento.</div>`;return}
     if(!PROP)PROP={orcamento_id:ORC.id,dados:propBase(),versao:1,status:"rascunho"};
     else{PROP.dados=propMerge(PROP_PADRAO,PROP.dados||{});const CUR=PROP.dados.modelo==="curta";
