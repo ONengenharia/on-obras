@@ -3158,7 +3158,7 @@ async function editor(id){
     $("#pAv")&&($("#pAv").onchange=e=>{const v=e.target.value.trim();P.valor_servico=v===""?null:pnum(v);if(P.valor_servico!=null&&M)P.pct_materiais=+(P.valor_servico/M*100).toFixed(4);P.materiais_ref=M;re()});
     $("#pB")&&($("#pB").onchange=e=>{P.lucro_pct=pnum(e.target.value);P.materiais_ref=M;re()});
     $("#pBt")&&($("#pBt").onchange=e=>{const v=e.target.value.trim();if(v==="")return;const Tt=pnum(v),S=Tt-M;if(!(S>0)){toast("O valor de venda precisa ser maior que o custo dos materiais.");re();return}
-      const R=calcula(M,S);if(!(R.T>0))return;P.lucro_pct=+(R.lucro/R.T*100).toFixed(4);P.materiais_ref=M;re()});
+      const R=calcula(M,S);if(!(R.T>0))return;P.lucro_pct=+(R.lucro/R.T*100).toFixed(8);P.materiais_ref=M;re()});
     $("#pOkRef")&&($("#pOkRef").onclick=()=>{P.materiais_ref=M;re()});
     $("#pAdd").onclick=()=>{(P.custos=P.custos||[]).push({desc:"",grupo:"Mão de obra",tipo:"mo",pessoas:1,dias:1,diaria:0});re()};
     $("#pMod").onchange=e=>{if(e.target.value!=="padrao")return;(P.custos=P.custos||[]).push(
