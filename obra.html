@@ -536,7 +536,7 @@ function renderSide(){
       const ir=async()=>{const h=await sha($("#dcPw").value.trim());if(h===H){try{sessionStorage.setItem(chave,h)}catch(_){}renderSide()}else $("#dcErr").textContent="Senha incorreta."};
       $("#dcOk").onclick=ir;$("#dcPw").onkeydown=e=>{if(e.key==="Enter")ir()};
     }else{
-      pane.innerHTML=(admEd()?`<div class="row"><span class="note">🔒 Senha do cliente nesta aba: <b>${S.docsHash?"personalizada desta obra":SENHA_DOC+" (padrão)"}</b></span><button class="lnk" id="dcSenha">${S.docsHash?"Voltar à padrão / alterar":"Usar senha própria nesta obra"}</button></div>`:"")+anexosHtml("docs","Documentações da empresa",admEd()?"Anexe alvarás, certidões, ART e outros documentos da empresa. Marque “Visível ao cliente” nos que devem aparecer no link do cliente.":"Nenhum documento disponível.");bindAnexos(pane,"docs");
+      pane.innerHTML=(admEd()?`<div class="row"><span class="note">🔒 Senha do cliente nesta aba: <b>${S.docsHash?"personalizada desta obra":SENHA_DOC+" (padrão)"}</b></span><button class="lnk" id="dcSenha">${S.docsHash?"Voltar à padrão / alterar":"Usar senha própria nesta obra"}</button></div><div class="row"><span class="note">Crie grupos (ex.: Jurídico, Técnico), renomeie e anexe os documentos dentro de cada um. Marque “Visível ao cliente” nos que devem aparecer.</span><button class="btn" id="dcNG">+ Novo grupo</button></div>`:"")+docsGruposHtml();docsGruposBind(pane);
       const sb2=$("#dcSenha");if(sb2)sb2.onclick=()=>modal("Senha da aba Documentações",[{k:"pw",label:"Nova senha (deixe em branco para voltar à padrão)",type:"text",v:""},{k:"n",type:"note",label:"Vale só para esta aba, neste link do cliente. O cliente digita a senha uma vez por sessão."}],async v=>{const t=(v.pw||"").trim();if(t)S.docsHash=await sha(t);else delete S.docsHash;touch();renderSide();toast(t?"Senha definida. Clique em Salvar.":"Voltou à senha padrão. Clique em Salvar.")});
     }
     })();
@@ -645,6 +645,38 @@ function bindAnexos(pane,key="anexos"){
         const r=await assetsNs.upload(blob,f.name);(S[key]||(S[key]=[])).push({id:uid(),nome:f.name,tam:blob.size,tipo:f.type||"",url:r.url||("/_blob/"+r.id),data:today()});ok++}
       catch(e){const c=e&&e.code;toast(f.name+": "+(c==="too_large"?"arquivo grande demais (limite 20 MB).":c==="invalid_request"||c==="unsupported_type"?"tipo de arquivo não aceito. Use PDF, imagem ou CSV; para Word/Excel, salve como PDF.":"não foi possível enviar."))}}
     if(ok){touch();renderSide();toast(ok+(ok>1?" arquivos anexados":" arquivo anexado")+". Clique em Salvar.")}};
+}
+
+/* ---------- documentos em grupos ---------- */
+function docsGruposHtml(){
+  const edit=admEd(),G=S.docsGrupos||[],D=(S.docs||[]).filter(a=>edit||a.visivel);
+  const sec=(g,lista)=>{
+    if(!edit&&!lista.length)return "";
+    const id=g?g.id:"";
+    return `<div class="mh" style="margin-top:14px"><span class="lbl">${g?"📁 "+esc(g.nome):"Sem grupo"}</span>${edit?`<span style="display:flex;gap:8px;align-items:center">${g?`<button class="lnk" data-dgr="${id}">Renomear</button><button class="lnk del" data-dgd="${id}">Excluir grupo</button>`:""}<label class="btn" style="position:relative;overflow:hidden">+ Anexar<input type="file" multiple data-dgu="${id}" style="position:absolute;inset:0;opacity:0"></label></span>`:""}</div>`
+     +(lista.length?`<div class="axl">${lista.map(a=>`<div class="ax"><span class="axi">${ficon(a.nome)}</span><button class="axn" data-axo="${a.id}">${esc(a.nome)}<small>${a.tam?fsize(a.tam):""}${a.data?" · "+fdate(a.data):""}</small></button><a class="btn" href="${esc(urlBaixar(a))}" download="${esc(a.nome)}" target="_blank" rel="noopener" title="Baixar">⬇ Baixar</a>${edit?`<select data-dgm="${a.id}" title="Mover para o grupo" style="max-width:110px"><option value="">Sem grupo</option>${G.map(x=>`<option value="${x.id}" ${x.id===a.grupo?"selected":""}>${esc(x.nome)}</option>`).join("")}</select><label class="note" style="display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox" data-axv="${a.id}" ${a.visivel?"checked":""}> Visível ao cliente</label><button class="lnk del" data-axd="${a.id}">Excluir</button>`:""}</div>`).join("")}</div>`:`<p class="empty">${edit?"Nenhum documento neste grupo.":""}</p>`);
+  };
+  const ids=new Set(G.map(g=>g.id));
+  const sem=D.filter(a=>!a.grupo||!ids.has(a.grupo));
+  const html=G.map(g=>sec(g,D.filter(a=>a.grupo===g.id))).join("")+((sem.length||(edit&&!G.length))?sec(null,sem):"");
+  return html||'<p class="empty">Nenhum documento disponível.</p>';
+}
+function docsGruposBind(pane){
+  const edit=admEd();
+  pane.querySelectorAll("[data-axo]").forEach(b=>b.onclick=()=>openAnexo((S.docs||[]).find(a=>a.id===b.dataset.axo)));
+  if(!edit)return;
+  const ng=$("#dcNG");if(ng)ng.onclick=()=>modal("Novo grupo",[{k:"nome",label:"Nome do grupo",type:"text",v:""}],v=>{const n=(v.nome||"").trim();if(!n)return;(S.docsGrupos||(S.docsGrupos=[])).push({id:uid(),nome:n});touch();renderSide()});
+  pane.querySelectorAll("[data-dgr]").forEach(b=>b.onclick=()=>{const g=S.docsGrupos.find(x=>x.id===b.dataset.dgr);modal("Renomear grupo",[{k:"nome",label:"Nome do grupo",type:"text",v:g.nome}],v=>{const n=(v.nome||"").trim();if(!n)return;g.nome=n;touch();renderSide()})});
+  pane.querySelectorAll("[data-dgd]").forEach(b=>b.onclick=()=>confirmBox("Excluir este grupo? Os documentos dele não são apagados, ficam em “Sem grupo”.",()=>{const id=b.dataset.dgd;S.docsGrupos=S.docsGrupos.filter(x=>x.id!==id);(S.docs||[]).forEach(a=>{if(a.grupo===id)delete a.grupo});touch();renderSide()}));
+  pane.querySelectorAll("[data-dgm]").forEach(sel=>sel.onchange=()=>{const a=S.docs.find(x=>x.id===sel.dataset.dgm);if(sel.value)a.grupo=sel.value;else delete a.grupo;touch();renderSide()});
+  pane.querySelectorAll("[data-axv]").forEach(c=>c.onchange=()=>{const a=S.docs.find(x=>x.id===c.dataset.axv);if(a){a.visivel=c.checked;touch();toast(c.checked?"Visível ao cliente. Clique em Salvar.":"Oculto do cliente. Clique em Salvar.")}});
+  pane.querySelectorAll("[data-axd]").forEach(b=>b.onclick=()=>confirmBox("Excluir este arquivo?",()=>{S.docs=S.docs.filter(a=>a.id!==b.dataset.axd);touch();renderSide()}));
+  pane.querySelectorAll("[data-dgu]").forEach(up=>up.onchange=async()=>{const gid=up.dataset.dgu,fs=[...up.files];up.value="";if(!fs.length)return;
+    if(!assetsNs){toast("Envio de arquivos indisponível nesta visualização.");return}
+    let ok=0;for(const f of fs){toast("Enviando "+f.name+"…");
+      try{const r=await assetsNs.upload(f,f.name);const a={id:uid(),nome:f.name,tam:f.size,tipo:f.type||"",url:r.url||("/_blob/"+r.id),data:today()};if(gid)a.grupo=gid;(S.docs||(S.docs=[])).push(a);ok++}
+      catch(e){const c=e&&e.code;toast(f.name+": "+(c==="too_large"?"arquivo grande demais (limite 20 MB).":c==="invalid_request"||c==="unsupported_type"?"tipo de arquivo não aceito. Use PDF, imagem ou CSV; para Word/Excel, salve como PDF.":"não foi possível enviar."))}}
+    if(ok){touch();renderSide();toast(ok+(ok>1?" arquivos anexados":" arquivo anexado")+". Clique em Salvar.")}});
 }
 function openAnexo(a){
   if(!a)return;
