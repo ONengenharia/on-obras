@@ -2501,9 +2501,15 @@ async function editor(id){
     const mdE=modal(`<h2>Editar material da base</h2><p class="note">Vale para a base geral e todos os orçamentos. <button type="button" class="btn sm" id="mDup" title="Cria outro item na base, copiando este (ex.: versão em alumínio)">⧉ Duplicar como novo material</button></p>
       <label class="fld">Código<input name="cod" value="${esc(cod)}" readonly style="opacity:.7" title="Para trocar o código use Configurações → Materiais → Duplicados/Unificar"></label>
       <label class="fld">Nome<input name="nome" required value="${esc(m.nome)}"></label>
-      <div class="grid2"><label class="fld">Unidade${unSel(m.unidade)}</label><label class="fld">Subgrupo<select name="sub"><option value="">—</option>${SB.map(x=>`<option ${m.subgrupo===x.nome?"selected":""}>${esc(x.nome)}</option>`).join("")}</select></label></div>`,
-      async f=>{const up={nome:f.nome.trim(),unidade:(f.unidade||"").trim()||null,subgrupo:f.sub||null,atualizado_em:new Date().toISOString()};
-        await chk(O.from("materiais").update(up).eq("codigo",cod));Object.assign(m,up);const mm=MATS.find(x=>x.codigo===cod);mm&&Object.assign(mm,up);toast("Material atualizado na base.");renderHead();telaMateriais()},"Salvar");
+      <div class="grid2"><label class="fld">Unidade${unSel(m.unidade)}</label><label class="fld">Subgrupo<select name="sub"><option value="">—</option>${SB.map(x=>`<option ${m.subgrupo===x.nome?"selected":""}>${esc(x.nome)}</option>`).join("")}</select></label></div>
+      <div class="grid2"><label class="fld">Preço unitário na base (R$)<input name="preco" inputmode="decimal" value="${PV[cod]?num(+PV[cod].valor,4):""}" placeholder="sem preço"></label><label class="fld">Fornecedor <small>(opcional)</small><input name="forn" placeholder="ex.: Santa Clara"></label></div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" name="aplic" value="1" checked style="width:auto"> Aplicar o novo preço também neste orçamento</label>`,
+      async f=>{const novoP=pnum(f.preco),atualP=PV[cod]?+PV[cod].valor:null,mudouP=f.preco!==""&&novoP>0&&(atualP==null||Math.abs(novoP-atualP)>0.00001);
+        if(mudouP){await chk(O.from("precos").insert({material_codigo:cod,valor:novoP,data:new Date().toISOString().slice(0,10),origem:"manual",fornecedor:(f.forn||"").trim()||null,criado_por:perfil.id}));await recarregaPV();
+          if(f.aplic){if(ORC.modo_preco==="travado"){await chk(O.from("orc_precos").upsert({orcamento_id:ORC.id,material_codigo:cod,preco_unit:novoP,manual:false}));OP[cod]={v:novoP,manual:false};try{VIG[cod]=novoP}catch(_){}}
+            else{await chk(O.from("orc_precos").delete().eq("orcamento_id",ORC.id).eq("material_codigo",cod));delete OP[cod]}}}
+        const up={nome:f.nome.trim(),unidade:(f.unidade||"").trim()||null,subgrupo:f.sub||null,atualizado_em:new Date().toISOString()};
+        await chk(O.from("materiais").update(up).eq("codigo",cod));Object.assign(m,up);const mm=MATS.find(x=>x.codigo===cod);mm&&Object.assign(mm,up);toast(mudouP?"Material e preço atualizados na base.":"Material atualizado na base.");renderHead();telaMateriais()},"Salvar");
     const dup=mdE&&mdE.querySelector("#mDup");if(dup)dup.onclick=()=>{mdE.remove();duplicaMat(cod,SB)}}
   function duplicaMat(cod,SB){const m=MAT[cod];const nomes=SB.map(x=>x.nome);const sug="FERRAGEM DE ALUMÍNIO";const jaTem=nomes.some(n=>norm(n)===norm(sug));
     const mdN=modal(`<h2>Duplicar material</h2><p class="note">Cria um <b>item novo</b> na base, copiado de “${esc(m.nome)}”. O preço do novo você lança depois, na cotação.</p>
